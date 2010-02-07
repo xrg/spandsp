@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.297 2009/04/30 15:04:20 steveu Exp $
+ * $Id: t30.c,v 1.298 2009/04/30 18:46:14 steveu Exp $
  */
 
 /*! \file */
@@ -5973,6 +5973,13 @@ SPAN_DECLARE(int) t30_restart(t30_state_t *s)
     s->far_dis_dtc_len = 0;
     memset(&s->far_dis_dtc_frame, 0, sizeof(s->far_dis_dtc_frame));
     t30_build_dis_or_dtc(s);
+    memset(&s->rx_info, 0, sizeof(s->rx_info));
+    release_resources(s);
+    /* The ECM page number is only reset at call establishment */
+    s->ecm_rx_page = 0;
+    s->ecm_tx_page = 0;
+    s->far_end_detected = FALSE;
+    s->timer_t0_t1 = ms_to_samples(DEFAULT_TIMER_T0);
     if (s->calling_party)
     {
         set_state(s, T30_STATE_T);
@@ -5983,13 +5990,6 @@ SPAN_DECLARE(int) t30_restart(t30_state_t *s)
         set_state(s, T30_STATE_ANSWERING);
         set_phase(s, T30_PHASE_A_CED);
     }
-    memset(&s->rx_info, 0, sizeof(s->rx_info));
-    s->far_end_detected = FALSE;
-    s->timer_t0_t1 = ms_to_samples(DEFAULT_TIMER_T0);
-    release_resources(s);
-    /* The ECM page number is only reset at call establishment */
-    s->ecm_rx_page = 0;
-    s->ecm_tx_page = 0;
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
