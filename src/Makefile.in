@@ -265,6 +265,7 @@ EXTRA_DIST = floating_fudge.h \
              libspandsp.dsp \
              libspandsp.sln \
              libspandsp.vcproj \
+             msvc/config.h \
              msvc/gettimeofday.c \
              msvc/inttypes.h \
              msvc/tgmath.h \
@@ -497,7 +498,7 @@ make_modem_filter_SOURCES = make_modem_filter.c \
 
 DSP = libspandsp.dsp
 VCPROJ = libspandsp.vcproj
-WIN32SOURCES = $(libspandsp_la_SOURCES) msvc/gettimeofday.c
+WIN32SOURCES = $(libspandsp_la_SOURCES) .\\msvc\\gettimeofday.c
 WIN32HEADERS = $(nobase_include_HEADERS) spandsp.h
 DSPOUT = | awk '{printf("%s\r\n", $$0)}' >> $(DSP)
 VCPROJOUT = | awk '{printf("%s\r\n", $$0)}' >> $(VCPROJ)
