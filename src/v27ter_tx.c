@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.c,v 1.62 2008/05/13 13:17:24 steveu Exp $
+ * $Id: v27ter_tx.c,v 1.63 2008/07/02 14:48:26 steveu Exp $
  */
 
 /*! \file */
@@ -35,6 +35,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
@@ -283,7 +284,7 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len)
             /* Now create and modulate the carrier */
             z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
             /* Don't bother saturating. We should never clip. */
-            amp[sample] = (int16_t) rintf((x.re*z.re - x.im*z.im)*s->gain_4800);
+            amp[sample] = (int16_t) lrintf((x.re*z.re - x.im*z.im)*s->gain_4800);
 #endif
         }
     }
@@ -324,7 +325,7 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len)
             /* Now create and modulate the carrier */
             z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
             /* Don't bother saturating. We should never clip. */
-            amp[sample] = (int16_t) rintf((x.re*z.re - x.im*z.im)*s->gain_2400);
+            amp[sample] = (int16_t) lrintf((x.re*z.re - x.im*z.im)*s->gain_2400);
 #endif
         }
     }

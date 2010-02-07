@@ -28,7 +28,7 @@
  * Computer Science, Speech Group
  * Chengxiang Lu and Alex Hauptmann
  *
- * $Id: g722_encode.c,v 1.21 2008/05/13 13:17:22 steveu Exp $
+ * $Id: g722_encode.c,v 1.22 2008/07/02 14:48:25 steveu Exp $
  */
 
 /*! \file */
@@ -40,6 +40,7 @@
 #include <inttypes.h>
 #include <memory.h>
 #include <stdlib.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

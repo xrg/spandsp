@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.54 2008/06/30 19:00:02 steveu Exp $
+# $Id: configure.ac,v 1.55 2008/07/02 14:48:25 steveu Exp $
 
 # @start 1
 
@@ -132,6 +132,16 @@ AC_FUNC_SELECT_ARGTYPES
 
 AX_C99_FUNC_LRINT
 AX_C99_FUNC_LRINTF
+AX_C99_FUNC_LLRINT
+AX_C99_FUNC_LLRINTF
+
+if test "x$ac_cv_c99_lrint" = "xno" ; then
+    if test "x$ac_cv_c99_lrintf" = "xno" ; then
+        AC_MSG_WARN([[*** Missing C99 standard functions lrint() and lrintf().]])
+        AC_MSG_WARN([[*** This may cause benign compiler warnings on some systems (ie Solaris).]])
+    fi
+fi
+
 AX_C99_FLEXIBLE_ARRAY
 
 AC_CHECK_FUNCS([memmove])
@@ -227,13 +237,20 @@ then
 fi
 
 AC_CHECK_LIB([m], [cos])
-AC_SEARCH_LIBS([powf], [m])
-AC_SEARCH_LIBS([log10f], [m])
-AC_SEARCH_LIBS([cosf], [m])
-AC_SEARCH_LIBS([sinf], [m])
-AC_SEARCH_LIBS([sinf], [m])
-AC_SEARCH_LIBS([rint], [m])
-AC_SEARCH_LIBS([rintf], [m])
+# Some platforms still seem to lack the basic single precision trig and power related function.
+AC_SEARCH_LIBS([sinf], [m], AC_DEFINE([HAVE_SINF], [1], [Define to 1 if you have the sinf() function.]))
+AC_SEARCH_LIBS([cosf], [m], AC_DEFINE([HAVE_COSF], [1], [Define to 1 if you have the cosf() function.]))
+AC_SEARCH_LIBS([tanf], [m], AC_DEFINE([HAVE_TANF], [1], [Define to 1 if you have the tanf() function.]))
+AC_SEARCH_LIBS([asinf], [m], AC_DEFINE([HAVE_ASINF], [1], [Define to 1 if you have the asinf() function.]))
+AC_SEARCH_LIBS([acosf], [m], AC_DEFINE([HAVE_ACOSF], [1], [Define to 1 if you have the acosf() function.]))
+AC_SEARCH_LIBS([atanf], [m], AC_DEFINE([HAVE_ATANF], [1], [Define to 1 if you have the atanf() function.]))
+AC_SEARCH_LIBS([atan2f], [m], AC_DEFINE([HAVE_ATAN2F], [1], [Define to 1 if you have the atan2f() function.]))
+AC_SEARCH_LIBS([ceilf], [m], AC_DEFINE([HAVE_CEILF], [1], [Define to 1 if you have the ceilf() function.]))
+AC_SEARCH_LIBS([floorf], [m], AC_DEFINE([HAVE_FLOORF], [1], [Define to 1 if you have the floorf() function.]))
+AC_SEARCH_LIBS([powf], [m], AC_DEFINE([HAVE_POWF], [1], [Define to 1 if you have the powf() function.]))
+AC_SEARCH_LIBS([expf], [m], AC_DEFINE([HAVE_EXPF], [1], [Define to 1 if you have the expf() function.]))
+AC_SEARCH_LIBS([logf], [m], AC_DEFINE([HAVE_LOGF], [1], [Define to 1 if you have the logf() function.]))
+AC_SEARCH_LIBS([log10f], [m], AC_DEFINE([HAVE_LOG10F], [1], [Define to 1 if you have the log10f() function.]))
 
 if test "${build}" == "${host}"
 then

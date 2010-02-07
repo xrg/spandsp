@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.c,v 1.23 2008/05/14 15:41:24 steveu Exp $
+ * $Id: modem_connect_tones.c,v 1.24 2008/07/02 14:48:25 steveu Exp $
  */
  
 /*! \file */
@@ -35,6 +35,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <memory.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
@@ -292,7 +293,7 @@ static void v21_put_bit(void *user_data, int bit)
                     s->flags_seen = 0;
                 if (++s->flags_seen >= HDLC_FRAMING_OK_THRESHOLD  &&  !s->framing_ok_announced)
                 {
-                    report_tone_state(s, MODEM_CONNECT_TONES_FAX_PREAMBLE, rintf(fsk_rx_signal_power(&(s->v21rx))));
+                    report_tone_state(s, MODEM_CONNECT_TONES_FAX_PREAMBLE, lrintf(fsk_rx_signal_power(&(s->v21rx))));
                     s->framing_ok_announced = TRUE;
                 }
             }
@@ -332,7 +333,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
             famp = v1 - 1.2994747954630f*s->z1 + s->z2;
             s->z2 = s->z1;
             s->z1 = v1;
-            notched = (int16_t) rintf(famp);
+            notched = (int16_t) lrintf(famp);
 
             /* Estimate the overall energy in the channel, and the energy in
                the notch (i.e. overall channel energy - tone energy => noise).
@@ -345,7 +346,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                 if (s->tone_present != MODEM_CONNECT_TONES_FAX_CNG)
                 {
                     if (++s->tone_cycle_duration >= ms_to_samples(415))
-                        report_tone_state(s, MODEM_CONNECT_TONES_FAX_CNG, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
+                        report_tone_state(s, MODEM_CONNECT_TONES_FAX_CNG, lrintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
                 }
             }
             else
@@ -378,7 +379,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
             famp = v1 + 0.1567596f*s->z1 + s->z2;
             s->z2 = s->z1;
             s->z1 = v1;
-            notched = (int16_t) rintf(famp);
+            notched = (int16_t) lrintf(famp);
             /* Estimate the overall energy in the channel, and the energy in
                the notch (i.e. overall channel energy - tone energy => noise).
                Use abs instead of multiply for speed (is it really faster?).
@@ -410,7 +411,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                     if (s->tone_present != MODEM_CONNECT_TONES_FAX_CNG)
                     {
                         if (++s->tone_cycle_duration >= ms_to_samples(500))
-                            report_tone_state(s, MODEM_CONNECT_TONES_FAX_CED, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
+                            report_tone_state(s, MODEM_CONNECT_TONES_FAX_CED, lrintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
                         s->tone_on = TRUE;
                     }
                 }
@@ -422,7 +423,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                         if (s->tone_cycle_duration >= ms_to_samples(450 - 25))
                         {
                             if (++s->good_cycles == 3)
-                                report_tone_state(s, MODEM_CONNECT_TONES_ANS_PR, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
+                                report_tone_state(s, MODEM_CONNECT_TONES_ANS_PR, lrintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
                         }
                         else
                         {

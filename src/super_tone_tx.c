@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.c,v 1.24 2008/05/13 13:17:23 steveu Exp $
+ * $Id: super_tone_tx.c,v 1.25 2008/07/02 14:48:26 steveu Exp $
  */
 
 /*! \file */
@@ -38,6 +38,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <inttypes.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
@@ -189,7 +190,7 @@ int super_tone_tx(super_tone_tx_state_t *s, int16_t amp[], int max_samples)
                     /* There must be two, and only two tones */
                     xamp = dds_modf(&s->phase[0], -s->tone[0].phase_rate, s->tone[0].gain, 0)
                          *(1.0f + dds_modf(&s->phase[1], s->tone[1].phase_rate, s->tone[1].gain, 0));
-                    amp[samples] = (int16_t) rintf(xamp);
+                    amp[samples] = (int16_t) lrintf(xamp);
                 }
             }
             else
@@ -203,7 +204,7 @@ int super_tone_tx(super_tone_tx_state_t *s, int16_t amp[], int max_samples)
                             break;
                         xamp += dds_modf(&s->phase[i], s->tone[i].phase_rate, s->tone[i].gain, 0);
                     }
-                    amp[samples] = (int16_t) rintf(xamp);
+                    amp[samples] = (int16_t) lrintf(xamp);
                 }
             }
             if (s->current_position)

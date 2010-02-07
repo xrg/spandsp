@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.c,v 1.28 2008/06/13 14:46:52 steveu Exp $
+ * $Id: bell_r2_mf.c,v 1.29 2008/07/02 14:48:25 steveu Exp $
  */
 
 /*! \file */
@@ -36,6 +36,7 @@
 #include <string.h>
 #include <time.h>
 #include <fcntl.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

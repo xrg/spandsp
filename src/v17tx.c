@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.c,v 1.60 2008/06/16 13:35:48 steveu Exp $
+ * $Id: v17tx.c,v 1.61 2008/07/02 14:48:26 steveu Exp $
  */
 
 /*! \file */
@@ -35,6 +35,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
@@ -289,7 +290,7 @@ int v17_tx(v17_tx_state_t *s, int16_t amp[], int len)
         /* Now create and modulate the carrier */
         z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
         /* Don't bother saturating. We should never clip. */
-        amp[sample] = (int16_t) rintf((x.re*z.re - x.im*z.im)*s->gain);
+        amp[sample] = (int16_t) lrintf((x.re*z.re - x.im*z.im)*s->gain);
 #endif
     }
     return sample;

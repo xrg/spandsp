@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.119 2008/05/13 13:17:24 steveu Exp $
+ * $Id: v29rx.c,v 1.120 2008/07/02 14:48:26 steveu Exp $
  */
 
 /*! \file */
@@ -35,6 +35,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

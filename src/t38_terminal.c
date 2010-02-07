@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.94 2008/06/30 16:48:30 steveu Exp $
+ * $Id: t38_terminal.c,v 1.95 2008/07/02 14:48:26 steveu Exp $
  */
 
 /*! \file */
@@ -38,6 +38,7 @@
 #include <time.h>
 #include <string.h>
 #include <malloc.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

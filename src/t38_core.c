@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.c,v 1.43 2008/06/19 13:27:45 steveu Exp $
+ * $Id: t38_core.c,v 1.44 2008/07/02 14:48:26 steveu Exp $
  */
 
 /*! \file */
@@ -37,6 +37,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <string.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

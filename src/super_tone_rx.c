@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.c,v 1.27 2008/06/13 14:46:52 steveu Exp $
+ * $Id: super_tone_rx.c,v 1.28 2008/07/02 14:48:26 steveu Exp $
  */
 
 /*! \file */
@@ -38,6 +38,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <inttypes.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

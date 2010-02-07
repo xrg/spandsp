@@ -24,7 +24,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.110 2008/06/16 13:56:06 steveu Exp $
+ * $Id: t4.c,v 1.111 2008/07/02 14:48:26 steveu Exp $
  */
 
 /*
@@ -72,6 +72,7 @@
 #include <time.h>
 #include <memory.h>
 #include <string.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

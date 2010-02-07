@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.110 2008/06/30 16:48:30 steveu Exp $
+ * $Id: t31.c,v 1.111 2008/07/02 14:48:26 steveu Exp $
  */
 
 /*! \file */
@@ -43,6 +43,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <malloc.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

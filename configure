@@ -2144,8 +2144,8 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 # @synopsis AX_C99_FLEXIBLE_ARRAY
 #
-# Does the compiler support the 1999 ISO C Standard "steuct hack".
-# @version 1.1	Mar 15 2004
+# Does the compiler support the 1999 ISO C Standard "struct hack".
+# @version 1.1    Mar 15 2004
 # @author Erik de Castro Lopo <erikd AT mega-nerd DOT com>
 #
 # Permission to use, copy, modify, distribute, and sell this file for any
@@ -2159,7 +2159,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 # @synopsis AX_C99_FUNC_LRINT
 #
 # Check whether C99's lrint function is available.
-# @version 1.3	Feb 12 2002
+# @version 1.3    Feb 12 2002
 # @author Erik de Castro Lopo <erikd AT mega-nerd DOT com>
 #
 # Permission to use, copy, modify, distribute, and sell this file for any
@@ -2173,7 +2173,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 # @synopsis AX_C99_FUNC_LRINTF
 #
 # Check whether C99's lrintf function is available.
-# @version 1.3	Feb 12 2002
+# @version 1.3    Feb 12 2002
 # @author Erik de Castro Lopo <erikd AT mega-nerd DOT com>
 #
 # Permission to use, copy, modify, distribute, and sell this file for any
@@ -2187,7 +2187,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 # @synopsis AX_C99_FUNC_LLRINT
 #
 # Check whether C99's llrint function is available.
-# @version 1.1	Sep 30 2002
+# @version 1.1    Sep 30 2002
 # @author Erik de Castro Lopo <erikd AT mega-nerd DOT com>
 #
 # Permission to use, copy, modify, distribute, and sell this file for any
@@ -2197,6 +2197,21 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 # provided "as is" without express or implied warranty.
 #
 # AX_C99_FUNC_LLRINT
+
+
+# @synopsis AX_C99_FUNC_LLRINTF
+#
+# Check whether C99's llrintf function is available.
+# @version 1.1    Sep 30 2002
+# @author Erik de Castro Lopo <erikd AT mega-nerd DOT com>
+#
+# Permission to use, copy, modify, distribute, and sell this file for any
+# purpose is hereby granted without fee, provided that the above copyright
+# and this permission notice appear in all copies.  No representations are
+# made about the suitability of this software for any purpose.  It is
+# provided "as is" without express or implied warranty.
+#
+# AX_C99_FUNC_LLRINTF
 
 
 SPANDSP_MAJOR_VERSION=0
@@ -5393,7 +5408,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5396 "configure"' > conftest.$ac_ext
+  echo '#line 5411 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7777,11 +7792,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7780: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7795: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7784: \$? = $ac_status" >&5
+   echo "$as_me:7799: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8067,11 +8082,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8070: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8085: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:8074: \$? = $ac_status" >&5
+   echo "$as_me:8089: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8171,11 +8186,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8174: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8189: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8178: \$? = $ac_status" >&5
+   echo "$as_me:8193: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10573,7 +10588,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 10576 "configure"
+#line 10591 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10673,7 +10688,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 10676 "configure"
+#line 10691 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -13082,11 +13097,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:13085: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:13100: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:13089: \$? = $ac_status" >&5
+   echo "$as_me:13104: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -13186,11 +13201,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:13189: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:13204: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:13193: \$? = $ac_status" >&5
+   echo "$as_me:13208: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -14771,11 +14786,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14774: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14789: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14778: \$? = $ac_status" >&5
+   echo "$as_me:14793: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -14875,11 +14890,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14878: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14893: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14882: \$? = $ac_status" >&5
+   echo "$as_me:14897: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -17092,11 +17107,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17095: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17110: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:17099: \$? = $ac_status" >&5
+   echo "$as_me:17114: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -17382,11 +17397,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17385: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17400: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:17389: \$? = $ac_status" >&5
+   echo "$as_me:17404: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -17486,11 +17501,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17489: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17504: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:17493: \$? = $ac_status" >&5
+   echo "$as_me:17508: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -22703,10 +22718,10 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-#define		_ISOC9X_SOURCE	1
-#define 	_ISOC99_SOURCE	1
-#define		__USE_ISOC99	1
-#define 	__USE_ISOC9X	1
+#define _ISOC9X_SOURCE  1
+#define _ISOC99_SOURCE  1
+#define __USE_ISOC99    1
+#define __USE_ISOC9X    1
 
 #include <math.h>
 
@@ -22779,10 +22794,10 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-#define		_ISOC9X_SOURCE	1
-#define 	_ISOC99_SOURCE	1
-#define		__USE_ISOC99	1
-#define 	__USE_ISOC9X	1
+#define _ISOC9X_SOURCE  1
+#define _ISOC99_SOURCE  1
+#define __USE_ISOC99    1
+#define __USE_ISOC9X    1
 
 #include <math.h>
 
@@ -22839,6 +22854,162 @@ _ACEOF
 
 fi
 
+{ $as_echo "$as_me:$LINENO: checking for llrint" >&5
+$as_echo_n "checking for llrint... " >&6; }
+if test "${ac_cv_c99_llrint+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+#define ISOC9X_SOURCE   1
+#define _ISOC99_SOURCE  1
+#define __USE_ISOC99    1
+#define __USE_ISOC9X    1
+
+#include <math.h>
+
+int
+main ()
+{
+long long int x ; x = llrint(3.14159) ;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_c99_llrint=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_c99_llrint=no
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_c99_llrint" >&5
+$as_echo "$ac_cv_c99_llrint" >&6; }
+
+if test "$ac_cv_c99_llrint" = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_LLRINT 1
+_ACEOF
+
+fi
+
+{ $as_echo "$as_me:$LINENO: checking for llrintf" >&5
+$as_echo_n "checking for llrintf... " >&6; }
+if test "${ac_cv_c99_llrintf+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+#define _ISOC9X_SOURCE  1
+#define _ISOC99_SOURCE  1
+#define __USE_ISOC99    1
+#define __USE_ISOC9X    1
+
+#include <math.h>
+
+int
+main ()
+{
+long long int x ; x = llrintf(3.14159) ;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_c99_llrintf=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_c99_llrintf=no
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_c99_llrintf" >&5
+$as_echo "$ac_cv_c99_llrintf" >&6; }
+
+if test "$ac_cv_c99_llrintf" = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_LLRINTF 1
+_ACEOF
+
+fi
+
+
+if test "x$ac_cv_c99_lrint" = "xno" ; then
+    if test "x$ac_cv_c99_lrintf" = "xno" ; then
+        { $as_echo "$as_me:$LINENO: WARNING: *** Missing C99 standard functions lrint() and lrintf()." >&5
+$as_echo "$as_me: WARNING: *** Missing C99 standard functions lrint() and lrintf()." >&2;}
+        { $as_echo "$as_me:$LINENO: WARNING: *** This may cause benign compiler warnings on some systems (ie Solaris)." >&5
+$as_echo "$as_me: WARNING: *** This may cause benign compiler warnings on some systems (ie Solaris)." >&2;}
+    fi
+fi
+
 { $as_echo "$as_me:$LINENO: checking C99 struct flexible array support" >&5
 $as_echo_n "checking C99 struct flexible array support... " >&6; }
 if test "${ac_cv_c99_flexible_array+set}" = set; then
@@ -22854,11 +23025,12 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-	#include <stdlib.h>
-	typedef struct {
-	int k;
-	char buffer [] ;
-	} MY_STRUCT ;
+    #include <stdlib.h>
+
+    typedef struct {
+    int k;
+    char buffer [] ;
+    } MY_STRUCT ;
 
 int
 main ()
@@ -29096,9 +29268,10 @@ _ACEOF
 
 fi
 
-{ $as_echo "$as_me:$LINENO: checking for library containing powf" >&5
-$as_echo_n "checking for library containing powf... " >&6; }
-if test "${ac_cv_search_powf+set}" = set; then
+# Some platforms still seem to lack the basic single precision trig and power related function.
+{ $as_echo "$as_me:$LINENO: checking for library containing sinf" >&5
+$as_echo_n "checking for library containing sinf... " >&6; }
+if test "${ac_cv_search_sinf+set}" = set; then
   $as_echo_n "(cached) " >&6
 else
   ac_func_search_save_LIBS=$LIBS
@@ -29115,11 +29288,11 @@ cat >>conftest.$ac_ext <<_ACEOF
 #ifdef __cplusplus
 extern "C"
 #endif
-char powf ();
+char sinf ();
 int
 main ()
 {
-return powf ();
+return sinf ();
   ;
   return 0;
 }
@@ -29152,7 +29325,7 @@ $as_echo "$ac_try_echo") >&5
 	 test "$cross_compiling" = yes ||
 	 $as_test_x conftest$ac_exeext
        }; then
-  ac_cv_search_powf=$ac_res
+  ac_cv_search_sinf=$ac_res
 else
   $as_echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
@@ -29163,110 +29336,27 @@ fi
 rm -rf conftest.dSYM
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext
-  if test "${ac_cv_search_powf+set}" = set; then
+  if test "${ac_cv_search_sinf+set}" = set; then
   break
 fi
 done
-if test "${ac_cv_search_powf+set}" = set; then
+if test "${ac_cv_search_sinf+set}" = set; then
   :
 else
-  ac_cv_search_powf=no
+  ac_cv_search_sinf=no
 fi
 rm conftest.$ac_ext
 LIBS=$ac_func_search_save_LIBS
 fi
-{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_powf" >&5
-$as_echo "$ac_cv_search_powf" >&6; }
-ac_res=$ac_cv_search_powf
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_sinf" >&5
+$as_echo "$ac_cv_search_sinf" >&6; }
+ac_res=$ac_cv_search_sinf
 if test "$ac_res" != no; then
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
 
-fi
-
-{ $as_echo "$as_me:$LINENO: checking for library containing log10f" >&5
-$as_echo_n "checking for library containing log10f... " >&6; }
-if test "${ac_cv_search_log10f+set}" = set; then
-  $as_echo_n "(cached) " >&6
-else
-  ac_func_search_save_LIBS=$LIBS
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_SINF 1
 _ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char log10f ();
-int
-main ()
-{
-return log10f ();
-  ;
-  return 0;
-}
-_ACEOF
-for ac_lib in '' m; do
-  if test -z "$ac_lib"; then
-    ac_res="none required"
-  else
-    ac_res=-l$ac_lib
-    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
-  fi
-  rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
-$as_echo "$ac_try_echo") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext && {
-	 test "$cross_compiling" = yes ||
-	 $as_test_x conftest$ac_exeext
-       }; then
-  ac_cv_search_log10f=$ac_res
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-fi
-
-rm -rf conftest.dSYM
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext
-  if test "${ac_cv_search_log10f+set}" = set; then
-  break
-fi
-done
-if test "${ac_cv_search_log10f+set}" = set; then
-  :
-else
-  ac_cv_search_log10f=no
-fi
-rm conftest.$ac_ext
-LIBS=$ac_func_search_save_LIBS
-fi
-{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_log10f" >&5
-$as_echo "$ac_cv_search_log10f" >&6; }
-ac_res=$ac_cv_search_log10f
-if test "$ac_res" != no; then
-  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
 
 fi
 
@@ -29355,11 +29445,15 @@ ac_res=$ac_cv_search_cosf
 if test "$ac_res" != no; then
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
 
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_COSF 1
+_ACEOF
+
 fi
 
-{ $as_echo "$as_me:$LINENO: checking for library containing sinf" >&5
-$as_echo_n "checking for library containing sinf... " >&6; }
-if test "${ac_cv_search_sinf+set}" = set; then
+{ $as_echo "$as_me:$LINENO: checking for library containing tanf" >&5
+$as_echo_n "checking for library containing tanf... " >&6; }
+if test "${ac_cv_search_tanf+set}" = set; then
   $as_echo_n "(cached) " >&6
 else
   ac_func_search_save_LIBS=$LIBS
@@ -29376,11 +29470,11 @@ cat >>conftest.$ac_ext <<_ACEOF
 #ifdef __cplusplus
 extern "C"
 #endif
-char sinf ();
+char tanf ();
 int
 main ()
 {
-return sinf ();
+return tanf ();
   ;
   return 0;
 }
@@ -29413,7 +29507,7 @@ $as_echo "$ac_try_echo") >&5
 	 test "$cross_compiling" = yes ||
 	 $as_test_x conftest$ac_exeext
        }; then
-  ac_cv_search_sinf=$ac_res
+  ac_cv_search_tanf=$ac_res
 else
   $as_echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
@@ -29424,29 +29518,33 @@ fi
 rm -rf conftest.dSYM
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext
-  if test "${ac_cv_search_sinf+set}" = set; then
+  if test "${ac_cv_search_tanf+set}" = set; then
   break
 fi
 done
-if test "${ac_cv_search_sinf+set}" = set; then
+if test "${ac_cv_search_tanf+set}" = set; then
   :
 else
-  ac_cv_search_sinf=no
+  ac_cv_search_tanf=no
 fi
 rm conftest.$ac_ext
 LIBS=$ac_func_search_save_LIBS
 fi
-{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_sinf" >&5
-$as_echo "$ac_cv_search_sinf" >&6; }
-ac_res=$ac_cv_search_sinf
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_tanf" >&5
+$as_echo "$ac_cv_search_tanf" >&6; }
+ac_res=$ac_cv_search_tanf
 if test "$ac_res" != no; then
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
 
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_TANF 1
+_ACEOF
+
 fi
 
-{ $as_echo "$as_me:$LINENO: checking for library containing sinf" >&5
-$as_echo_n "checking for library containing sinf... " >&6; }
-if test "${ac_cv_search_sinf+set}" = set; then
+{ $as_echo "$as_me:$LINENO: checking for library containing asinf" >&5
+$as_echo_n "checking for library containing asinf... " >&6; }
+if test "${ac_cv_search_asinf+set}" = set; then
   $as_echo_n "(cached) " >&6
 else
   ac_func_search_save_LIBS=$LIBS
@@ -29463,11 +29561,11 @@ cat >>conftest.$ac_ext <<_ACEOF
 #ifdef __cplusplus
 extern "C"
 #endif
-char sinf ();
+char asinf ();
 int
 main ()
 {
-return sinf ();
+return asinf ();
   ;
   return 0;
 }
@@ -29500,7 +29598,7 @@ $as_echo "$ac_try_echo") >&5
 	 test "$cross_compiling" = yes ||
 	 $as_test_x conftest$ac_exeext
        }; then
-  ac_cv_search_sinf=$ac_res
+  ac_cv_search_asinf=$ac_res
 else
   $as_echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
@@ -29511,29 +29609,33 @@ fi
 rm -rf conftest.dSYM
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext
-  if test "${ac_cv_search_sinf+set}" = set; then
+  if test "${ac_cv_search_asinf+set}" = set; then
   break
 fi
 done
-if test "${ac_cv_search_sinf+set}" = set; then
+if test "${ac_cv_search_asinf+set}" = set; then
   :
 else
-  ac_cv_search_sinf=no
+  ac_cv_search_asinf=no
 fi
 rm conftest.$ac_ext
 LIBS=$ac_func_search_save_LIBS
 fi
-{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_sinf" >&5
-$as_echo "$ac_cv_search_sinf" >&6; }
-ac_res=$ac_cv_search_sinf
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_asinf" >&5
+$as_echo "$ac_cv_search_asinf" >&6; }
+ac_res=$ac_cv_search_asinf
 if test "$ac_res" != no; then
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
 
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_ASINF 1
+_ACEOF
+
 fi
 
-{ $as_echo "$as_me:$LINENO: checking for library containing rint" >&5
-$as_echo_n "checking for library containing rint... " >&6; }
-if test "${ac_cv_search_rint+set}" = set; then
+{ $as_echo "$as_me:$LINENO: checking for library containing acosf" >&5
+$as_echo_n "checking for library containing acosf... " >&6; }
+if test "${ac_cv_search_acosf+set}" = set; then
   $as_echo_n "(cached) " >&6
 else
   ac_func_search_save_LIBS=$LIBS
@@ -29550,11 +29652,11 @@ cat >>conftest.$ac_ext <<_ACEOF
 #ifdef __cplusplus
 extern "C"
 #endif
-char rint ();
+char acosf ();
 int
 main ()
 {
-return rint ();
+return acosf ();
   ;
   return 0;
 }
@@ -29587,7 +29689,7 @@ $as_echo "$ac_try_echo") >&5
 	 test "$cross_compiling" = yes ||
 	 $as_test_x conftest$ac_exeext
        }; then
-  ac_cv_search_rint=$ac_res
+  ac_cv_search_acosf=$ac_res
 else
   $as_echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
@@ -29598,29 +29700,33 @@ fi
 rm -rf conftest.dSYM
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext
-  if test "${ac_cv_search_rint+set}" = set; then
+  if test "${ac_cv_search_acosf+set}" = set; then
   break
 fi
 done
-if test "${ac_cv_search_rint+set}" = set; then
+if test "${ac_cv_search_acosf+set}" = set; then
   :
 else
-  ac_cv_search_rint=no
+  ac_cv_search_acosf=no
 fi
 rm conftest.$ac_ext
 LIBS=$ac_func_search_save_LIBS
 fi
-{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_rint" >&5
-$as_echo "$ac_cv_search_rint" >&6; }
-ac_res=$ac_cv_search_rint
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_acosf" >&5
+$as_echo "$ac_cv_search_acosf" >&6; }
+ac_res=$ac_cv_search_acosf
 if test "$ac_res" != no; then
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
 
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_ACOSF 1
+_ACEOF
+
 fi
 
-{ $as_echo "$as_me:$LINENO: checking for library containing rintf" >&5
-$as_echo_n "checking for library containing rintf... " >&6; }
-if test "${ac_cv_search_rintf+set}" = set; then
+{ $as_echo "$as_me:$LINENO: checking for library containing atanf" >&5
+$as_echo_n "checking for library containing atanf... " >&6; }
+if test "${ac_cv_search_atanf+set}" = set; then
   $as_echo_n "(cached) " >&6
 else
   ac_func_search_save_LIBS=$LIBS
@@ -29637,11 +29743,11 @@ cat >>conftest.$ac_ext <<_ACEOF
 #ifdef __cplusplus
 extern "C"
 #endif
-char rintf ();
+char atanf ();
 int
 main ()
 {
-return rintf ();
+return atanf ();
   ;
   return 0;
 }
@@ -29674,7 +29780,7 @@ $as_echo "$ac_try_echo") >&5
 	 test "$cross_compiling" = yes ||
 	 $as_test_x conftest$ac_exeext
        }; then
-  ac_cv_search_rintf=$ac_res
+  ac_cv_search_atanf=$ac_res
 else
   $as_echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
@@ -29685,23 +29791,664 @@ fi
 rm -rf conftest.dSYM
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext
-  if test "${ac_cv_search_rintf+set}" = set; then
+  if test "${ac_cv_search_atanf+set}" = set; then
   break
 fi
 done
-if test "${ac_cv_search_rintf+set}" = set; then
+if test "${ac_cv_search_atanf+set}" = set; then
   :
 else
-  ac_cv_search_rintf=no
+  ac_cv_search_atanf=no
 fi
 rm conftest.$ac_ext
 LIBS=$ac_func_search_save_LIBS
 fi
-{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_rintf" >&5
-$as_echo "$ac_cv_search_rintf" >&6; }
-ac_res=$ac_cv_search_rintf
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_atanf" >&5
+$as_echo "$ac_cv_search_atanf" >&6; }
+ac_res=$ac_cv_search_atanf
 if test "$ac_res" != no; then
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_ATANF 1
+_ACEOF
+
+fi
+
+{ $as_echo "$as_me:$LINENO: checking for library containing atan2f" >&5
+$as_echo_n "checking for library containing atan2f... " >&6; }
+if test "${ac_cv_search_atan2f+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char atan2f ();
+int
+main ()
+{
+return atan2f ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' m; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_search_atan2f=$ac_res
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext
+  if test "${ac_cv_search_atan2f+set}" = set; then
+  break
+fi
+done
+if test "${ac_cv_search_atan2f+set}" = set; then
+  :
+else
+  ac_cv_search_atan2f=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_atan2f" >&5
+$as_echo "$ac_cv_search_atan2f" >&6; }
+ac_res=$ac_cv_search_atan2f
+if test "$ac_res" != no; then
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_ATAN2F 1
+_ACEOF
+
+fi
+
+{ $as_echo "$as_me:$LINENO: checking for library containing ceilf" >&5
+$as_echo_n "checking for library containing ceilf... " >&6; }
+if test "${ac_cv_search_ceilf+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ceilf ();
+int
+main ()
+{
+return ceilf ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' m; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_search_ceilf=$ac_res
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext
+  if test "${ac_cv_search_ceilf+set}" = set; then
+  break
+fi
+done
+if test "${ac_cv_search_ceilf+set}" = set; then
+  :
+else
+  ac_cv_search_ceilf=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_ceilf" >&5
+$as_echo "$ac_cv_search_ceilf" >&6; }
+ac_res=$ac_cv_search_ceilf
+if test "$ac_res" != no; then
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_CEILF 1
+_ACEOF
+
+fi
+
+{ $as_echo "$as_me:$LINENO: checking for library containing floorf" >&5
+$as_echo_n "checking for library containing floorf... " >&6; }
+if test "${ac_cv_search_floorf+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char floorf ();
+int
+main ()
+{
+return floorf ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' m; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_search_floorf=$ac_res
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext
+  if test "${ac_cv_search_floorf+set}" = set; then
+  break
+fi
+done
+if test "${ac_cv_search_floorf+set}" = set; then
+  :
+else
+  ac_cv_search_floorf=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_floorf" >&5
+$as_echo "$ac_cv_search_floorf" >&6; }
+ac_res=$ac_cv_search_floorf
+if test "$ac_res" != no; then
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_FLOORF 1
+_ACEOF
+
+fi
+
+{ $as_echo "$as_me:$LINENO: checking for library containing powf" >&5
+$as_echo_n "checking for library containing powf... " >&6; }
+if test "${ac_cv_search_powf+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char powf ();
+int
+main ()
+{
+return powf ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' m; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_search_powf=$ac_res
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext
+  if test "${ac_cv_search_powf+set}" = set; then
+  break
+fi
+done
+if test "${ac_cv_search_powf+set}" = set; then
+  :
+else
+  ac_cv_search_powf=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_powf" >&5
+$as_echo "$ac_cv_search_powf" >&6; }
+ac_res=$ac_cv_search_powf
+if test "$ac_res" != no; then
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_POWF 1
+_ACEOF
+
+fi
+
+{ $as_echo "$as_me:$LINENO: checking for library containing expf" >&5
+$as_echo_n "checking for library containing expf... " >&6; }
+if test "${ac_cv_search_expf+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char expf ();
+int
+main ()
+{
+return expf ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' m; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_search_expf=$ac_res
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext
+  if test "${ac_cv_search_expf+set}" = set; then
+  break
+fi
+done
+if test "${ac_cv_search_expf+set}" = set; then
+  :
+else
+  ac_cv_search_expf=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_expf" >&5
+$as_echo "$ac_cv_search_expf" >&6; }
+ac_res=$ac_cv_search_expf
+if test "$ac_res" != no; then
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_EXPF 1
+_ACEOF
+
+fi
+
+{ $as_echo "$as_me:$LINENO: checking for library containing logf" >&5
+$as_echo_n "checking for library containing logf... " >&6; }
+if test "${ac_cv_search_logf+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char logf ();
+int
+main ()
+{
+return logf ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' m; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_search_logf=$ac_res
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext
+  if test "${ac_cv_search_logf+set}" = set; then
+  break
+fi
+done
+if test "${ac_cv_search_logf+set}" = set; then
+  :
+else
+  ac_cv_search_logf=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_logf" >&5
+$as_echo "$ac_cv_search_logf" >&6; }
+ac_res=$ac_cv_search_logf
+if test "$ac_res" != no; then
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_LOGF 1
+_ACEOF
+
+fi
+
+{ $as_echo "$as_me:$LINENO: checking for library containing log10f" >&5
+$as_echo_n "checking for library containing log10f... " >&6; }
+if test "${ac_cv_search_log10f+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char log10f ();
+int
+main ()
+{
+return log10f ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' m; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_search_log10f=$ac_res
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext
+  if test "${ac_cv_search_log10f+set}" = set; then
+  break
+fi
+done
+if test "${ac_cv_search_log10f+set}" = set; then
+  :
+else
+  ac_cv_search_log10f=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_search_log10f" >&5
+$as_echo "$ac_cv_search_log10f" >&6; }
+ac_res=$ac_cv_search_log10f
+if test "$ac_res" != no; then
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_LOG10F 1
+_ACEOF
 
 fi
 
@@ -30898,7 +31645,12 @@ if { as_var=$as_ac_MisalignedAccessFails; eval "test \"\${$as_var+set}\" = set";
 else
   case $host in
       arc | arm | armble | armelb | armv2345 | armv345lb \
+    | bfin \
     | sparc \
+    | xscale | xscaleebl \
+    | arm-*  | armbe-* | armle-* | armeb-* | armv*-* \
+    | bfin-* \
+    | sparc-* \
     | xscale-* | xscaleebl-* )
         eval "$as_ac_MisalignedAccessFails=yes"
         ;;

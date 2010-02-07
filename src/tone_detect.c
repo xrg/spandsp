@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect.c,v 1.46 2008/06/13 14:46:52 steveu Exp $
+ * $Id: tone_detect.c,v 1.47 2008/07/02 14:48:26 steveu Exp $
  */
  
 /*! \file tone_detect.h */
@@ -33,6 +33,7 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

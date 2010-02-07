@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn.c,v 1.15 2008/05/13 13:17:22 steveu Exp $
+ * $Id: awgn.c,v 1.16 2008/07/02 14:48:25 steveu Exp $
  */
 
 /*! \file */
@@ -48,6 +48,7 @@
 
 #include <stdlib.h>
 #include <inttypes.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

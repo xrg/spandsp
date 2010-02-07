@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.247 2008/06/18 13:28:42 steveu Exp $
+ * $Id: t30.c,v 1.248 2008/07/02 14:48:26 steveu Exp $
  */
 
 /*! \file */
@@ -37,6 +37,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <time.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

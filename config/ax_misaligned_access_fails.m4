@@ -15,7 +15,12 @@ AC_DEFUN([AX_MISALIGNED_ACCESS_FAILS],
 AC_CACHE_CHECK([if $1 fails on misaligned memory access], ac_MisalignedAccessFails,
 [case $1 in
       arc | arm | arm[bl]e | arme[lb] | armv[2345] | armv[345][lb] \
+    | bfin \
     | sparc \
+    | xscale | xscalee[bl] \
+    | arm-*  | armbe-* | armle-* | armeb-* | armv*-* \
+    | bfin-* \
+    | sparc-* \
     | xscale-* | xscalee[bl]-* )
         AS_VAR_SET(ac_MisalignedAccessFails, yes)
         ;;

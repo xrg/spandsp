@@ -221,7 +221,7 @@ EXTRA_DIST = autogen.sh \
              unpack_gsm0610_data.sh \
              unpack_v56ter_data.sh \
              doc/doxygen.in \
-             src/float_fudge.h \
+             src/floating_fudge.h \
              src/spandsp/version.h.in \
              src/libspandsp.dsp \
              src/libspandsp.sln \

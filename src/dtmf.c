@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.42 2008/06/13 14:46:52 steveu Exp $
+ * $Id: dtmf.c,v 1.43 2008/07/02 14:48:25 steveu Exp $
  */
  
 /*! \file dtmf.h */
@@ -33,6 +33,7 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
@@ -246,7 +247,7 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
                     /* Avoid reporting multiple no digit conditions on flaky hits */
                     if (s->in_digit  ||  hit)
                     {
-                        i = (s->in_digit  &&  !hit)  ?  -99  :  rintf(log10f(s->energy)*10.0f - DTMF_POWER_OFFSET + DBM0_MAX_POWER);
+                        i = (s->in_digit  &&  !hit)  ?  -99  :  lrintf(log10f(s->energy)*10.0f - DTMF_POWER_OFFSET + DBM0_MAX_POWER);
                         s->realtime_callback(s->realtime_callback_data, hit, i, 0);
                     }
                 }

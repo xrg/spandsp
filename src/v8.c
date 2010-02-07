@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.c,v 1.29 2008/05/14 15:41:25 steveu Exp $
+ * $Id: v8.c,v 1.30 2008/07/02 14:48:26 steveu Exp $
  */
  
 /*! \file */
@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <memory.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

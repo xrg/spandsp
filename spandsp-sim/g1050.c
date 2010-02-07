@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g1050.c,v 1.9 2008/05/03 15:08:32 steveu Exp $
+ * $Id: g1050.c,v 1.10 2008/07/02 14:48:25 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <audiofile.h>
-#include <tiffio.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
@@ -46,8 +46,7 @@
 #include <math.h>
 #endif
 
-#include "../src/spandsp.h"
-
+#include "spandsp.h"
 #include "spandsp/g1050.h"
 
 #define PACKET_LOSS_TIME    -1

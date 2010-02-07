@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.42 2008/05/13 13:17:24 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.43 2008/07/02 14:48:26 steveu Exp $
  */
 
 /*! \file */
@@ -37,6 +37,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
@@ -554,7 +555,7 @@ int v22bis_tx(v22bis_state_t *s, int16_t amp[], int len)
             famp += dds_modf(&(s->tx.guard_phase), s->tx.guard_phase_rate, s->tx.guard_level, 0);
         }
         /* Don't bother saturating. We should never clip. */
-        amp[sample] = (int16_t) rintf(famp);
+        amp[sample] = (int16_t) lrintf(famp);
     }
     return sample;
 }
