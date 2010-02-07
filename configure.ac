@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.43 2008/04/17 14:26:55 steveu Exp $
+# $Id: configure.ac,v 1.49 2008/05/03 15:08:32 steveu Exp $
 
 # @start 1
 
@@ -24,6 +24,7 @@ AC_INIT
 
 m4_include(config/ax_compiler_vendor.m4)
 m4_include(config/ax_check_real_file.m4)
+m4_include(config/ax_fixed_point_machine.m4)
 
 SPANDSP_MAJOR_VERSION=0
 SPANDSP_MINOR_VERSION=0
@@ -113,7 +114,7 @@ AC_TYPE_SIGNAL
 
 AC_ARG_ENABLE(doc,          [  --enable-doc         Build the documentation])
 AC_ARG_ENABLE(tests,        [  --enable-tests       Build the test programs])
-AC_ARG_ENABLE(itutests,     [  --enable-itutests    Build TIFF test files for some ITU test images])
+AC_ARG_ENABLE(test_data,    [  --enable-test-data   Build TIFF test files for some ITU test images])
 AC_ARG_ENABLE(mmx,          [  --enable-mmx         Enable MMX support])
 AC_ARG_ENABLE(sse,          [  --enable-sse         Enable SSE support])
 AC_ARG_ENABLE(fixed_point,  [  --enable-fixed-point Enable fixed point support])
@@ -158,8 +159,7 @@ AC_CHECK_HEADERS([sys/select.h])
 AC_CHECK_HEADERS([sys/ioctl.h])
 AC_CHECK_HEADERS([sys/fcntl.h])
 AC_CHECK_HEADERS([audiofile.h])
-AC_CHECK_HEADERS([fftw.h])
-AC_CHECK_HEADERS([fftw3.h])
+AC_CHECK_HEADERS([fftw3.h], , [AC_CHECK_HEADERS([fftw.h])])
 AC_CHECK_HEADERS([tiffio.h])
 AC_CHECK_HEADERS([pthread.h])
 AC_CHECK_HEADERS([unicall.h])
@@ -207,6 +207,8 @@ AC_CHECK_HEADERS([FL/Fl_Cartesian.H], [], [], [],[[#include <FL/Fl.H>
 AC_CHECK_HEADERS([FL/Fl_Audio_Meter.H], [], [], [],[[#include <FL/Fl.H>
 ]])
 
+AC_LANG([C])
+
 if test "${build}" == "${host}"
 then
     case "${host}" in
@@ -216,7 +218,14 @@ then
     esac
 fi
 
-AC_LANG([C])
+AC_CHECK_LIB([m], [cos])
+AC_SEARCH_LIBS([powf], [m])
+AC_SEARCH_LIBS([log10f], [m])
+AC_SEARCH_LIBS([cosf], [m])
+AC_SEARCH_LIBS([sinf], [m])
+AC_SEARCH_LIBS([sinf], [m])
+AC_SEARCH_LIBS([rint], [m])
+AC_SEARCH_LIBS([rintf], [m])
 
 if test "${build}" == "${host}"
 then
@@ -233,10 +242,9 @@ AC_CHECK_LIB([Xft], [XftFontOpen], TESTLIBS="$TESTLIBS -lXft",, $TESTLIBS)
 AC_CHECK_LIB([Xext], [XextCreateExtension], TESTLIBS="$TESTLIBS -lXext",, $TESTLIBS)
 AC_CHECK_LIB([X11], [XOpenDisplay], TESTLIBS="$TESTLIBS -lX11",, $TESTLIBS)
 AC_CHECK_LIB([tiff], [TIFFOpen], , AC_MSG_ERROR("Can't build without libtiff (does your system require a libtiff-devel package?)"), -lm)
-AC_CHECK_LIB([m], [cos])
-AC_CHECK_LIB([m], [pow])
-AC_CHECK_LIB([m], [sqrt])
+
 AC_CHECK_LIB([xml2], [xmlParseFile], [AC_DEFINE([HAVE_LIBXML2], [1], [Define to 1 if you have the 'libxml2' library (-lxml2).]) TESTLIBS="$TESTLIBS -lxml2"])
+
 if test -n "$enable_tests" ; then
     AC_LANG([C++])
     AC_CHECK_LIB([fltk], [main], TESTLIBS="$TESTLIBS -lfltk -lsupc++")
@@ -244,8 +252,7 @@ if test -n "$enable_tests" ; then
     AC_CHECK_LIB([fltk_audio_meter], [main], TESTLIBS="-lfltk_audio_meter $TESTLIBS")
     AC_LANG([C])
     AC_CHECK_LIB([audiofile], [afOpenFile], TESTLIBS="$TESTLIBS -laudiofile", AC_MSG_ERROR("Can't make tests without libaudiofile (does your system require a libaudiofile-devel package?)"))
-    AC_CHECK_LIB([fftw3], [fftw_plan_dft_1d], TESTLIBS="$TESTLIBS -lfftw3")
-    AC_CHECK_LIB([fftw], [fftw_create_plan], TESTLIBS="$TESTLIBS -lfftw")
+    AC_CHECK_LIB([fftw3], [fftw_plan_dft_1d], TESTLIBS="$TESTLIBS -lfftw3", [AC_CHECK_LIB([fftw], [fftw_create_plan], TESTLIBS="$TESTLIBS -lfftw")])
     AC_CHECK_LIB([pthread], [pthread_attr_init], TESTLIBS="$TESTLIBS -lpthread")
     AC_CHECK_LIB([dl], [dlopen], TESTLIBS="$TESTLIBS -ldl")
     AC_CHECK_LIB([unicall], [uc_start], TESTLIBS="$TESTLIBS -lunicall",, -ltiff -ldl)
@@ -260,6 +267,14 @@ gnu)
     if test "$enable_mmx" = "yes" ; then
         COMP_VENDOR_CFLAGS="-mmmx $COMP_VENDOR_CFLAGS"
     fi
+    case $host_os in
+    mingw* | cygwin*)
+        COMP_VENDOR_LDFLAGS="-no-undefined"
+        ;;
+    *)
+        COMP_VENDOR_LDFLAGS=
+        ;;
+    esac
     ;;
 sun)
     COMP_VENDOR_CFLAGS="-xc99=all -mt -xCC -errwarn=%all -xvpara"
@@ -269,9 +284,11 @@ sun)
     if test "$enable_mmx" = "yes" ; then
         COMP_VENDOR_CFLAGS="-native -fast $COMP_VENDOR_CFLAGS"
     fi
+    COMP_VENDOR_LDFLAGS=
     ;;
 *)
     COMP_VENDOR_CFLAGS="-std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
+    COMP_VENDOR_LDFLAGS=
     ;;
 esac
 
@@ -279,41 +296,22 @@ COMP_VENDOR_CFLAGS="-DNDEBUG $COMP_VENDOR_CFLAGS"
 
 AM_CONDITIONAL([COND_DOC], [test "$enable_doc" = yes])
 AM_CONDITIONAL([COND_TESTS], [test "$enable_tests" = yes])
-AM_CONDITIONAL([COND_ITUTESTS], [test "$enable_itutests" = yes])
+AM_CONDITIONAL([COND_TESTDATA], [test "$enable_test_data" = yes])
 AM_CONDITIONAL([COND_MMX], [test "$enable_mmx" = yes])
 AM_CONDITIONAL([COND_SSE], [test "$enable_sse" = yes])
 if test "$enable_fixed_point" = "yes" ; then
     AC_DEFINE([SPANDSP_USE_FIXED_POINT], [1], [Enable fixed point processing, where possible, instead of floating point])
     SPANDSP_USE_FIXED_POINT="#define SPANDSP_USE_FIXED_POINT 1"
 else
-#
-# So far we deal with the embedded ARM, Blackfin, MIPS, TI DSP and XScale processors as
-# things which lack fast hardware floating point.
-#
-# Other candidates would be the small embedded Power PCs.
-#
-    case $basic_machine in
-	      arc | arm | arm[bl]e | arme[lb] | armv[2345] | armv[345][lb] \
-	    | bfin \
-	    | mips | mipsbe | mipseb | mipsel | mipsle \
-	    | tic54x | c54x* | tic55x | c55x* | tic6x | c6x* \
-	    | xscale | xscalee[bl] \
-	    | arm-*  | armbe-* | armle-* | armeb-* | armv*-* \
-	    | bfin-* \
-	    | mips-* | mipsbe-* | mipseb-* | mipsel-* | mipsle-* \
-	    | tic30-* | tic4x-* | tic54x-* | tic55x-* | tic6x-* | tic80-* \
-	    | xscale-* | xscalee[bl]-* )
-        AC_DEFINE([SPANDSP_USE_FIXED_POINT], [1], [Enable fixed point processing, where possible, instead of floating point])
-        SPANDSP_USE_FIXED_POINT="#define SPANDSP_USE_FIXED_POINT 1"
-        ;;
-    *)
-        SPANDSP_USE_FIXED_POINT="#undef SPANDSP_USE_FIXED_POINT"
-        ;;
-    esac
+    AX_FIXED_POINT_MACHINE([$basic_machine],
+        [AC_DEFINE([SPANDSP_USE_FIXED_POINT], [1], [Enable fixed point processing, where possible, instead of floating point])
+        SPANDSP_USE_FIXED_POINT="#define SPANDSP_USE_FIXED_POINT 1"],
+        [SPANDSP_USE_FIXED_POINT="#undef SPANDSP_USE_FIXED_POINT"])
 fi
 
 AC_SUBST(CC_FOR_BUILD)
 AC_SUBST(COMP_VENDOR_CFLAGS)
+AC_SUBST(COMP_VENDOR_LDFLAGS)
 AC_SUBST(TESTLIBS)
 AC_SUBST(SPANDSP_USE_FIXED_POINT)
 AC_SUBST(INSERT_INTTYPES_HEADER)
@@ -323,10 +321,10 @@ AC_SUBST(INSERT_MATH_HEADER)
 
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
-                 etsitests/Makefile
-                 itutests/Makefile
-                 itutests/fax/Makefile
-                 localtests/Makefile
+                 test-data/Makefile
+                 test-data/itu/Makefile
+                 test-data/itu/fax/Makefile
+                 test-data/local/Makefile
                  src/Makefile
                  src/spandsp.h
                  spandsp-sim/Makefile

@@ -17,10 +17,10 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: regression_tests.sh,v 1.50 2008/03/30 18:33:32 steveu Exp $
+# $Id: regression_tests.sh,v 1.51 2008/05/03 07:37:06 steveu Exp $
 #
 
-ITUTESTS_TIF=../itutests/fax/itutests.tif
+ITUTESTS_TIF=../test-data/itu/fax/itutests.tif
 STDOUT_DEST=xyzzy
 STDERR_DEST=xyzzy2
 

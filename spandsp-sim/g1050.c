@@ -22,10 +22,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g1050.c,v 1.8 2008/04/26 13:39:16 steveu Exp $
+ * $Id: g1050.c,v 1.9 2008/05/03 15:08:32 steveu Exp $
  */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

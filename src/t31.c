@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.106 2008/04/17 14:26:57 steveu Exp $
+ * $Id: t31.c,v 1.107 2008/05/03 15:41:01 steveu Exp $
  */
 
 /*! \file */
@@ -71,6 +71,7 @@
 #include "spandsp/v17tx.h"
 #include "spandsp/t4.h"
 #include "spandsp/t30.h"
+#include "spandsp/t30_logging.h"
 #include "spandsp/t38_core.h"
 
 #include "spandsp/at_interpreter.h"

@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_dictionary_gen.c,v 1.11 2008/04/27 10:34:54 steveu Exp $
+ * $Id: at_dictionary_gen.c,v 1.12 2008/05/03 05:38:20 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -469,7 +469,7 @@ static trie_node_t *trie_node_create(void)
 {
     trie_node_t *s;
     
-    if ((s = (trie_t *) malloc(sizeof(*s))))
+    if ((s = (trie_node_t *) malloc(sizeof(*s))))
     {
         memset(s, 0, sizeof(*s));
         s->first = ALPHABET_SIZE - 1;

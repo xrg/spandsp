@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_rx_tests.c,v 1.36 2008/04/26 13:39:16 steveu Exp $
+ * $Id: dtmf_rx_tests.c,v 1.37 2008/05/03 07:37:06 steveu Exp $
  */
 
 /*
@@ -117,8 +117,8 @@ they wish to give it away for free.
 
 #define ALL_POSSIBLE_DIGITS         "123A456B789C*0#D"
 
-#define MITEL_DIR                   "../itutests/mitel/"
-#define BELLCORE_DIR                "../itutests/bellcore/"
+#define MITEL_DIR                   "../test-data/mitel/"
+#define BELLCORE_DIR                "../test-data/bellcore/"
 
 const char *bellcore_files[] =
 {

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_to_gateway_tests.c,v 1.53 2008/04/26 13:39:17 steveu Exp $
+ * $Id: t38_terminal_to_gateway_tests.c,v 1.54 2008/05/03 07:37:06 steveu Exp $
  */
 
 /*! \file */
@@ -69,7 +69,7 @@ These tests exercise the path
 
 #define SAMPLES_PER_CHUNK       160
 
-#define INPUT_FILE_NAME         "../itutests/fax/itutests.tif"
+#define INPUT_FILE_NAME         "../test-data/itu/fax/itutests.tif"
 #define OUTPUT_FILE_NAME        "t38.tif"
 #define OUTPUT_FILE_NAME_WAVE   "t38_terminal_to_gateway.wav"
 

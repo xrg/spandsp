@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: lpc10_tests.c,v 1.16 2008/04/26 13:39:17 steveu Exp $
+ * $Id: lpc10_tests.c,v 1.17 2008/05/03 07:37:06 steveu Exp $
  */
 
 /*! \file */
@@ -31,7 +31,7 @@
 \section lpc10_tests_page_sec_1 What does it do?
 
 \section lpc10_tests_page_sec_2 How is it used?
-To perform a general audio quality test, lpc10 should be run. The file ../localtests/short_nb_voice.wav
+To perform a general audio quality test, lpc10 should be run. The file ../test-data/local/short_nb_voice.wav
 will be compressed to LPC10 data, decompressed, and the resulting audio stored in post_lpc10.wav.
 */
 
@@ -54,8 +54,8 @@ will be compressed to LPC10 data, decompressed, and the resulting audio stored i
 
 #define BLOCKS_PER_READ 5
 
-#define IN_FILE_NAME            "../localtests/dam9.wav"
-#define REF_FILE_NAME           "../localtests/dam9_lpc55.wav"
+#define IN_FILE_NAME            "../test-data/local/dam9.wav"
+#define REF_FILE_NAME           "../test-data/local/dam9_lpc55.wav"
 #define COMPRESS_FILE_NAME      "lpc10_out.lpc10"
 #define DECOMPRESS_FILE_NAME    "lpc10_in.lpc10"
 #define OUT_FILE_NAME           "post_lpc10.wav"

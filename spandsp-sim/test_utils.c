@@ -22,12 +22,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: test_utils.c,v 1.4 2008/04/26 13:39:16 steveu Exp $
+ * $Id: test_utils.c,v 1.5 2008/05/03 15:08:32 steveu Exp $
  */
 
 /*! \file */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

@@ -21,7 +21,7 @@ VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
-top_builddir = ../..
+top_builddir = ../../..
 am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd
 INSTALL = @INSTALL@
 install_sh_DATA = $(install_sh) -c -m 644
@@ -39,11 +39,12 @@ build_triplet = @build@
 host_triplet = @host@
 noinst_PROGRAMS = generate_dithered_tif$(EXEEXT) \
 	generate_sized_pages$(EXEEXT)
-subdir = itutests/fax
+subdir = test-data/itu/fax
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/config/ax_compiler_vendor.m4 \
 	$(top_srcdir)/config/ax_check_real_file.m4 \
+	$(top_srcdir)/config/ax_fixed_point_machine.m4 \
 	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -98,14 +99,15 @@ CCDEPMODE = @CCDEPMODE@
 CC_FOR_BUILD = @CC_FOR_BUILD@
 CFLAGS = @CFLAGS@
 COMP_VENDOR_CFLAGS = @COMP_VENDOR_CFLAGS@
+COMP_VENDOR_LDFLAGS = @COMP_VENDOR_LDFLAGS@
 COND_DOC_FALSE = @COND_DOC_FALSE@
 COND_DOC_TRUE = @COND_DOC_TRUE@
-COND_ITUTESTS_FALSE = @COND_ITUTESTS_FALSE@
-COND_ITUTESTS_TRUE = @COND_ITUTESTS_TRUE@
 COND_MMX_FALSE = @COND_MMX_FALSE@
 COND_MMX_TRUE = @COND_MMX_TRUE@
 COND_SSE_FALSE = @COND_SSE_FALSE@
 COND_SSE_TRUE = @COND_SSE_TRUE@
+COND_TESTDATA_FALSE = @COND_TESTDATA_FALSE@
+COND_TESTDATA_TRUE = @COND_TESTDATA_TRUE@
 COND_TESTS_FALSE = @COND_TESTS_FALSE@
 COND_TESTS_TRUE = @COND_TESTS_TRUE@
 CPP = @CPP@
@@ -203,10 +205,21 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
+AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
 PBM2G3 = pbmtog3
 FAX2TIFF = fax2tiff
-EXTRA_DIST = itu1.pbm itu2.pbm itu3.pbm itu4.pbm itu5.pbm itu6.pbm itu7.pbm itu8.pbm \
-             test1.pbm test2.pbm test3.pbm test4.pbm
+EXTRA_DIST = itu1.pbm \
+             itu2.pbm \
+             itu3.pbm \
+             itu4.pbm \
+             itu5.pbm \
+             itu6.pbm \
+             itu7.pbm \
+             itu8.pbm \
+             test1.pbm \
+             test2.pbm \
+             test3.pbm \
+             test4.pbm
 
 nobase_data_DATA = itutests.tif \
                     itu1.tif \
@@ -271,9 +284,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  itutests/fax/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  test-data/itu/fax/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  itutests/fax/Makefile
+	  $(AUTOMAKE) --gnu  test-data/itu/fax/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \

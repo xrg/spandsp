@@ -15,10 +15,10 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: v42bis_tests.sh,v 1.4 2008/03/30 18:33:33 steveu Exp $
+# $Id: v42bis_tests.sh,v 1.5 2008/05/03 09:34:26 steveu Exp $
 #
 
-BASE=../itutests/v56ter
+BASE=../test-data/itu/v56ter
 
 ./v42bis_tests ${BASE}/1.TST
 RETVAL=$?

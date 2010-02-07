@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: generate_dithered_tif.c,v 1.8 2008/04/26 13:39:15 steveu Exp $
+ * $Id: generate_dithered_tif.c,v 1.1 2008/05/03 07:30:17 steveu Exp $
  */
 
 /*! \file */

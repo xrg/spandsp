@@ -35,11 +35,12 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = itutests
+subdir = test-data
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/config/ax_compiler_vendor.m4 \
 	$(top_srcdir)/config/ax_check_real_file.m4 \
+	$(top_srcdir)/config/ax_fixed_point_machine.m4 \
 	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -71,14 +72,15 @@ CCDEPMODE = @CCDEPMODE@
 CC_FOR_BUILD = @CC_FOR_BUILD@
 CFLAGS = @CFLAGS@
 COMP_VENDOR_CFLAGS = @COMP_VENDOR_CFLAGS@
+COMP_VENDOR_LDFLAGS = @COMP_VENDOR_LDFLAGS@
 COND_DOC_FALSE = @COND_DOC_FALSE@
 COND_DOC_TRUE = @COND_DOC_TRUE@
-COND_ITUTESTS_FALSE = @COND_ITUTESTS_FALSE@
-COND_ITUTESTS_TRUE = @COND_ITUTESTS_TRUE@
 COND_MMX_FALSE = @COND_MMX_FALSE@
 COND_MMX_TRUE = @COND_MMX_TRUE@
 COND_SSE_FALSE = @COND_SSE_FALSE@
 COND_SSE_TRUE = @COND_SSE_TRUE@
+COND_TESTDATA_FALSE = @COND_TESTDATA_FALSE@
+COND_TESTDATA_TRUE = @COND_TESTDATA_TRUE@
 COND_TESTS_FALSE = @COND_TESTS_FALSE@
 COND_TESTS_TRUE = @COND_TESTS_TRUE@
 CPP = @CPP@
@@ -175,8 +177,8 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-SUBDIRS = fax
-DIST_SUBDIRS = fax
+SUBDIRS = itu
+DIST_SUBDIRS = itu local
 all: all-recursive
 
 .SUFFIXES:
@@ -189,9 +191,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  itutests/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  test-data/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  itutests/Makefile
+	  $(AUTOMAKE) --gnu  test-data/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \

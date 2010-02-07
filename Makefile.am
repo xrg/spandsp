@@ -16,9 +16,10 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.34 2008/04/27 10:34:54 steveu Exp $
+## $Id: Makefile.am,v 1.36 2008/05/03 13:05:04 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
+AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
 
 noinst_SCRIPTS = spandsp.spec
 
@@ -66,12 +67,12 @@ endif
 if COND_TESTS
     MAYBE_TESTS=spandsp-sim tests
 endif
-if COND_ITUTESTS
-    MAYBE_ITUTESTS=itutests
+if COND_TESTDATA
+    MAYBE_TESTDATA=test-data
 endif
-SUBDIRS = src $(MAYBE_DOC) $(MAYBE_TESTS) $(MAYBE_ITUTESTS)
+SUBDIRS = src $(MAYBE_DOC) $(MAYBE_TESTS) $(MAYBE_TESTDATA)
 
-DIST_SUBDIRS = src spandsp-sim doc tests localtests etsitests itutests
+DIST_SUBDIRS = src doc spandsp-sim tests test-data
 
 faq: faq.xml
 	cd faq ; xsltproc ../wrapper.xsl ../faq.xml

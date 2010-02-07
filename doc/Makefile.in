@@ -40,6 +40,7 @@ DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/config/ax_compiler_vendor.m4 \
 	$(top_srcdir)/config/ax_check_real_file.m4 \
+	$(top_srcdir)/config/ax_fixed_point_machine.m4 \
 	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -63,14 +64,15 @@ CCDEPMODE = @CCDEPMODE@
 CC_FOR_BUILD = @CC_FOR_BUILD@
 CFLAGS = @CFLAGS@
 COMP_VENDOR_CFLAGS = @COMP_VENDOR_CFLAGS@
+COMP_VENDOR_LDFLAGS = @COMP_VENDOR_LDFLAGS@
 COND_DOC_FALSE = @COND_DOC_FALSE@
 COND_DOC_TRUE = @COND_DOC_TRUE@
-COND_ITUTESTS_FALSE = @COND_ITUTESTS_FALSE@
-COND_ITUTESTS_TRUE = @COND_ITUTESTS_TRUE@
 COND_MMX_FALSE = @COND_MMX_FALSE@
 COND_MMX_TRUE = @COND_MMX_TRUE@
 COND_SSE_FALSE = @COND_SSE_FALSE@
 COND_SSE_TRUE = @COND_SSE_TRUE@
+COND_TESTDATA_FALSE = @COND_TESTDATA_FALSE@
+COND_TESTDATA_TRUE = @COND_TESTDATA_TRUE@
 COND_TESTS_FALSE = @COND_TESTS_FALSE@
 COND_TESTS_TRUE = @COND_TESTS_TRUE@
 CPP = @CPP@

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g711.h,v 1.13 2008/05/02 14:26:39 steveu Exp $
+ * $Id: g711.h,v 1.14 2008/05/02 17:57:32 steveu Exp $
  */
 
 /*! \file */
@@ -54,7 +54,7 @@ specification by other means.
 
 /* The usual values to use on idle channels, to emulate silence */
 #define G711_ALAW_IDLE_OCTET        0x5D
-#define G711_ULAW_IDLE_OCTET        0x7F
+#define G711_ULAW_IDLE_OCTET        0xFF
 
 enum
 {

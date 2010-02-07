@@ -17,10 +17,12 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: unpack_g726_data.sh,v 1.4 2008/03/30 18:33:24 steveu Exp $
+# $Id: unpack_g726_data.sh,v 1.6 2008/05/03 07:55:04 steveu Exp $
 #
 
-cd itutests
+ITUDATA="../../../T-REC-G.726-199103-I!AppII!SOFT-ZST-E.zip"
+
+cd test-data/itu
 if [ -d g726 ]
 then
     cd g726
@@ -29,7 +31,7 @@ else
     RETVAL=$?
     if [ $RETVAL != 0 ]
     then
-        echo Cannot create itutests/g726!
+        echo Cannot create test-data/itu/g726!
         exit $RETVAL
     fi
     cd g726
@@ -39,14 +41,14 @@ rm -rf DISK1
 rm -rf DISK2
 rm -rf G726piiE.WW7.doc
 rm -rf Software.zip
-unzip "../../T-REC-G.726-199103-I!AppII!SOFT-ZST-E.zip" >/dev/null
+unzip ${ITUDATA} >/dev/null
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
     echo Cannot unpack the ITU test vectors for G.726!
     exit $RETVAL
 fi
-#rm "../../T-REC-G.726-199103-I!AppII!SOFT-ZST-E.zip"
+#rm $(ITUDATA}
 rm G726piiE.WW7.doc
 unzip Software.zip >/dev/null
 RETVAL=$?

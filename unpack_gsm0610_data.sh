@@ -17,7 +17,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: unpack_gsm0610_data.sh,v 1.3 2008/03/30 18:33:24 steveu Exp $
+# $Id: unpack_gsm0610_data.sh,v 1.7 2008/05/03 10:59:44 steveu Exp $
 #
 
 # The ETSI distribution file extracts to 5 ZIP files, called DISK1.ZIP to DISK5.ZIP
@@ -26,7 +26,22 @@
 # MS environment. These files need to be executed in a Windows or DOS environment,
 # or a good emulation like FreeDOS or Wine.
 
-cd etsitests
+ETSIDATA="../../../en_300961v080101p0.zip"
+
+cd test-data
+if [ -d etsi ]
+then
+    cd etsi
+else
+    mkdir etsi
+    RETVAL=$?
+    if [ $RETVAL != 0 ]
+    then
+        echo Cannot create test-data/etsi!
+        exit $RETVAL
+    fi
+    cd etsi
+fi
 if [ -d gsm0610 ]
 then
     cd gsm0610
@@ -35,7 +50,7 @@ else
     RETVAL=$?
     if [ $RETVAL != 0 ]
     then
-        echo Cannot create etsitests/gsm0610!
+        echo Cannot create test-data/etsi/gsm0610!
         exit $RETVAL
     fi
     cd gsm0610
@@ -72,7 +87,7 @@ then
     rm -rf *.COD
     rm -rf *.OUT
 
-    unzip "../../en_300961v080101p0.zip" >/dev/null
+    unzip ${ETSIDATA} >/dev/null
     RETVAL=$?
     if [ $RETVAL != 0 ]
     then
@@ -105,7 +120,7 @@ then
     # to make the .EXE files actually executable.
     chmod 755 *.EXE
 
-    echo "Now copy the files from the etsitests/gsm0610 directory to a Windows,"
+    echo "Now copy the files from the test-data/etsi/gsm0610 directory to a Windows,"
     echo "DOS or other machine which can run .exe files. Run each of the .exe"
     echo "files (there are 6 of them), and copy the whole directory back here."
     echo "You can then complete the creation of the working data directories"
@@ -114,14 +129,14 @@ then
     exit 0
 fi
 
-unzip "../../en_300961v080101p0.zip" >/dev/null
+unzip ${ETSIDATA} >/dev/null
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
     echo Cannot unpack the ETSI test vectors for GSM 06.10!
     exit $RETVAL
 fi
-#rm "../../en_300961v080101p0.zip"
+#rm ${ETSIDATA}
 
 rm -rf ASN.1.txt
 

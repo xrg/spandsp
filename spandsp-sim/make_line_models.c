@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: make_line_models.c,v 1.4 2008/04/26 13:39:16 steveu Exp $
+ * $Id: make_line_models.c,v 1.5 2008/05/03 15:08:32 steveu Exp $
  */
 
 /*! \page make_line_models_page Telephony line model construction
@@ -33,7 +33,7 @@
 ???.
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

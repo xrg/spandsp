@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g722_tests.c,v 1.24 2008/04/26 13:39:17 steveu Exp $
+ * $Id: g722_tests.c,v 1.25 2008/05/03 07:37:06 steveu Exp $
  */
 
 /*! \file */
@@ -52,7 +52,7 @@ any parameters.
 
 To perform a general audio quality test, g722_tests should be run with a parameter specifying
 the required bit rate for compression. The valid parameters are "-48", "-56", and "-64".
-The file ../localtests/short_wb_voice.wav will be compressed to the specified bit rate, decompressed,
+The file ../test-data/local/short_wb_voice.wav will be compressed to the specified bit rate, decompressed,
 and the resulting audio stored in post_g722.wav.
 */
 
@@ -76,10 +76,10 @@ and the resulting audio stored in post_g722.wav.
 
 #define MAX_TEST_VECTOR_LEN 40000
 
-#define TESTDATA_DIR        "../itutests/g722/"
+#define TESTDATA_DIR        "../test-data/itu/g722/"
 
-#define EIGHTK_IN_FILE_NAME "../localtests/short_nb_voice.wav"
-#define IN_FILE_NAME        "../localtests/short_wb_voice.wav"
+#define EIGHTK_IN_FILE_NAME "../test-data/local/short_nb_voice.wav"
+#define IN_FILE_NAME        "../test-data/local/short_wb_voice.wav"
 #define OUT_FILE_NAME       "post_g722.wav"
 
 #if 0

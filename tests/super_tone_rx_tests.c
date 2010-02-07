@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx_tests.c,v 1.26 2008/04/26 13:39:17 steveu Exp $
+ * $Id: super_tone_rx_tests.c,v 1.27 2008/05/03 07:37:06 steveu Exp $
  */
 
 /*! \file */
@@ -59,8 +59,8 @@
 
 #define IN_FILE_NAME    "super_tone.wav"
 
-#define MITEL_DIR       "../itutests/mitel/"
-#define BELLCORE_DIR	"../itutests/bellcore/"
+#define MITEL_DIR       "../test-data/mitel/"
+#define BELLCORE_DIR	"../test-data/bellcore/"
 
 const char *bellcore_files[] =
 {

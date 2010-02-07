@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones_tests.c,v 1.18 2008/04/26 13:39:17 steveu Exp $
+ * $Id: modem_connect_tones_tests.c,v 1.19 2008/05/03 07:37:06 steveu Exp $
  */
 
 /*! \page modem_connect_tones_tests_page Modem connect tones tests
@@ -45,8 +45,8 @@ These tests...
 
 #define OUTPUT_FILE_NAME    "modem_connect_tones.wav"
 
-#define MITEL_DIR           "../itutests/mitel/"
-#define BELLCORE_DIR        "../itutests/bellcore/"
+#define MITEL_DIR           "../test-data/mitel/"
+#define BELLCORE_DIR        "../test-data/bellcore/"
 
 #define FALSE 0
 #define TRUE (!FALSE)

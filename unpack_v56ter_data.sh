@@ -17,10 +17,12 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: unpack_v56ter_data.sh,v 1.3 2008/03/30 18:33:24 steveu Exp $
+# $Id: unpack_v56ter_data.sh,v 1.5 2008/05/03 07:55:04 steveu Exp $
 #
 
-cd itutests
+ITUDATA="../../../T-REC-V.56ter-199608-I!!ZPF-E.zip"
+
+cd test-data/itu
 if [ -d v56ter ]
 then
     cd v56ter
@@ -29,7 +31,7 @@ else
     RETVAL=$?
     if [ $RETVAL != 0 ]
     then
-        echo Cannot create itutests/v56ter!
+        echo Cannot create test-data/itu/v56ter!
         exit $RETVAL
     fi
     cd v56ter
@@ -37,14 +39,14 @@ fi
 
 rm -rf software
 rm -rf *.TST
-unzip "../../T-REC-V.56ter-199608-I!!ZPF-E.zip" >/dev/null
+unzip ${ITUDATA} >/dev/null
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
     echo Cannot unpack the ITU test vectors for V.56ter!
     exit $RETVAL
 fi
-#rm "../../T-REC-V.56ter-199608-I!!ZPF-E.zip"
+#rm ${ITUDATA}
 unzip software/V56ter/V56tere/Software.zip >/dev/null
 RETVAL=$?
 if [ $RETVAL != 0 ]

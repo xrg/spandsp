@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm_tests.c,v 1.29 2008/04/26 13:39:17 steveu Exp $
+ * $Id: ima_adpcm_tests.c,v 1.30 2008/05/03 07:37:06 steveu Exp $
  */
 
 /*! \file */
@@ -31,7 +31,7 @@
 /*! \page ima_adpcm_tests_page IMA ADPCM tests
 \section ima_adpcm_tests_page_sec_1 What does it do?
 To perform a general audio quality test, ima_adpcm_tests should be run. The test file
-../localtests/short_nb_voice.wav will be compressed to the specified bit rate,
+../test-data/local/short_nb_voice.wav will be compressed to the specified bit rate,
 decompressed, and the resulting audio stored in post_ima_adpcm.wav. A simple SNR test
 is automatically performed. Listening tests may be used for a more detailed evaluation
 of the degradation in quality caused by the compression.
@@ -53,7 +53,7 @@ of the degradation in quality caused by the compression.
 
 #include "spandsp.h"
 
-#define IN_FILE_NAME    "../localtests/short_nb_voice.wav"
+#define IN_FILE_NAME    "../test-data/local/short_nb_voice.wav"
 #define OUT_FILE_NAME   "post_ima_adpcm.wav"
 
 #define HIST_LEN        2000

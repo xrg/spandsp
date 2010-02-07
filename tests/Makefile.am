@@ -16,9 +16,10 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.97 2008/04/26 13:39:16 steveu Exp $
+## $Id: Makefile.am,v 1.98 2008/05/03 13:05:04 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
+AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
 
 LIBS += $(TESTLIBS)
 

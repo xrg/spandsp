@@ -16,17 +16,13 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.3 2008/04/17 18:03:22 steveu Exp $
+## $Id: Makefile.am,v 1.2 2008/05/03 10:26:15 steveu Exp $
 
-SUBDIRS =
+SUBDIRS = itu
 
-DIST_SUBDIRS =
-
-EXTRA_DIST = dam9_lpc55.wav \
-             dam9.wav \
-             short_nb_voice.wav \
-             short_wb_voice.wav
+DIST_SUBDIRS = itu local
 
 all: 
 
 clean:
+

@@ -17,10 +17,12 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: unpack_g722_data.sh,v 1.3 2008/03/30 18:33:24 steveu Exp $
+# $Id: unpack_g722_data.sh,v 1.5 2008/05/03 07:55:04 steveu Exp $
 #
 
-cd itutests
+ITUDATA="../../../T-REC-G.722-198703-I!AppII!ZPF-E.zip"
+
+cd test-data/itu
 if [ -d g722 ]
 then
     cd g722
@@ -29,7 +31,7 @@ else
     RETVAL=$?
     if [ $RETVAL != 0 ]
     then
-        echo Cannot create itutests/g722!
+        echo Cannot create test-data/itu/g722!
         exit $RETVAL
     fi
     cd g722
@@ -37,14 +39,14 @@ fi
 
 rm -rf T*
 rm -rf software
-unzip "../../T-REC-G.722-198703-I!AppII!ZPF-E.zip" >/dev/null
+unzip ${ITUDATA} >/dev/null
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
     echo Cannot unpack the ITU test vectors for G.722!
     exit $RETVAL
 fi
-#rm "../../T-REC-G.722-198703-I!AppII!ZPF-E.zip"
+#rm ${ITUDATA}
 unzip ./software/G722ap2/G722E/Software.zip >/dev/null
 RETVAL=$?
 if [ $RETVAL != 0 ]

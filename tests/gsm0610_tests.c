@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: gsm0610_tests.c,v 1.14 2008/04/26 13:39:17 steveu Exp $
+ * $Id: gsm0610_tests.c,v 1.15 2008/05/03 07:37:06 steveu Exp $
  */
 
 /*! \file */
@@ -112,7 +112,7 @@ different. The supplied names are messy, and inconsistent across the sets. The n
 just clean up these inconsistencies. Note that you will need a Windows machine to unpack some of the supplied
 files.
 
-To perform a general audio quality test, gsm0610_tests should be run. The file ../localtests/short_nb_voice.wav
+To perform a general audio quality test, gsm0610_tests should be run. The file ../test-data/local/short_nb_voice.wav
 will be compressed to GSM 06.10 data, decompressed, and the resulting audio stored in post_gsm0610.wav.
 */
 
@@ -132,9 +132,9 @@ will be compressed to GSM 06.10 data, decompressed, and the resulting audio stor
 
 #define BLOCK_LEN       160
 
-#define TEST_DIR "../etsitests/gsm0610/unpacked/fr_"
+#define TESTDATA_DIR "../test-data/etsi/gsm0610/unpacked/fr_"
 
-#define IN_FILE_NAME    "../localtests/short_nb_voice.wav"
+#define IN_FILE_NAME    "../test-data/local/short_nb_voice.wav"
 #define OUT_FILE_NAME   "post_gsm0610.wav"
 
 #define HIST_LEN        1000
@@ -160,7 +160,7 @@ static int get_test_vector(int full, int disk, const char *name)
     
     if (full)
     {
-        sprintf(buf, "%s%c/%s.inp", TEST_DIR, 'L', name);
+        sprintf(buf, "%s%c/%s.inp", TESTDATA_DIR, 'L', name);
         if ((in = open(buf, O_RDONLY)) < 0)
         {
             fprintf(stderr, "Cannot open %s\n", buf);
@@ -172,7 +172,7 @@ static int get_test_vector(int full, int disk, const char *name)
         vector_len = len;
     }
 
-    sprintf(buf, "%s%c/%s.out", TEST_DIR, 'L', name);
+    sprintf(buf, "%s%c/%s.out", TESTDATA_DIR, 'L', name);
     if ((in = open(buf, O_RDONLY)) < 0)
     {
         fprintf(stderr, "Cannot open %s\n", buf);
@@ -194,7 +194,7 @@ static int get_test_vector(int full, int disk, const char *name)
         vector_len = len;
     }
     
-    sprintf(buf, "%s%c/%s.cod", TEST_DIR, 'L', name);
+    sprintf(buf, "%s%c/%s.cod", TESTDATA_DIR, 'L', name);
     if ((in = open(buf, O_RDONLY)) < 0)
     {
         fprintf(stderr, "Cannot open %s\n", buf);
@@ -230,7 +230,7 @@ static int get_law_test_vector(int full, int law, const char *name)
     
     if (full)
     {
-        sprintf(buf, "%s%c/%s-%c.inp", TEST_DIR, law_uc, name, law_uc);
+        sprintf(buf, "%s%c/%s-%c.inp", TESTDATA_DIR, law_uc, name, law_uc);
         if ((in = open(buf, O_RDONLY)) < 0)
         {
             fprintf(stderr, "Cannot open %s\n", buf);
@@ -240,7 +240,7 @@ static int get_law_test_vector(int full, int law, const char *name)
         close(in);
         vector_len = len;
 
-        sprintf(buf, "%s%c/%s-%c.cod", TEST_DIR, law_uc, name, law_uc);
+        sprintf(buf, "%s%c/%s-%c.cod", TESTDATA_DIR, law_uc, name, law_uc);
         if ((in = open(buf, O_RDONLY)) < 0)
         {
             fprintf(stderr, "Cannot open %s\n", buf);
@@ -258,7 +258,7 @@ static int get_law_test_vector(int full, int law, const char *name)
         }
     }
 
-    sprintf(buf, "%s%c/%s-%c.out", TEST_DIR, law_uc, name, law_uc);
+    sprintf(buf, "%s%c/%s-%c.out", TESTDATA_DIR, law_uc, name, law_uc);
     if ((in = open(buf, O_RDONLY)) < 0)
     {
         fprintf(stderr, "Cannot open %s\n", buf);
@@ -279,7 +279,7 @@ static int get_law_test_vector(int full, int law, const char *name)
         vector_len = len;
     }
 
-    sprintf(buf, "%s%c/%s.cod", TEST_DIR, 'L', name);
+    sprintf(buf, "%s%c/%s.cod", TESTDATA_DIR, 'L', name);
     if ((in = open(buf, O_RDONLY)) < 0)
     {
         fprintf(stderr, "Cannot open %s\n", buf);
