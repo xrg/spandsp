@@ -28,7 +28,7 @@ extern "C" {
 #define _CRT_NONSTDC_NO_DEPRECATE
 #endif
 #endif // VC8+
-#include "windows.h"
+#include <windows.h>
 typedef unsigned __int8		uint8_t;
 typedef unsigned __int16	uint16_t;
 typedef unsigned __int32	uint32_t;
@@ -63,6 +63,22 @@ typedef __int64		int64_t;
 #define INFINITY 0x7fffffff
 #endif
 #endif
+
+#define PACKAGE "spandsp"
+#define VERSION "0.0.3andabit"
+
+#define INT32_MAX	(2147483647)
+#define INT32_MIN	(-2147483647 - 1)
+
+#define PRId8 "d"
+#define PRId16 "d"
+#define PRId32 "ld"
+#define PRId64 "lld"
+
+#define PRIu8 "u"
+#define PRIu16 "u"
+#define PRIu32 "lu"
+#define PRIu64 "llu"
 
 #ifdef __cplusplus
 }

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: test_utils.h,v 1.6 2006/10/24 13:45:29 steveu Exp $
+ * $Id: test_utils.h,v 1.9 2007/02/06 14:43:32 steveu Exp $
  */
 
 /*! \file */
@@ -43,11 +43,21 @@ enum
 
 typedef struct codec_munge_state_s codec_munge_state_t;
 
+typedef struct complexify_state_s complexify_state_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-codec_munge_state_t *codec_munge_init(int codec);
+complexify_state_t *complexify_init(void);
+
+void complexify_release(complexify_state_t *s);
+
+complexf_t complexify(complexify_state_t *s, int16_t amp);
+
+codec_munge_state_t *codec_munge_init(int codec, int info);
+
+void codec_munge_release(codec_munge_state_t *s);
 
 void codec_munge(codec_munge_state_t *s, int16_t amp[], int len);
 

@@ -26,7 +26,7 @@
  * implementation of the LPC-10 2400 bps Voice Coder. They do not
  * exert copyright claims on their code, and it may be freely used.
  *
- * $Id: lpc10_encode.c,v 1.15 2006/11/21 13:57:40 steveu Exp $
+ * $Id: lpc10_encode.c,v 1.16 2007/01/03 14:15:35 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -88,13 +88,13 @@ static void lpc10_pack(lpc10_encode_state_t *s, uint8_t ibits[], lpc10_frame_t *
     {
         x = (x << 1) | (itab[iblist[i] - 1] & 1);
         if ((i & 7) == 7)
-            ibits[i >> 3] = x & 0xFF;
+            ibits[i >> 3] = (uint8_t) (x & 0xFF);
         itab[iblist[i] - 1] >>= 1;
     }
     x = (x << 1) | (s->isync & 1);
     s->isync ^= 1;
     x <<= 2;
-    ibits[6] = x & 0xFF;
+    ibits[6] = (uint8_t) (x & 0xFF);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -157,9 +157,9 @@ static int encode(lpc10_encode_state_t *s,
     int32_t mrk;
 
     /* Scale RMS and RC's to int32_ts */
-    t->irms = rms;
+    t->irms = (int32_t) rms;
     for (i = 0;  i < LPC10_ORDER;  i++)
-        t->irc[i] = rc[i]*32768.0f;
+        t->irc[i] = (int32_t) (rc[i]*32768.0f);
     if (voice[0] != 0  &&  voice[1] != 0)
     {
         t->ipitch = entau[pitch - 1];
@@ -211,7 +211,7 @@ static int encode(lpc10_encode_state_t *s,
     /* Encode RC(3) - (10) linearly, remove bias then scale */
     for (i = 2;  i < LPC10_ORDER;  i++)
     {
-        i2 = (t->irc[i]/2 + enadd[LPC10_ORDER - 1 - i])*enscl[LPC10_ORDER - 1 - i];
+        i2 = (int32_t) ((t->irc[i]/2 + enadd[LPC10_ORDER - 1 - i])*enscl[LPC10_ORDER - 1 - i]);
         i2 = max(i2, -127);
         i2 = min(i2, 127);
         nbit = enbits[LPC10_ORDER - 1 - i];

@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_local.h,v 1.6 2006/10/24 13:45:25 steveu Exp $
+ * $Id: gsm0610_local.h,v 1.7 2007/01/03 14:15:35 steveu Exp $
  */
 
 #if !defined(_GSM0610_LOCAL_H_)
@@ -107,7 +107,7 @@ static __inline__ int16_t gsm_mult(int16_t a, int16_t b)
     if (a == INT16_MIN  &&  b == INT16_MIN)
         return  INT16_MAX;
     /*endif*/
-    return  ((int32_t) a * (int32_t) b) >> 15;
+    return  (int16_t) (((int32_t) a * (int32_t) b) >> 15);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -127,13 +127,13 @@ static __inline__ int16_t gsm_mult_r(int16_t a, int16_t b)
     /*endif*/
     prod = (int32_t) a * (int32_t) b + 16384;
     prod >>= 15;
-    return  prod & 0xFFFF;
+    return  (int16_t) (prod & 0xFFFF);
 }
 /*- End of function --------------------------------------------------------*/
 
 static __inline__ int16_t gsm_abs(int16_t a)
 {
-    return  (a == INT16_MIN)  ?  INT16_MAX  :  abs(a);
+    return  (a == INT16_MIN)  ?  INT16_MAX  :  (int16_t) abs(a);
 }
 /*- End of function --------------------------------------------------------*/
 

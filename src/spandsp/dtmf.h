@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.h,v 1.5 2006/10/24 13:45:28 steveu Exp $
+ * $Id: dtmf.h,v 1.7 2007/02/27 16:52:16 steveu Exp $
  */
 
 #if !defined(_DTMF_H_)
@@ -73,6 +73,8 @@ repertoire of 16 DTMF dual tones.
 
 #define MAX_DTMF_DIGITS 128
 
+typedef void (*dtmf_rx_callback_t)(void *user_data, const char *digits, int len);
+
 /*!
     DTMF generator state descriptor. This defines the state of a single
     working instance of a DTMF generator.
@@ -92,11 +94,11 @@ typedef struct
 typedef struct
 {
     /*! Optional callback funcion to deliver received digits. */
-    void (*callback)(void *data, const char *digits, int len);
+    dtmf_rx_callback_t callback;
     /*! An opaque pointer passed to the callback function. */
     void *callback_data;
     /*! Optional callback funcion to deliver real time digit state changes. */
-    void (*realtime_callback)(void *data, int signal);
+    tone_report_func_t realtime_callback;
     /*! An opaque pointer passed to the real time callback function. */
     void *realtime_callback_data;
     /*! TRUE if dialtone should be filtered before processing */
@@ -167,7 +169,7 @@ dtmf_tx_state_t *dtmf_tx_init(dtmf_tx_state_t *s);
     \param user_data An opaque pointer which is associated with the context,
            and supplied in callbacks. */
 void dtmf_rx_set_realtime_callback(dtmf_rx_state_t *s,
-                                   void (*callback)(void *user_data, int signal),
+                                   tone_report_func_t callback,
                                    void *user_data);
 
 /*! \brief Adjust a DTMF receiver context.
@@ -202,7 +204,7 @@ size_t dtmf_rx_get(dtmf_rx_state_t *s, char *digits, int max);
            and supplied in callbacks.
     \return A pointer to the DTMF receiver context. */
 dtmf_rx_state_t *dtmf_rx_init(dtmf_rx_state_t *s,
-                              void (*callback)(void *user_data, const char *digits, int len),
+                              dtmf_rx_callback_t callback,
                               void *user_data);
 
 #ifdef __cplusplus

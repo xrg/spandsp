@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tests.c,v 1.37 2006/11/19 14:07:27 steveu Exp $
+ * $Id: v22bis_tests.c,v 1.38 2007/02/06 14:43:32 steveu Exp $
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
-    if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, (float) noise_level, channel_codec)) == NULL)
+    if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, (float) noise_level, channel_codec, 0)) == NULL)
     {
         fprintf(stderr, "    Failed to create line model\n");
         exit(2);

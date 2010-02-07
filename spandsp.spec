@@ -1,70 +1,79 @@
-Summary:   Steve's DSP library for telephony spans.
-Name:      spandsp
-Version:   0.0.3
-Release:   1
-License:   GPL
-URL:       http://www.soft-switch.org/spandsp
-BuildRoot: %{_tmppath}/%{name}-%{version}-root
-Source:    http://www.soft-switch.org/spandsp/spandsp-0.0.3.tar.gz
+Summary:    A DSP library for telephony.
+Name:       spandsp
+Version:    0.0.3
+Release:    1
+License:    GPL
+Group:      System Environment/Libraries
+URL:        http://www.soft-switch.org/spandsp
+BuildRoot:  %{_tmppath}/%{name}-%{version}-root
+Source:     http://www.soft-switch.org/downloads/spandsp/spandsp-0.0.3.tar.gz
+BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-Group:     System Environment/Libraries
-Obsoletes: spandsp
-Docdir:    %{_prefix}/doc
+Docdir:     %{_prefix}/doc
+
+BuildRequires: libtiff-devel
+BuildRequires: libxml2-devel
+BuildRequires: audiofile-devel
+BuildRequires: doxygen
 
 %description
-spandsp is a library for DSP in telephony spans. It can perform many of the
-common DSP functions, such as the generation and detection of DTMF and
-supervisory tones.
+SpanDSP is a library of DSP functions for telephony, in the 8000
+sample per second world of E1s, T1s, and higher order PCM channels. It
+contains low level functions, such as basic filters. It also contains
+higher level functions, such as cadenced supervisory tone detection,
+and a complete software FAX machine. The software has been designed to
+avoid intellectual property issues, using mature techniques where all
+relevant patents have expired. See the file DueDiligence for important
+information about these intellectual property issues.
 
 %package devel
-Summary:   header files and libraries needed for development with spandsp.
-Group:     Development/Libraries
-Requires:  spandsp = %{version}
-Obsoletes: spandsp-devel
-PreReq:    /sbin/install-info
+Summary:    SpanDSP development files
+Group:      Development/Libraries
+Requires:   spandsp = %{version}
+Requires:   libtiff-devel
+PreReq:     /sbin/install-info
 
 %description devel
-This package includes the header files and libraries needed for
-developing programs using spandsp.
+SpanDSP development files.
 
 %prep
-%setup
+%setup -q
 
-automake
 %build
-CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%_prefix --sysconfdir=/etc
+%configure --enable-doc --disable-static --disable-rpath
 make
 
 %install
-rm -rf $RPM_BUILD_ROOT
-
-make prefix=$RPM_BUILD_ROOT/%{_prefix} sysconfdir=$RPM_BUILD_ROOT/etc install
+rm -rf %{buildroot}
+make install DESTDIR=%{buildroot}
+rm %{buildroot}%{_libdir}/libspandsp.la
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
-%post   -p /sbin/ldconfig
+%files
+%defattr(-,root,root,-)
+%doc DueDiligence ChangeLog AUTHORS COPYING NEWS README 
+
+%{_libdir}/libspandsp.so.*
+
+%{_datadir}/spandsp
+
+%files devel
+%defattr(-,root,root,-)
+%doc doc/api
+%{_includedir}/spandsp.h
+%{_includedir}/spandsp
+%{_libdir}/libspandsp.so
+
+%post -p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
 
-%files
-%defattr(-, root, root)
-
-%{_prefix}/lib/lib*.so.*
-
-%files devel
-%defattr(-, root, root)
-
-%{_prefix}/lib/lib*.a
-%{_prefix}/lib/lib*.la
-%{_prefix}/lib/lib*.so
-%{_prefix}/include/*
-
-%{_prefix}/share/%{name}/global-tones.xml
-%{_prefix}/share/%{name}/tones.dtd
-
 %changelog
-%changelog
+* Sun Dec 31 2006 Steve Underwood <steveu@coppice.org> 0.0.3-1
+- Preparing for 0.0.3 release
+
 * Sat Oct 16 2004 Steve Underwood <steveu@coppice.org> 0.0.2-1
 - Preparing for 0.0.2 release
 

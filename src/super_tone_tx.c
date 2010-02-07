@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.c,v 1.15 2006/11/19 14:07:25 steveu Exp $
+ * $Id: super_tone_tx.c,v 1.16 2007/01/03 14:15:35 steveu Exp $
  */
 
 /*! \file */
@@ -172,7 +172,7 @@ int super_tone_tx(super_tone_tx_state_t *s, int16_t amp[], int max_samples)
                     xamp += dds_modf(&(s->phase[0]), s->phase_rate[0], s->gain[0], 0);
                 if (s->phase_rate[1])
                     xamp += dds_modf(&(s->phase[1]), s->phase_rate[1], s->gain[1], 0);
-                amp[samples] = (int16_t) lrintf(xamp);
+                amp[samples] = (int16_t) rintf(xamp);
             }
             if (s->current_position)
                 return samples;

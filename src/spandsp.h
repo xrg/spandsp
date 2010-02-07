@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spandsp.h,v 1.46 2006/10/24 13:45:26 steveu Exp $
+ * $Id: spandsp.h,v 1.47 2007/02/27 16:52:16 steveu Exp $
  */
 
 /*! \file */
@@ -64,11 +64,11 @@
 #include <spandsp/time_scale.h>
 #include <spandsp/tone_detect.h>
 #include <spandsp/tone_generate.h>
-#include <spandsp/dtmf.h>
-#include <spandsp/bell_r2_mf.h>
 #include <spandsp/super_tone_rx.h>
 #include <spandsp/super_tone_tx.h>
 #include <spandsp/modem_connect_tones.h>
+#include <spandsp/dtmf.h>
+#include <spandsp/bell_r2_mf.h>
 #include <spandsp/sig_tone.h>
 #include <spandsp/fsk.h>
 #include <spandsp/silence_gen.h>

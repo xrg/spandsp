@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_dds.c,v 1.19 2006/11/28 16:59:56 steveu Exp $
+ * $Id: complex_dds.c,v 1.20 2007/01/03 14:15:35 steveu Exp $
  */
 
 /*! \file */
@@ -44,7 +44,7 @@
 #include "spandsp/complex.h"
 #include "spandsp/dds.h"
 
-#define SLENK	    11
+#define SLENK       11
 #define SINELEN     (1 << SLENK)
 
 /* Precreating this table allows it to be in const memory, which might

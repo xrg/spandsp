@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: test_utils.c,v 1.7 2006/11/19 14:07:27 steveu Exp $
+ * $Id: test_utils.c,v 1.10 2007/02/06 14:43:32 steveu Exp $
  */
 
 /*! \file */
@@ -54,9 +54,94 @@ struct codec_munge_state_s
     int munging_codec;
     g726_state_t g726_enc_state;
     g726_state_t g726_dec_state;
+    int rbs_pattern;
+    int sequence;
 };
 
-codec_munge_state_t *codec_munge_init(int codec)
+struct complexify_state_s
+{
+    float history[128];
+    int ptr;
+};
+
+complexify_state_t *complexify_init(void)
+{
+    complexify_state_t *s;
+    int i;
+
+    if ((s = (complexify_state_t *) malloc(sizeof(*s))))
+    {
+        s->ptr = 0;
+        for (i = 0;  i < 128;  i++)
+            s->history[i] = 0.0f;
+    }
+    return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+void complexify_release(complexify_state_t *s)
+{
+    free(s);
+}
+/*- End of function --------------------------------------------------------*/
+
+complexf_t complexify(complexify_state_t *s, int16_t amp)
+{
+#define HILBERT_GAIN    1.569546344
+    static const float hilbert_coeffs[] =
+    {
+        +0.0012698413f, +0.0013489483f,
+        +0.0015105196f, +0.0017620440f,
+        +0.0021112899f, +0.0025663788f,
+        +0.0031358856f, +0.0038289705f,
+        +0.0046555545f, +0.0056265487f,
+        +0.0067541562f, +0.0080522707f,
+        +0.0095370033f, +0.0112273888f,
+        +0.0131463382f, +0.0153219442f,
+        +0.0177892941f, +0.0205930381f,
+        +0.0237910974f, +0.0274601544f,
+        +0.0317040029f, +0.0366666667f,
+        +0.0425537942f, +0.0496691462f,
+        +0.0584802574f, +0.0697446887f,
+        +0.0847739823f, +0.1060495199f,
+        +0.1388940865f, +0.1971551103f,
+        +0.3316207267f, +0.9994281838f,
+    };
+    float famp;
+    int i;
+    int j;
+    int k;
+    complexf_t res;
+
+    s->history[s->ptr] = amp;
+    i = s->ptr - 63;
+    if (i < 0)
+        i += 128;
+    res.re = s->history[i];
+
+    famp = 0.0f;
+    j = s->ptr - 126;
+    if (j < 0)
+        j += 128;
+    for (i = 0, k = s->ptr;  i < 32;  i++)
+    {
+        famp += (s->history[k] - s->history[j])*hilbert_coeffs[i];
+        j += 2;
+        if (j >= 128)
+            j -= 128;
+        k -= 2;
+        if (k < 0)
+            k += 128;
+    }
+    res.im = famp/HILBERT_GAIN;
+
+    if (++s->ptr >= 128)
+        s->ptr = 0;
+    return res;
+}
+/*- End of function --------------------------------------------------------*/
+
+codec_munge_state_t *codec_munge_init(int codec, int info)
 {
     codec_munge_state_t *s;
     
@@ -88,8 +173,16 @@ codec_munge_state_t *codec_munge_init(int codec)
             s->munging_codec = codec;
             break;
         }
+        s->sequence = 0;
+        s->rbs_pattern = info;
     }
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+void codec_munge_release(codec_munge_state_t *s)
+{
+    free(s);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -117,6 +210,11 @@ void codec_munge(codec_munge_state_t *s, int16_t amp[], int len)
         for (i = 0;  i < len;  i++)
         {
             law = linear_to_ulaw(amp[i]);
+            if (s->rbs_pattern & (1 << s->sequence))
+            {
+                /* Strip the bottom bit at the RBS rate */
+                law &= 0xFE;
+            }
             amp[i] = ulaw_to_linear(law);
         }
         break;

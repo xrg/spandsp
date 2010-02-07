@@ -22,15 +22,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.h,v 1.17 2006/10/24 13:45:28 steveu Exp $
+ * $Id: fsk.h,v 1.18 2006/12/15 15:03:59 steveu Exp $
  */
 
 /*! \file */
 
 /*! \page fsk_page FSK modems
 \section fsk_page_sec_1 What does it do?
-Most of the oldest telephony modems use incorent FSK modulation. This module can
-be used to implement both the trasmit and receive sides of a number of these
+Most of the oldest telephony modems use incoherent FSK modulation. This module can
+be used to implement both the transmit and receive sides of a number of these
 modems. There are integrated definitions for: 
 
  - V.21

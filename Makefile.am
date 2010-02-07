@@ -1,3 +1,6 @@
+##
+## SpanDSP - a series of DSP components for telephony
+##
 ## Makefile.am -- Process this file with automake to produce Makefile.in
 ##
 ## This program is free software; you can redistribute it and/or modify
@@ -13,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.20 2006/12/06 13:53:36 steveu Exp $
+## $Id: Makefile.am,v 1.22 2007/02/13 13:47:22 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -26,7 +29,8 @@ MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = DueDiligence \
              spandsp.spec \
              wrapper.xsl \
-             libspandsp.vcproj \
+             src/libspandsp.vcproj \
+             src/libspandsp.dsp \
              doc/libspandsp-doxygen \
              src/msvc/gettimeofday.c \
              src/msvc/inttypes.h \

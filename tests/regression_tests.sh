@@ -15,14 +15,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: regression_tests.sh,v 1.36 2006/11/20 14:27:27 steveu Exp $
+# $Id: regression_tests.sh,v 1.38 2007/02/10 11:54:57 steveu Exp $
 #
 
 ITUTESTS_TIF=../itutests/fax/itutests.tif
 STDOUT_DEST=xyzzy
 STDERR_DEST=xyzzy2
 
-echo Performing basic regression tests
+echo Performing basic spandsp regression tests
 echo
 
 ./adsi_tests >$STDOUT_DEST 2>$STDERR_DEST
@@ -397,6 +397,15 @@ then
     exit $RETVAL
 fi
 echo t31_tests completed OK
+
+./t38_core_tests >$STDOUT_DEST 2>$STDERR_DEST
+RETVAL=$?
+if [ $RETVAL != 0 ]
+then
+    echo t38_core_tests failed!
+    exit $RETVAL
+fi
+echo t38_core_tests completed OK
 
 rm -f t38.tif
 ./t38_gateway_tests >$STDOUT_DEST 2>$STDERR_DEST

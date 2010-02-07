@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g722_tests.c,v 1.17 2006/11/19 14:07:27 steveu Exp $
+ * $Id: g722_tests.c,v 1.18 2006/12/27 03:16:44 steveu Exp $
  */
 
 /*! \file */
@@ -328,7 +328,7 @@ int main(int argc, char *argv[])
                     break;
             }
             len = j - i;
-            g722_encode_init(&enc_state, 64000, FALSE);
+            g722_encode_init(&enc_state, 64000, 0);
             enc_state.itu_test_mode = TRUE;
             len2 = g722_encode(&enc_state, compressed, itu_data + i, len);
 
@@ -388,7 +388,7 @@ int main(int argc, char *argv[])
                 for (k = 0;  k < len;  k++)
                     compressed[k] = itu_data[k + i] >> ((mode == 3)  ?  10  :  (mode == 2)  ?  9  :  8);
         
-                g722_decode_init(&dec_state, (mode == 3)  ?  48000  :  (mode == 2)  ?  56000  :  64000, FALSE);
+                g722_decode_init(&dec_state, (mode == 3)  ?  48000  :  (mode == 2)  ?  56000  :  64000, 0);
                 dec_state.itu_test_mode = TRUE;
                 len2 = g722_decode(&dec_state, decompressed, compressed, len);
         

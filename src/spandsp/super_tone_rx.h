@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.h,v 1.9 2006/10/24 13:22:02 steveu Exp $
+ * $Id: super_tone_rx.h,v 1.10 2007/02/27 16:52:16 steveu Exp $
  */
 
 #if !defined(_SUPER_TONE_RX_H_)
@@ -55,7 +55,7 @@ executive override tone, confirmation tone).
 */
 
 /*! Tone detection indication callback routine */
-typedef void (*tone_report_func_t)(void *user_data, int code);
+typedef void (*tone_report_func_t)(void *user_data, int code, int level);
 
 #define BINS            128
 
@@ -161,7 +161,7 @@ void super_tone_rx_segment_callback(super_tone_rx_state_t *s,
     \param samples The number of samples in the buffer.
     \return The number of samples processed.
 */
-int super_tone_rx(super_tone_rx_state_t *super, const int16_t *amp, int samples);
+int super_tone_rx(super_tone_rx_state_t *super, const int16_t amp[], int samples);
 
 #endif
 /*- End of file ------------------------------------------------------------*/

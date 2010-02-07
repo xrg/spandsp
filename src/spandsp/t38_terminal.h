@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.11 2006/12/07 13:22:26 steveu Exp $
+ * $Id: t38_terminal.h,v 1.15 2007/02/19 08:28:47 steveu Exp $
  */
 
 /*! \file */
@@ -36,9 +36,6 @@
 \section t38_terminal_page_sec_2 How does it work?
 */
 
-#define T38_RX_BUF_LEN          2048
-#define T38_TX_BUF_LEN          16384
-
 /* Make sure the HDLC frame buffers are big enough for ECM frames. */
 #define T38_MAX_HDLC_LEN        260
 
@@ -46,36 +43,51 @@ typedef struct
 {
     t38_core_state_t t38;
 
-    uint8_t hdlc_tx_buf[T38_MAX_HDLC_LEN];
-    int hdlc_tx_len;
-    int hdlc_tx_ptr;
+    /*! \brief HDLC transmit buffer */
+    uint8_t tx_buf[T38_MAX_HDLC_LEN];
+    int tx_len;
+    int tx_ptr;
+
+    /*! \brief HDLC receive buffer */
+    uint8_t rx_buf[T38_MAX_HDLC_LEN];
+    int rx_len;
+
+    /*! \brief The current transmit step being timed */
     int timed_step;
 
-    uint8_t tx_data[T38_TX_BUF_LEN];
-    int tx_out_bytes;
-
+    /*! \brief The next queued tramsit indicator */
     int next_tx_indicator;
+    /*! \brief The current T.38 data type being transmitted */
     int current_tx_data_type;
 
-    /*! \brief TRUE is a carrier is presnt. Otherwise FALSE. */
+    /*! \brief TRUE if a carrier is present. Otherwise FALSE. */
     int rx_signal_present;
 
-    /*! \brief A tone generator context used to generate supervisory tones during
-               FAX handling. */
-    tone_gen_state_t tone_gen;
-
+    /*! \brief The T.30 back-end */
     t30_state_t t30_state;
 
     int current_rx_type;
     int current_tx_type;
 
-    /*! \brief TRUE is there has been some T.38 data missed */
+    /*! \brief TRUE is there has been some T.38 data missed (i.e. lost packets) */
     int missing_data;
 
-    /*! The number of octets to send in each image packet (non-ECM or ECM) at the current
-        rate and the current specified packet interval. */
+    /*! \brief The number of octets to send in each image packet (non-ECM or ECM) at the current
+               rate and the current specified packet interval. */
     int octets_per_data_packet;
+    
+    int ms_per_tx_chunk;
 
+    /*! \brief The number of times an indicator packet will be sent. Numbers greater than one
+               will increase reliability for UDP transmission. Zero is valid, to suppress all
+               indicator packets for TCP transmission. */
+    int indicator_tx_count;
+
+    /*! \brief The number of times a data packet which ends transmission will be sent. Numbers
+               greater than one will increase reliability for UDP transmission. Zero is not valid. */
+    int data_end_tx_count;
+
+    /*! \brief A "sample" count, used to time events */
     int32_t samples;
     int32_t next_tx_samples;
     int32_t timeout_rx_samples;
@@ -88,6 +100,8 @@ extern "C" {
 #endif
 
 int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples);
+
+void t38_terminal_set_config(t38_terminal_state_t *s, int without_pacing);
 
 /*! \brief Initialise a termination mode T.38 context.
     \param s The T.38 context.

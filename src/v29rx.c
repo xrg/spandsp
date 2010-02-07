@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.100 2006/11/28 16:59:57 steveu Exp $
+ * $Id: v29rx.c,v 1.101 2007/02/28 12:08:56 steveu Exp $
  */
 
 /*! \file */
@@ -1856,11 +1856,8 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
 
     //printf("v = %10.5f %5d - %f %f %d %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
 
-    if (i)
-    {
-        s->eq_put_step += i;
-        s->total_baud_timing_correction += i;
-    }
+    s->eq_put_step += i;
+    s->total_baud_timing_correction += i;
 
     z = equalizer_get(s);
 

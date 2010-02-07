@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.c,v 1.6 2006/11/30 15:41:47 steveu Exp $
+ * $Id: modem_connect_tones.c,v 1.9 2007/03/03 10:40:33 steveu Exp $
  */
  
 /*! \file */
@@ -98,6 +98,7 @@ modem_connect_tones_tx_state_t *modem_connect_tones_tx_init(modem_connect_tones_
     switch (s->tone_type)
     {
     case MODEM_CONNECT_TONES_FAX_CNG:
+        /* 0.5s of 1100Hz+-38Hz + 3.0s of silence repeating. Timing +-15% */
         make_tone_gen_descriptor(&tone_desc,
                                  1100,
                                  -11,
@@ -111,6 +112,7 @@ modem_connect_tones_tx_state_t *modem_connect_tones_tx_init(modem_connect_tones_
         tone_gen_init(&s->tone_tx, &tone_desc);
         break;
     case MODEM_CONNECT_TONES_FAX_CED:
+        /* 0.2s of silence, then 2.6s to 4s of 2100Hz+-15Hz tone, then 75ms of silence. */
         make_tone_gen_descriptor(&tone_desc,
                                  2100,
                                  -11,
@@ -159,7 +161,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
             famp = v1 - 1.2994747954630f*s->z1 + s->z2;
             s->z2 = s->z1;
             s->z1 = v1;
-            notched = rintf(famp);
+            notched = (int16_t) rintf(famp);
 
             /* Estimate the overall energy in the channel, and the energy in
                the notch (i.e. overall channel energy - tone energy => noise).
@@ -174,7 +176,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                     if (++s->tone_cycle_duration >= ms_to_samples(415))
                     {
                         if (s->tone_callback)
-                            s->tone_callback(s->callback_data, TRUE);
+                            s->tone_callback(s->callback_data, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
                         else
                             s->hit = TRUE;
                         s->tone_present = TRUE;
@@ -197,7 +199,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
             famp = v1 + 0.1567596f*s->z1 + s->z2;
             s->z2 = s->z1;
             s->z1 = v1;
-            notched = rintf(famp);
+            notched = (int16_t) rintf(famp);
             /* Estimate the overall energy in the channel, and the energy in
                the notch (i.e. overall channel energy - tone energy => noise).
                Use abs instead of multiply for speed (is it really faster?). */
@@ -211,7 +213,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                     if (++s->tone_cycle_duration >= ms_to_samples(500))
                     {
                         if (s->tone_callback)
-                            s->tone_callback(s->callback_data, TRUE);
+                            s->tone_callback(s->callback_data, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
                         else
                             s->hit = TRUE;
                         s->tone_present = TRUE;
@@ -237,7 +239,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
             famp = v1 + 0.1567596f*s->z1 + s->z2;
             s->z2 = s->z1;
             s->z1 = v1;
-            notched = rintf(famp);
+            notched = (int16_t) rintf(famp);
             /* Estimate the overall energy in the channel, and the energy in
                the notch (i.e. overall channel energy - tone energy => noise).
                Use abs instead of multiply for speed (is it really faster?).
@@ -262,7 +264,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                             if (++s->good_cycles > 2)
                             {
                                 if (s->tone_callback)
-                                    s->tone_callback(s->callback_data, TRUE);
+                                    s->tone_callback(s->callback_data, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
                                 else
                                     s->hit = TRUE;
                             }

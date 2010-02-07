@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_filters.c,v 1.8 2006/10/24 13:45:25 steveu Exp $
+ * $Id: complex_filters.c,v 1.9 2007/01/03 14:15:35 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -44,9 +44,10 @@ filter_t *filter_create(fspec_t *fs)
     fi = (filter_t *) malloc(sizeof (filter_t) + sizeof (float)*(fs->np + 1));
     if (fi)
     {
-    	fi->fs = fs;
-    	fi->sum = 0.0;
-    	fi->ptr = 0;	    /* mvg avg filters only */
+        fi->fs = fs;
+        fi->sum = 0.0;
+        /* Moving average filters only */
+        fi->ptr = 0;
         for (i = 0;  i <= fi->fs->np;  i++)
             fi->v[i] = 0.0;
     }
@@ -56,7 +57,7 @@ filter_t *filter_create(fspec_t *fs)
 void filter_delete(filter_t *fi)
 {
     if (fi)
-    	free(fi);
+        free(fi);
 }
 
 float filter_step(filter_t *fi, float x)

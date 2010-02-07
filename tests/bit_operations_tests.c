@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bit_operations_tests.c,v 1.8 2006/11/24 12:34:55 steveu Exp $
+ * $Id: bit_operations_tests.c,v 1.9 2007/02/23 12:59:45 steveu Exp $
  */
 
 /*! \page bit_operations_tests_page Bit operations tests
@@ -53,6 +53,9 @@ their operation with very dumb brute force versions of the same functionality.
 #include <tiffio.h>
 
 #include "spandsp.h"
+
+uint8_t from[1000000];
+uint8_t to[1000000];
 
 static __inline__ int top_bit_dumb(unsigned int data)
 {
@@ -213,9 +216,20 @@ int main(int argc, char *argv[])
             exit(2);
         }
     }
+    for (i = 0;  i < 1000000;  i++)
+        from[i] = rand();
+    bit_reverse(to, from, 1000000);
+    for (i = 0;  i < 1000000;  i++)
+    {
+        if (bit_reverse8_dumb(from[i]) != to[i])
+        {
+            printf("Test failed: bit reverse - at %d, %02x %02x %02x\n", i, from[i], bit_reverse8(from[i]), to[i]);
+            exit(2);
+        }
+    }
     for (i = 0;  i < 256;  i++)
     {
-        x = i | (i << 8) | (i << 16) | (i << 24);
+        x = i | (((i + 1) & 0xFF) << 8) | (((i + 2) & 0xFF) << 16) | (((i + 3) & 0xFF) << 24);
         ax32 = bit_reverse_4bytes_dumb(x);
         bx32 = bit_reverse_4bytes(x);
         if (ax32 != bx32)

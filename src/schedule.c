@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule.c,v 1.12 2006/10/24 13:45:26 steveu Exp $
+ * $Id: schedule.c,v 1.13 2007/01/12 13:59:18 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,6 +35,7 @@
 #include <memory.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/logging.h"
 #include "spandsp/schedule.h"
 
 int span_schedule_event(span_sched_state_t *s, int ms, span_sched_callback_func_t function, void *user_data)
@@ -118,7 +119,7 @@ void span_schedule_del(span_sched_state_t *s, int i)
         ||
         s->sched[i].callback == NULL)
     {
-        fprintf(stderr, "Asked to delete scheduled ID %d???\n", i);
+        span_log(&s->logging, SPAN_LOG_WARNING, "Requested to delete invalid scheduled ID %d ?\n", i);
         return;
     }
     /*endif*/
@@ -129,6 +130,8 @@ void span_schedule_del(span_sched_state_t *s, int i)
 span_sched_state_t *span_schedule_init(span_sched_state_t *s)
 {
     memset(s, 0, sizeof(*s));
+    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
+    span_log_set_protocol(&s->logging, "SCHEDULE");
     return s;
 }
 /*- End of function --------------------------------------------------------*/

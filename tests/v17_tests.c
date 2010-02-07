@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17_tests.c,v 1.60 2006/11/19 14:07:27 steveu Exp $
+ * $Id: v17_tests.c,v 1.62 2007/03/02 13:14:07 steveu Exp $
  */
 
 /*! \page v17_tests_page V.17 modem tests
@@ -282,8 +282,10 @@ int main(int argc, char *argv[])
     int line_model_no;
     int log_audio;
     int channel_codec;
+    int rbs_pattern;
 
     channel_codec = MUNGE_CODEC_NONE;
+    rbs_pattern = 0;
     test_bps = 14400;
     tep = FALSE;
     line_model_no = 0;
@@ -332,6 +334,11 @@ int main(int argc, char *argv[])
         if (strcmp(argv[i], "-n") == 0)
         {
             noise_level = atoi(argv[++i]);
+            continue;
+        }
+        if (strcmp(argv[i], "-r") == 0)
+        {
+            rbs_pattern = atoi(argv[++i]);
             continue;
         }
         if (strcmp(argv[i], "-s") == 0)
@@ -396,7 +403,7 @@ int main(int argc, char *argv[])
         bert_init(&bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
         bert_set_report(&bert, 10000, reporter, NULL);
 
-        if ((line_model = one_way_line_model_init(line_model_no, (float) noise_level, channel_codec)) == NULL)
+        if ((line_model = one_way_line_model_init(line_model_no, (float) noise_level, channel_codec, rbs_pattern)) == NULL)
         {
             fprintf(stderr, "    Failed to create line model\n");
             exit(2);
@@ -474,7 +481,7 @@ int main(int argc, char *argv[])
                 v17_tx_restart(&tx, test_bps, tep, TRUE);
                 v17_tx_power(&tx, signal_level);
                 v17_rx_restart(&rx, test_bps, TRUE);
-                rx.eq_put_step = rand()%(192*10/3);
+                //rx.eq_put_step = rand()%(192*10/3);
                 bert_init(&bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
                 bert_set_report(&bert, 10000, reporter, NULL);
             }

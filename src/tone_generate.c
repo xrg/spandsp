@@ -1,8 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * tone_generate.c - General telephony tone generation, and specific
- *                   generation of Bell MF, MFC/R2, and network supervisory tones.
+ * tone_generate.c - General telephony tone generation.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.c,v 1.31 2006/11/28 16:59:56 steveu Exp $
+ * $Id: tone_generate.c,v 1.34 2007/03/03 10:40:33 steveu Exp $
  */
 
 /*! \file */
@@ -87,21 +86,6 @@ void make_tone_gen_descriptor(tone_gen_descriptor_t *s,
     s->duration[3] = d4*8;
 
     s->repeat = repeat;
-}
-/*- End of function --------------------------------------------------------*/
-
-void make_tone_descriptor(tone_gen_descriptor_t *desc, cadenced_tone_t *tone)
-{
-    make_tone_gen_descriptor(desc,
-                             tone->f1,
-                             tone->level1,
-                             tone->f2,
-                             tone->level2,
-                             tone->on_time1,
-                             tone->off_time1,
-                             tone->on_time2,
-                             tone->off_time2,
-                             tone->repeat);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -169,7 +153,7 @@ int tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples)
                    However, we are normally generating well controlled tones,
                    that cannot clip. So, the overhead of doing saturation is
                    a waste of valuable time. */
-                amp[samples] = (int16_t) lrintf(xamp);
+                amp[samples] = (int16_t) rintf(xamp);
             }
         }
         if (s->current_position >= s->duration[s->current_section])

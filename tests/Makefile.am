@@ -1,3 +1,6 @@
+##
+## SpanDSP - a series of DSP components for telephony
+##
 ## Makefile.am -- Process this file with automake to produce Makefile.in
 ##
 ## This program is free software; you can redistribute it and/or modify
@@ -13,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.77 2006/11/26 13:13:30 steveu Exp $
+## $Id: Makefile.am,v 1.79 2007/02/10 11:54:57 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -70,6 +73,7 @@ noinst_PROGRAMS =   adsi_tests \
                     super_tone_tx_tests \
                     t4_tests \
                     t31_tests \
+                    t38_core_tests \
                     t38_gateway_tests \
                     t38_gateway_to_terminal_tests \
                     t38_terminal_tests \
@@ -223,6 +227,9 @@ t4_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
 t31_tests_SOURCES = t31_tests.c
 t31_tests_LDADD = -L$(top_builddir)/src -lspandsp
+
+t38_core_tests_SOURCES = t38_core_tests.c
+t38_core_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
 t38_gateway_tests_SOURCES = t38_gateway_tests.c ip_network_model.c
 t38_gateway_tests_LDADD = -L$(top_builddir)/src -lspandsp

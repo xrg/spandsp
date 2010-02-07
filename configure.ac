@@ -1,3 +1,6 @@
+#
+# SpanDSP - a series of DSP components for telephony
+#
 # configure.ac -- Process this file with autoconf to produce configure
 #
 # This program is free software; you can redistribute it and/or modify
@@ -13,7 +16,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.17 2006/11/26 13:13:30 steveu Exp $
+# $Id: configure.ac,v 1.27 2007/02/10 11:54:57 steveu Exp $
 
 # @start 1
 
@@ -56,6 +59,7 @@ AC_CONFIG_HEADERS([src/config.h:config-h.in])
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 
 AC_CANONICAL_HOST
+AC_CANONICAL_BUILD
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_GCC_TRADITIONAL
@@ -63,6 +67,53 @@ AC_PROG_LIBTOOL
 AC_LANG([C])
 
 AX_COMPILER_VENDOR
+
+if test "${build}" != "${host}"
+then
+  # If we are doing a Canadian Cross, in which the host and build systems
+  # are not the same, we set reasonable default values for the tools.
+
+  CC=${CC-${host_alias}-gcc}
+  CFLAGS=${CFLAGS-"-g -O2"}
+  CXX=${CXX-${host_alias}-c++}
+  CXXFLAGS=${CXXFLAGS-"-g -O2"}
+  CC_FOR_BUILD=${CC_FOR_BUILD-gcc}
+else
+  # Set reasonable default values for some tools even if not Canadian.
+  # Of course, these are different reasonable default values, originally
+  # specified directly in the Makefile.
+  # We don't export, so that autoconf can do its job.
+  # Note that all these settings are above the fragment inclusion point
+  # in Makefile.in, so can still be overridden by fragments.
+  # This is all going to change when we autoconfiscate...
+  CC_FOR_BUILD="\$(CC)"
+  AC_PROG_CC
+
+  # We must set the default linker to the linker used by gcc for the correct
+  # operation of libtool.  If LD is not defined and we are using gcc, try to
+  # set the LD default to the ld used by gcc.
+  if test -z "$LD"
+  then
+    if test "$GCC" = yes
+    then
+      case $build in
+      *-*-mingw*)
+        gcc_prog_ld=`$CC -print-prog-name=ld 2>&1 | tr -d '\015'` ;;
+      *)
+        gcc_prog_ld=`$CC -print-prog-name=ld 2>&1` ;;
+      esac
+      case $gcc_prog_ld in
+      # Accept absolute paths.
+      [[\\/]* | [A-Za-z]:[\\/]*)]
+        LD="$gcc_prog_ld" ;;
+      esac
+    fi
+  fi
+
+  CXX=${CXX-"c++"}
+  CFLAGS=${CFLAGS-"-g"}
+  CXXFLAGS=${CXXFLAGS-"-g -O2"}
+fi
 
 AC_C_CONST
 AC_C_INLINE
@@ -126,7 +177,10 @@ AC_CHECK_HEADERS([fftw3.h])
 AC_CHECK_HEADERS([tiffio.h])
 AC_CHECK_HEADERS([pthread.h])
 AC_CHECK_HEADERS([unicall.h])
-AC_CHECK_HEADERS([X11/X.h])
+if test "${build}" == "${host}"
+then
+  AC_CHECK_HEADERS([X11/X.h])
+fi
 
 # Determine XML2 include path
 AC_MSG_CHECKING(for libxml/xmlmemory.h)
@@ -167,9 +221,26 @@ AC_CHECK_HEADERS([FL/Fl_Cartesian.H], [], [], [],[[#include <FL/Fl.H>
 AC_CHECK_HEADERS([FL/Fl_Audio_Meter.H], [], [], [],[[#include <FL/Fl.H>
 ]])
 
+if test "${build}" == "${host}"
+then
+    case "${host}" in
+    x86_64-*)
+        AC_CHECK_FILE([${prefix}/lib64], libdir='$(exec_prefix)/lib64')
+        ;;
+    esac
+fi
+
 AC_LANG([C])
-# X86_64 Linux machines have both 64 bit and 32 bit libraries. We need to choose the right set
-AC_CHECK_FILE([/usr/X11R6/lib64], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib64"], AC_CHECK_FILE([/usr/X11R6/lib], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib"]))
+
+if test "${build}" == "${host}"
+then
+    case "${host}" in
+    x86_64-*)
+        # X86_64 Linux machines may have both 64 bit and 32 bit libraries. We need to choose the right set
+        AC_CHECK_FILE([/usr/X11R6/lib64], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib64"], AC_CHECK_FILE([/usr/X11R6/lib], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib"]))
+        ;;
+    esac
+fi
 
 # Checks for libraries.
 AC_CHECK_LIB([Xft], [XftFontOpen], TESTLIBS="$TESTLIBS -lXft",, $TESTLIBS)
@@ -193,19 +264,21 @@ if test -n "$enable_tests" ; then
 fi
 
 case "${ax_cv_c_compiler_vendor}" in
-   gnu)
-        COMP_VENDOR_CFLAGS="-O2 -g -std=gnu99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
-        if test "$enable_sse" = "yes" ; then
-            COMP_VENDOR_CFLAGS="-msse $COMP_VENDOR_CFLAGS"
-        fi
-        if test "$enable_mmx" = "yes" ; then
-            COMP_VENDOR_CFLAGS="-mmmx $COMP_VENDOR_CFLAGS"
-        fi
-        ;;
-    *)
-        COMP_VENDOR_CFLAGS="-O2 -g -std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
-        ;;
+gnu)
+    COMP_VENDOR_CFLAGS="-O2 -g -std=gnu99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
+    if test "$enable_sse" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-msse $COMP_VENDOR_CFLAGS"
+    fi
+    if test "$enable_mmx" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-mmmx $COMP_VENDOR_CFLAGS"
+    fi
+    ;;
+*)
+    COMP_VENDOR_CFLAGS="-O2 -g -std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
+    ;;
 esac
+
+COMP_VENDOR_CFLAGS="-DNDEBUG $COMP_VENDOR_CFLAGS"
 
 AM_CONDITIONAL([COND_DOC], [test "$enable_doc" = yes])
 AM_CONDITIONAL([COND_TESTS], [test "$enable_tests" = yes])
@@ -213,8 +286,9 @@ AM_CONDITIONAL([COND_ITUTESTS], [test "$enable_itutests" = yes])
 AM_CONDITIONAL([COND_MMX], [test "$enable_mmx" = yes])
 AM_CONDITIONAL([COND_SSE], [test "$enable_sse" = yes])
 
-AC_SUBST(TESTLIBS, $TESTLIBS)
-AC_SUBST(COMP_VENDOR_CFLAGS, $COMP_VENDOR_CFLAGS)
+AC_SUBST(TESTLIBS)
+AC_SUBST(COMP_VENDOR_CFLAGS)
+AC_SUBST(CC_FOR_BUILD)
 
 AC_CONFIG_FILES([Makefile
                  doc/Makefile

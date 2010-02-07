@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk_tests.c,v 1.30 2006/11/19 14:07:27 steveu Exp $
+ * $Id: fsk_tests.c,v 1.31 2007/02/06 14:43:32 steveu Exp $
  */
 
 /*! \page fsk_tests_page FSK modem tests
@@ -177,8 +177,10 @@ int main(int argc, char *argv[])
     int modem_under_test_2;
     int log_audio;
     int channel_codec;
+    int rbs_pattern;
 
     channel_codec = MUNGE_CODEC_NONE;
+    rbs_pattern = 0;
     line_model_no = 0;
     decode_test_file = NULL;
     noise_sweep = FALSE;
@@ -198,10 +200,25 @@ int main(int argc, char *argv[])
             decode_test_file = argv[i];
             continue;
         }
+        if (strcmp(argv[i], "-l") == 0)
+        {
+            log_audio = TRUE;
+            continue;
+        }
+        if (strcmp(argv[i], "-n") == 0)
+        {
+            noise_sweep = TRUE;
+            continue;
+        }
         if (strcmp(argv[i], "-m") == 0)
         {
             i++;
             line_model_no = atoi(argv[i]);
+            continue;
+        }
+        if (strcmp(argv[i], "-r") == 0)
+        {
+            rbs_pattern = atoi(argv[++i]);
             continue;
         }
         if (strcmp(argv[i], "-s") == 0)
@@ -210,16 +227,6 @@ int main(int argc, char *argv[])
             modem_under_test_1 = atoi(argv[i]);
             i++;
             modem_under_test_2 = atoi(argv[i]);
-            continue;
-        }
-        if (strcmp(argv[i], "-n") == 0)
-        {
-            noise_sweep = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-l") == 0)
-        {
-            log_audio = TRUE;
             continue;
         }
     }
@@ -274,7 +281,7 @@ int main(int argc, char *argv[])
         bert_set_report(&caller_bert, 100000, reporter, (void *) (intptr_t) 1);
         bert_init(&answerer_bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
         bert_set_report(&answerer_bert, 100000, reporter, (void *) (intptr_t) 2);
-        if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, noise_level, channel_codec)) == NULL)
+        if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, noise_level, channel_codec, rbs_pattern)) == NULL)
         {
             fprintf(stderr, "    Failed to create line model\n");
             exit(2);
@@ -409,7 +416,7 @@ int main(int argc, char *argv[])
                 fsk_rx_init(&caller_rx, &preset_fsk_specs[modem_under_test_2], TRUE, (put_bit_func_t) bert_put_bit, &caller_bert);
             }
             noise_level++;
-            if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, noise_level, channel_codec)) == NULL)
+            if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, noise_level, channel_codec, 0)) == NULL)
             {
                 fprintf(stderr, "    Failed to create line model\n");
                 exit(2);

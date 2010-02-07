@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule.h,v 1.8 2006/10/24 13:45:28 steveu Exp $
+ * $Id: schedule.h,v 1.9 2007/01/12 13:59:19 steveu Exp $
  */
 
 /*! \file */
@@ -55,6 +55,7 @@ struct span_sched_state_s
     int allocated;
     int max_to_date;
     span_sched_t *sched;
+    logging_state_t logging;
 };
 
 #ifdef __cplusplus

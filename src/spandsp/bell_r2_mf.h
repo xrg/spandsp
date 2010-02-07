@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.h,v 1.5 2006/10/24 13:22:01 steveu Exp $
+ * $Id: bell_r2_mf.h,v 1.7 2006/12/27 04:09:46 steveu Exp $
  */
 
 /*! \file */
@@ -116,7 +116,6 @@ typedef enum
 */
 typedef struct
 {
-    tone_gen_descriptor_t *tone_descriptors;
     tone_gen_state_t tones;
     char digits[MAX_BELL_MF_DIGITS + 1];
     int current_sample;
@@ -153,6 +152,8 @@ typedef struct
 typedef struct
 {
     tone_gen_state_t tone;
+    int fwd;
+    int digit;
 } r2_mf_tx_state_t;
 
 /*!
@@ -175,10 +176,10 @@ extern "C" {
 /*! \brief Generate a buffer of Bell MF tones.
     \param s The Bell MF generator context.
     \param amp The buffer for the generated signal.
-    \param max_samples The required number of generated samples.
+    \param samples The required number of generated samples.
     \return The number of samples actually generated. This may be less than 
             samples if the input buffer empties. */
-int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int max_samples);
+int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int samples);
 
 /*! \brief Put a string of digits in a Bell MF generator's input buffer.
     \param s The Bell MF generator context.
@@ -196,16 +197,21 @@ bell_mf_tx_state_t *bell_mf_tx_init(bell_mf_tx_state_t *s);
     \param s The R2 MF generator context.
     \param amp The buffer for the generated signal.
     \param samples The required number of generated samples.
-    \param fwd TRUE to use the forward tone set. FALSE to use the reverse tone set.
-    \param digit The digit to be generated. When continuing to generate the same
-           digit as during the last call to this function, digit should be set to 0x7F.
     \return The number of samples actually generated. */
-int r2_mf_tx(r2_mf_tx_state_t *s, int16_t amp[], int samples, int fwd, char digit);
+int r2_mf_tx(r2_mf_tx_state_t *s, int16_t amp[], int samples);
+
+/*! \brief Generate a block of R2 MF tones.
+    \param s The R2 MF generator context.
+    \param digit The digit to be generated.
+    \return 0 for OK, or -1 for a bad request. */
+int r2_mf_tx_put(r2_mf_tx_state_t *s, char digit);
 
 /*! \brief Initialise an MFC/R2 tone generator context.
     \param s The R2 MF generator context.
+    \param fwd TRUE if the context is for forward signals. FALSE if the
+           context is for backward signals.
     \return A pointer to the MFC/R2 generator context.*/
-r2_mf_tx_state_t *r2_mf_tx_init(r2_mf_tx_state_t *s);
+r2_mf_tx_state_t *r2_mf_tx_init(r2_mf_tx_state_t *s, int fwd);
 
 /*! Process a block of received Bell MF audio samples.
     \brief Process a block of received Bell MF audio samples.

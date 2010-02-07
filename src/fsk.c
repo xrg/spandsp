@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.27 2006/11/19 14:07:24 steveu Exp $
+ * $Id: fsk.c,v 1.28 2006/12/15 15:03:59 steveu Exp $
  */
 
 /*! \file */
@@ -150,7 +150,7 @@ int fsk_tx(fsk_tx_state_t *s, int16_t *amp, int len)
     /* Make the transitions between 0 and 1 phase coherent, but instantaneous
        jumps. There is currently no interpolation for bauds that end mid-sample.
        Mainstream users will not care. Some specialist users might have a problem
-       with they, if they care about accurate transition timing. */
+       with them, if they care about accurate transition timing. */
     for (sample = 0;  sample < len;  sample++)
     {
         if ((s->baud_frac += s->baud_inc) >= 0x10000)

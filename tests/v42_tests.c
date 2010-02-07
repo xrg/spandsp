@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42_tests.c,v 1.19 2006/11/19 14:07:28 steveu Exp $
+ * $Id: v42_tests.c,v 1.20 2007/01/12 13:58:50 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -93,21 +93,25 @@ int main(int argc, char *argv[])
     v42_init(&answerer, FALSE, TRUE, v42_frames, (void *) 2);
     v42_set_status_callback(&caller, v42_status, (void *) 1);
     v42_set_status_callback(&answerer, v42_status, (void *) 2);
-    span_log_set_level(&caller.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW);
+    span_log_set_level(&caller.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_DEBUG);
     span_log_set_tag(&caller.logging, "caller");
-    span_log_set_level(&caller.lapm.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW);
+    span_log_set_level(&caller.lapm.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_DEBUG);
     span_log_set_tag(&caller.lapm.logging, "caller");
-    span_log_set_level(&answerer.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW);
+    span_log_set_level(&caller.lapm.sched.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_DEBUG);
+    span_log_set_tag(&caller.lapm.sched.logging, "caller");
+    span_log_set_level(&answerer.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_DEBUG);
     span_log_set_tag(&answerer.logging, "answerer");
-    span_log_set_level(&answerer.lapm.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW);
+    span_log_set_level(&answerer.lapm.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_DEBUG);
     span_log_set_tag(&answerer.lapm.logging, "answerer");
+    span_log_set_level(&answerer.lapm.sched.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_DEBUG);
+    span_log_set_tag(&answerer.lapm.sched.logging, "answerer");
     for (i = 0;  i < 100000;  i++)
     {
         bit = v42_tx_bit(&caller);
         v42_rx_bit(&answerer, bit);
         bit = v42_tx_bit(&answerer);
-        if (i%10000 == 0)
-            bit ^= 1;
+        //if (i%10000 == 0)
+        //    bit ^= 1;
         v42_rx_bit(&caller, bit);
         span_schedule_update(&caller.lapm.sched, 4);
         span_schedule_update(&answerer.lapm.sched, 4);

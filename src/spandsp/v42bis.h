@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis.h,v 1.15 2006/11/30 15:41:47 steveu Exp $
+ * $Id: v42bis.h,v 1.16 2007/01/03 14:15:36 steveu Exp $
  */
 
 /*! \page v42bis_page V.42bis modem data compression
@@ -132,11 +132,11 @@ typedef struct
     int last_extra_octet;
 
     /*! \brief Next empty dictionary entry */
-    int v42bis_parm_c1;
+    uint32_t v42bis_parm_c1;
     /*! \brief Current codeword size */
     int v42bis_parm_c2;
     /*! \brief Threshold for codeword size change */
-    int v42bis_parm_c3;
+    uint32_t v42bis_parm_c3;
         
     /*! \brief Mark that this is the first octet/code to be processed */
     int first;

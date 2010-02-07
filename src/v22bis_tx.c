@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.34 2006/11/28 16:59:57 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.35 2007/01/03 14:15:36 steveu Exp $
  */
 
 /*! \file */
@@ -999,7 +999,7 @@ int v22bis_tx(v22bis_state_t *s, int16_t amp[], int len)
             famp += dds_modf(&(s->guard_phase), s->guard_phase_rate, s->guard_level, 0);
         }
         /* Don't bother saturating. We should never clip. */
-        amp[sample] = (int16_t) lrintf(famp);
+        amp[sample] = (int16_t) rintf(famp);
     }
     return sample;
 }

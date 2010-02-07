@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.c,v 1.13 2006/11/19 14:07:25 steveu Exp $
+ * $Id: super_tone_rx.c,v 1.14 2007/02/27 16:52:16 steveu Exp $
  */
 
 /*! \file */
@@ -262,7 +262,7 @@ int super_tone_rx_free(super_tone_rx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int super_tone_rx(super_tone_rx_state_t *s, const int16_t *amp, int samples)
+int super_tone_rx(super_tone_rx_state_t *s, const int16_t amp[], int samples)
 {
     int i;
     int j;
@@ -365,7 +365,7 @@ int super_tone_rx(super_tone_rx_state_t *s, const int16_t *amp, int samples)
                                 if (!test_cadence(s->desc->tone_list[s->detected_tone], -s->desc->tone_segs[s->detected_tone], s->segments, s->rotation++))
                                 {
                                     s->detected_tone = -1;
-                                    s->tone_callback(s->callback_data, s->detected_tone);
+                                    s->tone_callback(s->callback_data, s->detected_tone, -10);
                                 }
                             }
                             if (s->segment_callback)
@@ -390,7 +390,7 @@ int super_tone_rx(super_tone_rx_state_t *s, const int16_t *amp, int samples)
                                 if (!test_cadence(s->desc->tone_list[s->detected_tone], s->desc->tone_segs[s->detected_tone], s->segments, s->rotation))
                                 {
                                     s->detected_tone = -1;
-                                    s->tone_callback(s->callback_data, s->detected_tone);
+                                    s->tone_callback(s->callback_data, s->detected_tone, -10);
                                 }
                             }
                             s->segments[9].min_duration++;
@@ -405,7 +405,7 @@ int super_tone_rx(super_tone_rx_state_t *s, const int16_t *amp, int samples)
                             {
                                 s->detected_tone = j;
                                 s->rotation = 0;
-                                s->tone_callback(s->callback_data, s->detected_tone);
+                                s->tone_callback(s->callback_data, s->detected_tone, -10);
                                 break;
                             }
                         }

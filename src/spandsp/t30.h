@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.61 2006/11/01 12:58:21 steveu Exp $
+ * $Id: t30.h,v 1.66 2007/02/28 12:08:57 steveu Exp $
  */
 
 /*! \file */
@@ -192,77 +192,77 @@ typedef void (t30_send_hdlc_handler_t)(void *user_data, const uint8_t *msg, int 
 */
 enum
 {
-    T30_ERR_OK = 0,         /* OK */
+    T30_ERR_OK = 0,         /*! OK */
 
     /* External problems */
-    T30_ERR_CEDTONE,        /* The CED tone exceeded 5s */
-    T30_ERR_T0EXPIRED,      /* Timed out waiting for initial communication */
-    T30_ERR_T1EXPIRED,      /* Timed out waiting for the first message */
-    T30_ERR_T3EXPIRED,      /* Timed out waiting for procedural interrupt */
-    T30_ERR_HDLCCARR,       /* The HDLC carrier did not stop in a timely manner */
-    T30_ERR_CANNOTTRAIN,    /* Failed to train with any of the compatible modems */
-    T30_ERR_OPERINTFAIL,    /* Operator intervention failed */
-    T30_ERR_INCOMPATIBLE,   /* Far end is not compatible */
-    T30_ERR_NOTRXCAPABLE,   /* Far end is not receive capable */
-    T30_ERR_NOTTXCAPABLE,   /* Far end is not transmit capable */
-    T30_ERR_UNEXPECTED,     /* Unexpected message received */
-    T30_ERR_NORESSUPPORT,   /* Far end cannot receive at the resolution of the image */
-    T30_ERR_NOSIZESUPPORT,  /* Far end cannot receive at the size of image */
+    T30_ERR_CEDTONE,        /*! The CED tone exceeded 5s */
+    T30_ERR_T0EXPIRED,      /*! Timed out waiting for initial communication */
+    T30_ERR_T1EXPIRED,      /*! Timed out waiting for the first message */
+    T30_ERR_T3EXPIRED,      /*! Timed out waiting for procedural interrupt */
+    T30_ERR_HDLCCARR,       /*! The HDLC carrier did not stop in a timely manner */
+    T30_ERR_CANNOTTRAIN,    /*! Failed to train with any of the compatible modems */
+    T30_ERR_OPERINTFAIL,    /*! Operator intervention failed */
+    T30_ERR_INCOMPATIBLE,   /*! Far end is not compatible */
+    T30_ERR_NOTRXCAPABLE,   /*! Far end is not receive capable */
+    T30_ERR_NOTTXCAPABLE,   /*! Far end is not transmit capable */
+    T30_ERR_UNEXPECTED,     /*! Unexpected message received */
+    T30_ERR_NORESSUPPORT,   /*! Far end cannot receive at the resolution of the image */
+    T30_ERR_NOSIZESUPPORT,  /*! Far end cannot receive at the size of image */
 
     /* Internal problems */
-    T30_ERR_FILEERROR,      /* TIFF/F file cannot be opened */
-    T30_ERR_NOPAGE,         /* TIFF/F page not found */
-    T30_ERR_BADTIFF,        /* TIFF/F format is not compatible */
-    T30_ERR_UNSUPPORTED,    /* Unsupported feature */
+    T30_ERR_FILEERROR,      /*! TIFF/F file cannot be opened */
+    T30_ERR_NOPAGE,         /*! TIFF/F page not found */
+    T30_ERR_BADTIFF,        /*! TIFF/F format is not compatible */
+    T30_ERR_UNSUPPORTED,    /*! Unsupported feature */
 
     /* Phase E status values returned to a transmitter */
-    T30_ERR_BADDCSTX,       /* Received bad response to DCS or training */
-    T30_ERR_BADPGTX,        /* Received a DCN from remote after sending a page */
-    T30_ERR_ECMPHDTX,       /* Invalid ECM response received from receiver */
-    T30_ERR_ECMRNRTX,       /* Timer T5 expired, receiver not ready */
-    T30_ERR_GOTDCNTX,       /* Received a DCN while waiting for a DIS */
-    T30_ERR_INVALRSPTX,     /* Invalid response after sending a page */
-    T30_ERR_NODISTX,        /* Received other than DIS while waiting for DIS */
-    T30_ERR_NXTCMDTX,       /* Timed out waiting for next send_page command from driver */
-    T30_ERR_PHBDEADTX,      /* Received no response to DCS, training or TCF */
-    T30_ERR_PHDDEADTX,      /* No response after sending a page */
+    T30_ERR_BADDCSTX,       /*! Received bad response to DCS or training */
+    T30_ERR_BADPGTX,        /*! Received a DCN from remote after sending a page */
+    T30_ERR_ECMPHDTX,       /*! Invalid ECM response received from receiver */
+    T30_ERR_ECMRNRTX,       /*! Timer T5 expired, receiver not ready */
+    T30_ERR_GOTDCNTX,       /*! Received a DCN while waiting for a DIS */
+    T30_ERR_INVALRSPTX,     /*! Invalid response after sending a page */
+    T30_ERR_NODISTX,        /*! Received other than DIS while waiting for DIS */
+    T30_ERR_NXTCMDTX,       /*! Timed out waiting for next send_page command from driver */
+    T30_ERR_PHBDEADTX,      /*! Received no response to DCS, training or TCF */
+    T30_ERR_PHDDEADTX,      /*! No response after sending a page */
 
     /* Phase E status values returned to a receiver */
-    T30_ERR_ECMPHDRX,       /* Invalid ECM response received from transmitter */
-    T30_ERR_GOTDCSRX,       /* DCS received while waiting for DTC */
-    T30_ERR_INVALCMDRX,     /* Unexpected command after page received */
-    T30_ERR_NOCARRIERRX,    /* Carrier lost during fax receive */
-    T30_ERR_NOEOLRX,        /* Timed out while waiting for EOL (end Of line) */
-    T30_ERR_NOFAXRX,        /* Timed out while waiting for first line */
-    T30_ERR_NXTCMDRX,       /* Timed out waiting for next receive page command */
-    T30_ERR_T2EXPDCNRX,     /* Timer T2 expired while waiting for DCN */
-    T30_ERR_T2EXPDRX,       /* Timer T2 expired while waiting for phase D */
-    T30_ERR_T2EXPFAXRX,     /* Timer T2 expired while waiting for fax page */
-    T30_ERR_T2EXPMPSRX,     /* Timer T2 expired while waiting for next fax page */
-    T30_ERR_T2EXPRRRX,      /* Timer T2 expired while waiting for RR command */
-    T30_ERR_T2EXPRX,        /* Timer T2 expired while waiting for NSS, DCS or MCF */
-    T30_ERR_DCNWHYRX,       /* Unexpected DCN while waiting for DCS or DIS */
-    T30_ERR_DCNDATARX,      /* Unexpected DCN while waiting for image data */
-    T30_ERR_DCNFAXRX,       /* Unexpected DCN while waiting for EOM, EOP or MPS */
-    T30_ERR_DCNPHDRX,       /* Unexpected DCN after EOM or MPS sequence */
-    T30_ERR_DCNRRDRX,       /* Unexpected DCN after RR/RNR sequence */
-    T30_ERR_DCNNORTNRX,     /* Unexpected DCN after requested retransmission */
+    T30_ERR_ECMPHDRX,       /*! Invalid ECM response received from transmitter */
+    T30_ERR_GOTDCSRX,       /*! DCS received while waiting for DTC */
+    T30_ERR_INVALCMDRX,     /*! Unexpected command after page received */
+    T30_ERR_NOCARRIERRX,    /*! Carrier lost during fax receive */
+    T30_ERR_NOEOLRX,        /*! Timed out while waiting for EOL (end Of line) */
+    T30_ERR_NOFAXRX,        /*! Timed out while waiting for first line */
+    T30_ERR_NXTCMDRX,       /*! Timed out waiting for next receive page command */
+    T30_ERR_T2EXPDCNRX,     /*! Timer T2 expired while waiting for DCN */
+    T30_ERR_T2EXPDRX,       /*! Timer T2 expired while waiting for phase D */
+    T30_ERR_T2EXPFAXRX,     /*! Timer T2 expired while waiting for fax page */
+    T30_ERR_T2EXPMPSRX,     /*! Timer T2 expired while waiting for next fax page */
+    T30_ERR_T2EXPRRRX,      /*! Timer T2 expired while waiting for RR command */
+    T30_ERR_T2EXPRX,        /*! Timer T2 expired while waiting for NSS, DCS or MCF */
+    T30_ERR_DCNWHYRX,       /*! Unexpected DCN while waiting for DCS or DIS */
+    T30_ERR_DCNDATARX,      /*! Unexpected DCN while waiting for image data */
+    T30_ERR_DCNFAXRX,       /*! Unexpected DCN while waiting for EOM, EOP or MPS */
+    T30_ERR_DCNPHDRX,       /*! Unexpected DCN after EOM or MPS sequence */
+    T30_ERR_DCNRRDRX,       /*! Unexpected DCN after RR/RNR sequence */
+    T30_ERR_DCNNORTNRX,     /*! Unexpected DCN after requested retransmission */
 
-    T30_ERR_BADPAGE,        /* TIFF/F page number tag missing */
-    T30_ERR_BADTAG,         /* Incorrect values for TIFF/F tags */
-    T30_ERR_BADTIFFHDR,     /* Bad TIFF/F header - incorrect values in fields */
-    T30_ERR_BADPARM,        /* Invalid value for fax parameter */
-    T30_ERR_BADSTATE,       /* Invalid initial state value specified */
-    T30_ERR_CMDDATA,        /* Last command contained invalid data */
-    T30_ERR_DISCONNECT,     /* Fax call disconnected by the other station */
-    T30_ERR_INVALARG,       /* Illegal argument to function */
-    T30_ERR_INVALFUNC,      /* Illegal call to function */
-    T30_ERR_NODATA,         /* Data requested is not available (NSF, DIS, DCS) */
-    T30_ERR_NOMEM,          /* Cannot allocate memory for more pages */
-    T30_ERR_NOPOLL,         /* Poll not accepted */
-    T30_ERR_NOSTATE,        /* Initial state value not set */
-    T30_ERR_RETRYDCN,       /* Disconnected after permitted retries */
-    T30_ERR_CALLDROPPED     /* The call dropped prematurely */
+    T30_ERR_BADPAGE,        /*! TIFF/F page number tag missing */
+    T30_ERR_BADTAG,         /*! Incorrect values for TIFF/F tags */
+    T30_ERR_BADTIFFHDR,     /*! Bad TIFF/F header - incorrect values in fields */
+    T30_ERR_BADPARM,        /*! Invalid value for fax parameter */
+    T30_ERR_BADSTATE,       /*! Invalid initial state value specified */
+    T30_ERR_CMDDATA,        /*! Last command contained invalid data */
+    T30_ERR_DISCONNECT,     /*! Fax call disconnected by the other station */
+    T30_ERR_INVALARG,       /*! Illegal argument to function */
+    T30_ERR_INVALFUNC,      /*! Illegal call to function */
+    T30_ERR_NODATA,         /*! Data requested is not available (NSF, DIS, DCS) */
+    T30_ERR_NOMEM,          /*! Cannot allocate memory for more pages */
+    T30_ERR_NOPOLL,         /*! Poll not accepted */
+    T30_ERR_NOSTATE,        /*! Initial state value not set */
+    T30_ERR_RETRYDCN,       /*! Disconnected after permitted retries */
+    T30_ERR_CALLDROPPED     /*! The call dropped prematurely */
 };
 
 /*!
@@ -357,7 +357,9 @@ enum
     T30_IAF_MODE_NO_TCF = 0x10,
     /*! No fill bits means do not insert fill bits, even if the T.30 messages request
         them. */
-    T30_IAF_MODE_NO_FILL_BITS = 0x20
+    T30_IAF_MODE_NO_FILL_BITS = 0x20,
+    /*! No indicators means do not send indicator messages when using T.38. */
+    T30_IAF_MODE_NO_INDICATORS = 0x40
 };
 
 /*!
@@ -458,6 +460,8 @@ struct t30_state_s
 
     /*! \brief The current fallback step for the fast message transfer modem. */
     int current_fallback;
+    /*! \brief The subset of supported modems allowed at the current time, allowing for negotiation. */
+    int current_permitted_modems;
     /*! \brief TRUE if a carrier is present. Otherwise FALSE. */
     int rx_signal_present;
     /*! \brief TRUE if a modem has trained correctly. */
@@ -502,9 +506,18 @@ struct t30_state_s
     uint8_t ecm_data[256][260];
     int16_t ecm_len[256];
     uint8_t ecm_frame_map[3 + 32];
+    
+    /*! \brief The current page number in ECM mode */
     int ecm_page;
+
+    /*! \brief The current block number in ECM mode */
     int ecm_block;
+    
+    /*! \brief The number of frames in the current block number in ECM mode */
     int ecm_frames;
+
+    /*! \brief The number of frames in the current burst of image transmission in ECM mode */
+    int ecm_frames_this_burst;
     int ecm_current_frame;
     int ecm_at_page_end;
     int next_tx_step;
@@ -809,8 +822,22 @@ void t30_receive_complete(void *user_data);
 /*! Get a bit of received non-ECM image data.
     \brief Get a bit of received non-ECM image data.
     \param user_data An opaque pointer, which must point to the T.30 context.
-    \return bit The next bit to transmit. */
+    \return The next bit to transmit. */
 int t30_non_ecm_get_bit(void *user_data);
+
+/*! Get a byte of received non-ECM image data.
+    \brief Get a byte of received non-ECM image data.
+    \param user_data An opaque pointer, which must point to the T.30 context.
+    \return The next byte to transmit. */
+int t30_non_ecm_get_byte(void *user_data);
+
+/*! Get a chunk of received non-ECM image data.
+    \brief Get a bit of received non-ECM image data.
+    \param user_data An opaque pointer, which must point to the T.30 context.
+    \param buf The buffer to contain the data.
+    \param max_len The maximum length of the chunk.
+    \return The actual length of the chunk. */
+int t30_non_ecm_get_chunk(void *user_data, uint8_t buf[], int max_len);
 
 /*! Process a bit of received non-ECM image data.
     \brief Process a bit of received non-ECM image data
@@ -822,7 +849,14 @@ void t30_non_ecm_put_bit(void *user_data, int bit);
     \brief Process a byte of received non-ECM image data
     \param user_data An opaque pointer, which must point to the T.30 context.
     \param byte The received byte. */
-void t30_non_ecm_putbyte(void *user_data, int byte);
+void t30_non_ecm_put_byte(void *user_data, int byte);
+
+/*! Process a chunk of received non-ECM image data.
+    \brief Process a chunk of received non-ECM image data
+    \param user_data An opaque pointer, which must point to the T.30 context.
+    \param buf The buffer containing the received data.
+    \param len The length of the data in buf. */
+void t30_non_ecm_put_chunk(void *user_data, const uint8_t buf[], int len);
 
 /*! Process a received HDLC frame.
     \brief Process a received HDLC frame.

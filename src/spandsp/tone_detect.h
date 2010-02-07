@@ -1,8 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * tone_detect.h - General telephony tone detection, and specific
- *                 detection of Bell MF, and MFC/R2.
+ * tone_detect.h - General telephony tone detection.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect.h,v 1.27 2006/10/24 13:45:28 steveu Exp $
+ * $Id: tone_detect.h,v 1.28 2007/03/03 10:40:33 steveu Exp $
  */
 
 #if !defined(_TONE_DETECT_H_)

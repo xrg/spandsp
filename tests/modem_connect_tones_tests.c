@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones_tests.c,v 1.5 2006/11/19 14:07:27 steveu Exp $
+ * $Id: modem_connect_tones_tests.c,v 1.6 2007/02/27 16:52:16 steveu Exp $
  */
 
 /*! \page modem_connect_tones_tests_page Modem connect tones tests
@@ -93,6 +93,11 @@ int main(int argc, char *argv[])
     float x;
     tone_gen_descriptor_t tone_desc;
     tone_gen_state_t tone_tx;
+    power_meter_t power_state;
+    int power;
+    int max_power;
+    int level2;
+    int max_level2;
 
     if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
     {
@@ -200,14 +205,30 @@ int main(int argc, char *argv[])
         tone_gen_init(&tone_tx, &tone_desc);
 
         modem_connect_tones_rx_init(&cng_rx, MODEM_CONNECT_TONES_FAX_CNG, NULL, NULL);
+        power_meter_init(&power_state, 5);
+        power = 0;
+        max_power = 0;
+        level2 = 0;
+        max_level2 = 0;
         for (i = 0;  i < 500;  i++)
         {
             samples = tone_gen(&tone_tx, amp, 160);
             for (j = 0;  j < samples;  j++)
+            {
                 amp[j] += awgn(&chan_noise_source);
+                power = power_meter_update(&power_state, amp[j]);
+                if (power > max_power)
+                    max_power = power;
+                /*endif*/
+                level2 += ((abs(amp[j]) - level2) >> 5);
+                if (level2 > max_level2)
+                    max_level2 = level2;
+            }
             /*endfor*/
             modem_connect_tones_rx(&cng_rx, amp, samples);
         }
+printf("max power is %d %f\n", max_power, log10f((float) max_power/(32767.0f*32767.0f))*10.0f + DBM0_MAX_POWER);
+printf("level2 %d (%f)\n", max_level2, log10f((float) max_level2/32768.0f)*20.0f + DBM0_MAX_POWER);
         hit = modem_connect_tones_rx_get(&cng_rx);
         if (pitch < (1100 - 70)  ||  pitch > (1100 + 70))
         {
@@ -384,7 +405,6 @@ int main(int argc, char *argv[])
                                      0,
                                      FALSE);
             tone_gen_init(&tone_tx, &tone_desc);
-
             modem_connect_tones_rx_init(&ced_rx, MODEM_CONNECT_TONES_FAX_CED, NULL, NULL);
             for (i = 0;  i < 500;  i++)
             {

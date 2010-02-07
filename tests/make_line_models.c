@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: make_line_models.c,v 1.19 2006/11/23 15:48:09 steveu Exp $
+ * $Id: make_line_models.c,v 1.20 2007/01/30 13:49:35 steveu Exp $
  */
 
 /*! \page make_line_models_page Telephony line model construction
@@ -814,16 +814,16 @@ static void generate_ad_edd(void)
             {
 #if defined(HAVE_FFTW3_H)
                 in[i][0] =
-                in[i][1] = 0.0;
+                in[i][1] = 0.0f;
 #else
                 in[i].re =
-                in[i].im = 0.0;
+                in[i].im = 0.0f;
 #endif
             }
             for (i = 1;  i < FFT_SIZE/2;  i++)
             {
                 f = (float) i*SAMPLE_RATE/FFT_SIZE;
-                amp = 0.0;
+                amp = 0.0f;
                 for (l = 0;  l < (int) (sizeof(ad)/sizeof(ad[0]));  l++)
                 {
                     if (f < ad[l].freq)
@@ -835,7 +835,7 @@ static void generate_ad_edd(void)
                     amp = (1.0 - offset)*ad[l - 1].ad[j] + offset*ad[l].ad[j];
                     amp = pow(10.0, -amp/20.0);
                 }
-                delay = 0.0;
+                delay = 0.0f;
                 for (l = 0;  l < (int) (sizeof(edd)/sizeof(edd[0]));  l++)
                 {
                     if (f < edd[l].freq)
@@ -844,18 +844,17 @@ static void generate_ad_edd(void)
                 if (l < (int) (sizeof(edd)/sizeof(edd[0])))
                 {
                     offset = (f - edd[l - 1].freq)/(edd[l].freq - edd[l - 1].freq);
-                    delay = (1.0 - offset)*edd[l - 1].edd[k] + offset*edd[l].edd[k];
+                    delay = (1.0f - offset)*edd[l - 1].edd[k] + offset*edd[l].edd[k];
                 }
-                phase = 2.0*M_PI*f*delay*0.001;
-    
+                phase = 2.0f*M_PI*f*delay*0.001f;
 #if defined(HAVE_FFTW3_H)    
-                in[i][0] = amp*cos(phase);
-                in[i][1] = amp*sin(phase);
+                in[i][0] = amp*cosf(phase);
+                in[i][1] = amp*sinf(phase);
                 in[FFT_SIZE - i][0] = in[i][0];
                 in[FFT_SIZE - i][1] = -in[i][1];
 #else
-                in[i].re = amp*cos(phase);
-                in[i].im = amp*sin(phase);
+                in[i].re = amp*cosf(phase);
+                in[i].im = amp*sinf(phase);
                 in[FFT_SIZE - i].re = in[i].re;
                 in[FFT_SIZE - i].im = -in[i].im;
 #endif
@@ -875,7 +874,7 @@ static void generate_ad_edd(void)
             fprintf(outfile, "float ad_%d_edd_%d_model[] =\n", (j == 0)  ?  1  :  j + 4, k + 1);
             fprintf(outfile, "{\n");
             /* Normalise the filter's gain */
-            pw = 0.0;
+            pw = 0.0f;
             l = FFT_SIZE - (LINE_FILTER_SIZE - 1)/2;
             for (i = 0;  i < LINE_FILTER_SIZE;  i++)
             {
@@ -937,32 +936,31 @@ static void generate_proakis(void)
     {
 #if defined(HAVE_FFTW3_H)
         in[i][0] =
-        in[i][1] = 0.0;
+        in[i][1] = 0.0f;
 #else
         in[i].re =
-        in[i].im = 0.0;
+        in[i].im = 0.0f;
 #endif
     }
     for (i = 1;  i < FFT_SIZE/2;  i++)
     {
         f = (float) i*SAMPLE_RATE/FFT_SIZE;
-        f1 = f/200.0;
+        f1 = f/200.0f;
         offset = f1 - floor(f1);
         index = (int) floor(f1);
 
         /* Linear interpolation */
-        amp = ((1.0 - offset)*proakis[index].amp + offset*proakis[index + 1].amp)/2.3;
-        delay = (1.0 - offset)*proakis[index].delay + offset*proakis[index + 1].delay;
-        phase = 2.0*M_PI*f*delay*0.001;
-
+        amp = ((1.0f - offset)*proakis[index].amp + offset*proakis[index + 1].amp)/2.3f;
+        delay = (1.0f - offset)*proakis[index].delay + offset*proakis[index + 1].delay;
+        phase = 2.0f*M_PI*f*delay*0.001f;
 #if defined(HAVE_FFTW3_H)
-        in[i][0] = amp*cos(phase);
-        in[i][1] = amp*sin(phase);
+        in[i][0] = amp*cosf(phase);
+        in[i][1] = amp*sinf(phase);
         in[FFT_SIZE - i][0] = in[i][0];
         in[FFT_SIZE - i][1] = -in[i][1];
 #else
-        in[i].re = amp*cos(phase);
-        in[i].im = amp*sin(phase);
+        in[i].re = amp*cosf(phase);
+        in[i].im = amp*sinf(phase);
         in[FFT_SIZE - i].re = in[i].re;
         in[FFT_SIZE - i].im = -in[i].im;
 #endif
@@ -980,7 +978,7 @@ static void generate_proakis(void)
     fprintf(outfile, "float proakis_line_model[] =\n");
     fprintf(outfile, "{\n");
     /* Normalise the filter's gain */
-    pw = 0.0;
+    pw = 0.0f;
     l = FFT_SIZE - (LINE_FILTER_SIZE - 1)/2;
     for (i = 0;  i < LINE_FILTER_SIZE;  i++)
     {

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.60 2006/11/19 14:07:27 steveu Exp $
+ * $Id: fax_tests.c,v 1.63 2007/02/28 12:08:57 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -71,6 +71,7 @@ struct machine_s
 } machines[FAX_MACHINES];
 
 int test_local_interrupt = FALSE;
+int t30_state_to_wreck = -1;
 
 static void phase_b_handler(t30_state_t *s, void *user_data, int result)
 {
@@ -195,6 +196,7 @@ int main(int argc, char *argv[])
     int use_tep;
     int use_line_hits;
     int polled_mode;
+    int reverse_flow;
     char *page_header_info;
 
     log_audio = FALSE;
@@ -205,6 +207,7 @@ int main(int argc, char *argv[])
     use_tep = FALSE;
     polled_mode = FALSE;
     page_header_info = NULL;
+    reverse_flow = FALSE;
     for (i = 1;  i < argc;  i++)
     {
         if (strcmp(argv[i], "-e") == 0)
@@ -242,9 +245,19 @@ int main(int argc, char *argv[])
             polled_mode = TRUE;
             continue;
         }
+        if (strcmp(argv[i], "-r") == 0)
+        {
+            reverse_flow = TRUE;
+            continue;
+        }
         if (strcmp(argv[i], "-t") == 0)
         {
             use_tep = TRUE;
+            continue;
+        }
+        if (strcmp(argv[i], "-w") == 0)
+        {
+            t30_state_to_wreck = atoi(argv[++i]);
             continue;
         }
     }
@@ -288,7 +301,10 @@ int main(int argc, char *argv[])
 
         i = mc->chan + 1;
         sprintf(buf, "%d%d%d%d%d%d%d%d", i, i, i, i, i, i, i, i);
-        fax_init(&mc->fax, (mc->chan & 1)  ?  FALSE  :  TRUE);
+        if (reverse_flow)
+            fax_init(&mc->fax, (mc->chan & 1)  ?  TRUE  :  FALSE);
+        else
+            fax_init(&mc->fax, (mc->chan & 1)  ?  FALSE  :  TRUE);
         fax_set_tep_mode(&mc->fax, use_tep);
         t30_set_local_ident(&mc->fax.t30_state, buf);
         t30_set_header_info(&mc->fax.t30_state, page_header_info);
@@ -298,6 +314,7 @@ int main(int argc, char *argv[])
                                                         | T30_SUPPORT_215MM_WIDTH | T30_SUPPORT_255MM_WIDTH | T30_SUPPORT_303MM_WIDTH);
         t30_set_supported_resolutions(&mc->fax.t30_state, T30_SUPPORT_STANDARD_RESOLUTION | T30_SUPPORT_FINE_RESOLUTION | T30_SUPPORT_SUPERFINE_RESOLUTION
                                                         | T30_SUPPORT_R8_RESOLUTION | T30_SUPPORT_R16_RESOLUTION);
+        //t30_set_supported_modems(&mc->fax.t30_state, T30_SUPPORT_V27TER);
         if (use_ecm)
             t30_set_supported_compressions(&mc->fax.t30_state, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
         if ((mc->chan & 1))
@@ -377,7 +394,7 @@ int main(int argc, char *argv[])
                 memset(machines[j ^ 1].amp + machines[j ^ 1].len, 0, sizeof(int16_t)*(SAMPLES_PER_CHUNK - machines[j ^ 1].len));
             if (use_line_hits)
             {
-                /* TODO: This applied very crude line hits. improve it */
+                /* TODO: This applies very crude line hits. improve it */
                 if (mc->fax.t30_state.state == 22)
                 {
                     if (++mc->error_delay == 100)
@@ -389,6 +406,8 @@ int main(int argc, char *argv[])
                     }
                 }    
             }
+            if (mc->fax.t30_state.state == t30_state_to_wreck)
+                memset(machines[j ^ 1].amp, 0, sizeof(int16_t)*SAMPLES_PER_CHUNK);
             if (fax_rx(&mc->fax, machines[j ^ 1].amp, SAMPLES_PER_CHUNK))
                 break;
             if (!mc->done)

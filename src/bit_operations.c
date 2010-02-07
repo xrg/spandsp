@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bit_operations.c,v 1.5 2006/11/30 15:41:47 steveu Exp $
+ * $Id: bit_operations.c,v 1.7 2007/02/23 13:30:52 steveu Exp $
  */
 
 /*! \file */
@@ -63,9 +63,67 @@ uint32_t bit_reverse32(uint32_t x)
 
 uint32_t bit_reverse_4bytes(uint32_t x)
 {
-    x = (x >> 4) | (x << 4);
+    x = ((x & 0xF0F0F0F0) >> 4) | ((x & 0x0F0F0F0F) << 4);
     x = ((x & 0xCCCCCCCC) >> 2) | ((x & 0x33333333) << 2);
     return ((x & 0xAAAAAAAA) >> 1) | ((x & 0x55555555) << 1);
+}
+/*- End of function --------------------------------------------------------*/
+
+#if defined(__x86_64__)
+uint64_t bit_reverse_8bytes(uint64_t x)
+{
+    x = ((x & 0xF0F0F0F0F0F0F0F0LLU) >> 4) | ((x & 0x0F0F0F0F0F0F0F0FLLU) << 4);
+    x = ((x & 0xCCCCCCCCCCCCCCCCLLU) >> 2) | ((x & 0x3333333333333333LLU) << 2);
+    return ((x & 0xAAAAAAAAAAAAAAAALLU) >> 1) | ((x & 0x5555555555555555LLU) << 1);
+}
+/*- End of function --------------------------------------------------------*/
+#endif
+
+void bit_reverse(uint8_t to[], const uint8_t from[], int len)
+{
+    const uint8_t *y1;
+    uint8_t *z1;
+    const uint32_t *y4;
+    uint32_t *z4;
+    uint32_t x4;
+#if defined(__x86_64__)
+    const uint64_t *y8;
+    uint64_t *z8;
+    uint64_t x8;
+#endif
+
+    /* This code is this is based on the woolly assumption that the start of the buffers
+       is memory aligned. If it isn't, the routine will be less efficient on some machines,
+       but might not work at all on others. */
+#if defined(__x86_64__)
+    y8 = (const uint64_t *) from;
+    z8 = (uint64_t *) to;
+    while (len >= sizeof(uint64_t))
+    {
+        x8 = *y8++;
+        x8 = ((x8 & 0xF0F0F0F0F0F0F0F0LLU) >> 4) | ((x8 & 0x0F0F0F0F0F0F0F0FLLU) << 4);
+        x8 = ((x8 & 0xCCCCCCCCCCCCCCCCLLU) >> 2) | ((x8 & 0x3333333333333333LLU) << 2);
+        *z8++ = ((x8 & 0xAAAAAAAAAAAAAAAALLU) >> 1) | ((x8 & 0x5555555555555555LLU) << 1);
+        len -= sizeof(uint64_t);
+    }
+    y4 = (const uint32_t *) y8;
+    z4 = (uint32_t *) z8;
+#else
+    y4 = (const uint32_t *) from;
+    z4 = (uint32_t *) to;
+#endif
+    while (len >= sizeof(uint32_t))
+    {
+        x4 = *y4++;
+        x4 = ((x4 & 0xF0F0F0F0) >> 4) | ((x4 & 0x0F0F0F0F) << 4);
+        x4 = ((x4 & 0xCCCCCCCC) >> 2) | ((x4 & 0x33333333) << 2);
+        *z4++ = ((x4 & 0xAAAAAAAA) >> 1) | ((x4 & 0x55555555) << 1);
+        len -= sizeof(uint32_t);
+    }
+    y1 = (const uint8_t *) y4;
+    z1 = (uint8_t *) z4;
+    while (len-- > 0)
+        *z1++ = bit_reverse8(*y1++);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -77,7 +135,7 @@ int one_bits32(uint32_t x)
     /* We now have 8 4-bit counts */
     x = (x + (x >> 4)) & 0x0F0F0F0F;
     /* We now have 4 8-bit counts */
-#if defined(__i386__)  ||  defined(__x86_64__)
+#if defined(__i386__)  ||  defined(__x86_64__)  ||  defined(__ppc__)  ||  defined(__powerpc__)
     /* If multiply is fast */
     return (x*0x01010101) >> 24;
 #else

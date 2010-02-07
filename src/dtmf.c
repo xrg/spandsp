@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.11 2006/11/19 14:07:24 steveu Exp $
+ * $Id: dtmf.c,v 1.14 2007/02/27 16:52:16 steveu Exp $
  */
  
 /*! \file dtmf.h */
@@ -47,6 +47,7 @@
 #include "spandsp/telephony.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
+#include "spandsp/super_tone_rx.h"
 #include "spandsp/dtmf.h"
 
 #if !defined(M_PI)
@@ -56,11 +57,9 @@
 
 //#define USE_3DNOW
 
-#define ms_to_samples(t)            (((t)*SAMPLE_RATE)/1000)
-
-#define DTMF_DURATION               ms_to_samples(70)
-#define DTMF_PAUSE                  ms_to_samples(80)
-#define DTMF_CYCLE                  (DTMF_DURATION + DTMF_PAUSE)
+#define DEFAULT_DTMF_TX_LEVEL       -10
+#define DEFAULT_DTMF_TX_ON_TIME     50
+#define DEFAULT_DTMF_TX_OFF_TIME    55
 
 #define DTMF_THRESHOLD              8.0e7f
 #define DTMF_NORMAL_TWIST           6.3f    /* 8dB */
@@ -168,8 +167,8 @@ static __inline__ void _dtmf_goertzel_update(goertzel_state_t *s,
     s[2].v3 = vv[10];
     s[3].v3 = vv[11];
 }
-#endif
 /*- End of function --------------------------------------------------------*/
+#endif
 
 int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
 {
@@ -337,7 +336,10 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
                 {
                     /* Avoid reporting multiple no digit conditions on flaky hits */
                     if (s->in_digit  ||  hit)
-                        s->realtime_callback(s->realtime_callback_data, hit);
+                    {
+                        i = (s->in_digit  &&  !hit)  ?  -99  :  rint(log10f(s->energy)*10.0f - 20.08f - 90.30F + DBM0_MAX_POWER);
+                        s->realtime_callback(s->realtime_callback_data, hit, i);
+                    }
                 }
                 else
                 {
@@ -369,7 +371,7 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
             goertzel_reset(&s->row_out[i]);
             goertzel_reset(&s->col_out[i]);
         }
-        s->energy = 0.0;
+        s->energy = 0.0f;
         s->current_sample = 0;
     }
     if (s->current_digits  &&  s->callback)
@@ -398,7 +400,7 @@ size_t dtmf_rx_get(dtmf_rx_state_t *s, char *buf, int max)
 /*- End of function --------------------------------------------------------*/
 
 void dtmf_rx_set_realtime_callback(dtmf_rx_state_t *s,
-                                   void (*callback)(void *user_data, int signal),
+                                   tone_report_func_t callback,
                                    void *user_data)
 {
     s->realtime_callback = callback;
@@ -413,21 +415,21 @@ void dtmf_rx_parms(dtmf_rx_state_t *s,
 {
     if (filter_dialtone >= 0)
     {
-        s->z350_1 = 0.0;
-        s->z350_2 = 0.0;
-        s->z440_1 = 0.0;
-        s->z440_2 = 0.0;
+        s->z350_1 = 0.0f;
+        s->z350_2 = 0.0f;
+        s->z440_1 = 0.0f;
+        s->z440_2 = 0.0f;
         s->filter_dialtone = filter_dialtone;
     }
     if (twist >= 0)
-        s->normal_twist = powf(10.0, twist/10.0);
+        s->normal_twist = powf(10.0f, twist/10.0f);
     if (reverse_twist >= 0)
-        s->reverse_twist = powf(10.0, reverse_twist/10.0);
+        s->reverse_twist = powf(10.0f, reverse_twist/10.0f);
 }
 /*- End of function --------------------------------------------------------*/
 
 dtmf_rx_state_t *dtmf_rx_init(dtmf_rx_state_t *s,
-                              void (*callback)(void *user_data, const char *digits, int len),
+                              dtmf_rx_callback_t callback,
                               void *user_data)
 {
     int i;
@@ -458,7 +460,7 @@ dtmf_rx_state_t *dtmf_rx_init(dtmf_rx_state_t *s,
         goertzel_init(&s->row_out[i], &dtmf_detect_row[i]);
         goertzel_init(&s->col_out[i], &dtmf_detect_col[i]);
     }
-    s->energy = 0.0;
+    s->energy = 0.0f;
     s->current_sample = 0;
     s->lost_digits = 0;
     s->current_digits = 0;
@@ -476,15 +478,15 @@ static void dtmf_tx_initialise(void)
         return;
     for (row = 0;  row < 4;  row++)
     {
-    	for (col = 0;  col < 4;  col++)
+        for (col = 0;  col < 4;  col++)
         {
-    	    make_tone_gen_descriptor(&dtmf_digit_tones[row*4 + col],
+            make_tone_gen_descriptor(&dtmf_digit_tones[row*4 + col],
                                      (int) dtmf_row[row],
-                                     -10,
+                                     DEFAULT_DTMF_TX_LEVEL,
                                      (int) dtmf_col[col],
-                                     -10,
-                                     50,
-                                     55,
+                                     DEFAULT_DTMF_TX_LEVEL,
+                                     DEFAULT_DTMF_TX_ON_TIME,
+                                     DEFAULT_DTMF_TX_OFF_TIME,
                                      0,
                                      0,
                                      FALSE);

@@ -26,7 +26,7 @@
  * implementation of the LPC-10 2400 bps Voice Coder. They do not
  * exert copyright claims on their code, and it may be freely used.
  *
- * $Id: lpc10_decode.c,v 1.14 2006/11/30 15:41:47 steveu Exp $
+ * $Id: lpc10_decode.c,v 1.15 2007/01/03 14:15:35 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -50,8 +50,12 @@
 
 #define LPC10_ORDER     10
 
+#if !defined(min)
 #define min(a,b) ((a) <= (b) ? (a) : (b))
+#endif
+#if !defined(max)
 #define max(a,b) ((a) >= (b) ? (a) : (b))
+#endif
 
 /* Pseudo random number generator based on Knuth, Vol 2, p. 27. */
 /* lpc10_random - int32_t variable, uniformly distributed over -32768 to 32767 */
@@ -420,9 +424,9 @@ static int pitsyn(lpc10_decode_state_t *s,
             for (i = istart;  i <= lsamp;  i++)
             {
                 r1 = s->ipito + slope*i;
-                ip = r1 + 0.5f;
+                ip = (int32_t) (r1 + 0.5f);
                 if (uvpit != 0.0f)
-                    ip = uvpit;
+                    ip = (int32_t) uvpit;
                 if (ip <= i - jused)
                 {
                     ++(*nout);
@@ -433,8 +437,8 @@ static int pitsyn(lpc10_decode_state_t *s,
                     prop = (jused - ip/2)/(float) lsamp;
                     for (j = 0;  j < LPC10_ORDER;  j++)
                     {
-                        alro = log((s->rco[j] + 1)/(1 - s->rco[j]));
-                        alrn = log((rc[j] + 1)/(1 - rc[j]));
+                        alro = logf((s->rco[j] + 1)/(1 - s->rco[j]));
+                        alrn = logf((rc[j] + 1)/(1 - rc[j]));
                         xxy = alro + prop*(alrn - alro);
                         xxy = expf(xxy);
                         rci[j + *nout*rci_dim1 + 1] = (xxy - 1.0f)/(xxy + 1.0f);
@@ -896,7 +900,7 @@ static void decode(lpc10_decode_state_t *s,
                     s->drc[4 - i][1] = iout;
                 }
                 /* Determine error rate */
-                s->erate = s->erate*0.96875f + errcnt*102.0f;
+                s->erate = (int32_t) (s->erate*0.96875f + errcnt*102.0f);
             }
             /* Get unsmoothed RMS, RC's, and PITCH */
             t->irms = s->drms[1];
@@ -984,7 +988,7 @@ static void decode(lpc10_decode_state_t *s,
     {
         ishift = 15 - nbit[i];
         i2 = t->irc[i]*pow_ii(2, ishift) + qb[i - 2];
-        t->irc[i] = i2*descl[i - 2] + deadd[i - 2];
+        t->irc[i] = (int32_t) (i2*descl[i - 2] + deadd[i - 2]);
     }
     /* Scale RMS and RC's to floats */
     *rms = (float) t->irms;
@@ -1093,7 +1097,7 @@ int lpc10_decode(lpc10_decode_state_t *s, int16_t amp[], const uint8_t code[], i
         decode(s, &frame, voice, &pitch, &rms, rc);
         synths(s, voice, &pitch, &rms, rc, speech);
         for (j = 0;  j < LPC10_SAMPLES_PER_FRAME;  j++)
-            amp[i*LPC10_SAMPLES_PER_FRAME + j] = rintf(32768.0f*speech[j]);
+            amp[i*LPC10_SAMPLES_PER_FRAME + j] = (int16_t) rintf(32768.0f*speech[j]);
     }
 
     return quant*LPC10_SAMPLES_PER_FRAME;

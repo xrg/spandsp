@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.36 2006/11/19 14:07:23 steveu Exp $
+ * $Id: adsi.c,v 1.37 2007/02/27 16:52:16 steveu Exp $
  */
 
 /*! \file */
@@ -53,6 +53,7 @@
 #include "spandsp/fsk.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
+#include "spandsp/super_tone_rx.h"
 #include "spandsp/dtmf.h"
 #include "spandsp/adsi.h"
 

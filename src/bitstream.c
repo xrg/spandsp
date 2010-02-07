@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bitstream.c,v 1.6 2006/11/30 15:41:47 steveu Exp $
+ * $Id: bitstream.c,v 1.7 2007/01/03 14:15:35 steveu Exp $
  */
 
 /*! \file */
@@ -71,7 +71,7 @@ unsigned int bitstream_get(bitstream_state_t *s, const uint8_t **c, int bits)
 {
     unsigned int x;
 
-    while (s->residue < bits)
+    while (s->residue < (unsigned int) bits)
     {
         x = (unsigned int) *(*c)++;
         s->bitstream |= (x << s->residue);
@@ -114,7 +114,7 @@ unsigned int bitstream_get2(bitstream_state_t *s, const uint8_t **c, int bits)
 {
     unsigned int x;
 
-    while (s->residue < bits)
+    while (s->residue < (unsigned int) bits)
     {
         x = (unsigned int) *(*c)++;
         s->bitstream = (s->bitstream << 8) | x;

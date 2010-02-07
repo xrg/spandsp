@@ -53,6 +53,30 @@ static inline long int lrint(double a)
     return i;
 }
 
+static inline int rintf(float a)
+{
+    int i;
+    
+    __asm
+    {
+        fld   a
+        fistp i
+    }
+    return i;
+}
+
+static inline int rint(double a)
+{
+    int i;
+    
+    __asm
+    {
+        fld   a
+        fistp i
+    }
+    return i;
+}
+
 #ifdef __cplusplus
 }
 #endif

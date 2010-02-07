@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: r2_mf_tx_tests.c,v 1.4 2006/11/19 14:07:27 steveu Exp $
+ * $Id: r2_mf_tx_tests.c,v 1.6 2006/12/27 04:09:46 steveu Exp $
  */
 
 /*! \file */
@@ -66,7 +66,6 @@ int main(int argc, char *argv[])
     AFfilehandle outhandle;
     AFfilesetup filesetup;
     int outframes;
-    int fwd;
     int digit;
     const char *digits = "0123456789BCDEF";
 
@@ -89,11 +88,11 @@ int main(int argc, char *argv[])
         exit(2);
     }
 
-    r2_mf_tx_init(&gen);
-    fwd = FALSE;
+    r2_mf_tx_init(&gen, FALSE);
     for (digit = 0;  digits[digit];  digit++)
     {
-        len = r2_mf_tx(&gen, amp, 1000, fwd, digits[digit]);
+        r2_mf_tx_put(&gen, digits[digit]);
+        len = r2_mf_tx(&gen, amp, 1000);
         printf("Generated %d samples of %c\n", len, digits[digit]);
         if (len > 0)
         {
@@ -102,7 +101,8 @@ int main(int argc, char *argv[])
                                       amp,
                                       len);
         }
-        len = r2_mf_tx(&gen, amp, 1000, fwd, 0);
+        r2_mf_tx_put(&gen, 0);
+        len = r2_mf_tx(&gen, amp, 1000);
         printf("Generated %d samples\n", len);
         if (len > 0)
         {
@@ -113,10 +113,11 @@ int main(int argc, char *argv[])
         }
     }
 
-    fwd = TRUE;
+    r2_mf_tx_init(&gen, TRUE);
     for (digit = 0;  digits[digit];  digit++)
     {
-        len = r2_mf_tx(&gen, amp, 1000, fwd, digits[digit]);
+        r2_mf_tx_put(&gen, digits[digit]);
+        len = r2_mf_tx(&gen, amp, 1000);
         printf("Generated %d samples of %c\n", len, digits[digit]);
         if (len > 0)
         {
@@ -125,7 +126,8 @@ int main(int argc, char *argv[])
                                       amp,
                                       len);
         }
-        len = r2_mf_tx(&gen, amp, 1000, fwd, 0);
+        r2_mf_tx_put(&gen, 0);
+        len = r2_mf_tx(&gen, amp, 1000);
         printf("Generated %d samples\n", len);
         if (len > 0)
         {

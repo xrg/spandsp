@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.h,v 1.12 2006/10/24 13:45:29 steveu Exp $
+ * $Id: line_model.h,v 1.13 2007/02/06 14:43:32 steveu Exp $
  */
 
 /*! \file */
@@ -133,7 +133,8 @@ both_ways_line_model_state_t *both_ways_line_model_init(int model1,
                                                         float noise1,
                                                         int model2,
                                                         float noise2,
-                                                        int codec);
+                                                        int codec,
+                                                        int rbs_pattern);
 
 int both_ways_line_model_release(both_ways_line_model_state_t *s);
 
@@ -142,7 +143,7 @@ void one_way_line_model(one_way_line_model_state_t *s,
                         const int16_t *input,
                         int samples);
 
-one_way_line_model_state_t *one_way_line_model_init(int model, float noise, int codec);
+one_way_line_model_state_t *one_way_line_model_init(int model, float noise, int codec, int rbs_pattern);
 
 int one_way_line_model_release(one_way_line_model_state_t *s);
 

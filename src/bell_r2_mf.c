@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.c,v 1.9 2006/11/19 14:07:24 steveu Exp $
+ * $Id: bell_r2_mf.c,v 1.11 2006/12/27 04:09:46 steveu Exp $
  */
 
 /*! \file bell_r2_mf.h */
@@ -252,7 +252,7 @@ static void bell_mf_gen_init(void)
 }
 /*- End of function --------------------------------------------------------*/
 
-int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int max_samples)
+int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int samples)
 {
     int len;
     size_t dig;
@@ -262,16 +262,16 @@ int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int max_samples)
     if (s->tones.current_section >= 0)
     {
         /* Deal with the fragment left over from last time */
-        len = tone_gen(&(s->tones), amp, max_samples);
+        len = tone_gen(&(s->tones), amp, samples);
     }
     dig = 0;
-    while (dig < s->current_digits  &&  len < max_samples)
+    while (dig < s->current_digits  &&  len < samples)
     {
         /* Step to the next digit */
         if ((cp = strchr(bell_mf_tone_codes, s->digits[dig++])) == NULL)
             continue;
-        tone_gen_init(&(s->tones), &(s->tone_descriptors[cp - bell_mf_tone_codes]));
-        len += tone_gen(&(s->tones), amp + len, max_samples - len);
+        tone_gen_init(&(s->tones), &bell_mf_digit_tones[cp - bell_mf_tone_codes]);
+        len += tone_gen(&(s->tones), amp + len, samples - len);
     }
     if (dig)
     {
@@ -311,7 +311,6 @@ bell_mf_tx_state_t *bell_mf_tx_init(bell_mf_tx_state_t *s)
 {
     if (!bell_mf_gen_inited)
         bell_mf_gen_init();
-    s->tone_descriptors = bell_mf_digit_tones;
     tone_gen_init(&(s->tones), &bell_mf_digit_tones[0]);
     s->current_sample = 0;
     s->current_digits = 0;
@@ -320,44 +319,44 @@ bell_mf_tx_state_t *bell_mf_tx_init(bell_mf_tx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int r2_mf_tx(r2_mf_tx_state_t *s, int16_t amp[], int samples, int fwd, char digit)
+int r2_mf_tx(r2_mf_tx_state_t *s, int16_t amp[], int samples)
 {
     int len;
-    char *cp;
 
-    len = 0;
-    if ((digit & 0x80))
-    {
-        /* Continue generating the tone we started earlier. */
-        len = tone_gen(&s->tone, amp, samples);
-    }
-    else if (digit == 0)
+    if (s->digit == 0)
     {
         len = samples;
         memset(amp, 0, len*sizeof(int16_t));
     }
     else
     {
-        if ((cp = strchr(r2_mf_tone_codes, digit)))
-        {
-            if (fwd)
-                tone_gen_init(&s->tone, &r2_mf_fwd_digit_tones[cp - r2_mf_tone_codes]);
-            else
-                tone_gen_init(&s->tone, &r2_mf_back_digit_tones[cp - r2_mf_tone_codes]);
-            len = tone_gen(&s->tone, amp, samples);
-        }
-        else
-        {
-            len = samples;
-            memset(amp, 0, len*sizeof(int16_t));
-            
-        }
+        len = tone_gen(&s->tone, amp, samples);
     }
     return len;
 }
 /*- End of function --------------------------------------------------------*/
 
-r2_mf_tx_state_t *r2_mf_tx_init(r2_mf_tx_state_t *s)
+int r2_mf_tx_put(r2_mf_tx_state_t *s, char digit)
+{
+    char *cp;
+
+    if (digit  &&  (cp = strchr(r2_mf_tone_codes, digit)))
+    {
+        if (s->fwd)
+            tone_gen_init(&s->tone, &r2_mf_fwd_digit_tones[cp - r2_mf_tone_codes]);
+        else
+            tone_gen_init(&s->tone, &r2_mf_back_digit_tones[cp - r2_mf_tone_codes]);
+        s->digit = digit;
+    }
+    else
+    {
+        s->digit = 0;
+    }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+r2_mf_tx_state_t *r2_mf_tx_init(r2_mf_tx_state_t *s, int fwd)
 {
     int i;
     const mf_digit_tones_t *tones;
@@ -399,6 +398,7 @@ r2_mf_tx_state_t *r2_mf_tx_init(r2_mf_tx_state_t *s)
         r2_mf_gen_inited = TRUE;
     }
     memset(s, 0, sizeof(*s));
+    s->fwd = fwd;
     return s;
 }
 /*- End of function --------------------------------------------------------*/

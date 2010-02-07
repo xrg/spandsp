@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.c,v 1.24 2006/12/09 04:50:12 steveu Exp $
+ * $Id: t38_core.c,v 1.32 2007/02/18 12:54:23 steveu Exp $
  */
 
 /*! \file */
@@ -314,74 +314,82 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
     int ptr;
     int other_half;
     int numocts;
+    int log_seq_no;
     const uint8_t *msg;
-    uint8_t type;
     unsigned int count;
-    unsigned int field_type;
+    unsigned int t30_field_type;
+    uint8_t type;
     uint8_t data_field_present;
     uint8_t field_data_present;
+    char tag[20];
+
+    log_seq_no = (s->check_sequence_numbers)  ?  seq_no  :  s->rx_expected_seq_no;
 
     if (span_log_test(&s->logging, SPAN_LOG_FLOW))
     {
-        char tag[20];
-        
-        sprintf(tag, "Rx %5d:", seq_no);
+        sprintf(tag, "Rx %5d:", log_seq_no);
         span_log_buf(&s->logging, SPAN_LOG_FLOW, tag, buf, len);
     }
     if (len < 1)
     {
-        span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Bad packet length - %d\n", seq_no, len);
+        span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Bad packet length - %d\n", log_seq_no, len);
         return -1;
     }
-    seq_no &= 0xFFFF;
-    if (seq_no != s->rx_expected_seq_no)
+    if (s->check_sequence_numbers)
     {
-        /* An expected value of -1 indicates this is the first received packet, and will accept
-           anything for that. We can't assume they will start from zero, even though they should. */
-        if (s->rx_expected_seq_no != -1)
+        seq_no &= 0xFFFF;
+        if (seq_no != s->rx_expected_seq_no)
         {
-            /* We have a packet with a serial number that is not in sequence. The cause could be:
-                - 1. a repeat copy of a recent packet. Many T.38 implementations can preduce quite a lot of these.
-                - 2. a late packet, whose point in the sequence we have already passed.
-                - 3. the result of a hop in the sequence numbers cause by something weird from the other
-                     end. Stream switching might cause this
-                - 4. missing packets.
-
-                In cases 1 and 2 we need to drop this packet. In case 2 it might make sense to try to do
-                something with it in the terminal case. Currently we don't. For gateway operation it will be
-                too late to do anything useful.
-             */
-            if (((seq_no + 1) & 0xFFFF) == s->rx_expected_seq_no)
+            /* An expected value of -1 indicates this is the first received packet, and will accept
+               anything for that. We can't assume they will start from zero, even though they should. */
+            if (s->rx_expected_seq_no != -1)
             {
-                /* Assume this is truly a repeat packet, and don't bother checking its contents. */
-                span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Repeat packet number\n", seq_no);
-                return 0;
+                /* We have a packet with a serial number that is not in sequence. The cause could be:
+                    - 1. a repeat copy of a recent packet. Many T.38 implementations can preduce quite a lot of these.
+                    - 2. a late packet, whose point in the sequence we have already passed.
+                    - 3. the result of a hop in the sequence numbers cause by something weird from the other
+                         end. Stream switching might cause this
+                    - 4. missing packets.
+    
+                    In cases 1 and 2 we need to drop this packet. In case 2 it might make sense to try to do
+                    something with it in the terminal case. Currently we don't. For gateway operation it will be
+                    too late to do anything useful.
+                 */
+                if (((seq_no + 1) & 0xFFFF) == s->rx_expected_seq_no)
+                {
+                    /* Assume this is truly a repeat packet, and don't bother checking its contents. */
+                    span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Repeat packet number\n", log_seq_no);
+                    return 0;
+                }
+                /* Distinguish between a little bit out of sequence, and a huge hop. */
+                switch (classify_seq_no_offset(s->rx_expected_seq_no, seq_no))
+                {
+                case -1:
+                    /* This packet is in the near past, so its late. */
+                    span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Late packet - expected %d\n", log_seq_no, s->rx_expected_seq_no);
+                    return 0;
+                case 1:
+                    /* This packet is in the near future, so some packets have been lost */
+                    span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Missing from %d\n", log_seq_no, s->rx_expected_seq_no);
+                    s->rx_missing_handler(s, s->rx_user_data, s->rx_expected_seq_no, seq_no);
+                    s->missing_packets += (seq_no - s->rx_expected_seq_no);
+                    break;
+                default:
+                    /* The sequence has jumped wildly */
+                    span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Sequence restart\n", log_seq_no);
+                    s->rx_missing_handler(s, s->rx_user_data, -1, -1);
+                    s->missing_packets++;
+                    break;
+                }
             }
-            /* Distinguish between a little bit out of sequence, and a huge hop. */
-            switch (classify_seq_no_offset(s->rx_expected_seq_no, seq_no))
-            {
-            case -1:
-                /* This packet is in the near past, so its late. */
-                span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Late packet - expected %d\n", seq_no, s->rx_expected_seq_no);
-                return 0;
-            case 1:
-                /* This packet is in the near future, so some packets have been lost */
-                span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Missing from %d\n", seq_no, s->rx_expected_seq_no);
-                s->rx_missing_handler(s, s->rx_user_data, s->rx_expected_seq_no, seq_no);
-                s->missing_packets += (seq_no - s->rx_expected_seq_no);
-                break;
-            default:
-                /* The sequence has jumped wildly */
-                span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Sequence restart\n", seq_no);
-                s->rx_missing_handler(s, s->rx_user_data, -1, -1);
-                s->missing_packets++;
-                break;
-            }
+            s->rx_expected_seq_no = seq_no;
         }
-        s->rx_expected_seq_no = seq_no;
+        s->rx_expected_seq_no = (s->rx_expected_seq_no + 1) & 0xFFFF;
     }
-    s->rx_expected_seq_no = (s->rx_expected_seq_no + 1) & 0xFFFF;
-
+    else
+    {
+        s->rx_expected_seq_no++;
+    }
     data_field_present = (buf[0] >> 7) & 1;
     type = (buf[0] >> 6) & 1;
     ptr = 0;
@@ -391,7 +399,7 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
         /* Indicators should never have a data field */
         if (data_field_present)
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Data field with indicator\n", seq_no);
+            span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Data field with indicator\n", log_seq_no);
             return -1;
         }
         if ((buf[0] & 0x20))
@@ -399,13 +407,13 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
             /* Extension */
             if (len != 2)
             {
-                span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Invalid length for indicator\n", seq_no);
+                span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Invalid length for indicator (A)\n", log_seq_no);
                 return -1;
             }
             t30_indicator = T38_IND_V8_ANSAM + (((buf[0] << 2) & 0x3C) | ((buf[1] >> 6) & 0x3));
             if (t30_indicator > T38_IND_V33_14400_TRAINING)
             {
-                span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Unknown indicator - %d\n", seq_no, t30_indicator);
+                span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Unknown indicator - %d\n", log_seq_no, t30_indicator);
                 return -1;
             }
         }
@@ -413,12 +421,12 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
         {
             if (len != 1)
             {
-                span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Invalid length for indicator\n", seq_no);
+                span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Invalid length for indicator (B)\n", log_seq_no);
                 return -1;
             }
             t30_indicator = (buf[0] >> 1) & 0xF;
         }
-        span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: indicator %s\n", seq_no, t38_indicator(t30_indicator));
+        span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: indicator %s\n", log_seq_no, t38_indicator(t30_indicator));
         s->rx_indicator_handler(s, s->rx_user_data, t30_indicator);
         /* This must come after the indicator handler, so the handler routine sees the existing state of the
            indicator. */
@@ -430,13 +438,13 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
             /* Extension */
             if (len < 2)
             {
-                span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Invalid length for data\n", seq_no);
+                span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Invalid length for data (A)\n", log_seq_no);
                 return -1;
             }
             t30_data = T38_DATA_V8 + (((buf[0] << 2) & 0x3C) | ((buf[1] >> 6) & 0x3));
             if (t30_data > T38_DATA_V33_14400)
             {
-                span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Unknown data type - %d\n", seq_no, t30_data);
+                span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Unknown data type - %d\n", log_seq_no, t30_data);
                 return -1;
             }
             ptr = 2;
@@ -446,7 +454,7 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
             t30_data = (buf[0] >> 1) & 0xF;
             if (t30_data > T38_DATA_V17_14400)
             {
-                span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Unknown data type - %d\n", seq_no, t30_data);
+                span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Unknown data type - %d\n", log_seq_no, t30_data);
                 return -1;
             }
             ptr = 1;
@@ -454,17 +462,17 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
         if (!data_field_present)
         {
             /* This is kinda weird, but I guess if the length checks out we accept it. */
-            span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Data type with no data field\n", seq_no);
+            span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Data type with no data field\n", log_seq_no);
             if (ptr != len)
             {
-                span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Bad length\n", seq_no);
+                span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Invalid length for data (B)\n", log_seq_no);
                 return -1;
             }
             break;
         }
         if (ptr >= len)
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Bad length\n", seq_no);
+            span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Invalid length for data (C)\n", log_seq_no);
             return -1;
         }
         count = buf[ptr++];
@@ -474,7 +482,7 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
         {
             if (ptr >= len)
             {
-                span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Bad length\n", seq_no);
+                span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Invalid length for data (D)\n", log_seq_no);
                 return -1;
             }
             if (s->t38_version == 0)
@@ -486,7 +494,7 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
                        we are currently in the middle of an octet. */
                     field_data_present = (buf[ptr] >> 3) & 1;
                     /* Decode field_type */
-                    field_type = buf[ptr] & 0x7;
+                    t30_field_type = buf[ptr] & 0x7;
                     ptr++;
                     other_half = FALSE;
                 }
@@ -494,15 +502,15 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
                 {
                     field_data_present = (buf[ptr] >> 7) & 1;
                     /* Decode field_type */
-                    field_type = (buf[ptr] >> 4) & 0x7;
+                    t30_field_type = (buf[ptr] >> 4) & 0x7;
                     if (field_data_present)
                         ptr++;
                     else
                         other_half = TRUE;
                 }
-                if (field_type > T38_FIELD_T4_NON_ECM_SIG_END)
+                if (t30_field_type > T38_FIELD_T4_NON_ECM_SIG_END)
                 {
-                    span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Unknown field type - %d\n", seq_no, field_type);
+                    span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Unknown field type - %d\n", log_seq_no, t30_field_type);
                     return -1;
                 }
             }
@@ -514,25 +522,20 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
                 {
                     if (ptr > len - 2)
                     {
-                        span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Bad length\n", seq_no);
+                        span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Invalid length for data (E)\n", log_seq_no);
                         return -1;
                     }
-                    field_type = T38_FIELD_CM_MESSAGE + (((buf[ptr] << 2) & 0x3C) | ((buf[ptr + 1] >> 6) & 0x3));
-                    if (field_type > T38_FIELD_V34RATE)
+                    t30_field_type = T38_FIELD_CM_MESSAGE + (((buf[ptr] << 2) & 0x3C) | ((buf[ptr + 1] >> 6) & 0x3));
+                    if (t30_field_type > T38_FIELD_V34RATE)
                     {
-                        span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Unknown field type - %d\n", seq_no, field_type);
+                        span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Unknown field type - %d\n", log_seq_no, t30_field_type);
                         return -1;
                     }
-                    ptr++;
+                    ptr += 2;
                 }
                 else
                 {
-                    field_type = (buf[ptr++] >> 3) & 0x7;
-                    if (field_type > T38_FIELD_T4_NON_ECM_SIG_END)
-                    {
-                        span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Unknown field type - %d\n", seq_no, field_type);
-                        return -1;
-                    }
+                    t30_field_type = (buf[ptr++] >> 3) & 0x7;
                 }
             }
             /* Decode field_data */
@@ -540,7 +543,7 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
             {
                 if (ptr > len - 2)
                 {
-                    span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Bad length\n", seq_no);
+                    span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Invalid length for data (F)\n", log_seq_no);
                     return -1;
                 }
                 numocts = ((buf[ptr] << 8) | buf[ptr + 1]) + 1;
@@ -554,48 +557,85 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
             }
             if (ptr > len)
             {
-                span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Bad length\n", seq_no);
+                span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Invalid length for data (G)\n", log_seq_no);
                 return -1;
             }
-            span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: data type %s/%s + %d byte(s)\n", seq_no, t38_data_type(t30_data), t38_field_type(field_type), numocts);
-            s->rx_data_handler(s, s->rx_user_data, t30_data, field_type, msg, numocts);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: data %s/%s + %d byte(s)\n", log_seq_no, t38_data_type(t30_data), t38_field_type(t30_field_type), numocts);
+            s->rx_data_handler(s, s->rx_user_data, t30_data, t30_field_type, msg, numocts);
         }
         if (ptr != len)
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Bad length\n", seq_no);
-            return -1;
+            if (s->t38_version != 0  ||  ptr != (len - 1)  ||  !other_half)
+            {
+                span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Invalid length for data (H) - %d %d\n", log_seq_no, ptr, len);
+                return -1;
+            }
         }
+        /* This must come after the last data handler, so the handler routine sees the final state of the
+           last received packet. */
+        s->current_rx_data_type = t30_data;
+        s->current_rx_field_type = t30_field_type;
         break;
     }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-static int t38_encode_data(t38_core_state_t *s, uint8_t buf[], int data_type, int field_type, const uint8_t *msg, int msglen)
+static int t38_encode_indicator(t38_core_state_t *s, uint8_t buf[], int indicator)
+{
+    int len;
+
+    /* Build the IFP packet */
+    /* Data field not present */
+    /* Indicator packet */
+    /* Type of indicator */
+    if (indicator <= T38_IND_V17_14400_LONG_TRAINING)
+    {
+        buf[0] = (uint8_t) (indicator << 1);
+        len = 1;
+    }
+    else if (s->t38_version != 0  &&  indicator <= T38_IND_V33_14400_TRAINING)
+    {
+        buf[0] = (uint8_t) (0x20 | (((indicator - T38_IND_V8_ANSAM) & 0xF) >> 2));
+        buf[1] = (uint8_t) (((indicator - T38_IND_V8_ANSAM) << 6) & 0xFF);
+        len = 2;
+    }
+    else
+    {
+        len = -1;
+    }
+    return len;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int t38_encode_data(t38_core_state_t *s, uint8_t buf[], int data_type, const t38_data_field_t field[], int fields)
 {
     int len;
     int i;
     int enclen;
     int multiplier;
     int data_field_no;
-    int data_field_count;
-    data_field_element_t data_field_seq[10];
-    data_field_element_t *q;
+    const t38_data_field_t *q;
     unsigned int encoded_len;
     unsigned int fragment_len;
     unsigned int value;
     uint8_t data_field_present;
-
-    span_log(&s->logging, SPAN_LOG_FLOW, "Tx %5d: data type %s/%s + %d byte(s)\n", s->tx_seq_no, t38_data_type(data_type), t38_field_type(field_type), msglen);
+    uint8_t field_data_present;
+    char tag[20];
 
     /* Build the IFP packet */
+
+    /* There seems to valid reason why a packet would ever be generated without a data field present */
     data_field_present = TRUE;
 
-    data_field_seq[0].field_data_present = (uint8_t) (msglen > 0);
-    data_field_seq[0].field_type = field_type;
-    data_field_seq[0].field_data.numocts = msglen;
-    data_field_seq[0].field_data.data = msg;
-    data_field_count = 1;
+    data_field_no = 0;
+    span_log(&s->logging,
+             SPAN_LOG_FLOW,
+             "Tx %5d: data %s/%s + %d byte(s)\n",
+             s->tx_seq_no,
+             t38_data_type(data_type),
+             t38_field_type(field[data_field_no].field_type),
+             field[data_field_no].field_len);
 
     len = 0;
     /* Data field present */
@@ -605,7 +645,7 @@ static int t38_encode_data(t38_core_state_t *s, uint8_t buf[], int data_type, in
     {
         buf[len++] = (uint8_t) ((data_field_present << 7) | 0x40 | (data_type << 1));
     }
-    else if (data_type <= T38_DATA_V33_14400)
+    else if (s->t38_version != 0  &&  data_type <= T38_DATA_V33_14400)
     {
         buf[len++] = (uint8_t) ((data_field_present << 7) | 0x60 | (((data_type - T38_DATA_V8) & 0xF) >> 2));
         buf[len++] = (uint8_t) (((data_type - T38_DATA_V8) << 6) & 0xFF);
@@ -620,7 +660,7 @@ static int t38_encode_data(t38_core_state_t *s, uint8_t buf[], int data_type, in
         data_field_no = 0;
         do
         {
-            value = data_field_count - encoded_len;
+            value = fields - encoded_len;
             if (value < 0x80)
             {
                 /* 1 octet case */
@@ -647,25 +687,26 @@ static int t38_encode_data(t38_core_state_t *s, uint8_t buf[], int data_type, in
             /* Encode the elements */
             for (i = 0;  i < (int) encoded_len;  i++)
             {
-                q = &data_field_seq[data_field_no];
+                q = &field[data_field_no];
+                field_data_present = (uint8_t) (q->field_len > 0);
                 /* Encode field_type */
                 if (s->t38_version == 0)
                 {
                     /* Original version of T.38 with a typo */
                     if (q->field_type > T38_FIELD_T4_NON_ECM_SIG_END)
                         return -1;
-                    buf[len++] = (uint8_t) ((q->field_data_present << 7) | (q->field_type << 4));
+                    buf[len++] = (uint8_t) ((field_data_present << 7) | (q->field_type << 4));
                 }
                 else
                 {
                     if (q->field_type <= T38_FIELD_T4_NON_ECM_SIG_END)
                     {
-                        buf[len++] = (uint8_t) ((q->field_data_present << 7) | (q->field_type << 3));
+                        buf[len++] = (uint8_t) ((field_data_present << 7) | (q->field_type << 3));
                     }
                     else if (q->field_type <= T38_FIELD_V34RATE)
                     {
-                        buf[len++] = (uint8_t) ((q->field_data_present << 7) | 0x40 | (((q->field_type - T38_FIELD_CM_MESSAGE) & 0x1F) >> 1));
-                        buf[len++] = (uint8_t) (((q->field_type - T38_FIELD_CM_MESSAGE) << 7) & 0xFF);
+                        buf[len++] = (uint8_t) ((field_data_present << 7) | 0x40 | ((q->field_type - T38_FIELD_CM_MESSAGE) >> 2));
+                        buf[len++] = (uint8_t) (((q->field_type - T38_FIELD_CM_MESSAGE) << 6) & 0xC0);
                     }
                     else
                     {
@@ -673,72 +714,27 @@ static int t38_encode_data(t38_core_state_t *s, uint8_t buf[], int data_type, in
                     }
                 }
                 /* Encode field_data */
-                if (q->field_data_present)
+                if (field_data_present)
                 {
-                    if (q->field_data.numocts < 1  ||  q->field_data.numocts > 65535)
+                    if (q->field_len < 1  ||  q->field_len > 65535)
                         return -1;
-                    buf[len++] = (uint8_t) (((q->field_data.numocts - 1) >> 8) & 0xFF);
-                    buf[len++] = (uint8_t) ((q->field_data.numocts - 1) & 0xFF);
-                    memcpy(buf + len, q->field_data.data, q->field_data.numocts);
-                    len += q->field_data.numocts;
+                    buf[len++] = (uint8_t) (((q->field_len - 1) >> 8) & 0xFF);
+                    buf[len++] = (uint8_t) ((q->field_len - 1) & 0xFF);
+                    memcpy(buf + len, q->field, q->field_len);
+                    len += q->field_len;
                 }
                 data_field_no++;
             }
         }
-        while (data_field_count != (int) encoded_len  ||  fragment_len >= 16384);
+        while (fields != (int) encoded_len  ||  fragment_len >= 16384);
     }
 
     if (span_log_test(&s->logging, SPAN_LOG_FLOW))
     {
-        char tag[20];
-        
         sprintf(tag, "Tx %5d:", s->tx_seq_no);
         span_log_buf(&s->logging, SPAN_LOG_FLOW, tag, buf, len);
     }
     return len;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int t38_encode_indicator(t38_core_state_t *s, uint8_t buf[], int indicator)
-{
-    int len;
-
-    span_log(&s->logging, SPAN_LOG_FLOW, "Tx %5d: indicator %s\n", s->tx_seq_no, t38_indicator(indicator));
-
-    /* Build the IFP packet */
-    /* Data field not present */
-    /* Indicator packet */
-    /* Type of indicator */
-    if (indicator <= T38_IND_V17_14400_LONG_TRAINING)
-    {
-        buf[0] = (uint8_t) (indicator << 1);
-        len = 1;
-    }
-    else if (indicator <= T38_IND_V33_14400_TRAINING)
-    {
-        buf[0] = (uint8_t) (0x20 | (((indicator - T38_IND_V8_ANSAM) & 0xF) >> 2));
-        buf[1] = (uint8_t) (((indicator - T38_IND_V8_ANSAM) << 6) & 0xFF);
-        len = 2;
-    }
-    else
-    {
-        len = -1;
-    }
-    return len;
-}
-/*- End of function --------------------------------------------------------*/
-
-int t38_core_send_data(t38_core_state_t *s, int data_type, int field_type, const uint8_t *msg, int msglen)
-{
-    uint8_t buf[100];
-    int len;
-
-    if ((len = t38_encode_data(s, buf, data_type, field_type, msg, msglen)) > 0)
-        s->tx_packet_handler(s, s->tx_packet_user_data, buf, len, 1);
-    else
-        span_log(&s->logging, SPAN_LOG_FLOW, "T.38 data len is %d\n", len);
-    s->tx_seq_no = (s->tx_seq_no + 1) & 0xFFFF;
-    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -747,15 +743,55 @@ int t38_core_send_indicator(t38_core_state_t *s, int indicator, int count)
     uint8_t buf[100];
     int len;
 
-    if ((len = t38_encode_indicator(s, buf, indicator)) > 0)
+    /* Zero is a valid count, to suppress the transmission of indicators when the
+       transport is TCP. */       
+    if (count)
     {
+        if ((len = t38_encode_indicator(s, buf, indicator)) < 0)
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "T.38 indicator len is %d\n", len);
+            return len;
+        }
+        span_log(&s->logging, SPAN_LOG_FLOW, "Tx %5d: indicator %s\n", s->tx_seq_no, t38_indicator(indicator));
         s->tx_packet_handler(s, s->tx_packet_user_data, buf, len, count);
-        s->current_tx_indicator = indicator;
+        s->tx_seq_no = (s->tx_seq_no + 1) & 0xFFFF;
     }
-    else
+    s->current_tx_indicator = indicator;
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t38_core_send_data(t38_core_state_t *s, int data_type, int field_type, const uint8_t *field, int field_len, int count)
+{
+    t38_data_field_t field0;
+    uint8_t buf[1000];
+    int len;
+
+    field0.field_type = field_type;
+    field0.field = field;
+    field0.field_len = field_len;
+    if ((len = t38_encode_data(s, buf, data_type, &field0, 1)) < 0)
     {
-        span_log(&s->logging, SPAN_LOG_FLOW, "T.38 indicator len is %d\n", len);
+        span_log(&s->logging, SPAN_LOG_FLOW, "T.38 data len is %d\n", len);
+        return len;
     }
+    s->tx_packet_handler(s, s->tx_packet_user_data, buf, len, count);
+    s->tx_seq_no = (s->tx_seq_no + 1) & 0xFFFF;
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t38_core_send_data_multi_field(t38_core_state_t *s, int data_type, const t38_data_field_t *field, int fields, int count)
+{
+    uint8_t buf[1000];
+    int len;
+
+    if ((len = t38_encode_data(s, buf, data_type, field, fields)) < 0)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "T.38 data len is %d\n", len);
+        return len;
+    }
+    s->tx_packet_handler(s, s->tx_packet_user_data, buf, len, count);
     s->tx_seq_no = (s->tx_seq_no + 1) & 0xFFFF;
     return 0;
 }
@@ -809,6 +845,12 @@ void t38_set_t38_version(t38_core_state_t *s, int t38_version)
 }
 /*- End of function --------------------------------------------------------*/
 
+void t38_set_sequence_number_handling(t38_core_state_t *s, int check)
+{
+    s->check_sequence_numbers = check;
+}
+/*- End of function --------------------------------------------------------*/
+
 int t38_get_fastest_image_data_rate(t38_core_state_t *s)
 {
     return s->fastest_image_data_rate;
@@ -819,7 +861,9 @@ t38_core_state_t *t38_core_init(t38_core_state_t *s,
                                 t38_rx_indicator_handler_t *rx_indicator_handler,
                                 t38_rx_data_handler_t *rx_data_handler,
                                 t38_rx_missing_handler_t *rx_missing_handler,
-                                void *rx_user_data)
+                                void *rx_user_data,
+                                t38_tx_packet_handler_t *tx_packet_handler,
+                                void *tx_packet_user_data)
 {
     memset(s, 0, sizeof(*s));
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
@@ -834,13 +878,18 @@ t38_core_state_t *t38_core_init(t38_core_state_t *s,
     s->max_buffer_size = 400;
     s->max_datagram_size = 100;
     s->t38_version = 0;
-    s->iaf = FALSE;
+    s->check_sequence_numbers = TRUE;
+
     s->current_rx_indicator = -1;
+    s->current_rx_data_type = -1;
+    s->current_rx_field_type = -1;
 
     s->rx_indicator_handler = rx_indicator_handler;
     s->rx_data_handler = rx_data_handler;
     s->rx_missing_handler = rx_missing_handler;
     s->rx_user_data = rx_user_data;
+    s->tx_packet_handler = tx_packet_handler;
+    s->tx_packet_user_data = tx_packet_user_data;
 
     s->rx_expected_seq_no = -1;
     return s;

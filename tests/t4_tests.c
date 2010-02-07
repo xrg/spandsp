@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.34 2006/11/23 15:48:09 steveu Exp $
+ * $Id: t4_tests.c,v 1.35 2007/02/22 13:21:52 steveu Exp $
  */
 
 /*! \file */
@@ -75,36 +75,68 @@ int main(int argc, char* argv[])
     int add_page_headers;
     int min_row_bits;
     int restart_pages;
+    int block_size;
     char buf[512];
+    uint8_t block[1024];
     t4_stats_t stats;
     const char *in_file_name;
 
-    i = 1;
     decode_test = FALSE;
     compression = -1;
     add_page_headers = FALSE;
     restart_pages = FALSE;
     in_file_name = IN_FILE_NAME;
     min_row_bits = 0;
-    while (i < argc)
+    block_size = 0;
+    for (i = 1;  i < argc;  i++)
     {
+        if (strcmp(argv[i], "-b") == 0)
+        {
+            block_size = atoi(argv[++i]);
+            if (block_size > 1024)
+                block_size = 1024;
+            continue;
+        }
         if (strcmp(argv[i], "-d") == 0)
+        {
             decode_test = TRUE;
-        else if (strcmp(argv[i], "-1") == 0)
+            continue;
+        }
+        if (strcmp(argv[i], "-1") == 0)
+        {
             compression = T4_COMPRESSION_ITU_T4_1D;
-        else if (strcmp(argv[i], "-2") == 0)
+            continue;
+        }
+        if (strcmp(argv[i], "-2") == 0)
+        {
             compression = T4_COMPRESSION_ITU_T4_2D;
-        else if (strcmp(argv[i], "-6") == 0)
+            continue;
+        }
+        if (strcmp(argv[i], "-6") == 0)
+        {
             compression = T4_COMPRESSION_ITU_T6;
-        else if (strcmp(argv[i], "-h") == 0)
+            continue;
+        }
+        if (strcmp(argv[i], "-h") == 0)
+        {
             add_page_headers = TRUE;
-        else if (strcmp(argv[i], "-r") == 0)
+            continue;
+        }
+        if (strcmp(argv[i], "-r") == 0)
+        {
             restart_pages = TRUE;
-        else if (strcmp(argv[i], "-i") == 0)
+            continue;
+        }
+        if (strcmp(argv[i], "-i") == 0)
+        {
             in_file_name = argv[++i];
-        else if (strcmp(argv[i], "-m") == 0)
+            continue;
+        }
+        if (strcmp(argv[i], "-m") == 0)
+        {
             min_row_bits = atoi(argv[++i]);
-        i++;
+            continue;
+        }
     }
     /* Create a send and a receive end */
     memset(&send_state, 0, sizeof(send_state));
@@ -229,33 +261,79 @@ int main(int argc, char* argv[])
                     break;
             }
             t4_rx_start_page(&receive_state);
-            do
+            if (block_size == 0)
             {
-                bit = t4_tx_get_bit(&send_state);
+                do
+                {
+                    bit = t4_tx_get_bit(&send_state);
 #if 0
-                if (--next_hit <= 0)
-                {
-                    do
-                        next_hit = rand() & 0x3FF;
-                    while (next_hit < 20);
-                    bit ^= (rand() & 1);
-                }
-#endif
-                if (bit == PUTBIT_END_OF_DATA)
-                {
-                    /* T.6 data does not contain an image termination sequence.
-                       T.4 1D and 2D do, and should locate that sequence. */
-                    if (compression == T4_COMPRESSION_ITU_T6)
-                        break;
-                    if (++end_marks > 50)
+                    if (--next_hit <= 0)
                     {
-                        printf("Receiver missed the end of page mark\n");
-                        exit(2);
+                        do
+                            next_hit = rand() & 0x3FF;
+                        while (next_hit < 20);
+                        bit ^= (rand() & 1);
+                    }
+#endif
+                    if (bit == PUTBIT_END_OF_DATA)
+                    {
+                        /* T.6 data does not contain an image termination sequence.
+                           T.4 1D and 2D do, and should locate that sequence. */
+                        if (compression == T4_COMPRESSION_ITU_T6)
+                            break;
+                        if (++end_marks > 50)
+                        {
+                            printf("Receiver missed the end of page mark\n");
+                            exit(2);
+                        }
+                    }
+                    end_of_page = t4_rx_put_bit(&receive_state, bit & 1);
+                }
+                while (!end_of_page);
+            }
+            else if (block_size == 1)
+            {
+                do
+                {
+                    bit = t4_tx_get_byte(&send_state);
+                    if ((bit & 0x100))
+                    {
+                        /* T.6 data does not contain an image termination sequence.
+                           T.4 1D and 2D do, and should locate that sequence. */
+                        if (compression == T4_COMPRESSION_ITU_T6)
+                            break;
+                        if (++end_marks > 50)
+                        {
+                            printf("Receiver missed the end of page mark\n");
+                            exit(2);
+                        }
+                    }
+                    end_of_page = t4_rx_put_byte(&receive_state, bit & 0xFF);
+                }
+                while (!end_of_page);
+            }
+            else
+            {
+                do
+                {
+                    bit = t4_tx_get_chunk(&send_state, block, block_size);
+                    if (bit > 0)
+                        end_of_page = t4_rx_put_chunk(&receive_state, block, bit);
+                    if (bit < block_size)
+                    {
+                        /* T.6 data does not contain an image termination sequence.
+                           T.4 1D and 2D do, and should locate that sequence. */
+                        if (compression == T4_COMPRESSION_ITU_T6)
+                            break;
+                        if (++end_marks > 50)
+                        {
+                            printf("Receiver missed the end of page mark\n");
+                            exit(2);
+                        }
                     }
                 }
-                end_of_page = t4_rx_put_bit(&receive_state, bit & 1);
+                while (!end_of_page);
             }
-            while (!end_of_page);
             t4_get_transfer_statistics(&receive_state, &stats);
             printf("Pages = %d\n", stats.pages_transferred);
             printf("Image size = %d x %d\n", stats.width, stats.length);

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.c,v 1.21 2006/11/19 14:07:27 steveu Exp $
+ * $Id: line_model.c,v 1.22 2007/02/06 14:43:32 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -422,7 +422,7 @@ void both_ways_line_model(both_ways_line_model_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-one_way_line_model_state_t *one_way_line_model_init(int model, float noise, int codec)
+one_way_line_model_state_t *one_way_line_model_init(int model, float noise, int codec, int rbs_pattern)
 {
     one_way_line_model_state_t *s;
 
@@ -433,7 +433,7 @@ one_way_line_model_state_t *one_way_line_model_init(int model, float noise, int 
     s->bulk_delay = 8;
     s->bulk_delay_ptr = 0;
 
-    s->munge = codec_munge_init(codec);
+    s->munge = codec_munge_init(codec, rbs_pattern);
 
     s->near_filter = models[model];
     s->near_filter_len = 129;
@@ -458,7 +458,8 @@ both_ways_line_model_state_t *both_ways_line_model_init(int model1,
                                                         float noise1,
                                                         int model2,
                                                         float noise2,
-                                                        int codec)
+                                                        int codec,
+                                                        int rbs_pattern)
 {
     float echo_level;
     both_ways_line_model_state_t *s;
@@ -467,8 +468,8 @@ both_ways_line_model_state_t *both_ways_line_model_init(int model1,
         return NULL;
     memset(s, 0, sizeof(*s));
 
-    s->line1.munge = codec_munge_init(codec);
-    s->line2.munge = codec_munge_init(codec);
+    s->line1.munge = codec_munge_init(codec, rbs_pattern);
+    s->line2.munge = codec_munge_init(codec, rbs_pattern);
 
     s->line1.bulk_delay = 8;
     s->line2.bulk_delay = 8;

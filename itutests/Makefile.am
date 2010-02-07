@@ -1,3 +1,6 @@
+##
+## SpanDSP - a series of DSP components for telephony
+##
 ## Makefile.am -- Process this file with automake to produce Makefile.in
 ##
 ## This program is free software; you can redistribute it and/or modify
@@ -13,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.4 2006/10/24 13:21:58 steveu Exp $
+## $Id: Makefile.am,v 1.5 2007/02/10 11:54:57 steveu Exp $
 
 SUBDIRS = fax
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.66 2006/11/28 16:59:56 steveu Exp $
+ * $Id: v17rx.c,v 1.68 2007/03/02 13:14:06 steveu Exp $
  */
 
 /*! \file */
@@ -11546,14 +11546,10 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
         i = 1;
     else if (s->baud_phase < -100.0f)
         i = -1;
-
     printf("v = %10.5f %5d - %f %f %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
 
-    if (i)
-    {
-        s->eq_put_step += i;
-        s->total_baud_timing_correction += i;
-    }
+    s->eq_put_step += i;
+    s->total_baud_timing_correction += i;
 #endif
 
     z = equalizer_get(s);
@@ -11575,6 +11571,8 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
             s->angles[0] =
             s->start_angles[0] = arctan2(z.im, z.re);
             s->in_training = TRAINING_STAGE_LOG_PHASE;
+            if (!s->short_train)
+                s->agc_scaling_save = s->agc_scaling;
         }
         break;
     case TRAINING_STAGE_LOG_PHASE:
@@ -11610,7 +11608,6 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
                 s->eq_buf[i] = complex_mulf(&s->eq_buf[i], &zz);
             s->carrier_phase += (0x80000000 + angle - 219937506);
 
-            s->carrier_track_i = 100.0f;
             s->carrier_track_p = 500000.0f;
 
             s->in_training = TRAINING_STAGE_SHORT_WAIT_FOR_CDBA;
@@ -11681,11 +11678,12 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
                 ||
                 s->carrier_phase_rate > dds_phase_ratef(CARRIER_NOMINAL_FREQ + 20.0f))
             {
-               span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (sequence failed)\n");
-               /* Park this modem */
-               s->in_training = TRAINING_STAGE_PARKED;
-               s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
-               break;
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (sequence failed)\n");
+                /* Park this modem */
+                s->agc_scaling_save = 0.0f;
+                s->in_training = TRAINING_STAGE_PARKED;
+                s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
+                break;
             }
 
             /* Make a step shift in the phase, to pull it into line. We need to rotate the equalizer buffer,
@@ -11711,6 +11709,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
                of a real training sequence. */
             span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (sequence failed)\n");
             /* Park this modem */
+            s->agc_scaling_save = 0.0f;
             s->in_training = TRAINING_STAGE_PARKED;
             s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
         }
@@ -11723,7 +11722,10 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
         track_carrier(s, &z, target);
         tune_equalizer(s, &z, target);
         if (s->training_count == V17_TRAINING_SEG_2_LEN - 2000)
+        {
             s->eq_delta /= 2.0;
+            s->carrier_track_i = 1000.0f;
+        }
         if (++s->training_count >= V17_TRAINING_SEG_2_LEN - 48)
         {
             s->training_error = 0.0f;
@@ -11746,7 +11748,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
         s->training_error += powerf(&zz);
         if (++s->training_count >= V17_TRAINING_SEG_2_LEN)
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Constellation mismatch %f\n", s->training_error);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Long training error %f\n", s->training_error);
             if (s->training_error < 100.0f)
             {
                 s->training_count = 0;
@@ -11757,6 +11759,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
             {
                 span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (convergence failed)\n");
                 /* Park this modem */
+                s->agc_scaling_save = 0.0f;
                 s->in_training = TRAINING_STAGE_PARKED;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
             }
@@ -11819,9 +11822,9 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
         }
         if (++s->training_count >= V17_TRAINING_SHORT_SEG_2_LEN)
         {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Short training error %f\n", s->training_error);
             s->carrier_track_i = 100.0f;
             s->carrier_track_p = 500000.0f;
-            span_log(&s->logging, SPAN_LOG_FLOW, "Short training error %f\n", s->training_error);
             if (s->training_error < 4000.0f)
             {
                 s->training_count = 0;
@@ -11864,7 +11867,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
         s->training_error += powerf(&zz);
         if (++s->training_count >= V17_TRAINING_SEG_4_LEN)
         {
-            if (s->training_error < 25.0f)
+            if (s->training_error < 5.0f)
             {
                 /* We are up and running */
                 span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded (constellation mismatch %f)\n", s->training_error);
@@ -11874,7 +11877,6 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
                 s->carrier_present = 60;
                 equalizer_save(s);
                 s->carrier_phase_rate_save = s->carrier_phase_rate;
-                s->agc_scaling_save = s->agc_scaling;
                 s->short_train = TRUE;
                 s->in_training = TRAINING_STAGE_NORMAL_OPERATION;
             }
@@ -11883,6 +11885,8 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
                 /* Training has failed */
                 span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (constellation mismatch %f)\n", s->training_error);
                 /* Park this modem */
+                if (!s->short_train)
+                    s->agc_scaling_save = 0.0f;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
                 s->in_training = TRAINING_STAGE_PARKED;
             }
@@ -11952,7 +11956,6 @@ void v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
         {
             /* Only spend effort processing this data if the modem is not
                parked, after training failure. */
-
             s->eq_put_step -= PULSESHAPER_COEFF_SETS;
             step = -s->eq_put_step;
             if (step > PULSESHAPER_COEFF_SETS - 1)
@@ -11980,11 +11983,9 @@ void v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
                will fiddle the step to align this with the symbols. */
             if (s->eq_put_step <= 0)
             {
-                if (s->in_training == TRAINING_STAGE_SYMBOL_ACQUISITION)
-                {
-                    /* Only AGC during the initial training */
+                /* Only AGC until we have locked down the setting. */
+                if (s->agc_scaling_save == 0.0f)
                     s->agc_scaling = (1.0f/PULSESHAPER_GAIN)*6.5f/sqrtf(power);
-                }
                 /* Pulse shape while still at the carrier frequency, using a quadrature
                    pair of filters. This results in a properly bandpass filtered complex
                    signal, which can be brought directly to bandband by complex mixing.
@@ -12079,13 +12080,13 @@ int v17_rx_restart(v17_rx_state_t *s, int rate, int short_train)
     s->carrier_phase = 0;
     power_meter_init(&(s->power), 4);
 
-printf("Restart %d\n", s->short_train);
     if (s->short_train)
     {
         s->carrier_phase_rate = s->carrier_phase_rate_save;
         s->agc_scaling = s->agc_scaling_save;
         equalizer_restore(s);
-        s->carrier_track_i = 500.0f;
+        /* Don't allow any frequency correction at all, until we start to pull the phase in. */
+        s->carrier_track_i = 0.0f;
         s->carrier_track_p = 40000.0f;
     }
     else
@@ -12127,7 +12128,7 @@ v17_rx_state_t *v17_rx_init(v17_rx_state_t *s, int rate, put_bit_func_t put_bit,
     s->short_train = FALSE;
     v17_rx_signal_cutoff(s, -45.5f);
     s->agc_scaling = 0.0005f;
-    s->agc_scaling_save = 0.0005f;
+    s->agc_scaling_save = 0.0f;
     s->carrier_phase_rate_save = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     span_log_set_protocol(&s->logging, "V.17");

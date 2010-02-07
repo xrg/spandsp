@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.83 2006/11/30 15:41:47 steveu Exp $
+ * $Id: t31.c,v 1.87 2007/02/23 12:59:45 steveu Exp $
  */
 
 /*! \file */
@@ -81,7 +81,9 @@
 #include "spandsp/t31.h"
 
 #define MS_PER_TX_CHUNK             30
-#define INDICATOR_TX_COUNT          4
+#define INDICATOR_TX_COUNT          3
+#define DATA_TX_COUNT               1
+#define DATA_END_TX_COUNT           1
 #define DEFAULT_DTE_TIMEOUT         5
 
 typedef const char *(*at_cmd_service_t)(t31_state_t *s, const char *cmd);
@@ -131,6 +133,15 @@ static int early_v29_rx(void *user_data, const int16_t amp[], int len);
 static int dummy_rx(void *s, const int16_t amp[], int len);
 static int silence_rx(void *user_data, const int16_t amp[], int len);
 static int cng_rx(void *user_data, const int16_t amp[], int len);
+
+static void bit_reverse_chunk(uint8_t to[], const uint8_t from[], int len)
+{
+    int i;
+
+    for (i = 0;  i < len;  i++)
+        to[i] = bit_reverse8(from[i]);
+}
+/*- End of function --------------------------------------------------------*/
 
 static __inline__ void t31_set_at_rx_mode(t31_state_t *s, int new_mode)
 {
@@ -203,7 +214,6 @@ static int process_rx_indicator(t38_core_state_t *s, void *user_data, int indica
 static int process_rx_data(t38_core_state_t *s, void *user_data, int data_type, int field_type, const uint8_t *buf, int len)
 {
     t31_state_t *t;
-    int i;
     
     t = (t31_state_t *) user_data;
     switch (data_type)
@@ -230,10 +240,7 @@ static int process_rx_data(t38_core_state_t *s, void *user_data, int data_type, 
     {
     case T38_FIELD_HDLC_DATA:
         if (t->hdlc_rx_len + len <= 256 - 2)
-        {
-            for (i = 0;  i < len;  i++)
-                t->hdlc_rx_buf[t->hdlc_rx_len++] = bit_reverse8(buf[i]);
-        }
+            bit_reverse_chunk(t->hdlc_rx_buf + t->hdlc_rx_len, buf, len);
         break;
     case T38_FIELD_HDLC_FCS_OK:
         if (len > 0)
@@ -371,14 +378,14 @@ int t31_t38_send_timeout(t31_state_t *s, int samples)
     case T38_TIMED_STEP_NON_ECM_MODEM_3:
         /* Send a chunk of non-ECM image data */
         //if ((len = get_non_ecm_image_chunk(s, buf, s->octets_per_non_ecm_packet)))
-        //    t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_T4_NON_ECM_DATA, buf, abs(len));
+        //    t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_T4_NON_ECM_DATA, buf, abs(len), DATA_TX_COUNT);
         if (len > 0)
         {
             s->next_send_samples += ms_to_samples(MS_PER_TX_CHUNK);
         }
         else
         {
-            t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_T4_NON_ECM_SIG_END, NULL, 0);
+            t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_T4_NON_ECM_SIG_END, NULL, 0, DATA_END_TX_COUNT);
             t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, INDICATOR_TX_COUNT);
             s->timed_step = T38_TIMED_STEP_NONE;
         }
@@ -392,7 +399,7 @@ int t31_t38_send_timeout(t31_state_t *s, int samples)
     case T38_TIMED_STEP_HDLC_MODEM_2:
         /* Send HDLC octet */
         buf[0] = bit_reverse8(s->hdlc_tx_buf[s->hdlc_tx_ptr++]);
-        t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_HDLC_DATA, buf, 1);
+        t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_HDLC_DATA, buf, 1, DATA_TX_COUNT);
         if (s->hdlc_tx_ptr >= s->hdlc_tx_len)
             s->timed_step = T38_TIMED_STEP_HDLC_MODEM_3;
         s->next_send_samples += ms_to_samples(MS_PER_TX_CHUNK);
@@ -403,7 +410,7 @@ int t31_t38_send_timeout(t31_state_t *s, int samples)
         if (s->hdlc_final)
         {
             s->hdlc_tx_len = 0;
-            t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_HDLC_FCS_OK_SIG_END, NULL, 0);
+            t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_HDLC_FCS_OK_SIG_END, NULL, 0, DATA_END_TX_COUNT);
             s->timed_step = T38_TIMED_STEP_HDLC_MODEM_4;
             at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
             t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
@@ -412,7 +419,7 @@ int t31_t38_send_timeout(t31_state_t *s, int samples)
         }
         else
         {
-            t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_HDLC_FCS_OK, NULL, 0);
+            t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_HDLC_FCS_OK, NULL, 0, DATA_TX_COUNT);
             s->timed_step = T38_TIMED_STEP_HDLC_MODEM_2;
             at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
         }
@@ -422,7 +429,7 @@ int t31_t38_send_timeout(t31_state_t *s, int samples)
         /* End of HDLC transmission */
         /* We have already sent T38_FIELD_HDLC_FCS_OK_SIG_END. It seems some boxes may not like
            us sending a T38_FIELD_HDLC_SIG_END at this point. Just say there is no signal. */
-        //t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_HDLC_SIG_END, NULL, 0);
+        //t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_HDLC_SIG_END, NULL, 0, DATA_END_TX_COUNT);
         t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, INDICATOR_TX_COUNT);
         s->timed_step = T38_TIMED_STEP_NONE;
         break;
@@ -645,9 +652,9 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
                     else
                     {
                         at_put_response_code(&s->at_state, AT_RESPONSE_CODE_NO_CARRIER);
-                        t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
                     }
                     s->at_state.dte_is_waiting = FALSE;
+                    t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
                 }
                 else
                 {
@@ -694,9 +701,17 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
             {
                 if (!s->rx_message_received)
                 {
-                    /* Report CONNECT as soon as possible to avoid a timeout. */
-                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
-                    s->rx_message_received = TRUE;
+                    if (s->at_state.dte_is_waiting)
+                    {
+                        /* Report CONNECT as soon as possible to avoid a timeout. */
+                        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
+                        s->rx_message_received = TRUE;
+                    }
+                    else
+                    {
+                        buf[0] = AT_RESPONSE_CODE_CONNECT;
+                        queue_write_msg(&(s->rx_queue), buf, 1);
+                    }
                 }
             }
             break;
@@ -1687,9 +1702,13 @@ t31_state_t *t31_init(t31_state_t *s,
     s->at_state.dte_inactivity_timeout = DEFAULT_DTE_TIMEOUT;
     if (tx_t38_packet_handler)
     {
-        t38_core_init(&s->t38, process_rx_indicator, process_rx_data, process_rx_missing, (void *) s);
-        s->t38.tx_packet_handler = tx_t38_packet_handler;
-        s->t38.tx_packet_user_data = tx_t38_packet_user_data;
+        t38_core_init(&s->t38,
+                      process_rx_indicator,
+                      process_rx_data,
+                      process_rx_missing,
+                      (void *) s,
+                      tx_t38_packet_handler,
+                      tx_t38_packet_user_data);
     }
     s->t38_mode = FALSE;
     return s;

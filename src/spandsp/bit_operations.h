@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bit_operations.h,v 1.11 2006/11/28 15:37:03 steveu Exp $
+ * $Id: bit_operations.h,v 1.15 2007/02/23 13:16:13 steveu Exp $
  */
 
 /*! \file */
@@ -34,7 +34,6 @@
 extern "C" {
 #endif
 
-#if defined(__i386__)  ||  defined(__x86_64__)
 /*! \brief Find the bit position of the highest set bit in a word
     \param bits The word to be searched
     \return The bit number of the highest set bit, or -1 if the word is zero. */
@@ -42,12 +41,49 @@ static __inline__ int top_bit(unsigned int bits)
 {
     int res;
     
+#if defined(__i386__)  ||  defined(__x86_64__)
     __asm__ (" xorl %[res],%[res];\n"
              " decl %[res];\n"
              " bsrl %[bits],%[res]\n"
              : [res] "=&r" (res)
              : [bits] "rm" (bits));
     return res;
+#elif defined(__ppc__)  ||   defined(__powerpc__)
+    __asm__ ("cntlzw %[res],%[bits];\n"
+             : [res] "=&r" (res)
+             : [bits] "r" (bits));
+    return 31 - res;
+#else
+    if (bits == 0)
+        return -1;
+    res = 0;
+    if (bits & 0xFFFF0000)
+    {
+        bits &= 0xFFFF0000;
+        res += 16;
+    }
+    if (bits & 0xFF00FF00)
+    {
+        bits &= 0xFF00FF00;
+        res += 8;
+    }
+    if (bits & 0xF0F0F0F0)
+    {
+        bits &= 0xF0F0F0F0;
+        res += 4;
+    }
+    if (bits & 0xCCCCCCCC)
+    {
+        bits &= 0xCCCCCCCC;
+        res += 2;
+    }
+    if (bits & 0xAAAAAAAA)
+    {
+        bits &= 0xAAAAAAAA;
+        res += 1;
+    }
+    return res;
+#endif
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -58,94 +94,53 @@ static __inline__ int bottom_bit(unsigned int bits)
 {
     int res;
     
+#if defined(__i386__)  ||  defined(__x86_64__)
     __asm__ (" xorl %[res],%[res];\n"
              " decl %[res];\n"
              " bsfl %[bits],%[res]\n"
              : [res] "=&r" (res)
              : [bits] "rm" (bits));
     return res;
-}
-/*- End of function --------------------------------------------------------*/
 #else
-static __inline__ int top_bit(unsigned int bits)
-{
-    int i;
-    
     if (bits == 0)
         return -1;
-    i = 0;
-    if (bits & 0xFFFF0000)
-    {
-        bits &= 0xFFFF0000;
-        i += 16;
-    }
-    if (bits & 0xFF00FF00)
-    {
-        bits &= 0xFF00FF00;
-        i += 8;
-    }
-    if (bits & 0xF0F0F0F0)
-    {
-        bits &= 0xF0F0F0F0;
-        i += 4;
-    }
-    if (bits & 0xCCCCCCCC)
-    {
-        bits &= 0xCCCCCCCC;
-        i += 2;
-    }
-    if (bits & 0xAAAAAAAA)
-    {
-        bits &= 0xAAAAAAAA;
-        i += 1;
-    }
-    return i;
-}
-/*- End of function --------------------------------------------------------*/
-
-static __inline__ int bottom_bit(unsigned int bits)
-{
-    int i;
-    
-    if (bits == 0)
-        return -1;
-    i = 32;
+    res = 31;
     if (bits & 0x0000FFFF)
     {
         bits &= 0x0000FFFF;
-        i -= 16;
+        res -= 16;
     }
     if (bits & 0x00FF00FF)
     {
         bits &= 0x00FF00FF;
-        i -= 8;
+        res -= 8;
     }
     if (bits & 0x0F0F0F0F)
     {
         bits &= 0x0F0F0F0F;
-        i -= 4;
+        res -= 4;
     }
     if (bits & 0x33333333)
     {
         bits &= 0x33333333;
-        i -= 2;
+        res -= 2;
     }
     if (bits & 0x55555555)
     {
         bits &= 0x55555555;
-        i -= 1;
+        res -= 1;
     }
-    return i;
+    return res;
+#endif
 }
 /*- End of function --------------------------------------------------------*/
-#endif
 
 /*! \brief Bit reverse a byte.
     \param data The byte to be reversed.
     \return The bit reversed version of data. */
 static __inline__ uint8_t bit_reverse8(uint8_t x)
 {
-#if defined(__i386__)  ||  defined(__x86_64__)
+#if defined(__i386__)  ||  defined(__x86_64__)  ||  defined(__ppc__)  ||  defined(__powerpc__)
     /* If multiply is fast */
     return ((x*0x0802U & 0x22110U) | (x*0x8020U & 0x88440U))*0x10101U >> 16;
 #else
@@ -171,6 +166,19 @@ uint32_t bit_reverse32(uint32_t data);
     \param data The word to be reversed.
     \return The bit reversed version of data. */
 uint32_t bit_reverse_4bytes(uint32_t data);
+
+#if defined(__x86_64__)
+/*! \brief Bit reverse each of the eight bytes in a 64 bit word.
+    \param data The word to be reversed.
+    \return The bit reversed version of data. */
+uint64_t bit_reverse_8bytes(uint64_t data);
+#endif
+
+/*! \brief Bit reverse each bytes in a buffer.
+    \param to The buffer to place the reversed data in.
+    \param from The buffer containing the data to be reversed.
+    \param The length of the data in the buffer. */
+void bit_reverse(uint8_t to[], const uint8_t from[], int len);
 
 /*! \brief Find the number of set bits in a 32 bit word.
     \param x The word to be searched.
@@ -203,7 +211,7 @@ static __inline__ uint32_t least_significant_one32(uint32_t x)
     \return The word with the single set bit. */
 static __inline__ uint32_t most_significant_one32(uint32_t x)
 {
-#if defined(__i386__)  ||  defined(__x86_64__)
+#if defined(__i386__)  ||  defined(__x86_64__)  ||  defined(__ppc__)  ||  defined(__powerpc__)
     return 1 << top_bit(x);
 #else
     x = make_mask32(x);

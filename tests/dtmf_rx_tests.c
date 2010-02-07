@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_rx_tests.c,v 1.23 2006/11/19 14:07:26 steveu Exp $
+ * $Id: dtmf_rx_tests.c,v 1.25 2007/02/25 15:22:02 steveu Exp $
  */
 
 /*
@@ -119,9 +119,9 @@ they wish to give it away for free.
  * Frequency tolerance +- 1.5% will detect, +-3.5% will reject
  */
 
-#define DTMF_DURATION               380
-#define DTMF_PAUSE                  400
-#define DTMF_CYCLE                  (DTMF_DURATION + DTMF_PAUSE)
+#define DEFAULT_DTMF_TX_LEVEL       -10
+#define DEFAULT_DTMF_TX_ON_TIME     50
+#define DEFAULT_DTMF_TX_OFF_TIME    50
 
 #define ALL_POSSIBLE_DIGITS         "123A456B789C*0#D"
 
@@ -250,7 +250,7 @@ static void digit_delivery(void *data, const char *digits, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void digit_status(void *data, int signal)
+static void digit_status(void *data, int signal, int level)
 {
     const char *s = ALL_POSSIBLE_DIGITS;
     int len;
@@ -287,6 +287,11 @@ static void digit_status(void *data, int signal)
             if (signal != s[callback_roll >> 1])
             {
                 printf("Failed for signal 0x%X instead of 0x%X\n", signal, s[callback_roll >> 1]);
+                callback_ok = FALSE;
+            }
+            if (level != DEFAULT_DTMF_TX_LEVEL + 3)
+            {
+                printf("Failed for level %d instead of %d\n", level, DEFAULT_DTMF_TX_LEVEL + 3);
                 callback_ok = FALSE;
             }
         }
@@ -706,7 +711,7 @@ static void dial_tone_tolerance_tests(void)
 
     /* Test dial tone tolerance */
     printf("Test: Dial tone tolerance.\n");
-    my_dtmf_gen_init(0.0f, -15, 0.0f, -15, 50, 50);
+    my_dtmf_gen_init(0.0f, -15, 0.0f, -15, DEFAULT_DTMF_TX_ON_TIME, DEFAULT_DTMF_TX_OFF_TIME);
 
     for (j = -30;  j < -3;  j++)
     {
@@ -756,7 +761,7 @@ static void callback_function_tests(void)
     dtmf_rx_init(&dtmf_state, digit_delivery, (void *) 0x12345678);
     if (use_dialtone_filter)
         dtmf_rx_parms(&dtmf_state, TRUE, -1, -1);
-    my_dtmf_gen_init(0.0f, -10, 0.0f, -10, 50, 50);
+    my_dtmf_gen_init(0.0f, DEFAULT_DTMF_TX_LEVEL, 0.0f, DEFAULT_DTMF_TX_LEVEL, DEFAULT_DTMF_TX_ON_TIME, DEFAULT_DTMF_TX_OFF_TIME);
     for (i = 1;  i < 10;  i++)
     {
         len = 0;
@@ -782,7 +787,7 @@ static void callback_function_tests(void)
     dtmf_rx_set_realtime_callback(&dtmf_state, digit_status, (void *) 0x12345678);
     if (use_dialtone_filter)
         dtmf_rx_parms(&dtmf_state, TRUE, -1, -1);
-    my_dtmf_gen_init(0.0f, -10, 0.0f, -10, 50, 50);
+    my_dtmf_gen_init(0.0f, DEFAULT_DTMF_TX_LEVEL, 0.0f, DEFAULT_DTMF_TX_LEVEL, DEFAULT_DTMF_TX_ON_TIME, DEFAULT_DTMF_TX_OFF_TIME);
     step = 0;
     for (i = 1;  i < 10;  i++)
     {
@@ -870,7 +875,7 @@ int main(int argc, char *argv[])
             continue;
         }
     }
-    munge = codec_munge_init(channel_codec);
+    munge = codec_munge_init(channel_codec, 0);
 
     if (decode_test_file)
     {

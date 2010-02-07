@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.c,v 1.46 2006/11/28 16:59:57 steveu Exp $
+ * $Id: v17tx.c,v 1.47 2007/01/03 14:15:36 steveu Exp $
  */
 
 /*! \file */
@@ -627,7 +627,7 @@ int v17_tx(v17_tx_state_t *s, int16_t amp[], int len)
         /* Now create and modulate the carrier */
         z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
         /* Don't bother saturating. We should never clip. */
-        amp[sample] = (int16_t) lrintf((x.re*z.re - x.im*z.im)*s->gain);
+        amp[sample] = (int16_t) rintf((x.re*z.re - x.im*z.im)*s->gain);
     }
     return sample;
 }

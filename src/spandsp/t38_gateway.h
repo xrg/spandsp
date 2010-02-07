@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.17 2006/12/07 13:22:26 steveu Exp $
+ * $Id: t38_gateway.h,v 1.20 2007/01/12 13:59:19 steveu Exp $
  */
 
 /*! \file */
@@ -41,10 +41,8 @@ to maximum the tolerance of jitter and packet loss on the IP network.
 */
 
 #define T38_RX_BUF_LEN          2048
-#define T38_TX_BUF_LEN          16384
-
+#define T38_NON_ECM_TX_BUF_LEN  16384
 #define T38_TX_HDLC_BUFS        256
-
 /* Make sure the HDLC frame buffers are big enough for ECM frames. */
 #define T38_MAX_HDLC_LEN        260
 
@@ -70,12 +68,12 @@ typedef struct
     /*! \brief Progressively calculated CRC for HDLC messaging received from a modem. */
     uint16_t crc;
 
-    /*! \brief non-ECM modem receive data buffer */
+    /*! \brief non-ECM and HDLC modem receive data buffer */
     uint8_t rx_data[T38_RX_BUF_LEN];
     int rx_data_ptr;
 
     /*! \brief non-ECM modem transmit data buffer */
-    uint8_t non_ecm_tx_data[T38_TX_BUF_LEN];
+    uint8_t non_ecm_tx_data[T38_NON_ECM_TX_BUF_LEN];
     int non_ecm_tx_in_ptr;
     int non_ecm_tx_out_ptr;
 
@@ -97,9 +95,9 @@ typedef struct
                purposes. */
     int non_ecm_flow_control_fill_octets;
 
-    int current_rx_data_type;
-    int current_rx_field_type;
+    /*! \brief the current class of field being received - i.e. none, non-ECM or HDLC */
     int current_rx_field_class;
+    /*! \brief The T.38 indicator currently in use */
     int in_progress_rx_indicator;
 
     /*! \brief The current T.38 data type being sent. */

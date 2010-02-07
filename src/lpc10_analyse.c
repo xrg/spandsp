@@ -26,7 +26,7 @@
  * implementation of the LPC-10 2400 bps Voice Coder. They do not
  * exert copyright claims on their code, and it may be freely used.
  *
- * $Id: lpc10_analyse.c,v 1.12 2006/11/30 15:41:47 steveu Exp $
+ * $Id: lpc10_analyse.c,v 1.13 2007/01/03 14:15:35 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -57,7 +57,7 @@ static __inline__ float energyf(float amp[], int len)
 
     rms = 0.0f;
     for (i = 0;  i < len;  i++)
-	    rms += amp[i]*amp[i];
+        rms += amp[i]*amp[i];
     rms = sqrtf(rms/len);
     return rms;
 }
@@ -322,7 +322,7 @@ static void onset(lpc10_encode_state_t *s,
     pebuf -= sbufl;
 
     if (s->hyst)
-    	s->lasti -= lframe;
+        s->lasti -= lframe;
     for (i = sbufh - lframe + 1;  i <= sbufh;  i++)
     {
         /* Compute FPC; Use old FPC on divide by zero; Clamp FPC to +/- 1. */

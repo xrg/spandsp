@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_tests.c,v 1.32 2006/12/09 04:56:20 steveu Exp $
+ * $Id: t38_terminal_tests.c,v 1.37 2007/02/19 08:28:47 steveu Exp $
  */
 
 /*! \file */
@@ -54,7 +54,9 @@ These tests exercise the path
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#if !defined(__USE_MISC)
 #define __USE_MISC
+#endif
 #include <arpa/inet.h>
 #include <sys/select.h>
 #include <sys/time.h>
@@ -77,6 +79,8 @@ ip_network_model_state_t *path_b_to_a;
 
 int done[2] = {FALSE, FALSE};
 int succeeded[2] = {FALSE, FALSE};
+
+int simulate_incrementing_repeats = FALSE;
 
 static void phase_b_handler(t30_state_t *s, void *user_data, int result)
 {
@@ -142,12 +146,27 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
 static int tx_packet_handler_a(t38_core_state_t *s, void *user_data, const uint8_t *buf, int len, int count)
 {
     t38_terminal_state_t *t;
+    int i;
+    static int subst_seq = 0;
 
     /* This routine queues messages between two instances of T.38 processing */
     t = (t38_terminal_state_t *) user_data;
-    span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d, count %d\n", s->tx_seq_no, len, count);
+    if (simulate_incrementing_repeats)
+    {
+        for (i = 0;  i < count;  i++)
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d\n", subst_seq, len);
 
-    ip_network_model_send(path_a_to_b, s->tx_seq_no, count, buf, len);
+            ip_network_model_send(path_a_to_b, subst_seq, 1, buf, len);
+            subst_seq = (subst_seq + 1) & 0xFFFF;
+        }
+    }
+    else
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d, count %d\n", s->tx_seq_no, len, count);
+
+        ip_network_model_send(path_a_to_b, s->tx_seq_no, count, buf, len);
+    }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -155,12 +174,27 @@ static int tx_packet_handler_a(t38_core_state_t *s, void *user_data, const uint8
 static int tx_packet_handler_b(t38_core_state_t *s, void *user_data, const uint8_t *buf, int len, int count)
 {
     t38_terminal_state_t *t;
+    int i;
+    static int subst_seq = 0;
 
     /* This routine queues messages between two instances of T.38 processing */
     t = (t38_terminal_state_t *) user_data;
-    span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d, count %d\n", s->tx_seq_no, len, count);
+    if (simulate_incrementing_repeats)
+    {
+        for (i = 0;  i < count;  i++)
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d\n", subst_seq, len);
 
-    ip_network_model_send(path_b_to_a, s->tx_seq_no, count, buf, len);
+            ip_network_model_send(path_b_to_a, subst_seq, 1, buf, len);
+            subst_seq = (subst_seq + 1) & 0xFFFF;
+        }
+    }
+    else
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d, count %d\n", s->tx_seq_no, len, count);
+
+        ip_network_model_send(path_b_to_a, s->tx_seq_no, count, buf, len);
+    }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -173,11 +207,14 @@ int main(int argc, char *argv[])
     int i;
     int seq_no;
     int use_ecm;
+    int without_pacing;
     const char *input_file_name;
     
     t38_version = 1;
+    without_pacing = FALSE;
     input_file_name = INPUT_FILE_NAME;
     use_ecm = FALSE;
+    simulate_incrementing_repeats = FALSE;
     for (i = 1;  i < argc;  i++)
     {
         if (strcmp(argv[i], "-e") == 0)
@@ -185,16 +222,26 @@ int main(int argc, char *argv[])
             use_ecm = TRUE;
             continue;
         }
-        if (strcmp(argv[i], "-v") == 0)
-        {
-            i++;
-            t38_version = atoi(argv[i]);
-            continue;
-        }
         if (strcmp(argv[i], "-i") == 0)
         {
             i++;
             input_file_name = argv[i];
+            continue;
+        }
+        if (strcmp(argv[i], "-I") == 0)
+        {
+            simulate_incrementing_repeats = TRUE;
+            continue;
+        }
+        if (strcmp(argv[i], "-p") == 0)
+        {
+            without_pacing = TRUE;
+            continue;
+        }
+        if (strcmp(argv[i], "-v") == 0)
+        {
+            i++;
+            t38_version = atoi(argv[i]);
             continue;
         }
     }
@@ -220,6 +267,7 @@ int main(int argc, char *argv[])
         exit(2);
     }
     t38_set_t38_version(&t38_state_a.t38, t38_version);
+    t38_terminal_set_config(&t38_state_a, without_pacing);
     span_log_set_level(&t38_state_a.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t38_state_a.logging, "T.38-A");
     span_log_set_level(&t38_state_a.t38.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
@@ -242,6 +290,7 @@ int main(int argc, char *argv[])
         exit(2);
     }
     t38_set_t38_version(&t38_state_b.t38, t38_version);
+    t38_terminal_set_config(&t38_state_b, without_pacing);
     span_log_set_level(&t38_state_b.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t38_state_b.logging, "T.38-B");
     span_log_set_level(&t38_state_b.t38.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
@@ -271,10 +320,13 @@ int main(int argc, char *argv[])
         done[1] = t38_terminal_send_timeout(&t38_state_b, SAMPLES_PER_CHUNK);
 
         while ((msg_len = ip_network_model_get(path_a_to_b, SAMPLES_PER_CHUNK, msg, 1024, &seq_no)) >= 0)
+        {
             t38_core_rx_ifp_packet(&t38_state_b.t38, seq_no, msg, msg_len);
+        }
         while ((msg_len = ip_network_model_get(path_b_to_a, SAMPLES_PER_CHUNK, msg, 1024, &seq_no)) >= 0)
+        {
             t38_core_rx_ifp_packet(&t38_state_a.t38, seq_no, msg, msg_len);
-
+        }
         if (done[0]  &&  done[1])
             break;
     }

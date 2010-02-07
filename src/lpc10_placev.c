@@ -26,7 +26,7 @@
  * implementation of the LPC-10 2400 bps Voice Coder. They do not
  * exert copyright claims on their code, and it may be freely used.
  *
- * $Id: lpc10_placev.c,v 1.11 2006/11/21 13:32:27 steveu Exp $
+ * $Id: lpc10_placev.c,v 1.12 2007/01/03 14:15:35 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -120,7 +120,7 @@ void lpc10_placea(int32_t *ipitch,
         /* Calculate the location where a perfectly centered window would start. */
         k = (vwin[af - 1][0] + vwin[af - 1][1] + 1 - l)/2;
         /* Choose the actual location to be the pitch multiple closest to this */
-        awin[af - 1][0] = i + lroundf((float) (k - i) / (float) *ipitch) * *ipitch;
+        awin[af - 1][0] = i + ((int) floorf((float) (k - i)/(float) *ipitch + 0.5f))*(*ipitch);
         awin[af - 1][1] = awin[af - 1][0] + l - 1;
         /* If there is an onset bounding the right of the voicing window and the
            analysis window overlaps that, then move the analysis window backward

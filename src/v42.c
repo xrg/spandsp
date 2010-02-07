@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.c,v 1.30 2006/12/01 18:00:48 steveu Exp $
+ * $Id: v42.c,v 1.31 2007/01/12 13:59:19 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -142,7 +142,7 @@ static void lapm_send_sabme(span_sched_state_t *ss, void *user_data)
     s = (lapm_state_t *) user_data;
     if (s->t401_timer >= 0)
     {
-fprintf(stderr, "Deleting T401 q [%p]\n", (void *) s);
+fprintf(stderr, "Deleting T401 q [%p] %d\n", (void *) s, s->t401_timer);
         span_schedule_del(&s->sched, s->t401_timer);
         s->t401_timer = -1;
     }
@@ -157,7 +157,7 @@ fprintf(stderr, "Deleting T401 q [%p]\n", (void *) s);
         return;
     }
     /*endif*/
-fprintf(stderr, "Setting T401 a [%p]\n", (void *) s);
+fprintf(stderr, "Setting T401 a1 [%p]\n", (void *) s);
     s->t401_timer = span_schedule_event(&s->sched, T_401, lapm_send_sabme, s);
     lapm_init_header(frame, s->we_are_originator);
     frame[1] = 0x7F;
@@ -234,10 +234,10 @@ static void lapm_ack_rx(lapm_state_t *s, int ack)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "-- Since there was nothing left, stopping timer T_401\n");
         /* Something was ACK'd.  Stop timer T_401. */
-fprintf(stderr, "T401 a is %d [%p]\n", s->t401_timer, (void *) s);
+fprintf(stderr, "T401 a2 is %d [%p]\n", s->t401_timer, (void *) s);
         if (s->t401_timer >= 0)
         {
-fprintf(stderr, "Deleting T401 a [%p]\n", (void *) s);
+fprintf(stderr, "Deleting T401 a3 [%p] %d\n", (void *) s, s->t401_timer);
             span_schedule_del(&s->sched, s->t401_timer);
             s->t401_timer = -1;
         }
@@ -249,7 +249,7 @@ fprintf(stderr, "Deleting T401 a [%p]\n", (void *) s);
         span_log(&s->logging, SPAN_LOG_FLOW, "-- Stopping timer T_403, since we got an ACK\n");
         if (s->t403_timer >= 0)
         {
-fprintf(stderr, "Deleting T403 b\n");
+fprintf(stderr, "Deleting T403 b %d\n", s->t403_timer);
             span_schedule_del(&s->sched, s->t403_timer);
             s->t403_timer = -1;
         }
@@ -313,7 +313,7 @@ static void t401_expired(span_sched_state_t *ss, void *user_data)
     lapm_state_t *s;
     
     s = (lapm_state_t *) user_data;
-fprintf(stderr, "Expiring T401 a [%p]\n", (void *) s);
+fprintf(stderr, "Expiring T401 a4 [%p]\n", (void *) s);
     s->t401_timer = -1;
     if (s->txqueue)
     {
@@ -415,11 +415,7 @@ int lapm_tx_iframe(lapm_state_t *s, const void *buf, int len, int cr)
     }
     /*endif*/
 
-    if (s->peer_is_originator)
-        lapm_init_header(f->frame, cr);
-    else
-        lapm_init_header(f->frame, !cr);
-    /*endif*/
+    lapm_init_header(f->frame, (s->peer_is_originator)  ?  cr  :  !cr);
     f->next = NULL;
     f->len = len + 4;
     f->frame[1] = (uint8_t) (s->next_tx_frame << 1);
@@ -442,7 +438,7 @@ int lapm_tx_iframe(lapm_state_t *s, const void *buf, int len, int cr)
     if (s->t403_timer >= 0)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Stopping T_403 timer\n");
-fprintf(stderr, "Deleting T403 c\n");
+fprintf(stderr, "Deleting T403 c %d\n", s->t403_timer);
         span_schedule_del(&s->sched, s->t403_timer);
         s->t403_timer = -1;
     }
@@ -645,7 +641,7 @@ static void lapm_link_up(lapm_state_t *s)
     /*endif*/
     if (s->t401_timer >= 0)
     {
-fprintf(stderr, "Deleting T401 x [%p]\n", (void *) s);
+fprintf(stderr, "Deleting T401 x [%p] %d\n", (void *) s, s->t401_timer);
         span_schedule_del(&s->sched, s->t401_timer);
         s->t401_timer = -1;
     }
@@ -680,14 +676,14 @@ void lapm_reset(lapm_state_t *s)
     s->n401 = 128;
     if (s->t401_timer >= 0)
     {
-fprintf(stderr, "Deleting T401 d [%p]\n", (void *) s);
+fprintf(stderr, "Deleting T401 d [%p] %d\n", (void *) s, s->t401_timer);
         span_schedule_del(&s->sched, s->t401_timer);
         s->t401_timer = -1;
     }
     /*endif*/
     if (s->t403_timer >= 0)
     {
-fprintf(stderr, "Deleting T403 e\n");
+fprintf(stderr, "Deleting T403 e %d\n", s->t403_timer);
         span_schedule_del(&s->sched, s->t403_timer);
         s->t403_timer = -1;
     }
@@ -913,7 +909,7 @@ fprintf(stderr, "LAPM receive %d %d\n", ok, len);
                     /* Reset t401 timer if it was somehow going */
                     if (s->t401_timer >= 0)
                     {
-fprintf(stderr, "Deleting T401 f [%p]\n", (void *) s);
+fprintf(stderr, "Deleting T401 f [%p] %d\n", (void *) s, s->t401_timer);
                         span_schedule_del(&s->sched, s->t401_timer);
                         s->t401_timer = -1;
                     }
@@ -921,7 +917,7 @@ fprintf(stderr, "Deleting T401 f [%p]\n", (void *) s);
                     /* Reset and restart t403 timer */
                     if (s->t403_timer >= 0)
                     {
-fprintf(stderr, "Deleting T403 g\n");
+fprintf(stderr, "Deleting T403 g %d\n", s->t403_timer);
                         span_schedule_del(&s->sched, s->t403_timer);
                         s->t403_timer = -1;
                     }
@@ -1102,11 +1098,10 @@ void lapm_restart(lapm_state_t *s)
     /*endif*/
 #endif
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
-    span_log_set_protocol(&s->logging, "LAPM");
+    span_log_set_protocol(&s->logging, "LAP.M");
     hdlc_tx_init(&s->hdlc_tx, FALSE, 1, TRUE, lapm_hdlc_underflow, s);
     hdlc_rx_init(&s->hdlc_rx, FALSE, FALSE, 1, lapm_receive, s);
     /* TODO: This is a bodge! */
-fprintf(stderr, "LAPM restart T401 a [%p]\n", (void *) s);
     s->t401_timer = -1;
     s->t402_timer = -1;
     s->t403_timer = -1;
@@ -1244,7 +1239,7 @@ static void negotiation_rx_bit(v42_state_t *s, int new_bit)
                 {
                     if (s->t400_timer >= 0)
                     {
-fprintf(stderr, "Deleting T400 h\n");
+fprintf(stderr, "Deleting T400 h %d\n", s->t400_timer);
                         span_schedule_del(&s->lapm.sched, s->t400_timer);
                         s->t400_timer = -1;
                     }
@@ -1312,7 +1307,7 @@ static int v42_support_negotiation_tx_bit(v42_state_t *s)
                 {
                     if (s->t400_timer >= 0)
                     {
-fprintf(stderr, "Deleting T400 i\n");
+fprintf(stderr, "Deleting T400 i %d\n", s->t400_timer);
                         span_schedule_del(&s->lapm.sched, s->t400_timer);
                         s->t400_timer = -1;
                     }
@@ -1424,6 +1419,10 @@ v42_state_t *v42_init(v42_state_t *s, int caller, int detect, v42_frame_handler_
     s->lapm.iframe_receive = frame_handler;
     s->lapm.iframe_receive_user_data = user_data;
     s->lapm.debug |= (LAPM_DEBUG_LAPM_RAW | LAPM_DEBUG_LAPM_DUMP | LAPM_DEBUG_LAPM_STATE);
+    s->lapm.t401_timer =
+    s->lapm.t402_timer =
+    s->lapm.t403_timer = -1;
+
     if (queue_create(&(s->lapm.tx_queue), 16384, 0) < 0)
         return NULL;
     /*endif*/

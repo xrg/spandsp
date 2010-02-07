@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_lpc.c,v 1.13 2006/11/19 14:07:24 steveu Exp $
+ * $Id: gsm0610_lpc.c,v 1.14 2007/01/03 14:15:35 steveu Exp $
  */
 
 /*! \file */
@@ -81,7 +81,7 @@ int16_t gsm0610_norm(int32_t x)
         x = ~x;
     }
     /*endif*/
-    return 30 - top_bit(x);
+    return (int16_t) (30 - top_bit(x));
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -229,7 +229,7 @@ static void autocorrelation(int16_t amp[GSM0610_FRAME_LEN], int32_t L_ACF[9])
     {
         temp = gsm_abs(amp[k]);
         if (temp > smax)
-            smax = temp;
+            smax = (int16_t) temp;
         /*endif*/
     }
     /*endfor*/

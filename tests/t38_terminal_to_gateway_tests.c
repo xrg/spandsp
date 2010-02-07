@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_to_gateway_tests.c,v 1.29 2006/12/09 04:56:20 steveu Exp $
+ * $Id: t38_terminal_to_gateway_tests.c,v 1.33 2007/02/22 16:41:49 steveu Exp $
  */
 
 /*! \file */
@@ -54,7 +54,9 @@ These tests exercise the path
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#if !defined(__USE_MISC)
 #define __USE_MISC
+#endif
 #include <arpa/inet.h>
 #include <sys/select.h>
 #include <sys/time.h>
@@ -80,6 +82,8 @@ ip_network_model_state_t *path_b_to_a;
 
 int done[2] = {FALSE, FALSE};
 int succeeded[2] = {FALSE, FALSE};
+
+int simulate_incrementing_repeats = FALSE;
 
 static void phase_b_handler(t30_state_t *s, void *user_data, int result)
 {
@@ -122,7 +126,7 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
     char ident[21];
     
     i = (int) (intptr_t) user_data;
-    printf("%c: Phase E handler on channel %d - (%d) %s\n", i, i, result, t30_completion_code_to_str(result));
+    printf("%c: Phase E handler on channel %c - (%d) %s\n", i, i, result, t30_completion_code_to_str(result));
     t30_get_transfer_statistics(s, &t);
     printf("%c: Phase E: bit rate %d\n", i, t.bit_rate);
     printf("%c: Phase E: ECM %s\n", i, (t.error_correcting_mode)  ?  "on"  :  "off");
@@ -144,13 +148,28 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
 
 static int tx_packet_handler_a(t38_core_state_t *s, void *user_data, const uint8_t *buf, int len, int count)
 {
-    t38_gateway_state_t *t;
+    t38_terminal_state_t *t;
+    int i;
+    static int subst_seq = 0;
 
     /* This routine queues messages between two instances of T.38 processing */
-    t = (t38_gateway_state_t *) user_data;
-    span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d, count %d\n", s->tx_seq_no, len, count);
+    t = (t38_terminal_state_t *) user_data;
+    if (simulate_incrementing_repeats)
+    {
+        for (i = 0;  i < count;  i++)
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d\n", subst_seq, len);
 
-    ip_network_model_send(path_a_to_b, s->tx_seq_no, count, buf, len);
+            ip_network_model_send(path_a_to_b, subst_seq, 1, buf, len);
+            subst_seq = (subst_seq + 1) & 0xFFFF;
+        }
+    }
+    else
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d, count %d\n", s->tx_seq_no, len, count);
+
+        ip_network_model_send(path_a_to_b, s->tx_seq_no, count, buf, len);
+    }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -158,12 +177,27 @@ static int tx_packet_handler_a(t38_core_state_t *s, void *user_data, const uint8
 static int tx_packet_handler_b(t38_core_state_t *s, void *user_data, const uint8_t *buf, int len, int count)
 {
     t38_terminal_state_t *t;
+    int i;
+    static int subst_seq = 0;
 
     /* This routine queues messages between two instances of T.38 processing */
     t = (t38_terminal_state_t *) user_data;
-    span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d, count %d\n", s->tx_seq_no, len, count);
+    if (simulate_incrementing_repeats)
+    {
+        for (i = 0;  i < count;  i++)
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d\n", subst_seq, len);
 
-    ip_network_model_send(path_b_to_a, s->tx_seq_no, count, buf, len);
+            ip_network_model_send(path_b_to_a, subst_seq, 1, buf, len);
+            subst_seq = (subst_seq + 1) & 0xFFFF;
+        }
+    }
+    else
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d, count %d\n", s->tx_seq_no, len, count);
+
+        ip_network_model_send(path_b_to_a, s->tx_seq_no, count, buf, len);
+    }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -191,6 +225,7 @@ int main(int argc, char *argv[])
     t38_version = 1;
     use_ecm = FALSE;
     input_file_name = INPUT_FILE_NAME;
+    simulate_incrementing_repeats = FALSE;
     for (i = 1;  i < argc;  i++)
     {
         if (strcmp(argv[i], "-e") == 0)
@@ -202,6 +237,11 @@ int main(int argc, char *argv[])
         {
             i++;
             input_file_name = argv[i];
+            continue;
+        }
+        if (strcmp(argv[i], "-I") == 0)
+        {
+            simulate_incrementing_repeats = TRUE;
             continue;
         }
         if (strcmp(argv[i], "-l") == 0)

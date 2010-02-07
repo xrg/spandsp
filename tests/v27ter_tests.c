@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tests.c,v 1.70 2006/11/19 14:07:27 steveu Exp $
+ * $Id: v27ter_tests.c,v 1.71 2007/02/06 14:43:32 steveu Exp $
  */
 
 /*! \page v27ter_tests_page V.27ter modem tests
@@ -270,8 +270,10 @@ int main(int argc, char *argv[])
     int block;
     int log_audio;
     int channel_codec;
+    int rbs_pattern;
 
     channel_codec = MUNGE_CODEC_NONE;
+    rbs_pattern = 0;
     test_bps = 4800;
     tep = FALSE;
     line_model_no = 0;
@@ -298,11 +300,6 @@ int main(int argc, char *argv[])
             decode_test_file = argv[++i];
             continue;
         }
-        if (strcmp(argv[i], "-t") == 0)
-        {
-            tep = TRUE;
-            continue;
-        }
         if (strcmp(argv[i], "-g") == 0)
         {
             use_gui = TRUE;
@@ -326,6 +323,16 @@ int main(int argc, char *argv[])
         if (strcmp(argv[i], "-s") == 0)
         {
             signal_level = atoi(argv[++i]);
+            continue;
+        }
+        if (strcmp(argv[i], "-r") == 0)
+        {
+            rbs_pattern = atoi(argv[++i]);
+            continue;
+        }
+        if (strcmp(argv[i], "-t") == 0)
+        {
+            tep = TRUE;
             continue;
         }
         if (strcmp(argv[i], "4800") == 0)
@@ -380,7 +387,7 @@ int main(int argc, char *argv[])
         bert_init(&bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
         bert_set_report(&bert, 10000, reporter, NULL);
 
-        if ((line_model = one_way_line_model_init(line_model_no, (float) noise_level, channel_codec)) == NULL)
+        if ((line_model = one_way_line_model_init(line_model_no, (float) noise_level, channel_codec, rbs_pattern)) == NULL)
         {
             fprintf(stderr, "    Failed to create line model\n");
             exit(2);
@@ -462,7 +469,7 @@ int main(int argc, char *argv[])
                 bert_init(&bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
                 bert_set_report(&bert, 10000, reporter, NULL);
                 one_way_line_model_release(line_model);
-                if ((line_model = one_way_line_model_init(line_model_no, (float) noise_level, channel_codec)) == NULL)
+                if ((line_model = one_way_line_model_init(line_model_no, (float) noise_level, channel_codec, 0)) == NULL)
                 {
                     fprintf(stderr, "    Failed to create line model\n");
                     exit(2);

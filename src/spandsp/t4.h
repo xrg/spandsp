@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.29 2006/10/24 13:45:28 steveu Exp $
+ * $Id: t4.h,v 1.30 2007/02/22 13:21:52 steveu Exp $
  */
 
 /*! \file */
@@ -229,6 +229,19 @@ int t4_rx_start_page(t4_state_t *s);
     \return TRUE when the bit ends the document page, otherwise FALSE. */
 int t4_rx_put_bit(t4_state_t *s, int bit);
 
+/*! \brief Put a byte of the current document page.
+    \param s The T.4 context.
+    \param byte The data byte.
+    \return TRUE when the byte ends the document page, otherwise FALSE. */
+int t4_rx_put_byte(t4_state_t *s, uint8_t byte);
+
+/*! \brief Put a byte of the current document page.
+    \param s The T.4 context.
+    \param buf The buffer containing the chunk.
+    \param len The length of the chunk.
+    \return TRUE when the byte ends the document page, otherwise FALSE. */
+int t4_rx_put_chunk(t4_state_t *s, const uint8_t buf[], int len);
+
 /*! \brief Complete the reception of a page.
     \param s The T.4 receive context.
     \return 0 for success, otherwise -1. */
@@ -327,11 +340,32 @@ int t4_tx_end_page(t4_state_t *s);
 /*! \brief Get the next bit of the current document page. The document will
            be padded for the current minimum scan line time. If the
            file does not contain an RTC (return to control) code at
-           the end of the page, one will be added.
+           the end of the page, one will be added where appropriate.
     \param s The T.4 context.
     \return The next bit (i.e. 0 or 1). For the last bit of data, bit 1 is
             set (i.e. the returned value is 2 or 3). */
 int t4_tx_get_bit(t4_state_t *s);
+
+/*! \brief Get the next byte of the current document page. The document will
+           be padded for the current minimum scan line time. If the
+           file does not contain an RTC (return to control) code at
+           the end of the page, one will be added where appropriate.
+    \param s The T.4 context.
+    \return The next byte. For the last byte of data, bit 8 is
+            set. In this case, one or more bits of the byte may be padded with
+            zeros, to complete the byte. */
+int t4_tx_get_byte(t4_state_t *s);
+
+/*! \brief Get the next chunk of the current document page. The document will
+           be padded for the current minimum scan line time. If the
+           file does not contain an RTC (return to control) code at
+           the end of the page, one will be added where appropriate.
+    \param s The T.4 context.
+    \param buf The buffer into which the chunk is to written.
+    \param max_len The maximum length of the chunk.
+    \return The actual length of the chunk. If this is less than max_len it 
+            indicates that the end of the document has been reached. */
+int t4_tx_get_chunk(t4_state_t *s, uint8_t buf[], int max_len);
 
 /*! \brief Return the next bit of the current document page, without actually
            moving forward in the buffer. The document will be padded for the

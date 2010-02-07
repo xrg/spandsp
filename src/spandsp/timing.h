@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: timing.h,v 1.6 2006/10/24 13:45:28 steveu Exp $
+ * $Id: timing.h,v 1.8 2007/03/01 15:06:29 steveu Exp $
  */
 
 #if !defined(_TIMING_H_)
@@ -32,6 +32,17 @@
 extern "C" {
 #endif
 
+#if defined(__MSVC__)
+__declspec(naked) unsigned __int64 __cdecl rdtscll(void)
+{
+   __asm
+   {
+      rdtsc
+      ret       ; return value at EDX:EAX
+   }
+}
+/*- End of function --------------------------------------------------------*/
+#elif defined(__GNUC__)
 #if defined(__i386__)
 static __inline__ uint64_t rdtscll(void)
 {
@@ -44,13 +55,23 @@ static __inline__ uint64_t rdtscll(void)
 #elif defined(__x86_64__)
 static __inline__ uint64_t rdtscll(void)
 {
-    unsigned int __a;
-    unsigned int __d;
+    unsigned int a;
+    unsigned int d;
 
-    __asm__ __volatile__(" rdtsc\n" : "=a" (__a), "=d" (__d));
-    return ((unsigned long) __a) | (((unsigned long) __d) << 32);
+    /* For x86_64 we need to merge the result in 2 32 bit registers
+       into one clean 64 bit result. */
+    __asm__ __volatile__(" rdtsc\n" : "=a" (a), "=d" (d));
+    return ((uint64_t) a) | (((uint64_t) d) << 32);
 }
 /*- End of function --------------------------------------------------------*/
+#else
+static __inline__ uint64_t rdtscll(void)
+{
+    /* This architecture doesn't have a suitable timer */
+    return 0llu;
+}
+/*- End of function --------------------------------------------------------*/
+#endif
 #endif
 
 #ifdef __cplusplus

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds.c,v 1.17 2006/11/19 14:07:24 steveu Exp $
+ * $Id: dds.c,v 1.18 2006/12/15 15:03:59 steveu Exp $
  */
 
 /*! \file */
@@ -46,7 +46,7 @@
 # define M_PI           3.14159265358979323846  /* pi */
 #endif
 
-/* In a A-law or u-law channel, and 128 step sine table is adequate to keep the spectral
+/* In a A-law or u-law channel, a 128 step sine table is adequate to keep the spectral
    mess due to the DDS at a similar level to the spectral mess due to the A-law or u-law
    compression. */
 #define SLENK       7
