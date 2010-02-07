@@ -12,7 +12,6 @@ BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Docdir:     %{_prefix}/doc
 
 BuildRequires: libtiff-devel
-BuildRequires: libxml2-devel
 BuildRequires: audiofile-devel
 BuildRequires: doxygen
 
@@ -71,6 +70,9 @@ rm -rf %{buildroot}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon 23 Jun 2008 Steve Underwood <steveu@coppice.org> 0.0.5-1
+- Cleared out the dependency on libxml2
+
 * Sun Dec 31 2006 Steve Underwood <steveu@coppice.org> 0.0.3-1
 - Preparing for 0.0.3 release
 

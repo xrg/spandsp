@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.109 2008/06/21 10:28:34 steveu Exp $
+ * $Id: t30.h,v 1.110 2008/06/28 02:14:26 steveu Exp $
  */
 
 /*! \file */
@@ -187,7 +187,11 @@ typedef void (t30_phase_e_handler_t)(t30_state_t *s, void *user_data, int comple
     \param msg The HDLC message.
     \param len The length of the message.
 */
-typedef void (t30_real_time_frame_handler_t)(t30_state_t *s, void *user_data, int direction, const uint8_t *msg, int len);
+typedef void (t30_real_time_frame_handler_t)(t30_state_t *s,
+                                             void *user_data,
+                                             int direction,
+                                             const uint8_t *msg,
+                                             int len);
 
 /*!
     T.30 document handler.

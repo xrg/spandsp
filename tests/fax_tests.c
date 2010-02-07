@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.88 2008/06/18 13:28:43 steveu Exp $
+ * $Id: fax_tests.c,v 1.89 2008/06/28 02:14:26 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -180,7 +180,11 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int real_time_frame_handler(t30_state_t *s, void *user_data, int direction, const uint8_t *msg, int len)
+static void real_time_frame_handler(t30_state_t *s,
+                                    void *user_data,
+                                    int direction,
+                                    const uint8_t *msg,
+                                    int len)
 {
     int i;
     
@@ -191,7 +195,6 @@ static int real_time_frame_handler(t30_state_t *s, void *user_data, int directio
            (direction)  ?  "line->T.30"  : "T.30->line",
            t30_frametype(msg[2]),
            len);
-    return FALSE;
 }
 /*- End of function --------------------------------------------------------*/
 

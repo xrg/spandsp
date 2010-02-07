@@ -203,6 +203,9 @@
 /* Define to the type of arg 5 for `select'. */
 #undef SELECT_TYPE_ARG5
 
+/* Do not expect a misaligned memory access to work correctly */
+#undef SPANDSP_MISALIGNED_ACCESS_FAILS
+
 /* Enable fixed point processing, where possible, instead of floating point */
 #undef SPANDSP_USE_FIXED_POINT
 

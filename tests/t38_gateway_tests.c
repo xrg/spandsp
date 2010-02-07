@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_tests.c,v 1.72 2008/06/18 13:28:43 steveu Exp $
+ * $Id: t38_gateway_tests.c,v 1.73 2008/06/28 02:14:26 steveu Exp $
  */
 
 /*! \file */
@@ -156,7 +156,11 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int real_time_frame_handler(t38_gateway_state_t *s, void *user_data, int direction, const uint8_t *msg, int len)
+static void real_time_frame_handler(t38_gateway_state_t *s,
+                                    void *user_data,
+                                    int direction,
+                                    const uint8_t *msg,
+                                    int len)
 {
     int i;
     
@@ -167,7 +171,6 @@ static int real_time_frame_handler(t38_gateway_state_t *s, void *user_data, int 
            (direction)  ?  "PSTN->T.38"  : "T.38->PSTN",
            t30_frametype(msg[2]),
            len);
-    return FALSE;
 }
 /*- End of function --------------------------------------------------------*/
 

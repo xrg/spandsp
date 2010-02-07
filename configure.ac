@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.52 2008/06/21 10:28:34 steveu Exp $
+# $Id: configure.ac,v 1.53 2008/06/28 01:13:08 steveu Exp $
 
 # @start 1
 
@@ -25,6 +25,7 @@ AC_INIT
 m4_include(config/ax_compiler_vendor.m4)
 m4_include(config/ax_check_real_file.m4)
 m4_include(config/ax_fixed_point_machine.m4)
+m4_include(config/ax_misaligned_access_fails.m4)
 
 SPANDSP_MAJOR_VERSION=0
 SPANDSP_MINOR_VERSION=0
@@ -310,6 +311,10 @@ else
         SPANDSP_USE_FIXED_POINT="#define SPANDSP_USE_FIXED_POINT 1"],
         [SPANDSP_USE_FIXED_POINT="#undef SPANDSP_USE_FIXED_POINT"])
 fi
+AX_MISALIGNED_ACCESS_FAILS([$basic_machine],
+    [AC_DEFINE([SPANDSP_MISALIGNED_ACCESS_FAILS], [1], [Do not expect a misaligned memory access to work correctly])
+    SPANDSP_MISALIGNED_ACCESS_FAILS="#define SPANDSP_MISALIGNED_ACCESS_FAILS 1"],
+    [SPANDSP_MISALIGNED_ACCESS_FAILS="#undef SPANDSP_MISALIGNED_ACCESS_FAILS"])
 
 AC_SUBST(CC_FOR_BUILD)
 AC_SUBST(CPPFLAGS_FOR_BUILD)
@@ -317,6 +322,7 @@ AC_SUBST(COMP_VENDOR_CFLAGS)
 AC_SUBST(COMP_VENDOR_LDFLAGS)
 AC_SUBST(TESTLIBS)
 AC_SUBST(SPANDSP_USE_FIXED_POINT)
+AC_SUBST(SPANDSP_MISALIGNED_ACCESS_FAILS)
 AC_SUBST(INSERT_INTTYPES_HEADER)
 AC_SUBST(INSERT_STDINT_HEADER)
 AC_SUBST(INSERT_TGMATH_HEADER)
