@@ -11,9 +11,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -24,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.h,v 1.5 2005/11/25 14:52:00 steveu Exp $
+ * $Id: sig_tone.h,v 1.7 2006/10/24 13:22:02 steveu Exp $
  */
 
 /*! \file */
@@ -52,7 +51,9 @@ enum
 };
 
 #define SIG_TONE_1_PRESENT          0x001
+#define SIG_TONE_1_CHANGE           0x002
 #define SIG_TONE_2_PRESENT          0x004
+#define SIG_TONE_2_CHANGE           0x008
 #define SIG_TONE_TX_PASSTHROUGH     0x010
 #define SIG_TONE_RX_PASSTHROUGH     0x020
 #define SIG_TONE_UPDATE_REQUEST     0x100

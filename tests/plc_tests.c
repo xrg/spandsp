@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc_tests.c,v 1.11 2005/12/25 15:08:37 steveu Exp $
+ * $Id: plc_tests.c,v 1.18 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \page plc_tests_page Packet loss concealment tests
@@ -51,14 +50,19 @@ audio file, called post_plc.wav. This file contains 8000 sample/second
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 #include <tiffio.h>
 
 #include <audiofile.h>
 
 #include "spandsp.h"
 
-#define INPUT_FILE_NAME     "pre_plc.wav"
+#define INPUT_FILE_NAME     "../localtests/short_nb_voice.wav"
 #define OUTPUT_FILE_NAME    "post_plc.wav"
 
 int main(int argc, char *argv[])
@@ -70,22 +74,46 @@ int main(int argc, char *argv[])
     int inframes;
     int outframes;
     int16_t amp[1024];
-    int i;
     int block_no;
     int lost_blocks;
     int block_len;
     int loss_rate;
     int dropit;
-    int skip;
+    int block_real;
+    int block_synthetic;
+    int tone;
+    int i;
+    uint32_t phase_acc;
+    int32_t phase_rate;
 
     loss_rate = 25;
-    block_len = 80;
-    if (argc > 1)
-        loss_rate = atoi(argv[1]);
-    if (argc > 2)
-        block_len = atoi(argv[2]);
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
+    block_len = 160;
+    block_real = FALSE;
+    block_synthetic = FALSE;
+    tone = -1;
+    for (i = 1;  i < argc;  i++)
+    {
+        if (strcmp(argv[i], "-l") == 0)
+        {
+            loss_rate = atoi(argv[++i]);
+            continue;
+        }
+        if (strcmp(argv[i], "-b") == 0)
+        {
+            block_len = atoi(argv[++i]);
+            continue;
+        }
+        if (strcmp(argv[i], "-t") == 0)
+        {
+            tone = atoi(argv[++i]);
+            continue;
+        }
+        if (strcmp(argv[i], "-r") == 0)
+            block_real = TRUE;
+        if (strcmp(argv[i], "-s") == 0)
+            block_synthetic = TRUE;
+    }
+    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
     {
         fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
@@ -95,14 +123,21 @@ int main(int argc, char *argv[])
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
 
-    inhandle = afOpenFile(INPUT_FILE_NAME, "r", NULL);
-    if (inhandle == AF_NULL_FILEHANDLE)
+    phase_rate = 0;
+    inhandle = NULL;
+    if (tone < 0)
     {
-        fprintf(stderr, "    Failed to open wave file '%s'\n", INPUT_FILE_NAME);
-        exit(2);
+        if ((inhandle = afOpenFile(INPUT_FILE_NAME, "r", NULL)) == AF_NULL_FILEHANDLE)
+        {
+            fprintf(stderr, "    Failed to open wave file '%s'\n", INPUT_FILE_NAME);
+            exit(2);
+        }
     }
-    outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
+    else
+    {
+        phase_rate = dds_phase_ratef((float) tone);
+    }
+    if ((outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Failed to open wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
@@ -111,19 +146,37 @@ int main(int argc, char *argv[])
     lost_blocks = 0;
     for (block_no = 0;  ;  block_no++)
     {
-        inframes = afReadFrames(inhandle,
-                                AF_DEFAULT_TRACK,
-                                amp,
-                                block_len);
-        if (inframes != block_len)
-            break;
+        if (tone < 0)
+        {
+            inframes = afReadFrames(inhandle,
+                                    AF_DEFAULT_TRACK,
+                                    amp,
+                                    block_len);
+            if (inframes != block_len)
+                break;
+        }
+        else
+        {
+            if (block_no > 10000)
+                break;
+            for (i = 0;  i < block_len;  i++)
+                amp[i] = (int16_t) dds_modf(&phase_acc, phase_rate, 10000.0, 0);
+            inframes = block_len;
+        }
         dropit = rand()/(RAND_MAX/100);
         if (dropit > loss_rate)
+        {
             plc_rx(&plc, amp, inframes);
+            if (block_real)
+                memset(amp, 0, sizeof(int16_t)*inframes);
+        }
         else
-            plc_fillin(&plc, amp, inframes);
-        if (dropit <= loss_rate)
+        {
             lost_blocks++;
+            plc_fillin(&plc, amp, inframes);
+            if (block_synthetic)
+                memset(amp, 0, sizeof(int16_t)*inframes);
+        }
         outframes = afWriteFrames(outhandle,
                                   AF_DEFAULT_TRACK,
                                   amp,
@@ -135,10 +188,13 @@ int main(int argc, char *argv[])
         }
     }
     printf("Dropped %d of %d blocks\n", lost_blocks, block_no);
-    if (afCloseFile(inhandle) != 0)
+    if (tone < 0)
     {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", INPUT_FILE_NAME);
-        exit(2);
+        if (afCloseFile(inhandle) != 0)
+        {
+            fprintf(stderr, "    Cannot close wave file '%s'\n", INPUT_FILE_NAME);
+            exit(2);
+        }
     }
     if (afCloseFile(outhandle) != 0)
     {

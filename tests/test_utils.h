@@ -1,18 +1,17 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * oss.h - OSS interface routines for testing stuff
+ * test_utils.h - Utility routines for module tests.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
- * Copyright (C) 2001 Steve Underwood
+ * Copyright (C) 2006 Steve Underwood
  *
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,24 +22,34 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oss.h,v 1.3 2005/11/23 17:09:47 steveu Exp $
+ * $Id: test_utils.h,v 1.6 2006/10/24 13:45:29 steveu Exp $
  */
 
-#if !defined(_OSS_H_)
-#define _OSS_H_
+/*! \file */
 
-/*! \page oss_page OSS audio I/O
-\section oss_page_sec_1 What does it do?
-*/
+#if !defined(_TEST_UTILS_H_)
+#define _TEST_UTILS_H_
+
+enum
+{
+    MUNGE_CODEC_NONE = 0,
+    MUNGE_CODEC_ALAW,
+    MUNGE_CODEC_ULAW,
+    MUNGE_CODEC_G726_40K,
+    MUNGE_CODEC_G726_32K,
+    MUNGE_CODEC_G726_24K,
+    MUNGE_CODEC_G726_16K,
+};
+
+typedef struct codec_munge_state_s codec_munge_state_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int oss_init(int mode);
-int oss_get(int16_t amp[], int samples);
-int oss_put(int16_t amp[], int samples);
-int oss_release(void);
+codec_munge_state_t *codec_munge_init(int codec);
+
+void codec_munge(codec_munge_state_t *s, int16_t amp[], int len);
 
 #ifdef __cplusplus
 }

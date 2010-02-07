@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter_tests.c,v 1.9 2005/11/27 12:36:23 steveu Exp $
+ * $Id: power_meter_tests.c,v 1.14 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \page power_meter_tests_page Power meter tests
@@ -39,17 +38,21 @@ Both tones and noise are used to check the meter's behaviour.
 #include <config.h>
 #endif
 
-#include <unistd.h>
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <memory.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 #include <time.h>
 #include <tiffio.h>
 
 #include "spandsp.h"
-    
+
 int main(int argc, char *argv[])
 {
     awgn_state_t noise_source;
@@ -62,9 +65,40 @@ int main(int argc, char *argv[])
     int len;
     int32_t level;
 
+    power_meter_init(&meter, 7);
+
+    printf("Testing with a square wave 10dB from maximum\n");
+    for (i = 0;  i < 1000;  i++)
+    {
+        amp[i] = (i & 1)  ?  10362  :  -10362;
+        level = power_meter_update(&meter, amp[i]);
+        //printf("%12d %fdBm0 %fdBov\n", level, power_meter_dbm0(&meter), power_meter_dbov(&meter));
+    }
+    printf("Level: expected %d/%d, got %d\n", power_meter_level_dbov(-10.0f), power_meter_level_dbm0(-10.0f + DBM0_MAX_POWER), level);
+    printf("Power: expected %fdBm0, got %fdBm0\n", -10.0f + DBM0_MAX_POWER, power_meter_dbm0(&meter));
+    printf("Power: expected %fdBOv, got %fdBOv\n", -10.0f, power_meter_dbov(&meter));
+    if (level < power_meter_level_dbov(-10.0f)*0.99f
+        ||
+        level > power_meter_level_dbov(-10.0f)*1.01f)
+    {
+        printf("Test failed (level)\n");
+        exit(2);
+    }
+    if (0.1f < fabsf(power_meter_dbm0(&meter) + 10.0f - DBM0_MAX_POWER))
+    {
+        printf("Test failed (dBm0)\n");
+        exit(2);
+    }
+    if (0.1f < fabsf(power_meter_dbov(&meter) + 10.0))
+    {
+        printf("Test failed (dBOv)\n");
+        exit(2);
+    }
+
+    printf("Testing with a sine wave tone 10dB from maximum\n");
     make_tone_gen_descriptor(&tone_desc,
                              1000,
-                             -10,
+                             -4,
                              0,
                              1,
                              1,
@@ -73,26 +107,63 @@ int main(int argc, char *argv[])
                              0,
                              TRUE);
     tone_gen_init(&gen, &tone_desc);
-    awgn_init(&noise_source, idum, -10);
-    power_meter_init(&meter, 7);
-
-    /* Check with a tone */
     len = tone_gen(&gen, amp, 1000);
     for (i = 0;  i < len;  i++)
     {
-        power_meter_update(&meter, amp[i]);
-        printf("%f\n", power_meter_dbm0(&meter));
+        level = power_meter_update(&meter, amp[i]);
+        //printf("%12d %fdBm0 %fdBov\n", level, power_meter_dbm0(&meter), power_meter_dbov(&meter));
     }
-    /* Check with noise */
+    printf("Level: expected %d/%d, got %d\n", power_meter_level_dbov(-10.0f), power_meter_level_dbm0(-10.0f + DBM0_MAX_POWER), level);
+    printf("Power: expected %fdBm0, got %fdBm0\n", -10.0f + DBM0_MAX_POWER, power_meter_dbm0(&meter));
+    printf("Power: expected %fdBOv, got %fdBOv\n", -10.0f, power_meter_dbov(&meter));
+    if (level < power_meter_level_dbov(-10.0f)*0.95f
+        ||
+        level > power_meter_level_dbov(-10.0f)*1.05f)
+    {
+        printf("Test failed (level)\n");
+        exit(2);
+    }
+    if (0.2f < fabsf(power_meter_dbm0(&meter) + 10.0f - DBM0_MAX_POWER))
+    {
+        printf("Test failed (dBm0)\n");
+        exit(2);
+    }
+    if (0.2f < fabsf(power_meter_dbov(&meter) + 10.0))
+    {
+        printf("Test failed (dBOv)\n");
+        exit(2);
+    }
+
+    printf("Testing with AWGN 10dB from maximum\n");
+    awgn_init_dbov(&noise_source, idum, -10.0f);
     for (i = 0;  i < 1000;  i++)
         amp[i] = awgn(&noise_source);
     for (i = 0;  i < 1000;  i++)
     {
         level = power_meter_update(&meter, amp[i]);
-        printf("%12d %f\n", level, power_meter_dbm0(&meter));
+        //printf("%12d %fdBm0 %fdBov\n", level, power_meter_dbm0(&meter), power_meter_dbov(&meter));
     }
-    level = power_meter_level_dbm0(-10);
-    printf("Expected level %d\n", level);
+    printf("Level: expected %d/%d, got %d\n", power_meter_level_dbov(-10.0f), power_meter_level_dbm0(-10.0f + DBM0_MAX_POWER), level);
+    printf("Power: expected %fdBm0, got %fdBm0\n", -10.0f + DBM0_MAX_POWER, power_meter_dbm0(&meter));
+    printf("Power: expected %fdBOv, got %fdBOv\n", -10.0f, power_meter_dbov(&meter));
+    if (level < power_meter_level_dbov(-10.0f)*0.95f
+        ||
+        level > power_meter_level_dbov(-10.0f)*1.05f)
+    {
+        printf("Test failed (level)\n");
+        exit(2);
+    }
+    if (0.2f < fabsf(power_meter_dbm0(&meter) + 10.0f - DBM0_MAX_POWER))
+    {
+        printf("Test failed (dBm0)\n");
+        exit(2);
+    }
+    if (0.2f < fabsf(power_meter_dbov(&meter) + 10.0f))
+    {
+        printf("Test failed (dBOv)\n");
+        exit(2);
+    }
+    printf("Tests passed\n");
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

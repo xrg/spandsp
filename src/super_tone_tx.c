@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.c,v 1.9 2006/01/31 05:34:27 steveu Exp $
+ * $Id: super_tone_tx.c,v 1.15 2006/11/19 14:07:25 steveu Exp $
  */
 
 /*! \file */
@@ -32,7 +31,6 @@
 #include "config.h"
 #endif
 
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -40,7 +38,12 @@
 #include <ctype.h>
 #include <time.h>
 #include <inttypes.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 
 #include "spandsp/telephony.h"
 #include "spandsp/complex.h"
@@ -55,8 +58,6 @@ super_tone_tx_step_t *super_tone_tx_make_step(super_tone_tx_step_t *s,
                                               int length,
                                               int cycles)
 {
-    float gain;
-
     if (s == NULL)
     {
         s = (super_tone_tx_step_t *) malloc(sizeof(super_tone_tx_step_t));
@@ -65,7 +66,7 @@ super_tone_tx_step_t *super_tone_tx_make_step(super_tone_tx_step_t *s,
     }
     if (f1 >= 1.0)
     {    
-        s->phase_rate[0] = dds_phase_stepf(f1);
+        s->phase_rate[0] = dds_phase_ratef(f1);
         s->gain[0] = dds_scaling_dbm0f(l1);
     }
     else
@@ -75,7 +76,7 @@ super_tone_tx_step_t *super_tone_tx_make_step(super_tone_tx_step_t *s,
     }
     if (f2 >= 1.0)
     {
-        s->phase_rate[1] = dds_phase_stepf(f2);
+        s->phase_rate[1] = dds_phase_ratef(f2);
         s->gain[1] = dds_scaling_dbm0f(l2);
     }
     else

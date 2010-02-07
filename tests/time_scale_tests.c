@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale_tests.c,v 1.9 2006/01/11 08:06:10 steveu Exp $
+ * $Id: time_scale_tests.c,v 1.14 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \page time_scale_tests_page Time scaling tests
@@ -45,21 +44,24 @@ This file also contains 8000 sample/second 16 bits/sample linear audio.
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 #include <audiofile.h>
 #include <tiffio.h>
 
 #include "spandsp.h"
 
-#define IN_FILE_NAME    "pre_time_scaling.wav"
+#define BLOCK_LEN       160
+
+#define IN_FILE_NAME    "../localtests/short_nb_voice.wav"
 #define OUT_FILE_NAME   "post_time_scaling.wav"
 
 int main(int argc, char *argv[])
 {
-    int i;
-    int out_len;
-    int new_len;
     AFfilehandle inhandle;
     AFfilehandle outhandle;
     AFfilesetup filesetup;
@@ -70,8 +72,8 @@ int main(int argc, char *argv[])
     time_scale_t state;
     float x;
     float rate;
-    int16_t in[160];
-    int16_t out[5*160];
+    int16_t in[BLOCK_LEN];
+    int16_t out[5*BLOCK_LEN];
     
     if ((inhandle = afOpenFile(IN_FILE_NAME, "r", 0)) == AF_NULL_FILEHANDLE)
     {
@@ -113,7 +115,7 @@ int main(int argc, char *argv[])
 
     time_scale_init(&state, rate);
     count = 0;
-    while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, in, 160)))
+    while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, in, BLOCK_LEN)))
     {
         new_frames = time_scale(&state, out, in, frames);
         out_frames = afWriteFrames(outhandle, AF_DEFAULT_TRACK, out, new_frames);

@@ -15,7 +15,8 @@
 @SET_MAKE@
 
 
-SOURCES = $(libspandsp_la_SOURCES)
+
+SOURCES = $(libspandsp_la_SOURCES) at_dictionary_gen.c
 
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
@@ -39,6 +40,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+noinst_PROGRAMS = at_dictionary_gen$(EXEEXT)
 subdir = src
 DIST_COMMON = $(nobase_include_HEADERS) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
@@ -60,17 +62,28 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)"
 libLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libspandsp_la_LIBADD =
-am_libspandsp_la_OBJECTS = adsi.lo async.lo awgn.lo bert.lo \
-	complex_dds.lo complex_filters.lo dds.lo ec_disable_tone.lo \
-	echo.lo fsk.lo g722_encode.lo g722_decode.lo g726.lo hdlc.lo \
-	ima_adpcm.lo logging.lo modem_echo.lo noise.lo oki_adpcm.lo \
-	oss.lo playout.lo plc.lo power_meter.lo queue.lo schedule.lo \
-	sig_tone.lo super_tone_rx.lo super_tone_tx.lo t4.lo t30.lo \
-	t31.lo t35.lo testcpuid.lo time_scale.lo tone_detect.lo \
-	tone_generate.lo v17rx.lo v17tx.lo v22bis_rx.lo v22bis_tx.lo \
-	v27ter_rx.lo v27ter_tx.lo v29rx.lo v29tx.lo v42.lo v42bis.lo \
-	v8.lo
+am_libspandsp_la_OBJECTS = adsi.lo async.lo at_interpreter.lo awgn.lo \
+	bell_r2_mf.lo bert.lo bit_operations.lo bitstream.lo \
+	complex_dds.lo complex_filters.lo complex_vector_float.lo \
+	dds.lo dtmf.lo echo.lo fax.lo fsk.lo g711.lo g722_encode.lo \
+	g722_decode.lo g726.lo gsm0610_decode.lo gsm0610_encode.lo \
+	gsm0610_long_term.lo gsm0610_lpc.lo gsm0610_preprocess.lo \
+	gsm0610_rpe.lo gsm0610_short_term.lo hdlc.lo ima_adpcm.lo \
+	logging.lo lpc10_analyse.lo lpc10_decode.lo lpc10_encode.lo \
+	lpc10_placev.lo lpc10_voicing.lo modem_echo.lo \
+	modem_connect_tones.lo noise.lo oki_adpcm.lo playout.lo plc.lo \
+	power_meter.lo queue.lo schedule.lo sig_tone.lo silence_gen.lo \
+	super_tone_rx.lo super_tone_tx.lo t4.lo t30.lo t31.lo t35.lo \
+	t38_core.lo t38_gateway.lo t38_terminal.lo testcpuid.lo \
+	time_scale.lo tone_detect.lo tone_generate.lo v17rx.lo \
+	v17tx.lo v22bis_rx.lo v22bis_tx.lo v27ter_rx.lo v27ter_tx.lo \
+	v29rx.lo v29tx.lo v42.lo v42bis.lo v8.lo vector_float.lo \
+	vector_int.lo
 libspandsp_la_OBJECTS = $(am_libspandsp_la_OBJECTS)
+PROGRAMS = $(noinst_PROGRAMS)
+at_dictionary_gen_SOURCES = at_dictionary_gen.c
+at_dictionary_gen_OBJECTS = at_dictionary_gen.$(OBJEXT)
+at_dictionary_gen_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__depfiles_maybe = depfiles
@@ -82,8 +95,8 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libspandsp_la_SOURCES)
-DIST_SOURCES = $(libspandsp_la_SOURCES)
+SOURCES = $(libspandsp_la_SOURCES) at_dictionary_gen.c
+DIST_SOURCES = $(libspandsp_la_SOURCES) at_dictionary_gen.c
 nobase_includeHEADERS_INSTALL = $(install_sh_DATA)
 HEADERS = $(nobase_include_HEADERS) $(noinst_HEADERS)
 ETAGS = etags
@@ -105,6 +118,10 @@ COND_DOC_FALSE = @COND_DOC_FALSE@
 COND_DOC_TRUE = @COND_DOC_TRUE@
 COND_ITUTESTS_FALSE = @COND_ITUTESTS_FALSE@
 COND_ITUTESTS_TRUE = @COND_ITUTESTS_TRUE@
+COND_MMX_FALSE = @COND_MMX_FALSE@
+COND_MMX_TRUE = @COND_MMX_TRUE@
+COND_SSE_FALSE = @COND_SSE_FALSE@
+COND_SSE_TRUE = @COND_SSE_TRUE@
 COND_TESTS_FALSE = @COND_TESTS_FALSE@
 COND_TESTS_TRUE = @COND_TESTS_TRUE@
 CPP = @CPP@
@@ -195,42 +212,67 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-AM_CFLAGS = -std=c99
+@COND_MMX_TRUE@EX_CFLAGS = -mmmx -O3
+@COND_SSE_TRUE@EX_CFLAGS = -msse -O3
+AM_CFLAGS = $(EX_CFLAGS) -std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes
 MAINTAINERCLEANFILES = Makefile.in
 INCLUDES = -I$(top_builddir)
 lib_LTLIBRARIES = libspandsp.la
 libspandsp_la_SOURCES = adsi.c \
                         async.c \
+                        at_interpreter.c \
                         awgn.c \
+                        bell_r2_mf.c \
                         bert.c \
+                        bit_operations.c \
+                        bitstream.c \
                         complex_dds.c \
                         complex_filters.c \
+                        complex_vector_float.c \
                         dds.c \
-                        ec_disable_tone.c \
+                        dtmf.c \
                         echo.c \
+                        fax.c \
                         fsk.c \
+                        g711.c \
                         g722_encode.c \
                         g722_decode.c \
                         g726.c \
+                        gsm0610_decode.c \
+                        gsm0610_encode.c \
+                        gsm0610_long_term.c \
+                        gsm0610_lpc.c \
+                        gsm0610_preprocess.c \
+                        gsm0610_rpe.c \
+                        gsm0610_short_term.c \
                         hdlc.c \
                         ima_adpcm.c \
                         logging.c \
+                        lpc10_analyse.c \
+                        lpc10_decode.c \
+                        lpc10_encode.c \
+                        lpc10_placev.c \
+                        lpc10_voicing.c \
                         modem_echo.c \
+                        modem_connect_tones.c \
                         noise.c \
                         oki_adpcm.c \
-                        oss.c \
                         playout.c \
                         plc.c \
                         power_meter.c \
                         queue.c \
                         schedule.c \
                         sig_tone.c \
+                        silence_gen.c \
                         super_tone_rx.c \
                         super_tone_tx.c \
                         t4.c \
                         t30.c \
                         t31.c \
                         t35.c \
+                        t38_core.c \
+                        t38_gateway.c \
+                        t38_terminal.c \
                         testcpuid.c \
                         time_scale.c \
                         tone_detect.c \
@@ -245,34 +287,43 @@ libspandsp_la_SOURCES = adsi.c \
                         v29tx.c \
                         v42.c \
                         v42bis.c \
-                        v8.c
+                        v8.c \
+                        vector_float.c \
+                        vector_int.c
 
 libspandsp_la_LDFLAGS = -version-info @SPANDSP_LT_CURRENT@:@SPANDSP_LT_REVISION@:@SPANDSP_LT_AGE@
 nobase_include_HEADERS = spandsp/adsi.h \
-                        spandsp/alaw_ulaw.h \
-                        spandsp/arctan2.h \
                         spandsp/async.h \
+                        spandsp/arctan2.h \
+                        spandsp/at_interpreter.h \
                         spandsp/awgn.h \
+                        spandsp/bell_r2_mf.h \
                         spandsp/bert.h \
                         spandsp/biquad.h \
+                        spandsp/bit_operations.h \
+                        spandsp/bitstream.h \
                         spandsp/complex.h \
                         spandsp/complex_filters.h \
+                        spandsp/complex_vector_float.h \
                         spandsp/dc_restore.h \
                         spandsp/dds.h \
-                        spandsp/ec_disable_tone.h \
+                        spandsp/dtmf.h \
                         spandsp/echo.h \
+                        spandsp/fax.h \
                         spandsp/fir.h \
                         spandsp/fsk.h \
                         spandsp/g168models.h \
+                        spandsp/g711.h \
                         spandsp/g722.h \
                         spandsp/g726.h \
+                        spandsp/gsm0610.h \
                         spandsp/hdlc.h \
                         spandsp/ima_adpcm.h \
                         spandsp/logging.h \
-                        spandsp/mmx.h \
+                        spandsp/lpc10.h \
                         spandsp/modem_echo.h \
+                        spandsp/modem_connect_tones.h \
                         spandsp/noise.h \
-                        spandsp/oss.h \
                         spandsp/oki_adpcm.h \
                         spandsp/playout.h \
                         spandsp/plc.h \
@@ -280,6 +331,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/queue.h \
                         spandsp/schedule.h \
                         spandsp/sig_tone.h \
+                        spandsp/silence_gen.h \
                         spandsp/super_tone_rx.h \
                         spandsp/super_tone_tx.h \
                         spandsp/t4.h \
@@ -287,6 +339,9 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/t30_fcf.h \
                         spandsp/t31.h \
                         spandsp/t35.h \
+                        spandsp/t38_core.h \
+                        spandsp/t38_gateway.h \
+                        spandsp/t38_terminal.h \
                         spandsp/telephony.h \
                         spandsp/time_scale.h \
                         spandsp/timing.h \
@@ -302,11 +357,14 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/v42.h \
                         spandsp/v42bis.h \
                         spandsp/v8.h \
-                        spandsp/vector.h \
+                        spandsp/vector_float.h \
+                        spandsp/vector_int.h \
                         spandsp.h
 
-noinst_HEADERS = t4states.h \
-			faxfont.h
+noinst_HEADERS = faxfont.h \
+                        gsm0610_local.h \
+                        lpc10_encdecs.h \
+                        t4states.h
 
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -389,6 +447,16 @@ clean-libLTLIBRARIES:
 libspandsp.la: $(libspandsp_la_OBJECTS) $(libspandsp_la_DEPENDENCIES) 
 	$(LINK) -rpath $(libdir) $(libspandsp_la_LDFLAGS) $(libspandsp_la_OBJECTS) $(libspandsp_la_LIBADD) $(LIBS)
 
+clean-noinstPROGRAMS:
+	@list='$(noinst_PROGRAMS)'; for p in $$list; do \
+	  f=`echo $$p|sed 's/$(EXEEXT)$$//'`; \
+	  echo " rm -f $$p $$f"; \
+	  rm -f $$p $$f ; \
+	done
+at_dictionary_gen$(EXEEXT): $(at_dictionary_gen_OBJECTS) $(at_dictionary_gen_DEPENDENCIES) 
+	@rm -f at_dictionary_gen$(EXEEXT)
+	$(LINK) $(at_dictionary_gen_LDFLAGS) $(at_dictionary_gen_OBJECTS) $(at_dictionary_gen_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -397,35 +465,59 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/adsi.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/async.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/at_dictionary_gen.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/at_interpreter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/awgn.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bell_r2_mf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bert.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bit_operations.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bitstream.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_dds.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_filters.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_vector_float.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dds.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ec_disable_tone.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dtmf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/echo.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fax.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fsk.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g711.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g722_decode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g722_encode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g726.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gsm0610_decode.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gsm0610_encode.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gsm0610_long_term.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gsm0610_lpc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gsm0610_preprocess.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gsm0610_rpe.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gsm0610_short_term.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hdlc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ima_adpcm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/logging.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lpc10_analyse.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lpc10_decode.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lpc10_encode.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lpc10_placev.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lpc10_voicing.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/modem_connect_tones.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/modem_echo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/noise.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/oki_adpcm.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/oss.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/playout.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/power_meter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/queue.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/schedule.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sig_tone.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/silence_gen.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/super_tone_rx.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/super_tone_tx.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t30.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t31.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t35.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_core.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_gateway.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_terminal.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t4.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testcpuid.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/time_scale.Plo@am__quote@
@@ -442,6 +534,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/v42.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/v42bis.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/v8.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vector_float.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vector_int.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
@@ -571,7 +665,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES) $(HEADERS) config.h
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(HEADERS) config.h
 installdirs:
 	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
@@ -604,7 +698,7 @@ maintainer-clean-generic:
 clean: clean-am
 
 clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
-	mostlyclean-am
+	clean-noinstPROGRAMS mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -654,8 +748,8 @@ uninstall-am: uninstall-info-am uninstall-libLTLIBRARIES \
 	uninstall-nobase_includeHEADERS
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
-	clean-libLTLIBRARIES clean-libtool ctags distclean \
-	distclean-compile distclean-generic distclean-hdr \
+	clean-libLTLIBRARIES clean-libtool clean-noinstPROGRAMS ctags \
+	distclean distclean-compile distclean-generic distclean-hdr \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-exec install-exec-am install-info \
@@ -667,6 +761,16 @@ uninstall-am: uninstall-info-am uninstall-libLTLIBRARIES \
 	tags uninstall uninstall-am uninstall-info-am \
 	uninstall-libLTLIBRARIES uninstall-nobase_includeHEADERS
 
+
+# We need to run at_dictionary_gen, so it generates the at_interpreter_dictionary.h file
+# used by several of the test programs.
+
+at_interpreter.$(OBJEXT): at_dictionary_gen$(EXEEXT) at_interpreter_dictionary.h
+
+at_interpreter.lo: at_dictionary_gen$(EXEEXT) at_interpreter_dictionary.h
+
+at_interpreter_dictionary.h: at_dictionary_gen$(EXEEXT)
+	./at_dictionary_gen$(EXEEXT) >at_interpreter_dictionary.h
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.19 2006/01/31 05:34:27 steveu Exp $
+ * $Id: fsk.c,v 1.27 2006/11/19 14:07:24 steveu Exp $
  */
 
 /*! \file */
@@ -34,14 +33,17 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 #include <assert.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/complex.h"
-#include "spandsp/vector.h"
 #include "spandsp/dds.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/async.h"
@@ -53,15 +55,15 @@ fsk_spec_t preset_fsk_specs[] =
         "V21 ch 1",
         1080 + 100,
         1080 - 100,
-        -10,
+        -14,
         -30,
         300
     },
     {
-        "V21 ch2",
+        "V21 ch 2",
         1750 + 100,
         1750 - 100,
-        -10,
+        -14,
         -30,
         300
     },
@@ -69,7 +71,7 @@ fsk_spec_t preset_fsk_specs[] =
         "V23 ch 1",
         2100,
         1300,
-        -10,
+        -14,
         -30,
         1200
     },
@@ -77,7 +79,7 @@ fsk_spec_t preset_fsk_specs[] =
         "V23 ch 2",
         450,
         390,
-        -10,
+        -14,
         -30,
         75
     },
@@ -85,7 +87,7 @@ fsk_spec_t preset_fsk_specs[] =
         "Bell103 ch 1",
         2125 - 100,
         2125 + 100,
-        -10,
+        -14,
         -30,
         300
     },
@@ -93,7 +95,7 @@ fsk_spec_t preset_fsk_specs[] =
         "Bell103 ch 2",
         1170 - 100,
         1170 + 100,
-        -10,
+        -14,
         -30,
         300
     },
@@ -101,7 +103,7 @@ fsk_spec_t preset_fsk_specs[] =
         "Bell202",
         2200,
         1200,
-        -10,
+        -14,
         -30,
         1200
     },
@@ -109,7 +111,7 @@ fsk_spec_t preset_fsk_specs[] =
         "Weitbrecht",   /* Used for TDD (Telecomc Device for the Deaf) */
         1800,
         1400,
-        -10,
+        -14,
         -30,
          45             /* Actually 45.45 */
     }
@@ -124,9 +126,9 @@ fsk_tx_state_t *fsk_tx_init(fsk_tx_state_t *s,
     s->get_bit = get_bit;
     s->user_data = user_data;
 
-    s->phase_rates[0] = dds_phase_step(spec->freq_zero);
-    s->phase_rates[1] = dds_phase_step(spec->freq_one);
-    s->scaling = dds_scaling_dbm0(spec->tx_level);
+    s->phase_rates[0] = dds_phase_rate((float) spec->freq_zero);
+    s->phase_rates[1] = dds_phase_rate((float) spec->freq_one);
+    s->scaling = dds_scaling_dbm0((float) spec->tx_level);
     /* Initialise fractional sample baud generation. */
     s->phase_acc = 0;
     s->baud_inc = (s->baud_rate*0x10000)/SAMPLE_RATE;
@@ -154,8 +156,7 @@ int fsk_tx(fsk_tx_state_t *s, int16_t *amp, int len)
         if ((s->baud_frac += s->baud_inc) >= 0x10000)
         {
             s->baud_frac -= 0x10000;
-            bit = s->get_bit(s->user_data);
-            if (bit == 2)
+            if ((bit = s->get_bit(s->user_data)) == PUTBIT_END_OF_DATA)
             {
                 s->shutdown = TRUE;
                 break;
@@ -211,7 +212,7 @@ fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
     memset(s, 0, sizeof(*s));
     s->baud_rate = spec->baud_rate;
     s->sync_mode = sync_mode;
-    s->min_power = power_meter_level_dbm0(spec->min_level);
+    s->min_power = power_meter_level_dbm0((float) spec->min_level);
     s->put_bit = put_bit;
     s->user_data = user_data;
 
@@ -220,10 +221,11 @@ fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
     
     /* First we need the quadrature tone generators to correlate
        against. */
-    s->phase_rate[0] = dds_phase_step(spec->freq_zero);
-    s->phase_rate[1] = dds_phase_step(spec->freq_one);
+    s->phase_rate[0] = dds_phase_rate((float) spec->freq_zero);
+    s->phase_rate[1] = dds_phase_rate((float) spec->freq_one);
     s->phase_acc[0] = 0;
     s->phase_acc[1] = 0;
+    s->last_sample = 0;
 
     /* The correlation should be over one baud. */
     s->correlation_span = SAMPLE_RATE/spec->baud_rate;
@@ -260,6 +262,7 @@ int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
     int j;
     int32_t dot;
     int32_t sum;
+    int32_t power;
     icomplex_t ph;
 
     buf_ptr = s->buf_ptr;
@@ -269,7 +272,9 @@ int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
         /* If there isn't much signal, don't demodulate - it will only produce
            useless junk results. */
         /* TODO: The carrier signal has no hysteresis! */
-        if (power_meter_update(&(s->power), amp[sample]) < s->min_power)
+        power = power_meter_update(&(s->power), amp[sample] - s->last_sample);
+        s->last_sample = amp[sample];
+        if (power < s->min_power)
         {
             if (s->carrier_present)
             {

@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_filters.h,v 1.2 2004/03/30 14:29:40 steveu Exp $
+ * $Id: complex_filters.h,v 1.6 2006/10/24 13:45:28 steveu Exp $
  */
 
 #if !defined(_COMPLEX_FILTERS_H_)
@@ -45,7 +44,7 @@ struct filter_s
     fspec_t             *fs;
     float               sum;
     int                 ptr;		/* for moving average filters only */
-    float               v[0];
+    float               v[];
 };
 
 typedef struct
@@ -64,7 +63,7 @@ float filter_step(filter_t *fi, float x);
 
 cfilter_t *cfilter_create(fspec_t *fs);
 void cfilter_delete(cfilter_t *cfi);
-complex_t cfilter_step(cfilter_t *cfi, const complex_t *z);
+complexf_t cfilter_step(cfilter_t *cfi, const complexf_t *z);
 
 #ifdef __cplusplus
 }

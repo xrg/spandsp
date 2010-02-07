@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.h,v 1.12 2005/11/25 14:52:00 steveu Exp $
+ * $Id: fsk.h,v 1.17 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \file */
@@ -88,7 +87,7 @@ Two modes of symbol synchronisation are provided:
 */
 typedef struct
 {
-    char *name;
+    const char *name;
     int freq_zero;
     int freq_one;
     int tx_level;
@@ -97,14 +96,17 @@ typedef struct
 } fsk_spec_t;
 
 /* Predefined FSK modem channels */
-#define FSK_V21CH1      0
-#define FSK_V21CH2      1
-#define FSK_V23CH1      2
-#define FSK_V23CH2      3
-#define FSK_BELL103CH1  4
-#define FSK_BELL103CH2  5
-#define FSK_BELL202     6
-#define FSK_WEITBRECHT  7   /* Used for TDD (Telecomc Device for the Deaf) */
+enum
+{
+    FSK_V21CH1 = 0,
+    FSK_V21CH2,
+    FSK_V23CH1,
+    FSK_V23CH2,
+    FSK_BELL103CH1,
+    FSK_BELL103CH2,
+    FSK_BELL202,
+    FSK_WEITBRECHT,     /* Used for TDD (Telecom Device for the Deaf) */
+};
 
 extern fsk_spec_t preset_fsk_specs[];
 
@@ -144,6 +146,7 @@ typedef struct
     int min_power;
     power_meter_t power;
     int carrier_present;
+    int16_t last_sample;
 
     int32_t phase_rate[2];
     uint32_t phase_acc[2];

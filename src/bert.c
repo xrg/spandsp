@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bert.c,v 1.11 2005/12/29 09:54:24 steveu Exp $
+ * $Id: bert.c,v 1.21 2006/11/19 14:07:24 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,13 +33,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <math.h>
 #include <assert.h>
 #include <time.h>
 
 #include "spandsp/telephony.h"
-#include "spandsp/bert.h"
+#include "spandsp/logging.h"
 #include "spandsp/async.h"
+#include "spandsp/bert.h"
 
 static const char *qbf = "VoyeZ Le BricK GeanT QuE J'ExaminE PreS Du WharF 123 456 7890 + - * : = $ % ( )"
                          "ThE QuicK BrowN FoX JumpS OveR ThE LazY DoG 123 456 7890 + - * : = $ % ( )";
@@ -50,7 +49,8 @@ int bert_get_bit(bert_state_t *s)
     int bit;
 
     if (s->limit  &&  s->tx_bits >= s->limit)
-        return 2;
+        return PUTBIT_END_OF_DATA;
+    bit = 0;
     switch (s->pattern_class)
     {
     case 0:
@@ -103,7 +103,6 @@ void bert_put_bit(bert_state_t *s, int bit)
 {
     int i;
     int j;
-    int len;
     int sum;
     int test;
 
@@ -113,19 +112,19 @@ void bert_put_bit(bert_state_t *s, int bit)
         switch (bit)
         {
         case PUTBIT_TRAINING_FAILED:
-            printf("Training failed\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Training failed\n");
             break;
         case PUTBIT_TRAINING_SUCCEEDED:
-            printf("Training succeeded\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded\n");
             break;
         case PUTBIT_CARRIER_UP:
-            printf("Carrier up\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Carrier up\n");
             break;
         case PUTBIT_CARRIER_DOWN:
-            printf("Carrier down\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Carrier down\n");
             break;
         default:
-            printf("Eh!\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Eh!\n");
             break;
         }
         return;
@@ -145,7 +144,7 @@ void bert_put_bit(bert_state_t *s, int bit)
                 {
                     s->resync = 0;
                     if (s->reporter)
-                        s->reporter(s->user_data, BERT_REPORT_SYNCED);
+                        s->reporter(s->user_data, BERT_REPORT_SYNCED, &s->results);
                 }
             }
             else
@@ -156,9 +155,9 @@ void bert_put_bit(bert_state_t *s, int bit)
         }
         else
         {
-            s->total_bits++;
+            s->results.total_bits++;
             if ((bit ^ s->ref_reg) & 1)
-                s->bad_bits++;
+                s->results.bad_bits++;
             s->ref_reg = (s->ref_reg >> 1) | ((s->ref_reg & 1) << s->shift2);
         }
         break;
@@ -170,13 +169,13 @@ void bert_put_bit(bert_state_t *s, int bit)
             /* Don't worry about max. zeros tests when resyncing.
                It might just extend the resync time a little. Trying
                to include the test might affect robustness. */
-            if (bit == ((s->rx_reg >> s->shift) & 1))
+            if (bit == (int) ((s->rx_reg >> s->shift) & 1))
             {
                 if (++s->resync > s->resync_time)
                 {
                     s->resync = 0;
                     if (s->reporter)
-                        s->reporter(s->user_data, BERT_REPORT_SYNCED);
+                        s->reporter(s->user_data, BERT_REPORT_SYNCED, &s->results);
                 }
             }
             else
@@ -202,10 +201,10 @@ void bert_put_bit(bert_state_t *s, int bit)
                     s->rx_zeros = 0;
                 }
             }
-            s->total_bits++;
-            if (bit != ((s->rx_reg >> s->shift) & 1))
+            s->results.total_bits++;
+            if (bit != (int) ((s->rx_reg >> s->shift) & 1))
             {
-                s->bad_bits++;
+                s->results.bad_bits++;
                 s->resync_bad_bits++;
                 s->decade_bad[2][s->decade_ptr[2]]++;
             }
@@ -224,7 +223,7 @@ void bert_put_bit(bert_state_t *s, int bit)
                     {
                         test = FALSE;
                         if (s->error_rate != i  &&  s->reporter)
-                            s->reporter(s->user_data, BERT_REPORT_GT_10_2 + i - 2);
+                            s->reporter(s->user_data, BERT_REPORT_GT_10_2 + i - 2, &s->results);
                         s->error_rate = i;
                     }
                     s->decade_bad[i][0] = 0;
@@ -238,7 +237,7 @@ void bert_put_bit(bert_state_t *s, int bit)
                     if (test)
                     {
                         if (s->error_rate != i  &&  s->reporter)
-                            s->reporter(s->user_data, BERT_REPORT_GT_10_2 + i - 2);
+                            s->reporter(s->user_data, BERT_REPORT_GT_10_2 + i - 2, &s->results);
                         s->error_rate = i;
                     }
                 }
@@ -254,9 +253,9 @@ void bert_put_bit(bert_state_t *s, int bit)
                 if (s->resync_bad_bits >= (s->resync_len*s->resync_percent)/100)
                 {
                     s->resync = 1;
-                    s->resyncs++;
+                    s->results.resyncs++;
                     if (s->reporter)
-                        s->reporter(s->user_data, BERT_REPORT_UNSYNCED);
+                        s->reporter(s->user_data, BERT_REPORT_UNSYNCED, &s->results);
                 }
                 s->resync_cnt = s->resync_len;
                 s->resync_bad_bits = 0;
@@ -270,16 +269,16 @@ void bert_put_bit(bert_state_t *s, int bit)
         if (++s->rx_step_bit == 7)
         {
             s->rx_step_bit = 0;
-            if (s->rx_reg != qbf[s->rx_step])
+            if ((int) s->rx_reg != qbf[s->rx_step])
             {
                 /* We need to work out the number of actual bad bits here. We need to look at the
                    error rate, and see it a resync is needed. etc. */
-                s->bad_bits++;
+                s->results.bad_bits++;
             }
             if (qbf[++s->rx_step] == '\0')
                 s->rx_step = 0;
         }
-        s->total_bits++;
+        s->results.total_bits++;
         break;
     }
     if (s->report_frequency > 0)
@@ -287,7 +286,7 @@ void bert_put_bit(bert_state_t *s, int bit)
         if (--s->report_countdown <= 0)
         {
             if (s->reporter)
-                s->reporter(s->user_data, BERT_REPORT_REGULAR);
+                s->reporter(s->user_data, BERT_REPORT_REGULAR, &s->results);
             s->report_countdown = s->report_frequency;
         }
     }
@@ -296,9 +295,9 @@ void bert_put_bit(bert_state_t *s, int bit)
 
 int bert_result(bert_state_t *s, bert_results_t *results)
 {
-    results->total_bits = s->total_bits;
-    results->bad_bits = s->bad_bits;
-    results->resyncs = s->resyncs;
+    results->total_bits = s->results.total_bits;
+    results->bad_bits = s->results.bad_bits;
+    results->resyncs = s->results.resyncs;
     return sizeof(*results);
 }
 /*- End of function --------------------------------------------------------*/
@@ -318,6 +317,8 @@ bert_state_t *bert_init(bert_state_t *s, int limit, int pattern, int resync_len,
     int i;
     int j;
 
+    memset(s, 0, sizeof(*s));
+
     s->pattern = pattern;
     s->limit = limit;
     s->reporter = NULL;
@@ -334,7 +335,7 @@ bert_state_t *bert_init(bert_state_t *s, int limit, int pattern, int resync_len,
         s->pattern_class = 0;
         break;
     case BERT_PATTERN_ONES:
-        s->tx_reg = ~0;
+        s->tx_reg = ~((uint32_t) 0);
         s->shift2 = 31;
         s->pattern_class = 0;
         break;
@@ -431,13 +432,13 @@ bert_state_t *bert_init(bert_state_t *s, int limit, int pattern, int resync_len,
     s->rx_step_bit = 0;
 
     s->resync = 1;
-    s->total_bits = 0;
-    s->bad_bits = 0;
     s->resync_cnt = resync_len;
     s->resync_bad_bits = 0;
     s->resync_len = resync_len;
     s->resync_percent = resync_percent;
-    s->resyncs = 0;
+    s->results.total_bits = 0;
+    s->results.bad_bits = 0;
+    s->results.resyncs = 0;
 
     s->report_countdown = 0;
 
@@ -450,6 +451,9 @@ bert_state_t *bert_init(bert_state_t *s, int limit, int pattern, int resync_len,
     s->error_rate = 8;
     s->step = 100;
     
+    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
+    span_log_set_protocol(&s->logging, "BERT");
+
     return  s;
 }
 /*- End of function --------------------------------------------------------*/

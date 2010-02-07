@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_filters.c,v 1.5 2005/08/31 19:27:52 steveu Exp $
+ * $Id: complex_filters.c,v 1.8 2006/10/24 13:45:25 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -84,9 +83,9 @@ void cfilter_delete(cfilter_t *cfi)
     }
 }
 
-complex_t cfilter_step(cfilter_t *cfi, const complex_t *z)
+complexf_t cfilter_step(cfilter_t *cfi, const complexf_t *z)
 {
-    complex_t cc;
+    complexf_t cc;
     
     cc.re = filter_step(cfi->ref, z->re);
     cc.im = filter_step(cfi->imf, z->im);

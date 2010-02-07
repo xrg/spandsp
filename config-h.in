@@ -21,6 +21,9 @@
 /* Define to 1 if you have the <float.h> header file. */
 #undef HAVE_FLOAT_H
 
+/* Define to 1 if you have the <FL/Fl_Audio_Meter.H> header file. */
+#undef HAVE_FL_FL_AUDIO_METER_H
+
 /* Define to 1 if you have the <FL/Fl_Cartesian.H> header file. */
 #undef HAVE_FL_FL_CARTESIAN_H
 
@@ -48,12 +51,33 @@
 /* Define to 1 if you have the `tiff' library (-ltiff). */
 #undef HAVE_LIBTIFF
 
+/* Define to 1 if you have the 'libxml2' library (-lxml2). */
+#undef HAVE_LIBXML2
+
+/* Define to 1 if you have the <libxml/parser.h> header file. */
+#undef HAVE_LIBXML_PARSER_H
+
+/* Define to 1 if you have the <libxml/xinclude.h> header file. */
+#undef HAVE_LIBXML_XINCLUDE_H
+
+/* Define to 1 if you have the <libxml/xmlmemory.h> header file. */
+#undef HAVE_LIBXML_XMLMEMORY_H
+
+/* Define to 1 if the system has the type `long double'. */
+#undef HAVE_LONG_DOUBLE
+
+/* Define to 1 if the system has the type `long long'. */
+#undef HAVE_LONG_LONG
+
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */
 #undef HAVE_MALLOC
 
 /* Define to 1 if you have the <malloc.h> header file. */
 #undef HAVE_MALLOC_H
+
+/* Define to 1 if you have the <math.h> header file. */
+#undef HAVE_MATH_H
 
 /* Define to 1 if you have the `memmove' function. */
 #undef HAVE_MEMMOVE
@@ -142,6 +166,9 @@
 
 /* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
 #undef HAVE_SYS_WAIT_H
+
+/* Define to 1 if you have the <tgmath.h> header file. */
+#undef HAVE_TGMATH_H
 
 /* Define to 1 if you have the <tiffio.h> header file. */
 #undef HAVE_TIFFIO_H

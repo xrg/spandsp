@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex.h,v 1.3 2005/11/23 17:09:47 steveu Exp $
+ * $Id: complex.h,v 1.8 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \file */
@@ -40,13 +39,33 @@ widespread.
 #define _COMPLEX_H_
 
 /*!
-    Complex type.
+    Floating complex type.
 */
 typedef struct
 {
     float re;
     float im;
+} complexf_t;
+
+/*!
+    Floating complex type.
+*/
+typedef struct
+{
+    double re;
+    double im;
 } complex_t;
+
+#if defined(HAVE_LONG_DOUBLE)
+/*!
+    Long double complex type.
+*/
+typedef struct
+{
+    long double re;
+    long double im;
+} complexl_t;
+#endif
 
 /*!
     Complex integer type.
@@ -79,7 +98,17 @@ typedef struct
 extern "C" {
 #endif
 
-static inline complex_t complex_set(float re, float im)
+static __inline__ complexf_t complex_setf(float re, float im)
+{
+    complexf_t z;
+
+    z.re = re;
+    z.im = im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ complex_t complex_set(float re, float im)
 {
     complex_t z;
 
@@ -89,7 +118,19 @@ static inline complex_t complex_set(float re, float im)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline icomplex_t icomplex_set(int re, int im)
+#if defined(HAVE_LONG_DOUBLE)
+static __inline__ complexl_t complex_setl(long double re, long double im)
+{
+    complexl_t z;
+
+    z.re = re;
+    z.im = im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+#endif
+
+static __inline__ icomplex_t icomplex_set(int re, int im)
 {
     icomplex_t z;
 
@@ -99,7 +140,17 @@ static inline icomplex_t icomplex_set(int re, int im)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline complex_t complex_add(const complex_t *x, const complex_t *y)
+static __inline__ complexf_t complex_addf(const complexf_t *x, const complexf_t *y)
+{
+    complexf_t z;
+
+    z.re = x->re + y->re;
+    z.im = x->im + y->im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ complex_t complex_add(const complex_t *x, const complex_t *y)
 {
     complex_t z;
 
@@ -109,7 +160,19 @@ static inline complex_t complex_add(const complex_t *x, const complex_t *y)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline icomplex_t icomplex_add(const icomplex_t *x, const icomplex_t *y)
+#if defined(HAVE_LONG_DOUBLE)
+static __inline__ complexl_t complex_addl(const complexl_t *x, const complexl_t *y)
+{
+    complexl_t z;
+
+    z.re = x->re + y->re;
+    z.im = x->im + y->im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+#endif
+
+static __inline__ icomplex_t icomplex_add(const icomplex_t *x, const icomplex_t *y)
 {
     icomplex_t z;
 
@@ -119,7 +182,17 @@ static inline icomplex_t icomplex_add(const icomplex_t *x, const icomplex_t *y)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline complex_t complex_sub(const complex_t *x, const complex_t *y)
+static __inline__ complexf_t complex_subf(const complexf_t *x, const complexf_t *y)
+{
+    complexf_t z;
+
+    z.re = x->re - y->re;
+    z.im = x->im - y->im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ complex_t complex_sub(const complex_t *x, const complex_t *y)
 {
     complex_t z;
 
@@ -129,7 +202,19 @@ static inline complex_t complex_sub(const complex_t *x, const complex_t *y)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline icomplex_t icomplex_sub(const icomplex_t *x, const icomplex_t *y)
+#if defined(HAVE_LONG_DOUBLE)
+static __inline__ complexl_t complex_subl(const complexl_t *x, const complexl_t *y)
+{
+    complexl_t z;
+
+    z.re = x->re - y->re;
+    z.im = x->im - y->im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+#endif
+
+static __inline__ icomplex_t icomplex_sub(const icomplex_t *x, const icomplex_t *y)
 {
     icomplex_t z;
 
@@ -139,7 +224,17 @@ static inline icomplex_t icomplex_sub(const icomplex_t *x, const icomplex_t *y)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline complex_t complex_mul(const complex_t *x, const complex_t *y)
+static __inline__ complexf_t complex_mulf(const complexf_t *x, const complexf_t *y)
+{
+    complexf_t z;
+
+    z.re = x->re*y->re - x->im*y->im;
+    z.im = x->re*y->im + x->im*y->re;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ complex_t complex_mul(const complex_t *x, const complex_t *y)
 {
     complex_t z;
 
@@ -149,9 +244,21 @@ static inline complex_t complex_mul(const complex_t *x, const complex_t *y)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline complex_t complex_div(const complex_t *x, const complex_t *y)
+#if defined(HAVE_LONG_DOUBLE)
+static __inline__ complexl_t complex_mull(const complexl_t *x, const complexl_t *y)
 {
-    complex_t z;
+    complexl_t z;
+
+    z.re = x->re*y->re - x->im*y->im;
+    z.im = x->re*y->im + x->im*y->re;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+#endif
+
+static __inline__ complexf_t complex_divf(const complexf_t *x, const complexf_t *y)
+{
+    complexf_t z;
     float f;
     
     f = y->re*y->re + y->im*y->im;
@@ -161,7 +268,43 @@ static inline complex_t complex_div(const complex_t *x, const complex_t *y)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline complex_t complex_conj(const complex_t *x)
+static __inline__ complex_t complex_div(const complex_t *x, const complex_t *y)
+{
+    complex_t z;
+    double f;
+    
+    f = y->re*y->re + y->im*y->im;
+    z.re = ( x->re*y->re + x->im*y->im)/f;
+    z.im = (-x->re*y->im + x->im*y->re)/f;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+
+#if defined(HAVE_LONG_DOUBLE)
+static __inline__ complexl_t complex_divl(const complexl_t *x, const complexl_t *y)
+{
+    complexl_t z;
+    long double f;
+    
+    f = y->re*y->re + y->im*y->im;
+    z.re = ( x->re*y->re + x->im*y->im)/f;
+    z.im = (-x->re*y->im + x->im*y->re)/f;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+#endif
+
+static __inline__ complexf_t complex_conjf(const complexf_t *x)
+{
+    complexf_t z;
+
+    z.re = x->re;
+    z.im = -x->im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ complex_t complex_conj(const complex_t *x)
 {
     complex_t z;
 
@@ -171,7 +314,19 @@ static inline complex_t complex_conj(const complex_t *x)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline icomplex_t icomplex_conj(const icomplex_t *x)
+#if defined(HAVE_LONG_DOUBLE)
+static __inline__ complexl_t complex_conjl(const complexl_t *x)
+{
+    complexl_t z;
+
+    z.re = x->re;
+    z.im = -x->im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+#endif
+
+static __inline__ icomplex_t icomplex_conj(const icomplex_t *x)
 {
     icomplex_t z;
 
@@ -181,11 +336,25 @@ static inline icomplex_t icomplex_conj(const icomplex_t *x)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline float power(const complex_t *x)
+static __inline__ float powerf(const complexf_t *x)
 {
     return x->re*x->re + x->im*x->im;
 }
 /*- End of function --------------------------------------------------------*/
+
+static __inline__ double power(const complex_t *x)
+{
+    return x->re*x->re + x->im*x->im;
+}
+/*- End of function --------------------------------------------------------*/
+
+#if defined(HAVE_LONG_DOUBLE)
+static __inline__ long double powerl(const complexl_t *x)
+{
+    return x->re*x->re + x->im*x->im;
+}
+/*- End of function --------------------------------------------------------*/
+#endif
 
 #ifdef __cplusplus
 }

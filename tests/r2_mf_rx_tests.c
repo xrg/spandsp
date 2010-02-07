@@ -11,9 +11,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -24,9 +23,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: r2_mf_tests.c,v 1.7 2005/11/27 12:36:23 steveu Exp $
+ * $Id: r2_mf_rx_tests.c,v 1.4 2006/11/19 14:07:27 steveu Exp $
  */
-
 
 /*! \file */
 
@@ -45,11 +43,15 @@ a fair test of performance in a real PSTN channel.
 #include "config.h"
 #endif
 
-#include <unistd.h>
 #include <stdlib.h>
-#include <math.h>
 #include <inttypes.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 #include <stdio.h>
 #include <time.h>
 #include <fcntl.h>
@@ -96,7 +98,7 @@ typedef struct
     uint8_t     off_time;   /* Minimum post tone silence (ms) */
 } mf_digit_tones_t;
 
-static mf_digit_tones_t r2_mf_fwd_tones[] =
+static const mf_digit_tones_t r2_mf_fwd_tones[] =
 {
     {1380.0, 1500.0, -11, -11, 1, 0},
     {1380.0, 1620.0, -11, -11, 1, 0},
@@ -113,10 +115,10 @@ static mf_digit_tones_t r2_mf_fwd_tones[] =
     {1620.0, 1980.0, -11, -11, 1, 0},
     {1740.0, 1980.0, -11, -11, 1, 0},
     {1860.0, 1980.0, -11, -11, 1, 0},
-    {0.0, 0.0, 0, 0}
+    {0.0, 0.0, 0, 0, 0, 0}
 };
 
-static mf_digit_tones_t r2_mf_back_tones[] =
+static const mf_digit_tones_t r2_mf_back_tones[] =
 {
     {1140.0, 1020.0, -11, -11, 1, 0},
     {1140.0,  900.0, -11, -11, 1, 0},
@@ -133,12 +135,12 @@ static mf_digit_tones_t r2_mf_back_tones[] =
     { 900.0,  540.0, -11, -11, 1, 0},
     { 780.0,  540.0, -11, -11, 1, 0},
     { 660.0,  540.0, -11, -11, 1, 0},
-    {0.0, 0.0, 0, 0}
+    {0.0, 0.0, 0, 0, 0, 0}
 };
 
 static tone_gen_descriptor_t my_mf_digit_tones[16];
 
-static char r2_mf_tone_codes[] = "1234567890ABCDE";
+static char r2_mf_tone_codes[] = "1234567890BCDEF";
 
 static void my_mf_gen_init(float low_fudge,
                            int low_level,
@@ -147,7 +149,7 @@ static void my_mf_gen_init(float low_fudge,
                            int duration,
                            int fwd)
 {
-    mf_digit_tones_t *tone;
+    const mf_digit_tones_t *tone;
     int i;
     
     for (i = 0;  i < 15;  i++)
@@ -186,7 +188,7 @@ static int my_mf_generate(int16_t amp[], char digit)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void alaw_munge(int16_t amp[], int len)
+static void codec_munge(int16_t amp[], int len)
 {
     int i;
     uint8_t alaw;
@@ -199,15 +201,13 @@ static void alaw_munge(int16_t amp[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-#define ALL_POSSIBLE_DIGITS     "1234567890ABCDE"
-
 static int test_a_tone_set(int fwd)
 {
     int i;
     int j;
     int len;
     int sample;
-    char *s;
+    const char *s;
     char digit;
     int actual;
     int nplus;
@@ -217,12 +217,12 @@ static int test_a_tone_set(int fwd)
     int16_t amp[100000];
     r2_mf_rx_state_t mf_state;
     awgn_state_t noise_source;
-    mf_digit_tones_t *tone;
+    const mf_digit_tones_t *tone;
 
     if (fwd)
-        tone = &r2_mf_fwd_tones[i];
+        tone = &r2_mf_fwd_tones[0];
     else
-        tone = &r2_mf_back_tones[i];
+        tone = &r2_mf_back_tones[0];
     r2_mf_rx_init(&mf_state, fwd);
 
     /* Test 1: Mitel's test 1 isn't really a test. Its a calibration step,
@@ -238,14 +238,14 @@ static int test_a_tone_set(int fwd)
 
     printf ("Test 2: Decode check\n");
     my_mf_gen_init(0.0, -3, 0.0, -3, 68, fwd);
-    s = ALL_POSSIBLE_DIGITS;
+    s = r2_mf_tone_codes;
     while (*s)
     {
         digit = *s++;
         for (i = 0;  i < 10;  i++)
         {
             len = my_mf_generate(amp, digit);
-            alaw_munge (amp, len);
+            codec_munge (amp, len);
             actual = r2_mf_rx(&mf_state, amp, len);
             if (actual != digit)
             {
@@ -287,7 +287,7 @@ static int test_a_tone_set(int fwd)
        The spec calls for +-4 +-10Hz (ie +-14Hz) of bandwidth. */
 
     printf ("Test 3: Recognition bandwidth and channel centre frequency check\n");
-    s = ALL_POSSIBLE_DIGITS;
+    s = r2_mf_tone_codes;
     j = 0;
     while (*s)
     {
@@ -296,7 +296,7 @@ static int test_a_tone_set(int fwd)
         {
             my_mf_gen_init((float) i/1000.0, -17, 0.0, -17, 68, fwd);
             len = my_mf_generate(amp, digit);
-            alaw_munge(amp, len);
+            codec_munge(amp, len);
             if (r2_mf_rx(&mf_state, amp, len) == digit)
                 nplus++;
         }
@@ -304,7 +304,7 @@ static int test_a_tone_set(int fwd)
         {
             my_mf_gen_init((float) i/1000.0, -17, 0.0, -17, 68, fwd);
             len = my_mf_generate(amp, digit);
-            alaw_munge(amp, len);
+            codec_munge(amp, len);
             if (r2_mf_rx(&mf_state, amp, len) == digit)
                 nminus++;
         }
@@ -327,7 +327,7 @@ static int test_a_tone_set(int fwd)
         {
             my_mf_gen_init(0.0, -17, (float) i/1000.0, -17, 68, fwd);
             len = my_mf_generate(amp, digit);
-            alaw_munge(amp, len);
+            codec_munge(amp, len);
             if (r2_mf_rx(&mf_state, amp, len) == digit)
                 nplus++;
         }
@@ -335,7 +335,7 @@ static int test_a_tone_set(int fwd)
         {
             my_mf_gen_init(0.0, -17, (float) i/1000.0, -17, 68, fwd);
             len = my_mf_generate(amp, digit);
-            alaw_munge(amp, len);
+            codec_munge(amp, len);
             if (r2_mf_rx(&mf_state, amp, len) == digit)
                 nminus++;
         }
@@ -362,7 +362,7 @@ static int test_a_tone_set(int fwd)
        test, and has good and bad points. */
 
     printf ("Test 4: Acceptable amplitude ratio (twist)\n");
-    s = ALL_POSSIBLE_DIGITS;
+    s = r2_mf_tone_codes;
     while (*s)
     {
         digit = *s++;
@@ -371,7 +371,7 @@ static int test_a_tone_set(int fwd)
             my_mf_gen_init(0.0, -5, 0.0, i/10, 68, fwd);
 
             len = my_mf_generate(amp, digit);
-            alaw_munge (amp, len);
+            codec_munge (amp, len);
             if (r2_mf_rx(&mf_state, amp, len) == digit)
                 nplus++;
         }
@@ -386,7 +386,7 @@ static int test_a_tone_set(int fwd)
             my_mf_gen_init(0.0, i/10, 0.0, -5, 68, fwd);
 
             len = my_mf_generate(amp, digit);
-            alaw_munge(amp, len);
+            codec_munge(amp, len);
             if (r2_mf_rx(&mf_state, amp, len) == digit)
                 nminus++;
         }
@@ -407,7 +407,7 @@ static int test_a_tone_set(int fwd)
     printf ("Test 5: Dynamic range\n");
     for (nplus = nminus = -1000, i = -50;  i <= 3;  i++)
     {
-        s = ALL_POSSIBLE_DIGITS;
+        s = r2_mf_tone_codes;
         while (*s)
         {
             digit = *s++;
@@ -415,7 +415,7 @@ static int test_a_tone_set(int fwd)
             for (j = 0;  j < 100;  j++)
             {
                 len = my_mf_generate(amp, digit);
-                alaw_munge(amp, len);
+                codec_munge(amp, len);
                 if (r2_mf_rx(&mf_state, amp, len) != digit)
                     break;
             }
@@ -448,7 +448,7 @@ static int test_a_tone_set(int fwd)
     printf ("Test 6: Guard time\n");
     for (i = 30;  i < 62;  i++)
     {
-        s = ALL_POSSIBLE_DIGITS;
+        s = r2_mf_tone_codes;
         j = 0;
         while (*s)
         {
@@ -457,7 +457,7 @@ static int test_a_tone_set(int fwd)
             for (j = 0;  j < 500;  j++)
             {
                 len = my_mf_generate(amp, digit);
-                alaw_munge(amp, len);
+                codec_munge(amp, len);
                 if (r2_mf_rx(&mf_state, amp, len) != digit)
                     break;
             }
@@ -483,17 +483,17 @@ static int test_a_tone_set(int fwd)
     my_mf_gen_init(0.0, -3, 0.0, -3, 68, fwd);
     for (i = -3;  i > -50;  i--)
     {
-        s = ALL_POSSIBLE_DIGITS;
+        s = r2_mf_tone_codes;
         while (*s)
         {
             digit = *s++;
-            awgn_init(&noise_source, 1234567, i);
+            awgn_init_dbm0(&noise_source, 1234567, (float) i);
             for (j = 0;  j < 500;  j++)
             {
                 len = my_mf_generate(amp, digit);
                 for (sample = 0;  sample < len;  sample++)
                     amp[sample] = saturate(amp[sample] + awgn(&noise_source));
-                alaw_munge(amp, len);
+                codec_munge(amp, len);
                 if (r2_mf_rx(&mf_state, amp, len) != digit)
                     break;
             }
@@ -531,7 +531,7 @@ int main (int argc, char *argv[])
     printf("R2 backward tones\n");
     test_a_tone_set(FALSE);
     duration = time(NULL) - now;
-    printf ("Tests completed in %lds\n", duration);
+    printf ("Tests passed in %lds\n", duration);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

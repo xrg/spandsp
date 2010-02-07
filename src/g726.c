@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -49,7 +48,7 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.c,v 1.8 2006/05/22 12:47:24 steveu Exp $
+ * $Id: g726.c,v 1.17 2006/11/19 14:07:24 steveu Exp $
  */
 
 /*! \file */
@@ -58,28 +57,34 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
 #include <inttypes.h>
 #include <memory.h>
 #include <stdlib.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 
 #include "spandsp/telephony.h"
 #include "spandsp/dc_restore.h"
-#include "spandsp/alaw_ulaw.h"
+#include "spandsp/bitstream.h"
+#include "spandsp/bit_operations.h"
+#include "spandsp/g711.h"
 #include "spandsp/g726.h"
 
 /*
  * Maps G.726_16 code word to reconstructed scale factor normalized log
  * magnitude values.
  */
-static int g726_16_dqlntab[4] =
+static const int g726_16_dqlntab[4] =
 {
     116, 365, 365, 116
 };
 
 /* Maps G.726_16 code word to log of scale factor multiplier. */
-static int g726_16_witab[4] =
+static const int g726_16_witab[4] =
 {
     -704, 14048, 14048, -704
 };
@@ -89,12 +94,12 @@ static int g726_16_witab[4] =
  * term averages are computed and then compared to give an indication
  * how stationary (steady state) the signal is.
  */
-static int g726_16_fitab[4] =
+static const int g726_16_fitab[4] =
 {
     0x000, 0xE00, 0xE00, 0x000
 };
 
-static int qtab_726_16[1] =
+static const int qtab_726_16[1] =
 {
     261
 };
@@ -103,13 +108,13 @@ static int qtab_726_16[1] =
  * Maps G.726_24 code word to reconstructed scale factor normalized log
  * magnitude values.
  */
-static int g726_24_dqlntab[8] =
+static const int g726_24_dqlntab[8] =
 {
     -2048, 135, 273, 373, 373, 273, 135, -2048
 };
 
 /* Maps G.726_24 code word to log of scale factor multiplier. */
-static int g726_24_witab[8] =
+static const int g726_24_witab[8] =
 {
     -128, 960, 4384, 18624, 18624, 4384, 960, -128
 };
@@ -119,12 +124,12 @@ static int g726_24_witab[8] =
  * term averages are computed and then compared to give an indication
  * how stationary (steady state) the signal is.
  */
-static int g726_24_fitab[8] =
+static const int g726_24_fitab[8] =
 {
     0x000, 0x200, 0x400, 0xE00, 0xE00, 0x400, 0x200, 0x000
 };
 
-static int qtab_726_24[3] =
+static const int qtab_726_24[3] =
 {
     8, 218, 331
 };
@@ -133,14 +138,14 @@ static int qtab_726_24[3] =
  * Maps G.726_32 code word to reconstructed scale factor normalized log
  * magnitude values.
  */
-static int g726_32_dqlntab[16] =
+static const int g726_32_dqlntab[16] =
 {
     -2048,   4, 135, 213, 273, 323, 373,   425,
       425, 373, 323, 273, 213, 135,   4, -2048
 };
 
 /* Maps G.726_32 code word to log of scale factor multiplier. */
-static int g726_32_witab[16] =
+static const int g726_32_witab[16] =
 {
      -384,   576,  1312,  2048,  3584,  6336, 11360, 35904,
     35904, 11360,  6336,  3584,  2048,  1312,   576,  -384
@@ -151,13 +156,13 @@ static int g726_32_witab[16] =
  * term averages are computed and then compared to give an indication
  * how stationary (steady state) the signal is.
  */
-static int g726_32_fitab[16] =
+static const int g726_32_fitab[16] =
 {
     0x000, 0x000, 0x000, 0x200, 0x200, 0x200, 0x600, 0xE00,
     0xE00, 0x600, 0x200, 0x200, 0x200, 0x000, 0x000, 0x000
 };
 
-static int qtab_726_32[7] =
+static const int qtab_726_32[7] =
 {
     -124, 80, 178, 246, 300, 349, 400
 };
@@ -166,7 +171,7 @@ static int qtab_726_32[7] =
  * Maps G.726_40 code word to ructeconstructed scale factor normalized log
  * magnitude values.
  */
-static int g726_40_dqlntab[32] =
+static const int g726_40_dqlntab[32] =
 {
     -2048, -66, 28, 104, 169, 224, 274, 318,
       358, 395, 429, 459, 488, 514, 539, 566,
@@ -175,19 +180,20 @@ static int g726_40_dqlntab[32] =
 };
 
 /* Maps G.726_40 code word to log of scale factor multiplier. */
-static int g726_40_witab[32] =
+static const int g726_40_witab[32] =
 {
       448,   448,   768,  1248,  1280,  1312,  1856,  3200,
      4512,  5728,  7008,  8960, 11456, 14080, 16928, 22272,
     22272, 16928, 14080, 11456,  8960,  7008,  5728,  4512,
-     3200,  1856,  1312,  1280,  1248,   768,   448,   448};
+     3200,  1856,  1312,  1280,  1248,   768,   448,   448
+};
 
 /*
  * Maps G.726_40 code words to a set of values whose long and short
  * term averages are computed and then compared to give an indication
  * how stationary (steady state) the signal is.
  */
-static int g726_40_fitab[32] =
+static const int g726_40_fitab[32] =
 {
     0x000, 0x000, 0x000, 0x000, 0x000, 0x200, 0x200, 0x200,
     0x200, 0x200, 0x400, 0x600, 0x800, 0xA00, 0xC00, 0xC00,
@@ -195,7 +201,7 @@ static int g726_40_fitab[32] =
     0x200, 0x200, 0x200, 0x000, 0x000, 0x000, 0x000, 0x000
 };
 
-static int qtab_726_40[15] =
+static const int qtab_726_40[15] =
 {
     -122, -16,  68, 139, 198, 250, 298, 339,
      378, 413, 445, 475, 502, 528, 553
@@ -216,7 +222,7 @@ static int16_t fmult(int16_t an, int16_t srn)
 
     anmag = (an > 0)  ?  an  :  ((-an) & 0x1FFF);
     anexp = (int16_t) (top_bit(anmag) - 5);
-    anmant = (anmag == 0)  ?  32  :  (anexp >= 0)  ?  anmag >> anexp  :  anmag << -anexp;
+    anmant = (anmag == 0)  ?  32  :  (anexp >= 0)  ?  (anmag >> anexp)  :  (anmag << -anexp);
     wanexp = anexp + ((srn >> 6) & 0xF) - 13;
 
     wanmant = (anmant*(srn & 0x3F) + 0x30) >> 4;
@@ -282,7 +288,7 @@ static int step_size(g726_state_t *s)
  */
 static int16_t quantize(int d,                  /* Raw difference signal sample */
                         int y,                  /* Step size multiplier */
-                        int table[],            /* quantization table */
+                        const int table[],     /* quantization table */
                         int quantizer_states)   /* table size of int16_t integers */
 {
     int16_t dqm;    /* Magnitude of 'd' */
@@ -398,7 +404,7 @@ static void update(g726_state_t *s,
     ylint = (int16_t) (s->yl >> 15);            /* exponent part of yl */
     ylfrac = (int16_t) ((s->yl >> 10) & 0x1F);  /* fractional part of yl */
     /* Limit threshold to 31 << 10 */
-    thr = (ylint > 9)  ?  (31 << 10)  :  (32 + ylfrac) << ylint;
+    thr = (ylint > 9)  ?  (31 << 10)  :  ((32 + ylfrac) << ylint);
     dqthr = (thr + (thr >> 1)) >> 1;            /* dqthr = 0.75 * thr */
     if (!s->td)                                 /* signal supposed voice */
         tr = FALSE;
@@ -524,8 +530,8 @@ static void update(g726_state_t *s,
     {
         exp = (int16_t) (top_bit(mag) + 1);
         s->dq[0] = (dq >= 0)
-                 ?  (exp << 6) + ((mag << 6) >> exp)
-                 :  (exp << 6) + ((mag << 6) >> exp) - 0x400;
+                 ?  ((exp << 6) + ((mag << 6) >> exp))
+                 :  ((exp << 6) + ((mag << 6) >> exp) - 0x400);
     }
 
     s->sr[1] = s->sr[0];
@@ -586,7 +592,7 @@ static int16_t tandem_adjust_alaw(int16_t sr,   /* decoder output linear PCM sam
                                   int y,        /* quantizer step size */
                                   int i,        /* decoder input code */
                                   int sign,
-                                  int qtab[],
+                                  const int qtab[],
                                   int quantizer_states)
 {
     uint8_t sp; /* A-law compressed 8-bit code */
@@ -612,17 +618,17 @@ static int16_t tandem_adjust_alaw(int16_t sr,   /* decoder output linear PCM sam
     {
         /* sp adjusted to next lower value */
         if (sp & 0x80)
-            sd = (sp == 0xD5)  ?  0x55  :  ((sp ^ 0x55) - 1) ^ 0x55;
+            sd = (sp == 0xD5)  ?  0x55  :  (((sp ^ 0x55) - 1) ^ 0x55);
         else
-            sd = (sp == 0x2A)  ?  0x2A  :  ((sp ^ 0x55) + 1) ^ 0x55;
+            sd = (sp == 0x2A)  ?  0x2A  :  (((sp ^ 0x55) + 1) ^ 0x55);
     }
     else
     {
         /* sp adjusted to next higher value */
         if (sp & 0x80)
-            sd = (sp == 0xAA)  ?  0xAA  :  ((sp ^ 0x55) + 1) ^ 0x55;
+            sd = (sp == 0xAA)  ?  0xAA  :  (((sp ^ 0x55) + 1) ^ 0x55);
         else
-            sd = (sp == 0x55)  ?  0xD5  :  ((sp ^ 0x55) - 1) ^ 0x55;
+            sd = (sp == 0x55)  ?  0xD5  :  (((sp ^ 0x55) - 1) ^ 0x55);
     }
     return (int16_t) sd;
 }
@@ -633,7 +639,7 @@ static int16_t tandem_adjust_ulaw(int16_t sr,   /* decoder output linear PCM sam
                                   int y,        /* quantizer step size */
                                   int i,        /* decoder input code */
                                   int sign,
-                                  int qtab[],
+                                  const int qtab[],
                                   int quantizer_states)
 {
     uint8_t sp; /* u-law compressed 8-bit code */
@@ -658,17 +664,17 @@ static int16_t tandem_adjust_ulaw(int16_t sr,   /* decoder output linear PCM sam
     {
         /* sp adjusted to next lower value */
         if (sp & 0x80)
-            sd = (sp == 0xFF)  ?  0x7E  :  sp + 1;
+            sd = (sp == 0xFF)  ?  0x7E  :  (sp + 1);
         else
-            sd = (sp == 0x00)  ?  0x00  :  sp - 1;
+            sd = (sp == 0x00)  ?  0x00  :  (sp - 1);
     }
     else
     {
         /* sp adjusted to next higher value */
         if (sp & 0x80)
-            sd = (sp == 0x80)  ?  0x80  :  sp - 1;
+            sd = (sp == 0x80)  ?  0x80  :  (sp - 1);
         else
-            sd = (sp == 0x7F)  ?  0xFE  :  sp + 1;
+            sd = (sp == 0x7F)  ?  0xFE  :  (sp + 1);
     }
     return (int16_t) sd;
 }
@@ -987,7 +993,7 @@ static int16_t g726_40_decoder(g726_state_t *s, uint8_t code)
 }
 /*- End of function --------------------------------------------------------*/
 
-g726_state_t *g726_init(g726_state_t *s, int bit_rate, int ext_coding, int packed)
+g726_state_t *g726_init(g726_state_t *s, int bit_rate, int ext_coding, int packing)
 {
     int i;
 
@@ -1003,13 +1009,9 @@ g726_state_t *g726_init(g726_state_t *s, int bit_rate, int ext_coding, int packe
     s->dms = 0;
     s->dml = 0;
     s->ap = 0;
-    s->in_buffer = 0;
-    s->in_bits = 0;
-    s->out_buffer = 0;
-    s->out_bits = 0;
     s->rate = bit_rate;
     s->ext_coding = ext_coding;
-    s->packed = packed;
+    s->packing = packing;
     for (i = 0; i < 2; i++)
     {
         s->a[i] = 0;
@@ -1046,6 +1048,7 @@ g726_state_t *g726_init(g726_state_t *s, int bit_rate, int ext_coding, int packe
         s->bits_per_sample = 5;
         break;
     }
+    bitstream_init(&s->bs);
     return s;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1067,30 +1070,40 @@ int g726_decode(g726_state_t *s,
     uint8_t code;
     int sl;
 
-    for (samples = i = 0;  i < g726_bytes;  )
+    for (samples = i = 0;  ;  )
     {
-        if (s->packed)
+        if (s->packing != G726_PACKING_NONE)
         {
             /* Unpack the code bits */
-            if (s->in_bits < s->bits_per_sample)
+            if (s->packing != G726_PACKING_LEFT)
             {
-#if defined(G726_PACKS_LEFT)
-                s->in_buffer |= (g726_data[i++] << s->in_bits);
-#else
-                s->in_buffer = (s->in_buffer << 8) | g726_data[i++];
-#endif
-                s->in_bits += 8;
+                if (s->bs.residue < s->bits_per_sample)
+                {
+                    if (i >= g726_bytes)
+                        break;
+                    s->bs.bitstream |= (g726_data[i++] << s->bs.residue);
+                    s->bs.residue += 8;
+                }
+                code = (uint8_t) (s->bs.bitstream & ((1 << s->bits_per_sample) - 1));
+                s->bs.bitstream >>= s->bits_per_sample;
             }
-#if defined(G726_PACKS_LEFT)
-            code = (uint8_t) (s->in_buffer & ((1 << s->bits_per_sample) - 1));
-            s->in_buffer >>= s->bits_per_sample;
-#else
-            code = (uint8_t) ((s->in_buffer >> (s->in_bits - s->bits_per_sample)) & ((1 << s->bits_per_sample) - 1));
-#endif
-            s->in_bits -= s->bits_per_sample;
+            else
+            {
+                if (s->bs.residue < s->bits_per_sample)
+                {
+                    if (i >= g726_bytes)
+                        break;
+                    s->bs.bitstream = (s->bs.bitstream << 8) | g726_data[i++];
+                    s->bs.residue += 8;
+                }
+                code = (uint8_t) ((s->bs.bitstream >> (s->bs.residue - s->bits_per_sample)) & ((1 << s->bits_per_sample) - 1));
+            }
+            s->bs.residue -= s->bits_per_sample;
         }
         else
         {
+            if (i >= g726_bytes)
+                break;
             code = g726_data[i++];
         }
         sl = s->dec_func(s, code);
@@ -1106,14 +1119,14 @@ int g726_decode(g726_state_t *s,
 int g726_encode(g726_state_t *s,
                 uint8_t g726_data[],
                 const int16_t amp[],
-                int samples)
+                int len)
 {
     int i;
     int g726_bytes;
     int16_t sl;
     uint8_t code;
 
-    for (g726_bytes = i = 0;  i < samples;  i++)
+    for (g726_bytes = i = 0;  i < len;  i++)
     {
         /* Linearize the input sample to 14-bit PCM */
         switch (s->ext_coding)
@@ -1129,24 +1142,29 @@ int g726_encode(g726_state_t *s,
             break;
         }
         code = s->enc_func(s, sl);
-        if (s->packed)
+        if (s->packing != G726_PACKING_NONE)
         {
             /* Pack the code bits */
-#if defined(G726_PACKS_LEFT)
-            s->out_buffer |= (code << s->out_bits);
-#else
-            s->out_buffer = (s->out_buffer << s->bits_per_sample) | code;
-#endif
-            s->out_bits += s->bits_per_sample;
-            if (s->out_bits >= 8)
+            if (s->packing != G726_PACKING_LEFT)
             {
-#if defined(G726_PACKS_LEFT)
-                g726_data[g726_bytes++] = (uint8_t) (s->out_buffer & 0xFF);
-                s->out_buffer >>= 8;
-#else
-                g726_data[g726_bytes++] = (uint8_t) ((s->out_buffer >> (s->out_bits - 8)) & 0xFF);
-#endif
-                s->out_bits -= 8;
+                s->bs.bitstream |= (code << s->bs.residue);
+                s->bs.residue += s->bits_per_sample;
+                if (s->bs.residue >= 8)
+                {
+                    g726_data[g726_bytes++] = (uint8_t) (s->bs.bitstream & 0xFF);
+                    s->bs.bitstream >>= 8;
+                    s->bs.residue -= 8;
+                }
+            }
+            else
+            {
+                s->bs.bitstream = (s->bs.bitstream << s->bits_per_sample) | code;
+                s->bs.residue += s->bits_per_sample;
+                if (s->bs.residue >= 8)
+                {
+                    g726_data[g726_bytes++] = (uint8_t) ((s->bs.bitstream >> (s->bs.residue - 8)) & 0xFF);
+                    s->bs.residue -= 8;
+                }
             }
         }
         else

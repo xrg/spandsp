@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo_tests.c,v 1.11 2006/01/11 08:06:10 steveu Exp $
+ * $Id: modem_echo_tests.c,v 1.22 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \page modem_echo_can_tests_page Line echo cancellation for modems tests
@@ -79,12 +78,11 @@ cancellor.
 #include "config.h"
 #endif
 
-#if defined(HAVE_FL_FL_H)  &&  defined(HAVE_FL_FL_CARTESIAN_H)
+#if defined(HAVE_FL_FL_H)  &&  defined(HAVE_FL_FL_CARTESIAN_H)  &&  defined(HAVE_FL_FL_AUDIO_METER_H)
 #define ENABLE_GUI
 #endif
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <inttypes.h>
 #include <string.h>
 #include <time.h>
@@ -92,13 +90,19 @@ cancellor.
 #include <fcntl.h>
 #include <audiofile.h>
 #include <tiffio.h>
-
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #define GEN_CONST
 #include <math.h>
+#endif
 
 #include "spandsp.h"
 #include "spandsp/g168models.h"
+#if defined(ENABLE_GUI)
 #include "echo_monitor.h"
+#endif
 
 #if !defined(NULL)
 #define NULL (void *) 0
@@ -106,7 +110,7 @@ cancellor.
 
 typedef struct
 {
-    char *name;
+    const char *name;
     int max;
     int cur;
     AFfilehandle handle;
@@ -120,7 +124,10 @@ fir32_state_t line_model;
 AFfilehandle resulthandle;
 int16_t residue_sound[8000];
 int residue_cur = 0;
-int do_alaw_munge = TRUE;
+int do_codec_munge = TRUE;
+int use_gui = FALSE;
+
+static const int16_t tone_1khz[] = {10362, 7327, 0, -7327, -10362, -7327, 0, 7327};
 
 static inline void put_residue(int16_t tx, int16_t residue)
 {
@@ -145,7 +152,7 @@ static inline void put_residue(int16_t tx, int16_t residue)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void signal_load(signal_source_t *sig, char *name)
+static void signal_load(signal_source_t *sig, const char *name)
 {
     float x;
 
@@ -206,9 +213,9 @@ static int16_t signal_amp(signal_source_t *sig)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int16_t alaw_munge(int16_t amp)
+static inline int16_t codec_munge(int16_t amp)
 {
-    if (do_alaw_munge)
+    if (do_codec_munge)
         return alaw_to_linear(linear_to_alaw(amp));
     return amp;
 }
@@ -254,13 +261,13 @@ static int16_t channel_model(int16_t local, int16_t far)
 
     /* The local tx signal will have gone through an A-law munging before
        it reached the line's analogue area where the echo occurs. */
-    echo = fir32(&line_model, alaw_munge(local/8));
+    echo = fir32(&line_model, codec_munge(local/8));
     /* The far end signal will have been through an A-law munging, although
        this should not affect things. */
-    rx = echo + alaw_munge(far);
+    rx = echo + codec_munge(far);
     /* This mixed echo and far end signal will have been through an A-law munging when it came back into
        the digital network. */
-    rx = alaw_munge(rx);
+    rx = codec_munge(rx);
     return  rx;
 }
 /*- End of function --------------------------------------------------------*/
@@ -268,30 +275,42 @@ static int16_t channel_model(int16_t local, int16_t far)
 int main(int argc, char *argv[])
 {
     modem_echo_can_state_t *ctx;
-    awgn_state_t local_noise_source;
+    //awgn_state_t local_noise_source;
     awgn_state_t far_noise_source;
     int i;
     int clean;
     int16_t rx;
     int16_t tx;
-    int16_t amp[2];
     int local_cur;
     int far_cur;
     int result_cur;
     AFfilesetup filesetup;
-    int outframes;
     int line_model_no;
     time_t now;
     power_meter_t power_before;
     power_meter_t power_after;
+    float unadapted_output_power;
+    float unadapted_echo_power;
+    float adapted_output_power;
+    float adapted_echo_power;
+#if defined(ENABLE_GUI)
+    int16_t amp[2];
+#endif
     
     line_model_no = 0;
-
-    if (argc > 1)
+    use_gui = FALSE;
+    for (i = 1;  i < argc;  i++)
+    {
+        if (strcmp(argv[i], "-g") == 0)
+        {
+            use_gui = TRUE;
+            continue;
+        }
         line_model_no = atoi(argv[1]);
+    }
     time(&now);
     ctx = modem_echo_can_create(256);
-    awgn_init(&far_noise_source, 7162534, -50);
+    awgn_init_dbm0(&far_noise_source, 7162534, -50.0f);
 
     signal_load(&local_css, "sound_c1_8k.wav");
 
@@ -314,7 +333,8 @@ int main(int argc, char *argv[])
     }
 
 #if defined(ENABLE_GUI)
-    start_echo_can_monitor(256);
+    if (use_gui)
+        start_echo_can_monitor(256);
 #endif
 
     local_cur = 0;
@@ -322,13 +342,28 @@ int main(int argc, char *argv[])
     result_cur = 0;
     channel_model_create(line_model_no);
 #if defined(ENABLE_GUI)
-    echo_can_monitor_line_model_update(line_model.coeffs, line_model.taps);
+    if (use_gui)
+        echo_can_monitor_line_model_update(line_model.coeffs, line_model.taps);
 #endif
 
     modem_echo_can_flush(ctx);
 
     power_meter_init(&power_before, 5);
     power_meter_init(&power_after, 5);
+    
+    /* Measure the echo power before adaption */
+    modem_echo_can_adaption_mode(ctx, FALSE);
+    for (i = 0;  i < 8000*5;  i++)
+    {
+        tx = tone_1khz[i & 7];
+        rx = channel_model(tx, 0);
+        clean = modem_echo_can_update(ctx, tx, rx);
+        power_meter_update(&power_before, rx);
+        power_meter_update(&power_after, clean);
+    }
+    unadapted_output_power = power_meter_dbm0(&power_before);
+    unadapted_echo_power = power_meter_dbm0(&power_after);
+    printf("Pre-adaption: output power %10.5fdBm0, echo power %10.5fdBm0\n", unadapted_output_power, unadapted_echo_power);
     
     /* Converge the canceller */
     signal_restart(&local_css);
@@ -346,17 +381,44 @@ int main(int argc, char *argv[])
         clean = modem_echo_can_update(ctx, tx, rx);
         power_meter_update(&power_before, rx);
         power_meter_update(&power_after, clean);
+#if 0
         if (i%800 == 0)
-            printf("Powers %15.5fdBm0 %15.5fdBm0\n", power_meter_dbm0(&power_before), power_meter_dbm0(&power_after));
+            printf("Powers %10.5fdBm0 %10.5fdBm0\n", power_meter_dbm0(&power_before), power_meter_dbm0(&power_after));
+#endif
         put_residue(tx, clean);
 #if defined(ENABLE_GUI)
-        echo_can_monitor_can_update(ctx->fir_taps16, 256);
+        if (use_gui)
+        {
+            echo_can_monitor_can_update(ctx->fir_taps16, 256);
+            amp[0] = tx;
+            echo_can_monitor_line_spectrum_update(amp, 1);
+        }
 #endif
-        amp[0] = tx;
-        echo_can_monitor_line_spectrum_update(amp, 1);
     }
-    modem_echo_can_free(ctx);
 
+    /* Now lets see how well adapted we are */
+    modem_echo_can_adaption_mode(ctx, FALSE);
+    for (i = 0;  i < 8000*5;  i++)
+    {
+        tx = tone_1khz[i & 7];
+        rx = channel_model(tx, 0);
+        clean = modem_echo_can_update(ctx, tx, rx);
+        power_meter_update(&power_before, rx);
+        power_meter_update(&power_after, clean);
+    }
+    adapted_output_power = power_meter_dbm0(&power_before);
+    adapted_echo_power = power_meter_dbm0(&power_after);
+    printf("Post-adaption: output power %10.5fdBm0, echo power %10.5fdBm0\n", adapted_output_power, adapted_echo_power);
+    
+    if (fabsf(adapted_output_power - unadapted_output_power) > 0.1f
+        ||
+        adapted_echo_power > unadapted_echo_power - 30.0f)
+    {
+        printf("Tests failed.\n");
+        exit(2);
+    }
+
+    modem_echo_can_free(ctx);
     signal_free(&local_css);
 
     if (afCloseFile(resulthandle) != 0)
@@ -367,9 +429,11 @@ int main(int argc, char *argv[])
     afFreeFileSetup(filesetup);
 
 #if defined(ENABLE_GUI)
-    echo_can_monitor_wait_to_end();
+    if (use_gui)
+        echo_can_monitor_wait_to_end();
 #endif
 
+    printf("Tests passed.\n");
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

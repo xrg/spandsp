@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo_monitor.cpp,v 1.7 2005/11/28 13:43:34 steveu Exp $
+ * $Id: echo_monitor.cpp,v 1.10 2006/10/24 13:22:02 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -49,6 +48,7 @@
 #include <FL/Fl_Overlay_Window.H>
 #include <FL/Fl_Light_Button.H>
 #include <Fl/Fl_Cartesian.H>
+#include <Fl/Fl_Audio_Meter.H>
 #include <FL/fl_draw.H>
 
 #include "../src/spandsp/complex.h"
@@ -56,6 +56,8 @@
 #include "echo_monitor.h"
 
 Fl_Double_Window *w;
+
+Fl_Audio_Meter *audio_meter;
 
 Fl_Group *c_spec;
 Fl_Group *c_right;
@@ -124,6 +126,7 @@ int echo_can_monitor_can_update(const int16_t *coeffs, int len)
     }
     return 0;
 }
+/*- End of function --------------------------------------------------------*/
 
 int echo_can_monitor_line_model_update(const int32_t *coeffs, int len)
 {
@@ -157,11 +160,15 @@ int echo_can_monitor_line_model_update(const int32_t *coeffs, int len)
     }
     return 0;
 }
+/*- End of function --------------------------------------------------------*/
 
 int echo_can_monitor_line_spectrum_update(const int16_t amp[], int len)
 {
     int i;
     int x;
+
+    for (i = 0;  i < len;  i++)
+        audio_meter->sample(amp[i]/32768.0);
 
     if (in_ptr + len < 512)
     {
@@ -226,6 +233,7 @@ int echo_can_monitor_line_spectrum_update(const int16_t amp[], int len)
     Fl::check();
     return 0;
 }
+/*- End of function --------------------------------------------------------*/
 
 int start_echo_can_monitor(int len)
 {
@@ -234,7 +242,7 @@ int start_echo_can_monitor(int len)
     float y;
     int i;
 
-    w = new Fl_Double_Window(905, 400, "Echo canceller monitor");
+    w = new Fl_Double_Window(850, 400, "Echo canceller monitor");
 
     c_spec = new Fl_Group(0, 0, 380, 400);
     c_spec->box(FL_DOWN_BOX);
@@ -369,6 +377,10 @@ int start_echo_can_monitor(int len)
 
     c_line_model->end();
 
+    audio_meter = new Fl_Audio_Meter(810, 40, 10, 250, "");
+    audio_meter->box(FL_PLASTIC_UP_BOX);
+    audio_meter->type(FL_VERT_AUDIO_METER);
+
     c_right->end();
 
     Fl_Group::current()->resizable(c_right);
@@ -395,6 +407,7 @@ int start_echo_can_monitor(int len)
     Fl::check();
     return 0;
 }
+/*- End of function --------------------------------------------------------*/
 
 void echo_can_monitor_wait_to_end(void) 
 {
@@ -415,6 +428,7 @@ void echo_can_monitor_wait_to_end(void)
     }
     while (res <= 0);
 }
+/*- End of function --------------------------------------------------------*/
 
 void echo_can_monitor_update_display(void) 
 {
@@ -431,4 +445,6 @@ void echo_can_monitor_update_display(void)
     Fl::check();
     Fl::check();
 }
+/*- End of function --------------------------------------------------------*/
 #endif
+/*- End of file ------------------------------------------------------------*/

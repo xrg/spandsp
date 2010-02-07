@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: testadsi.c,v 1.14 2005/11/27 12:36:23 steveu Exp $
+ * $Id: testadsi.c,v 1.18 2006/10/24 13:45:29 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,7 +36,6 @@
 #include <sys/ioctl.h>
 #include <stdlib.h>
 #include <inttypes.h>
-#include <unistd.h>
 #include <sys/signal.h>
 #include <sys/select.h>
 #include <sys/wait.h>
@@ -209,9 +207,9 @@ void channel_read_adsi_channel(uc_t *uc, int chan, void *user_data, uint8_t *buf
     }
     
     dtmf_rx(&chan_stuff[chan].dtmf_state, pcm_buf, len);
-    xlen = dtmf_get(&chan_stuff[chan].dtmf_state,
-                    chan_stuff[chan].dtmf + chan_stuff[chan].dtmf_ptr,
-                    100 - chan_stuff[chan].dtmf_ptr);
+    xlen = dtmf_rx_get(&chan_stuff[chan].dtmf_state,
+                       chan_stuff[chan].dtmf + chan_stuff[chan].dtmf_ptr,
+                       100 - chan_stuff[chan].dtmf_ptr);
     if (xlen > 0)
     {
         s = chan_stuff[chan].dtmf + chan_stuff[chan].dtmf_ptr;

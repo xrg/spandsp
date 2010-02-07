@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.h,v 1.18 2005/12/29 09:54:24 steveu Exp $
+ * $Id: v27ter_tx.h,v 1.25 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \file */
@@ -46,7 +45,17 @@ signal is then a series of complex pulses, each an integer number of samples
 long. These can be shaped, using a suitable complex filter, and multiplied by a
 complex carrier signal to produce the final DPSK signal for transmission. 
 
-The sampling rate for our transmitter is defined by the channel - 8000 samples/s. This is a multiple of the baud rate at 4800 bits/s (8-PSK at 1600 baud, 5 samples per symbol), but not at 2400 bits/s (4-PSK at 1200 baud, 20/3 samples per symbol). Generating at the lowest common multiple of the baud rate and channel sample rate (i.e. 24000 samples/s for 2400 bits/s), and then decimating to 8000 samples/s, would give good results. However, this would require considerable computation. A shortcut is to use slightly shaped pulses, instead of simple square ones. We can achieve the effect of pulse transitions at the 1/2 and 2/3 sample points by adjusting the first sample of each new pulse. The adjustment is simple. We need the effect of being 60 degrees or 120 degrees through a sine wave cycle at the Shannon rate at the sample point. This simply means we need to step by 0.25 or 0.75 of the actual step size on the first sample of those pulses which should start at the 1/3 or 2/3 sample positions. The logic and computation needed for this is much less than the computation needed for oversampling at 24000 samples/second. The square or lightly shaped pulses are filtered by a pulse shaping filter, as specified in the V.27ter spec. - a root raised cosine filter with 50% excess bandwidth. 
+The pulse shaping filter for V.27ter is defined in the spec. It is a root raised
+cosine filter with 50% excess bandwidth. 
+
+The sampling rate for our transmitter is defined by the channel - 8000 samples/s.
+This is a multiple of the baud rate at 4800 bits/s (8-PSK at 1600 baud, 5 samples per
+symbol), but not at 2400 bits/s (4-PSK at 1200 baud, 20/3 samples per symbol). The baud
+interval is actually 20/3 sample periods at 2400bis/s. A symmetric FIR is used to
+apply root raised cosine filtering in the 4800bits/s mode. In the 2400bits/s mode
+a polyphase FIR filter is used. This consists of 20 sets of coefficients, offering
+zero to 19/20ths of a baud phase shift as well as root raised cosine filtering.
+The appropriate coefficient set is chosen for each signal sample generated.
 
 The carrier is generated using the DDS method. Using 2 second order resonators,
 started in quadrature, might be more efficient, as it would have less impact on
@@ -55,9 +64,7 @@ suits the receiver better, so then same signal generator is also used for the
 transmitter.
 */
 
-/* The 4800bps and 2400bps filters are different lengths. This is the greater of
-   the two, for buffer sizing purposes. */
-#define V27TER_TX_FILTER_STEPS      53
+#define V27TER_TX_FILTER_STEPS      9
 
 /*!
     V.27ter modem transmit side descriptor. This defines the working state for a
@@ -72,15 +79,15 @@ typedef struct
     /*! \brief A user specified opaque pointer passed to the callback function. */
     void *user_data;
 
+    /*! \brief The gain factor needed to achieve the specified output power at 2400bps. */
     float gain_2400;
+    /*! \brief The gain factor needed to achieve the specified output power at 4800bps. */
     float gain_4800;
 
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
-    complex_t rrc_filter[2*V27TER_TX_FILTER_STEPS];
+    complexf_t rrc_filter[2*V27TER_TX_FILTER_STEPS];
     /*! \brief Current offset into the RRC pulse shaping filter buffer. */
     int rrc_filter_step;
-    /*! \brief The current constellation position. */
-    complex_t current_point;
     
     /*! \brief The register for the training and data scrambler. */
     unsigned int scramble_reg;
@@ -90,8 +97,6 @@ typedef struct
     /*! \brief TRUE if transmitting the training sequence, or shutting down transmission.
                FALSE if transmitting user data. */
     int in_training;
-    /*! A counter used to track progress through the optional TEP tone burst */
-    int tep_step;
     /*! \brief A counter used to track progress through sending the training sequence. */
     int training_step;
 
@@ -157,7 +162,7 @@ void v27ter_tx_set_get_bit(v27ter_tx_state_t *s, get_bit_func_t get_bit, void *u
     \param len The number of samples to be generated.
     \return The number of samples actually generated.
 */
-int v27ter_tx(v27ter_tx_state_t *s, int16_t *amp, int len);
+int v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len);
 
 #ifdef __cplusplus
 }

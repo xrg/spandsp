@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.h,v 1.5 2005/11/25 14:52:00 steveu Exp $
+ * $Id: super_tone_tx.h,v 1.8 2006/10/24 13:45:28 steveu Exp $
  */
 
 #if !defined(_SUPER_TONE_TX_H_)
@@ -47,7 +46,7 @@ typedef struct super_tone_tx_step_s super_tone_tx_step_t;
 typedef struct
 {
     int32_t phase_rate[2];
-    int gain[2];
+    float gain[2];
     uint32_t phase[2];
     int current_position;
     int level;
@@ -58,7 +57,7 @@ typedef struct
 struct super_tone_tx_step_s
 {
     int32_t phase_rate[2];
-    int gain[2];
+    float gain[2];
     int tone;
     int length;
     int cycles;

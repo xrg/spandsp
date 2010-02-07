@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.h,v 1.4 2005/11/25 14:52:00 steveu Exp $
+ * $Id: super_tone_rx.h,v 1.9 2006/10/24 13:22:02 steveu Exp $
  */
 
 #if !defined(_SUPER_TONE_RX_H_)
@@ -55,6 +54,9 @@ ringback tone, intercept tone, call waiting tone, busy verification tone,
 executive override tone, confirmation tone).
 */
 
+/*! Tone detection indication callback routine */
+typedef void (*tone_report_func_t)(void *user_data, int code);
+
 #define BINS            128
 
 typedef struct
@@ -84,19 +86,25 @@ typedef struct
     float total_energy;
     int detected_tone;
     int rotation;
-    void (*tone_callback)(void *data, int code);
+    tone_report_func_t tone_callback;
     void (*segment_callback)(void *data, int f1, int f2, int duration);
     void *callback_data;
     super_tone_rx_segment_t segments[11];
-    goertzel_state_t state[0];
-    uint8_t filler[80];
+    goertzel_state_t state[];
 } super_tone_rx_state_t;
 
-/*! Create Add a new tone pattern to a supervisory tone detector.
+/*! Create a new supervisory tone detector descriptor.
     \param desc The supervisory tone set desciptor. If NULL, the routine will allocate space for a
                 descriptor.
-    \return The supervisory tone set descriptor. */
+    \return The supervisory tone set descriptor.
+*/
 super_tone_rx_descriptor_t *super_tone_rx_make_descriptor(super_tone_rx_descriptor_t *desc);
+
+/*! Free a supervisory tone detector descriptor.
+    \param desc The supervisory tone set desciptor.
+    \return 0 for OK, -1 for fail.
+*/
+int super_tone_rx_free_descriptor(super_tone_rx_descriptor_t *desc);
 
 /*! Add a new tone pattern to a supervisory tone detector set.
     \param desc The supervisory tone set descriptor.
@@ -110,7 +118,8 @@ int super_tone_rx_add_tone(super_tone_rx_descriptor_t *desc);
     \param f2 Frequency 2 (-1 for a silent period, or only one frequency).
     \param min The minimum duration, in ms.
     \param max The maximum duration, in ms.
-    \return The new number of elements in the tone description. */
+    \return The new number of elements in the tone description.
+*/
 int super_tone_rx_add_element(super_tone_rx_descriptor_t *desc,
                               int tone,
                               int f1,
@@ -123,22 +132,25 @@ int super_tone_rx_add_element(super_tone_rx_descriptor_t *desc,
     \param desc The tone descriptor.
     \param callback The callback routine called to report the valid detection or termination of
            one of the monitored tones.
-    \param data An opaque pointer passed when calling the callback routine.
-    \return The supervisory tone detector context. */
+    \param user_data An opaque pointer passed when calling the callback routine.
+    \return The supervisory tone detector context.
+*/
 super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *s,
                                           super_tone_rx_descriptor_t *desc,
-                                          void (*callback)(void *data, int code),
-                                          void *data);
+                                          tone_report_func_t callback,
+                                          void *user_data);
 
 /*! Release a supervisory tone detector.
     \param s The supervisory tone context.
-    \return 0 for OK, -1 for fail. */
+    \return 0 for OK, -1 for fail.
+*/
 int super_tone_rx_free(super_tone_rx_state_t *s);
 
 /*! Define a callback routine to be called each time a tone pattern element is complete. This is
     mostly used when analysing a tone.
     \param s The supervisory tone context.
-    \param callback The callback routine. */
+    \param callback The callback routine.
+*/
 void super_tone_rx_segment_callback(super_tone_rx_state_t *s,
                                     void (*callback)(void *data, int f1, int f2, int duration));
 

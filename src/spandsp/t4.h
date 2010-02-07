@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.18 2005/11/27 12:36:22 steveu Exp $
+ * $Id: t4.h,v 1.29 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \file */
@@ -60,18 +59,29 @@ for FAX transmission.
 */
 typedef struct
 {
-    int             scan_lines;
-    int             options;
+    /* "Background" information about the FAX, which can be stored in a TIFF file. */
+    /*! \brief The vendor of the machine which produced the TIFF file. */ 
+    const char      *vendor;
+    /*! \brief The model of machine which produced the TIFF file. */ 
+    const char      *model;
+    /*! \brief The local ident string. */ 
+    const char      *local_ident;
+    /*! \brief The remote end's ident string. */ 
+    const char      *far_ident;
+    /*! \brief The FAX sub-address. */ 
+    const char      *sub_address;
+    /*! \brief The text which will be used in FAX page header. No text results
+               in no header line. */
+    const char      *header_info;
+
     /*! \brief The type of compression used between the FAX machines. */
     int             line_encoding;
+    /*! \brief The minimum number of bits per scan row. This is a timing thing
+               for hardware FAX machines. */
     int             min_scan_line_bits;
     
     int             output_compression;
     int             output_t4_options;
-
-    char            header_info[50 + 1];
-    
-    int             verbose;
 
     time_t          page_start_time;
 
@@ -86,35 +96,31 @@ typedef struct
     int             stop_page;
 
     int             pages_transferred;
-    /*! column resolution in pixels per metre */
-    int             column_resolution;
-    /*! row resolution in pixels per metre */
-    int             row_resolution;
+    /*! Column-to-column (X) resolution in pixels per metre. */
+    int             x_resolution;
+    /*! Row-to-row (Y) resolution in pixels per metre. */
+    int             y_resolution;
+    /*! Width of the current page, in pixels. */
     int             image_width;
+    /*! Current pixel row number. */
     int             row;
-    int             rows;
+    /*! Total pixel rows in the current page. */
+    int             image_length;
+    /*! The current number of consecutive bad rows. */
     int             curr_bad_row_run;
+    /*! The longest run of consecutive bad rows seen in the current page. */
     int             longest_bad_row_run;
+    /*! The total number of bad rows in the current page. */
     int             bad_rows;
 
-    uint8_t         *rowbuf;
-    
-    int             bit_pos;
-    int             bit_ptr;
-    int             bits;
-    uint32_t        bits_to_date;
-    
-    const char      *vendor;
-    const char      *model;
-    const char      *local_ident;
-    const char      *far_ident;
-    const char      *sub_address;
-
     /* Decode state */
+    uint32_t        bits_to_date;
+    int             bits;
+
     /*! \brief This variable is set if we are treating the current row as a 2D encoded
                one. */
     int             row_is_2d;
-    int             itsblack;
+    int             its_black;
     int             row_len;
     /*! \brief This variable is used to record the fact we have seen at least one EOL
                since we started decoding. We will not try to interpret the received
@@ -124,8 +130,10 @@ typedef struct
                reaches six, this is the end of the image. */
     int             consecutive_eols;
 
-    uint32_t        *refruns;               /* B&W runs for reference line */
-    uint32_t        *curruns;               /* B&W runs for current line */
+    /*! \brief B&W runs for reference line */
+    uint32_t        *ref_runs;
+    /*! \brief B&W runs for current line */
+    uint32_t        *cur_runs;
 
     uint32_t        *pa;
     uint32_t        *pb;
@@ -144,17 +152,25 @@ typedef struct
     int             row_starts_at;
     
     /* Encode state */
-    /*! \brief The reference line for 2D encoding. */
-    uint8_t         *refrowbuf;
+
+    /*! Pointer to the buffer for the current pixel row. */
+    uint8_t         *row_buf;
+    
+    int             bit_pos;
+    int             bit_ptr;
+
+    /*! \brief The reference pixel row for 2D encoding. */
+    uint8_t         *ref_row_buf;
     /*! \brief The maximum contiguous rows that will be 2D encoded. */
-    int             maxk;
-    /*! \brief Number of rows left that can be 2D encoded, before a 1D
-               encoded row is used. */
-    int             k;
+    int             max_rows_to_next_1d_row;
+    /*! \brief Number of rows left that can be 2D encoded, before a 1D encoded row
+               must be used. */
+    int             rows_to_next_1d_row;
     /*! \brief The minimum number of encoded bits per row. */
     int             min_row_bits;
     /*! \brief The current number of bits in the current encoded row. */
     int             row_bits;
+
     /*! \brief Error and flow logging control */
     logging_state_t logging;
 } t4_state_t;
@@ -167,17 +183,17 @@ typedef struct
     /*! \brief The number of pages transferred so far. */
     int pages_transferred;
     /*! \brief The number of horizontal pixels in the most recent page. */
-    int columns;
+    int width;
     /*! \brief The number of vertical pixels in the most recent page. */
-    int rows;
+    int length;
     /*! \brief The number of bad pixel rows in the most recent page. */
     int bad_rows;
     /*! \brief The largest number of bad pixel rows in a block in the most recent page. */
     int longest_bad_row_run;
     /*! \brief The horizontal resolution of the page in pixels per metre */
-    int column_resolution;
+    int x_resolution;
     /*! \brief The vertical resolution of the page in pixels per metre */
-    int row_resolution;
+    int y_resolution;
     /*! \brief The type of compression used between the FAX machines */
     int encoding;
     /*! \brief The size of the image, in bytes */
@@ -211,7 +227,7 @@ int t4_rx_start_page(t4_state_t *s);
     \param s The T.4 context.
     \param bit The data bit.
     \return TRUE when the bit ends the document page, otherwise FALSE. */
-int t4_rx_putbit(t4_state_t *s, int bit);
+int t4_rx_put_bit(t4_state_t *s, int bit);
 
 /*! \brief Complete the reception of a page.
     \param s The T.4 receive context.
@@ -237,20 +253,20 @@ int t4_rx_end(t4_state_t *s);
     \param encoding The encoding. */
 void t4_rx_set_rx_encoding(t4_state_t *s, int encoding);
 
-/*! \brief Set the number of pixel columns to expect in a received image.
+/*! \brief Set the expected width of the received image, in pixel columns.
     \param s The T.4 context.
     \param columns The number of pixels across the image. */
-void t4_rx_set_columns(t4_state_t *s, int columns);
+void t4_rx_set_image_width(t4_state_t *s, int width);
 
-/*! \brief Set the row resolution to expect for a received image.
+/*! \brief Set the row-to-row (y) resolution to expect for a received image.
     \param s The T.4 context.
     \param resolution The resolution, in pixels per metre. */
-void t4_rx_set_row_resolution(t4_state_t *s, int resolution);
+void t4_rx_set_y_resolution(t4_state_t *s, int resolution);
 
-/*! \brief Set the column resolution to expect for a received image.
+/*! \brief Set the column-to-column (x) resolution to expect for a received image.
     \param s The T.4 context.
     \param resolution The resolution, in pixels per metre. */
-void t4_rx_set_column_resolution(t4_state_t *s, int resolution);
+void t4_rx_set_x_resolution(t4_state_t *s, int resolution);
 
 /*! \brief Set the sub-address of the fax, for inclusion in the file.
     \param s The T.4 context.
@@ -297,6 +313,12 @@ int t4_tx_start_page(t4_state_t *s);
     \return zero for success, -1 for failure. */
 int t4_tx_restart_page(t4_state_t *s);
 
+/*! \brief Check for the existance of the next page. This information can
+    be needed before it is determined that the current page is finished with.
+    \param s The T.4 context.
+    \return zero for next page found, -1 for failure. */
+int t4_tx_more_pages(t4_state_t *s);
+
 /*! \brief Complete the sending of a page.
     \param s The T.4 context.
     \return zero for success, -1 for failure. */
@@ -309,7 +331,17 @@ int t4_tx_end_page(t4_state_t *s);
     \param s The T.4 context.
     \return The next bit (i.e. 0 or 1). For the last bit of data, bit 1 is
             set (i.e. the returned value is 2 or 3). */
-int t4_tx_getbit(t4_state_t *s);
+int t4_tx_get_bit(t4_state_t *s);
+
+/*! \brief Return the next bit of the current document page, without actually
+           moving forward in the buffer. The document will be padded for the
+           current minimum scan line time. If the file does not contain an
+           RTC (return to control) code at the end of the page, one will be
+           added.
+    \param s The T.4 context.
+    \return The next bit (i.e. 0 or 1). For the last bit of data, bit 1 is
+            set (i.e. the returned value is 2 or 3). */
+int t4_tx_check_bit(t4_state_t *s);
 
 /*! \brief End the transmission of a document. Tidy up, close the file and
            free the context. This should be used to end T.4 transmission
@@ -348,27 +380,22 @@ void t4_tx_set_local_ident(t4_state_t *s, const char *ident);
     \brief Set the header info.
     \param s The T.4 context.
     \param info A string, of up to 50 bytes, which will form the info field. */
-int t4_tx_set_header_info(t4_state_t *s, const char *info);
+void t4_tx_set_header_info(t4_state_t *s, const char *info);
 
-/*! \brief Get the header info.
-    \param s The T.4 context.
-    \return A string, of up to 50 characters. */
-const char *t4_tx_get_header_info(t4_state_t *s);
-
-/*! \brief Get the row resolution of the current page.
+/*! \brief Get the row-to-row (y) resolution of the current page.
     \param s The T.4 context.
     \return The resolution, in pixels per metre. */
-int t4_tx_get_row_resolution(t4_state_t *s);
+int t4_tx_get_y_resolution(t4_state_t *s);
 
-/*! \brief Get the column resolution of the current page.
+/*! \brief Get the column-to-column (x) resolution of the current page.
     \param s The T.4 context.
     \return The resolution, in pixels per metre. */
-int t4_tx_get_column_resolution(t4_state_t *s);
+int t4_tx_get_x_resolution(t4_state_t *s);
 
-/*! \brief Get the number of columns in the current page.
+/*! \brief Get the width of the current page, in pixel columns.
     \param s The T.4 context.
     \return The number of columns. */
-int t4_tx_get_columns(t4_state_t *s);
+int t4_tx_get_image_width(t4_state_t *s);
 
 /*! Get the current image transfer statistics. 
     \brief Get the current transfer statistics.

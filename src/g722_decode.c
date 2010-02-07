@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -29,7 +28,7 @@
  * Computer Science, Speech Group
  * Chengxiang Lu and Alex Hauptmann
  *
- * $Id: g722_decode.c,v 1.12 2006/05/22 12:47:24 steveu Exp $
+ * $Id: g722_decode.c,v 1.18 2006/11/19 14:07:24 steveu Exp $
  */
 
 /*! \file */
@@ -38,11 +37,15 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
 #include <inttypes.h>
 #include <memory.h>
 #include <stdlib.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 
 #include "spandsp/telephony.h"
 #include "spandsp/dc_restore.h"
@@ -55,8 +58,6 @@ static void block4(g722_decode_state_t *s, int band, int d)
     int wd1;
     int wd2;
     int wd3;
-    int wd4;
-    int wd5;
     int i;
 
     /* Block 4, RECONS */
@@ -75,14 +76,13 @@ static void block4(g722_decode_state_t *s, int band, int d)
     if (wd2 > 32767)
         wd2 = 32767;
     wd3 = (s->band[band].sg[0] == s->band[band].sg[2])  ?  128  :  -128;
-    wd4 = (wd2 >> 7) + wd3;
-    wd5 = (s->band[band].a[2]*32512) >> 15;
-
-    s->band[band].ap[2] = wd4 + wd5;
-    if (s->band[band].ap[2] > 12288)
-        s->band[band].ap[2] = 12288;
-    else if (s->band[band].ap[2] < -12288)
-        s->band[band].ap[2] = -12288;
+    wd3 += (wd2 >> 7);
+    wd3 += (s->band[band].a[2]*32512) >> 15;
+    if (wd3 > 12288)
+        wd3 = 12288;
+    else if (wd3 < -12288)
+        wd3 = -12288;
+    s->band[band].ap[2] = wd3;
 
     /* Block 4, UPPOL1 */
     s->band[band].sg[0] = s->band[band].p[0] >> 15;
@@ -143,7 +143,7 @@ static void block4(g722_decode_state_t *s, int band, int d)
 }
 /*- End of function --------------------------------------------------------*/
 
-g722_decode_state_t *g722_decode_init(g722_decode_state_t *s, int rate, int packed)
+g722_decode_state_t *g722_decode_init(g722_decode_state_t *s, int rate, int options)
 {
     if (s == NULL)
     {
@@ -157,7 +157,12 @@ g722_decode_state_t *g722_decode_init(g722_decode_state_t *s, int rate, int pack
         s->bits_per_sample = 7;
     else
         s->bits_per_sample = 8;
-    s->packed = (s->bits_per_sample != 8)  ?  packed  :  FALSE;
+    if ((options & G722_SAMPLE_RATE_8000))
+        s->eight_k = TRUE;
+    if ((options & G722_PACKED)  &&  s->bits_per_sample != 8)
+        s->packed = TRUE;
+    else
+        s->packed = FALSE;
     s->band[0].det = 32;
     s->band[1].det = 8;
     return s;
@@ -238,19 +243,13 @@ int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[]
     int wd1;
     int wd2;
     int wd3;
-    int *xdp;
-    int *xsp;
-    int *xdp_1;
-    int *xsp_1;
     int code;
     int outlen;
     int i;
     int j;
 
-    wd2 = 0;
-    ihigh = 0;
-    wd1 = 0;
     outlen = 0;
+    rhigh = 0;
     for (j = 0;  j < len;  )
     {
         if (s->packed)
@@ -272,6 +271,7 @@ int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[]
 
         switch (s->bits_per_sample)
         {
+        default:
         case 8:
             wd1 = code & 0x3F;
             ihigh = (code >> 6) & 0x03;
@@ -307,49 +307,53 @@ int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[]
         /* Block 3L, LOGSCL */
         wd2 = rl42[wd1];
         wd1 = (s->band[0].nb*127) >> 7;
-        s->band[0].nb = wd1 + wl[wd2];
-        if (s->band[0].nb < 0)
-            s->band[0].nb = 0;
-        else if (s->band[0].nb > 18432)
-            s->band[0].nb = 18432;
+        wd1 += wl[wd2];
+        if (wd1 < 0)
+            wd1 = 0;
+        else if (wd1 > 18432)
+            wd1 = 18432;
+        s->band[0].nb = wd1;
             
         /* Block 3L, SCALEL */
         wd1 = (s->band[0].nb >> 6) & 31;
-        wd2 = s->band[0].nb >> 11;
-        wd3 = (8 < wd2)  ?  ilb[wd1] << (wd2 - 8)  :  ilb[wd1] >> (8 - wd2);
+        wd2 = 8 - (s->band[0].nb >> 11);
+        wd3 = (wd2 < 0)  ?  (ilb[wd1] << -wd2)  :  (ilb[wd1] >> wd2);
         s->band[0].det = wd3 << 2;
 
         block4(s, 0, dlowt);
         
-        /* Block 2H, INVQAH */
-        wd2 = qm2[ihigh];
-        dhigh = (s->band[1].det*wd2) >> 15;
-        /* Block 5H, RECONS */
-        rhigh = dhigh + s->band[1].s;
-        /* Block 6H, LIMIT */
-        if (rhigh > 16383)
-            rhigh = 16383;
-        else if (rhigh < -16384)
-            rhigh = -16384;
+        if (!s->eight_k)
+        {
+            /* Block 2H, INVQAH */
+            wd2 = qm2[ihigh];
+            dhigh = (s->band[1].det*wd2) >> 15;
+            /* Block 5H, RECONS */
+            rhigh = dhigh + s->band[1].s;
+            /* Block 6H, LIMIT */
+            if (rhigh > 16383)
+                rhigh = 16383;
+            else if (rhigh < -16384)
+                rhigh = -16384;
 
-        /* Block 2H, INVQAH */
-        wd2 = rh2[ihigh];
-        wd1 = (s->band[1].nb*127) >> 7;
-        s->band[1].nb = wd1 + wh[wd2];
-
-        if (s->band[1].nb < 0)
-            s->band[1].nb = 0;
-        else if (s->band[1].nb > 22528)
-            s->band[1].nb = 22528;
+            /* Block 2H, INVQAH */
+            wd2 = rh2[ihigh];
+            wd1 = (s->band[1].nb*127) >> 7;
+            wd1 += wh[wd2];
+            if (wd1 < 0)
+                wd1 = 0;
+            else if (wd1 > 22528)
+                wd1 = 22528;
+            s->band[1].nb = wd1;
             
-        /* Block 3H, SCALEH */
-        wd1 = (s->band[1].nb >> 6) & 31;
-        wd2 = s->band[1].nb >> 11;
-        wd3 = ((10 - wd2) < 0)  ?  ilb[wd1] << (wd2 - 10)  :  ilb[wd1] >> (10 - wd2);
-        s->band[1].det = wd3 << 2;
+            /* Block 3H, SCALEH */
+            wd1 = (s->band[1].nb >> 6) & 31;
+            wd2 = 10 - (s->band[1].nb >> 11);
+            wd3 = (wd2 < 0)  ?  (ilb[wd1] << -wd2)  :  (ilb[wd1] >> wd2);
+            s->band[1].det = wd3 << 2;
 
-        block4(s, 1, dhigh);
- 
+            block4(s, 1, dhigh);
+        }
+
         if (s->itu_test_mode)
         {
             amp[outlen++] = (int16_t) (rlow << 1);
@@ -357,34 +361,28 @@ int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[]
         }
         else
         {
-            /* Receive QMF */
-            xdp = s->xd + 11;
-            xsp = s->xs + 11;
-            xdp_1 = s->xd + 10;
-            xsp_1 = s->xs + 10;
-            for (i = 0;  i < 11;  i++)
+            if (s->eight_k)
             {
-                *xdp-- = *xdp_1--;
-                *xsp-- = *xsp_1--;
+                amp[outlen++] = (int16_t) rlow;
             }
-
-            /* RECA */
-            *xdp = rlow - rhigh;
-
-            /* RECA */
-            *xsp = rlow + rhigh;
-
-            /* Accum C&D */
-            /* QMF tap coefficients */
-            xout1 = 0;
-            xout2 = 0;
-            for (i = 0;  i < 12;  i++)
+            else
             {
-                xout1 += *xdp++ * qmf_coeffs[i];
-                xout2 += *xsp++ * qmf_coeffs[11 - i];
+                /* Apply the receive QMF */
+                for (i = 0;  i < 22;  i++)
+                    s->x[i] = s->x[i + 2];
+                s->x[22] = rlow + rhigh;
+                s->x[23] = rlow - rhigh;
+
+                xout1 = 0;
+                xout2 = 0;
+                for (i = 0;  i < 12;  i++)
+                {
+                    xout2 += s->x[2*i]*qmf_coeffs[i];
+                    xout1 += s->x[2*i + 1]*qmf_coeffs[11 - i];
+                }
+                amp[outlen++] = (int16_t) (xout1 >> 12);
+                amp[outlen++] = (int16_t) (xout2 >> 12);
             }
-            amp[outlen++] = (int16_t) (xout1 >> 12);
-            amp[outlen++] = (int16_t) (xout2 >> 12);
         }
     }
     return outlen;

@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_monitor.h,v 1.3 2005/12/08 16:51:00 steveu Exp $
+ * $Id: modem_monitor.h,v 1.9 2006/10/24 13:45:29 steveu Exp $
  */
 
 /*! \page constel_page Modem performance monitoring
@@ -41,19 +40,24 @@ This code uses the FLTK cross platform GUI toolkit. It works on X11 and Windows 
 In addition to the basic FLTK toolkit, fltk_cartesian is also required.
 */
 
-#if !defined(_CONSTEL_H_)
-#define _CONSTEL_H_
+#if !defined(_MODEM_MONITOR_H_)
+#define _MODEM_MONITOR_H_
+
+struct qam_monitor_s;
+
+typedef struct qam_monitor_s qam_monitor_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int start_qam_monitor(float constel_width);
-int update_qam_monitor(const complex_t *pt);
-int update_qam_equalizer_monitor(const complex_t *coeffs, int len);
-int update_qam_symbol_tracking(int total_correction);
-int update_qam_carrier_tracking(float carrier);
-void qam_wait_to_end(void);
+qam_monitor_t *qam_monitor_init(float constel_width, const char *tag);
+int qam_monitor_update_constel(qam_monitor_t *s, const complexf_t *pt);
+int qam_monitor_update_equalizer(qam_monitor_t *s, const complexf_t *coeffs, int len);
+int qam_monitor_update_symbol_tracking(qam_monitor_t *s, float total_correction);
+int qam_monitor_update_carrier_tracking(qam_monitor_t *s, float carrier);
+int qam_monitor_update_audio_level(qam_monitor_t *s, const int16_t amp[], int len);
+void qam_wait_to_end(qam_monitor_t *s);
 
 #ifdef __cplusplus
 }

@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc.h,v 1.8 2005/11/25 14:52:00 steveu Exp $
+ * $Id: plc.h,v 1.12 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \file */
@@ -33,14 +32,25 @@
 
 /*! \page plc_page Packet loss concealment
 \section plc_page_sec_1 What does it do?
-The packet loss concealment module provides a suitable synthetic fill-in signal,
-to minimise the audible effect of lost packets in VoIP applications. It is not
-tied to any particular codec, and could be used with almost any codec which does not
+The packet loss concealment module provides a synthetic fill-in signal, to minimise
+the audible effect of lost packets in VoIP applications. It is not tied to any
+particular codec, and could be used with almost any codec which does not
 specify its own procedure for packet loss concealment.
 
-Where a codec specific concealment procedure exists, the algorithm is usually built
+Where a codec specific concealment procedure exists, that algorithm is usually built
 around knowledge of the characteristics of the particular codec. It will, therefore,
 generally give better results for that particular codec than this generic concealer will.
+
+The PLC code implements an algorithm similar to the one described in Appendix 1 of G.711.
+However, the G.711 algorithm is optimised for 10ms packets. Few people use such small
+packets. 20ms is a much more common value, and longer packets are also quite common. The
+algorithm has been adjusted with this in mind. Also, the G.711 approach causes an
+algorithmic delay, and requires significant buffer manipulation when there is no packet
+loss. The algorithm used here avoids this. It causes no delay, and achieves comparable
+quality with normal speech.
+
+Note that both this algorithm, and the one in G.711 are optimised for speech. For most kinds
+of music a much slower decay on bursts of lost packets give better results.
 
 \section plc_page_sec_2 How does it work?
 While good packets are being received, the plc_rx() routine keeps a record of the trailing
@@ -71,7 +81,7 @@ are needed to obtain smooth pleasant sounding results.
   correct steadily fall. Therefore, the volume of the synthesized signal is made to decay
   linearly, such that after 50ms of missing audio it is reduced to silence.
 
-- When real speech resumes, an extra 1/4 pitch period of sythetic speech is blended with the
+- When real speech resumes, an extra 1/4 pitch period of synthetic speech is blended with the
   start of the real speech. If the erasure is small, this smoothes the transition. If the erasure
   is long, and the synthetic signal has faded to zero, the blending softens the start up of the
   real signal, avoiding a kind of "click" or "pop" effect that might occur with a sudden onset.

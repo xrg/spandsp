@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.c,v 1.34 2005/12/06 14:34:03 steveu Exp $
+ * $Id: v29tx.c,v 1.57 2006/11/19 14:07:26 steveu Exp $
  */
 
 /*! \file */
@@ -36,25 +35,154 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
-#include "spandsp/async.h"
 #include "spandsp/complex.h"
+#include "spandsp/vector_float.h"
+#include "spandsp/complex_vector_float.h"
+#include "spandsp/async.h"
 #include "spandsp/dds.h"
 #include "spandsp/power_meter.h"
 
 #include "spandsp/v29tx.h"
 
+#define CARRIER_NOMINAL_FREQ        1700.0f
+
 /* Segments of the training sequence */
-#define V29_TRAINING_TEP_LEN        480
-#define V29_TRAINING_SEG_1          0
-#define V29_TRAINING_SEG_2          48
+#define V29_TRAINING_SEG_TEP        0
+#define V29_TRAINING_SEG_1          (V29_TRAINING_SEG_TEP + 480)
+#define V29_TRAINING_SEG_2          (V29_TRAINING_SEG_1 + 48)
 #define V29_TRAINING_SEG_3          (V29_TRAINING_SEG_2 + 128)
 #define V29_TRAINING_SEG_4          (V29_TRAINING_SEG_3 + 384)
 #define V29_TRAINING_END            (V29_TRAINING_SEG_4 + 48)
-#define V29_TRAINING_SHUTDOWN_END   (V29_TRAINING_END + 10)
+#define V29_TRAINING_SHUTDOWN_END   (V29_TRAINING_END + 32)
+
+/* Raised root cosine pulse shaping; Beta = 0.25; 4 symbols either
+   side of the centre. */
+/* Created with mkshape -r 0.05 0.25 91 -l and then split up */
+#define PULSESHAPER_GAIN            (9.9888356312f/10.0f)
+#define PULSESHAPER_COEFF_SETS      10
+
+static const float pulseshaper[PULSESHAPER_COEFF_SETS][V29_TX_FILTER_STEPS] =
+{
+    {
+        -0.0029426223,          /* Filter 0 */
+        -0.0183060118,
+         0.0653192857,
+        -0.1703207714,
+         0.6218069936,
+         0.6218069936,
+        -0.1703207714,
+         0.0653192857,
+        -0.0183060118
+    },
+    {
+         0.0031876922,          /* Filter 1 */
+        -0.0300884145,
+         0.0832744718,
+        -0.1974255221,
+         0.7664229820,
+         0.4670580725,
+        -0.1291107519,
+         0.0424189243,
+        -0.0059810465
+    },
+    {
+         0.0097229236,          /* Filter 2 */
+        -0.0394811291,
+         0.0931039664,
+        -0.2043906784,
+         0.8910868760,
+         0.3122713836,
+        -0.0802880559,
+         0.0179050490,
+         0.0052057308
+    },
+    {
+         0.0156117223,          /* Filter 3 */
+        -0.0447125347,
+         0.0922040267,
+        -0.1862939416,
+         0.9870942864,
+         0.1669790517,
+        -0.0301581072,
+        -0.0051358510,
+         0.0139350286
+    },
+    {
+         0.0197702545,          /* Filter 4 */
+        -0.0443470335,
+         0.0789538534,
+        -0.1399184160,
+         1.0476130256,
+         0.0393903028,
+         0.0157339854,
+        -0.0241879599,
+         0.0193774571
+    },
+    {
+         0.0212455717,          /* Filter 5 */
+        -0.0375307894,
+         0.0530516472,
+        -0.0642195521,
+         1.0682849922,
+        -0.0642195521,
+         0.0530516472,
+        -0.0375307894,
+         0.0212455717
+    },
+    {
+         0.0193774571,          /* Filter 6 */
+        -0.0241879599,
+         0.0157339854,
+         0.0393903028,
+         1.0476130256,
+        -0.1399184160,
+         0.0789538534,
+        -0.0443470335,
+         0.0197702545
+    },
+    {
+         0.0139350286,          /* Filter 7 */
+        -0.0051358510,
+        -0.0301581072,
+         0.1669790517,
+         0.9870942864,
+        -0.1862939416,
+         0.0922040267,
+        -0.0447125347,
+         0.0156117223
+    },
+    {
+         0.0052057308,          /* Filter 8 */
+         0.0179050490,
+        -0.0802880559,
+         0.3122713836,
+         0.8910868760,
+        -0.2043906784,
+         0.0931039664,
+        -0.0394811291,
+         0.0097229236
+    },
+    {
+        -0.0059810465,          /* Filter 9 */
+         0.0424189243,
+        -0.1291107519,
+         0.4670580725,
+         0.7664229820,
+        -0.1974255221,
+         0.0832744718,
+        -0.0300884145,
+         0.0031876922
+    },
+};
 
 static int fake_get_bit(void *user_data)
 {
@@ -62,13 +190,12 @@ static int fake_get_bit(void *user_data)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int get_scrambled_bit(v29_tx_state_t *s)
+static __inline__ int get_scrambled_bit(v29_tx_state_t *s)
 {
     int bit;
     int out_bit;
 
-    bit = s->current_get_bit(s->user_data);
-    if ((bit & 2))
+    if ((bit = s->current_get_bit(s->user_data)) == PUTBIT_END_OF_DATA)
     {
         /* End of real data. Switch to the fake get_bit routine, until we
            have shut down completely. */
@@ -82,7 +209,7 @@ static inline int get_scrambled_bit(v29_tx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-static complex_t getbaud(v29_tx_state_t *s)
+static __inline__ complexf_t getbaud(v29_tx_state_t *s)
 {
     static const int phase_steps_9600[8] =
     {
@@ -92,7 +219,7 @@ static complex_t getbaud(v29_tx_state_t *s)
     {
         0, 2, 6, 4
     };
-    static const complex_t constellation[16] =
+    static const complexf_t constellation[16] =
     {
         { 3.0,  0.0},   /*   0deg low  */
         { 1.0,  1.0},   /*  45deg low  */
@@ -111,25 +238,24 @@ static complex_t getbaud(v29_tx_state_t *s)
         { 0.0, -5.0},   /* 270deg high */
         { 3.0, -3.0}    /* 315deg high */
     };
-    static const complex_t abab[6] =
+    static const complexf_t abab[6] =
     {
-        { 3.0, -3.0},   /* 315deg high     */
-        {-3.0,  0.0},   /* 180deg low 9600 */
-        { 1.0, -1.0},   /* 315deg low      */
-        {-3.0,  0.0},   /* 180deg low 7200 */
-        { 0.0, -3.0},   /* 270deg low      */
-        {-3.0,  0.0}    /* 180deg low 4800 */
+        { 3.0, -3.0},   /* 315deg high 9600 */
+        {-3.0,  0.0},   /* 180deg low       */
+        { 1.0, -1.0},   /* 315deg low 7200  */
+        {-3.0,  0.0},   /* 180deg low       */
+        { 0.0, -3.0},   /* 270deg low 4800  */
+        {-3.0,  0.0}    /* 180deg low       */
     };
-    static const complex_t cdcd[6] =
+    static const complexf_t cdcd[6] =
     {
-        { 3.0,  0.0},   /*   0deg low 9600 */
-        {-3.0,  3.0},   /* 135deg high     */
-        { 3.0,  0.0},   /*   0deg low 7200 */
-        {-1.0,  1.0},   /* 135deg low      */
-        { 3.0,  0.0},   /*   0deg low 4800 */
-        { 0.0,  3.0}    /*  90deg low      */
+        { 3.0,  0.0},   /*   0deg low 9600  */
+        {-3.0,  3.0},   /* 135deg high      */
+        { 3.0,  0.0},   /*   0deg low 7200  */
+        {-1.0,  1.0},   /* 135deg low       */
+        { 3.0,  0.0},   /*   0deg low 4800  */
+        { 0.0,  3.0}    /*  90deg low       */
     };
-    int i;
     int bits;
     int amp;
     int bit;
@@ -137,21 +263,20 @@ static complex_t getbaud(v29_tx_state_t *s)
     if (s->in_training)
     {
         /* Send the training sequence */
-        if (s->tep_step)
-        {
-            s->tep_step--;
-            return constellation[0];
-        }
         if (++s->training_step <= V29_TRAINING_SEG_4)
         {
-            /* The V.29 training sequence */
-            if (s->training_step <= V29_TRAINING_SEG_2)
-            {
-                /* Segment 1: silence */
-                return complex_set(0.0, 0.0);
-            }
             if (s->training_step <= V29_TRAINING_SEG_3)
             {
+                if (s->training_step <= V29_TRAINING_SEG_1)
+                {
+                    /* Optional segment: Unmodulated carrier (talker echo protection) */
+                    return constellation[0];
+                }
+                if (s->training_step <= V29_TRAINING_SEG_2)
+                {
+                    /* Segment 1: silence */
+                    return complex_setf(0.0f, 0.0f);
+                }
                 /* Segment 2: ABAB... */
                 return abab[(s->training_step & 1) + s->training_offset];
             }
@@ -198,39 +323,12 @@ static complex_t getbaud(v29_tx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int v29_tx(v29_tx_state_t *s, int16_t *amp, int len)
+int v29_tx(v29_tx_state_t *s, int16_t amp[], int len)
 {
-    complex_t x;
-    complex_t z;
+    complexf_t x;
+    complexf_t z;
     int i;
     int sample;
-    /* You might expect the optimum weights here to be 0.75 and 0.25. However,
-       the RRC filter warps things a bit. These values were arrived at, through
-       simulation - minimise the variance between a 3 times oversampled approach
-       and the weighted approach. */
-    static const float weights[4] = {0.0, 0.68, 0.32, 0.0};
-    /* Raised root cosine pulse shaping; Beta = 0.25; 4 symbols either
-       side of the centre. Only one side of the filter is here, as the
-       other half is just a mirror image. */
-    /* Created with mkshape -r 0.15 0.25 27 -l */
-#define PULSESHAPER_GAIN        3.3228378059e+00
-    static const float pulseshaper[] =
-    {
-         1.9357009515e-02,
-        -5.9810032110e-03,
-        -3.9460620247e-02,
-        -3.7515142524e-02,
-         1.7896477926e-02,
-         8.3252211468e-02,
-         7.8945341508e-02,
-        -3.0142376919e-02,
-        -1.7030019557e-01,
-        -1.8629387050e-01,
-         3.9369836860e-02,
-         4.6704236727e-01,
-         8.9109531202e-01,
-         1.0683071107e+00
-    };
 
     if (s->training_step >= V29_TRAINING_SHUTDOWN_END)
     {
@@ -239,50 +337,57 @@ int v29_tx(v29_tx_state_t *s, int16_t *amp, int len)
     }
     for (sample = 0;  sample < len;  sample++)
     {
-        if ((s->baud_phase += 3) > 10)
+        if ((s->baud_phase += 3) >= 10)
         {
             s->baud_phase -= 10;
-            x = getbaud(s);
-            /* Use a weighted value for the first sample of the baud to correct
-               for a baud not being an integral number of samples long. This is
-               almost as good as 3 times oversampling to a common multiple of the
-               baud and sampling rates, but requires less compute. */
-            s->rrc_filter[s->rrc_filter_step].re =
-            s->rrc_filter[s->rrc_filter_step + V29TX_FILTER_STEPS].re = x.re - (x.re - s->current_point.re)*weights[s->baud_phase];
-            s->rrc_filter[s->rrc_filter_step].im =
-            s->rrc_filter[s->rrc_filter_step + V29TX_FILTER_STEPS].im = x.im - (x.im - s->current_point.im)*weights[s->baud_phase];
-            s->current_point = x;
-        }
-        else
-        {
             s->rrc_filter[s->rrc_filter_step] =
-            s->rrc_filter[s->rrc_filter_step + V29TX_FILTER_STEPS] = s->current_point;
+            s->rrc_filter[s->rrc_filter_step + V29_TX_FILTER_STEPS] = getbaud(s);
+            if (++s->rrc_filter_step >= V29_TX_FILTER_STEPS)
+                s->rrc_filter_step = 0;
         }
-        if (++s->rrc_filter_step >= V29TX_FILTER_STEPS)
-            s->rrc_filter_step = 0;
         /* Root raised cosine pulse shaping at baseband */
-        x.re = pulseshaper[V29TX_FILTER_STEPS >> 1]*s->rrc_filter[(V29TX_FILTER_STEPS >> 1) + s->rrc_filter_step].re;
-        x.im = pulseshaper[V29TX_FILTER_STEPS >> 1]*s->rrc_filter[(V29TX_FILTER_STEPS >> 1) + s->rrc_filter_step].im;
-        for (i = 0;  i < (V29TX_FILTER_STEPS >> 1);  i++)
+        x.re = 0.0f;
+        x.im = 0.0f;
+        for (i = 0;  i < V29_TX_FILTER_STEPS;  i++)
         {
-            x.re += pulseshaper[i]*(s->rrc_filter[i + s->rrc_filter_step].re + s->rrc_filter[V29TX_FILTER_STEPS - 1 - i + s->rrc_filter_step].re);
-            x.im += pulseshaper[i]*(s->rrc_filter[i + s->rrc_filter_step].im + s->rrc_filter[V29TX_FILTER_STEPS - 1 - i + s->rrc_filter_step].im);
+            x.re += pulseshaper[9 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].re;
+            x.im += pulseshaper[9 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].im;
         }
         /* Now create and modulate the carrier */
         z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
         /* Don't bother saturating. We should never clip. */
-        amp[sample] = rint((x.re*z.re + x.im*z.im)*s->gain);
+        amp[sample] = (int16_t) lrintf((x.re*z.re - x.im*z.im)*s->gain);
     }
     return sample;
 }
 /*- End of function --------------------------------------------------------*/
 
+static void set_working_gain(v29_tx_state_t *s)
+{
+    switch (s->bit_rate)
+    {
+    case 9600:
+        s->gain = 0.387f*s->base_gain;
+        break;
+    case 7200:
+        s->gain = 0.605f*s->base_gain;
+        break;
+    case 4800:
+        s->gain = 0.470f*s->base_gain;
+        break;
+    default:
+        break;
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
 void v29_tx_power(v29_tx_state_t *s, float power)
 {
-    float l;
-
-    l = 1.6*pow(10.0, (power - 3.14)/20.0);
-    s->gain = l*32768.0/(PULSESHAPER_GAIN*5.0);
+    /* The constellation does not maintain constant average power as we change bit rates.
+       We need to scale the gain we get here by a bit rate specific scaling factor each
+       time we restart the modem. */
+    s->base_gain = powf(10.0f, (power - DBM0_MAX_POWER)/20.0f)*32768.0f/PULSESHAPER_GAIN;
+    set_working_gain(s);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -298,7 +403,9 @@ void v29_tx_set_get_bit(v29_tx_state_t *s, get_bit_func_t get_bit, void *user_da
 int v29_tx_restart(v29_tx_state_t *s, int rate, int tep)
 {
     span_log(&s->logging, SPAN_LOG_FLOW, "Restarting V.29\n");
-    switch (rate)
+    s->bit_rate = rate;
+    set_working_gain(s);
+    switch (s->bit_rate)
     {
     case 9600:
         s->training_offset = 0;
@@ -312,15 +419,12 @@ int v29_tx_restart(v29_tx_state_t *s, int rate, int tep)
     default:
         return -1;
     }
-    s->bit_rate = rate;
-    memset(s->rrc_filter, 0, sizeof(s->rrc_filter));
+    cvec_zerof(s->rrc_filter, sizeof(s->rrc_filter)/sizeof(s->rrc_filter[0]));
     s->rrc_filter_step = 0;
-    s->current_point = complex_set(0.0, 0.0);
     s->scramble_reg = 0;
     s->training_scramble_reg = 0x2A;
     s->in_training = TRUE;
-    s->tep_step = (tep)  ?  V29_TRAINING_TEP_LEN  :  0;
-    s->training_step = 0;
+    s->training_step = (tep)  ?  V29_TRAINING_SEG_TEP  :  V29_TRAINING_SEG_1;
     s->carrier_phase = 0;
     s->baud_phase = 0;
     s->constellation_state = 0;
@@ -339,8 +443,8 @@ v29_tx_state_t *v29_tx_init(v29_tx_state_t *s, int rate, int tep, get_bit_func_t
     memset(s, 0, sizeof(*s));
     s->get_bit = get_bit;
     s->user_data = user_data;
-    s->carrier_phase_rate = dds_phase_stepf(1700.0);
-    v29_tx_power(s, -10.0);
+    s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
+    v29_tx_power(s, -14.0f);
     v29_tx_restart(s, rate, tep);
     return s;
 }

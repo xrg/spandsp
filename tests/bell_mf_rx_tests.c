@@ -11,9 +11,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -24,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_mf_tests.c,v 1.9 2005/12/29 09:54:24 steveu Exp $
+ * $Id: bell_mf_rx_tests.c,v 1.6 2006/11/19 14:07:26 steveu Exp $
  */
 
 /*! \file */
@@ -44,11 +43,15 @@ a fair test of performance in a real PSTN channel.
 #include "config.h"
 #endif
 
-#include <unistd.h>
-#include <math.h>
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 #include <stdio.h>
 #include <time.h>
 #include <fcntl.h>
@@ -90,7 +93,7 @@ typedef struct
     uint8_t     off_time;   /* Minimum post tone silence (ms) */
 } mf_digit_tones_t;
 
-static mf_digit_tones_t bell_mf_tones[] =
+static const mf_digit_tones_t bell_mf_tones[] =
 {
     { 700.0,  900.0, -7, -7,  68, 68},
     { 700.0, 1100.0, -7, -7,  68, 68},
@@ -107,7 +110,7 @@ static mf_digit_tones_t bell_mf_tones[] =
     {1100.0, 1700.0, -7, -7, 100, 68}, /* KP    - use '*' */
     {1300.0, 1700.0, -7, -7,  68, 68}, /* ST''  - use 'B' */
     {1500.0, 1700.0, -7, -7,  68, 68}, /* ST    - use '#' */
-    {0.0, 0.0, 0, 0}
+    {0.0, 0.0, 0, 0, 0, 0}
 };
 
 static tone_gen_descriptor_t my_mf_digit_tones[16];
@@ -125,7 +128,7 @@ static void my_mf_gen_init(float low_fudge,
                            int gap)
 {
     int i;
-    
+
     /* The fiddle factor on the tone duration is to make KP consistently
        50% longer than the other digits, as the digit durations are varied
        for the tests. This is an approximation, as the real scaling should
@@ -146,7 +149,7 @@ static void my_mf_gen_init(float low_fudge,
 }
 /*- End of function --------------------------------------------------------*/
 
-static int my_mf_generate(int16_t amp[], char *digits)
+static int my_mf_generate(int16_t amp[], const char *digits)
 {
     int len;
     char *cp;
@@ -166,7 +169,7 @@ static int my_mf_generate(int16_t amp[], char *digits)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void alaw_munge(int16_t amp[], int len)
+static void codec_munge(int16_t amp[], int len)
 {
     int i;
     uint8_t alaw;
@@ -185,8 +188,8 @@ static void digit_delivery(void *data, const char *digits, int len)
 {
     int i;
     int seg;
-    char *s = ALL_POSSIBLE_DIGITS;
-    char *t;
+    const char *s = ALL_POSSIBLE_DIGITS;
+    const char *t;
 
     if (data == (void *) 0x12345678)
     {
@@ -204,7 +207,7 @@ static void digit_delivery(void *data, const char *digits, int len)
                 break;
             }
             t = s;
-            callback_roll = seg;
+            callback_roll = (callback_roll + seg)%15;
         }
     }
     else
@@ -223,9 +226,9 @@ int main(int argc, char *argv[])
     int j;
     int len;
     int sample;
-    char *s;
+    const char *s;
     char digit[2];
-    char buf[MAX_DTMF_DIGITS + 1];
+    char buf[MAX_BELL_MF_DIGITS + 1];
     int actual;
     int nplus;
     int nminus;
@@ -257,9 +260,9 @@ int main(int argc, char *argv[])
         for (i = 0;  i < 10;  i++)
         {
             len = my_mf_generate(amp, digit);
-            alaw_munge (amp, len);
+            codec_munge(amp, len);
             bell_mf_rx(&mf_state, amp, len);
-            actual = bell_mf_get(&mf_state, buf, 128);
+            actual = bell_mf_rx_get(&mf_state, buf, 128);
             if (actual != 1  ||  buf[0] != digit[0])
             {
                 printf ("    Sent     '%s'\n", digit);
@@ -310,17 +313,17 @@ int main(int argc, char *argv[])
         {
             my_mf_gen_init((float) i/1000.0, -17, 0.0, -17, 68, 68);
             len = my_mf_generate(amp, digit);
-            alaw_munge(amp, len);
+            codec_munge(amp, len);
             bell_mf_rx(&mf_state, amp, len);
-            nplus += bell_mf_get(&mf_state, buf, 128);
+            nplus += bell_mf_rx_get(&mf_state, buf, 128);
         }
         for (nminus = 0, i = -1;  i >= -60;  i--)
         {
             my_mf_gen_init((float) i/1000.0, -17, 0.0, -17, 68, 68);
             len = my_mf_generate(amp, digit);
-            alaw_munge(amp, len);
+            codec_munge(amp, len);
             bell_mf_rx(&mf_state, amp, len);
-            nminus += bell_mf_get(&mf_state, buf, 128);
+            nminus += bell_mf_rx_get(&mf_state, buf, 128);
         }
         rrb = (float) (nplus + nminus)/10.0;
         rcfo = (float) (nplus - nminus)/10.0;
@@ -341,17 +344,17 @@ int main(int argc, char *argv[])
         {
             my_mf_gen_init(0.0, -17, (float) i/1000.0, -17, 68, 68);
             len = my_mf_generate(amp, digit);
-            alaw_munge(amp, len);
+            codec_munge(amp, len);
             bell_mf_rx(&mf_state, amp, len);
-            nplus += bell_mf_get(&mf_state, buf, 128);
+            nplus += bell_mf_rx_get(&mf_state, buf, 128);
         }
         for (nminus = 0, i = -1;  i >= -60;  i--)
         {
             my_mf_gen_init(0.0, -17, (float) i/1000.0, -17, 68, 68);
             len = my_mf_generate(amp, digit);
-            alaw_munge(amp, len);
+            codec_munge(amp, len);
             bell_mf_rx(&mf_state, amp, len);
-            nminus += bell_mf_get(&mf_state, buf, 128);
+            nminus += bell_mf_rx_get(&mf_state, buf, 128);
         }
         rrb = (float) (nplus + nminus)/10.0;
         rcfo = (float) (nplus - nminus)/10.0;
@@ -386,33 +389,33 @@ int main(int argc, char *argv[])
             my_mf_gen_init(0.0, -5, 0.0, i/10, 68, 68);
 
             len = my_mf_generate(amp, digit);
-            alaw_munge (amp, len);
-            bell_mf_rx (&mf_state, amp, len);
-            nplus += bell_mf_get(&mf_state, buf, 128);
+            codec_munge(amp, len);
+            bell_mf_rx(&mf_state, amp, len);
+            nplus += bell_mf_rx_get(&mf_state, buf, 128);
         }
-        printf ("    %c normal twist  = %.2fdB\n", digit[0], (float) nplus/10.0);
+        printf("    %c normal twist  = %.2fdB\n", digit[0], (float) nplus/10.0);
         if (nplus < 60)
         {
-            printf ("    Failed\n");
-            exit (2);
+            printf("    Failed\n");
+            exit(2);
         }
         for (nminus = 0, i = -50;  i >= -250;  i--)
         {
             my_mf_gen_init(0.0, i/10, 0.0, -5, 68, 68);
 
             len = my_mf_generate(amp, digit);
-            alaw_munge(amp, len);
+            codec_munge(amp, len);
             bell_mf_rx(&mf_state, amp, len);
-            nminus += bell_mf_get(&mf_state, buf, 128);
+            nminus += bell_mf_rx_get(&mf_state, buf, 128);
         }
-        printf ("    %c reverse twist = %.2fdB\n", digit[0], (float) nminus/10.0);
+        printf("    %c reverse twist = %.2fdB\n", digit[0], (float) nminus/10.0);
         if (nminus < 60)
         {
-            printf ("    Failed\n");
-            exit (2);
+            printf("    Failed\n");
+            exit(2);
         }
     }
-    printf ("    Passed\n");
+    printf("    Passed\n");
 
     /* Test 5: Dynamic range
        This test sends all possible digits, with gradually increasing 
@@ -420,16 +423,16 @@ int main(int argc, char *argv[])
        detection. The spec says we should detect between -14dBm and 0dBm,
        but the tones clip above -3dBm, so this cannot really work. */
        
-    printf ("Test 5: Dynamic range\n");
+    printf("Test 5: Dynamic range\n");
     for (nplus = nminus = -1000, i = -50;  i <= 3;  i++)
     {
         my_mf_gen_init(0.0, i, 0.0, i, 68, 68);
         for (j = 0;  j < 100;  j++)
         {
             len = my_mf_generate(amp, ALL_POSSIBLE_DIGITS);
-            alaw_munge(amp, len);
+            codec_munge(amp, len);
             bell_mf_rx(&mf_state, amp, len);
-            if (bell_mf_get(&mf_state, buf, 128) != 15)
+            if (bell_mf_rx_get(&mf_state, buf, 128) != 15)
                 break;
             if (strcmp(buf, ALL_POSSIBLE_DIGITS) != 0)
                 break;
@@ -445,13 +448,13 @@ int main(int argc, char *argv[])
                 nminus = i;
         }
     }
-    printf ("    Dynamic range = %ddB to %ddB\n", nplus, nminus - 1);
+    printf("    Dynamic range = %ddB to %ddB\n", nplus, nminus - 1);
     if (nplus > -22  ||  nminus <= -3)
     {
         printf("    Failed\n");
         exit(2);
     }
-    printf ("    Passed\n");
+    printf("    Passed\n");
 
     /* Test 6: Guard time
        This test sends all possible digits, with a gradually reducing 
@@ -461,17 +464,17 @@ int main(int argc, char *argv[])
        we should detect on a minimum of 55ms of KP, or 30ms of other
        digits. */
 
-    printf ("Test 6: Guard time\n");
+    printf("Test 6: Guard time\n");
     for (i = 30;  i < 62;  i++)
     {
         my_mf_gen_init(0.0, -5, 0.0, -3, i, 68);
         for (j = 0;  j < 500;  j++)
         {
             len = my_mf_generate(amp, ALL_POSSIBLE_DIGITS);
-            alaw_munge(amp, len);
+            codec_munge(amp, len);
             bell_mf_rx(&mf_state, amp, len);
 
-            if (bell_mf_get(&mf_state, buf, 128) != 15)
+            if (bell_mf_rx_get(&mf_state, buf, 128) != 15)
                 break;
             if (strcmp(buf, ALL_POSSIBLE_DIGITS) != 0)
                 break;
@@ -479,32 +482,32 @@ int main(int argc, char *argv[])
         if (j == 500)
             break;
     }
-    printf ("    Guard time = %dms\n", i);
+    printf("    Guard time = %dms\n", i);
     if (i > 61)
     {
         printf("    Failed\n");
         exit(2);
     }
-    printf ("    Passed\n");
+    printf("    Passed\n");
 
     /* Test 7: Acceptable signal to noise ratio
        We send all possible digits at -6dBm from clip, mixed with AWGN.
        We gradually reduce the noise until we get clean detection. */
 
-    printf ("Test 7: Acceptable signal to noise ratio\n");
+    printf("Test 7: Acceptable signal to noise ratio\n");
     my_mf_gen_init(0.0, -3, 0.0, -3, 68, 68);
     for (i = -10;  i > -50;  i--)
     {
-        awgn_init(&noise_source, 1234567, i);
+        awgn_init_dbm0(&noise_source, 1234567, (float) i);
         for (j = 0;  j < 500;  j++)
         {
             len = my_mf_generate(amp, ALL_POSSIBLE_DIGITS);
             for (sample = 0;  sample < len;  sample++)
                 amp[sample] = saturate(amp[sample] + awgn(&noise_source));
-            alaw_munge(amp, len);
+            codec_munge(amp, len);
             bell_mf_rx(&mf_state, amp, len);
 
-            if (bell_mf_get(&mf_state, buf, 128) != 15)
+            if (bell_mf_rx_get(&mf_state, buf, 128) != 15)
                 break;
             if (strcmp(buf, ALL_POSSIBLE_DIGITS) != 0)
                 break;
@@ -546,10 +549,10 @@ int main(int argc, char *argv[])
         printf("    Failed\n");
      	exit (2);
     }
-    printf ("    Passed\n");
+    printf("    Passed\n");
 
     duration = time (NULL) - now;
-    printf ("Tests completed in  %ds\n", duration);
+    printf ("Tests passed in %ds\n", duration);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

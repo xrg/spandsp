@@ -14,9 +14,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -27,7 +26,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm.h,v 1.5 2005/11/27 12:36:22 steveu Exp $
+ * $Id: ima_adpcm.h,v 1.12 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \file */
@@ -45,6 +44,12 @@ IMA ADPCM offers a good balance of simplicity and quality at a rate of
 \section ima_adpcm_page_sec_3 How do I use it?
 */
 
+enum
+{
+    IMA_ADPCM_DVI4 = 0,
+    IMA_ADPCM_VDVI = 1
+};
+
 /*!
     IMA (DVI/Intel) ADPCM conversion state descriptor. This defines the state of
     a single working instance of the IMA ADPCM converter. This is used for
@@ -52,10 +57,11 @@ IMA ADPCM offers a good balance of simplicity and quality at a rate of
 */
 typedef struct
 {
-    int16_t last;
-    int16_t step_index;
-    uint8_t ima_byte;
-    int mark;
+    int variant;
+    int last;
+    int step_index;
+    uint16_t ima_byte;
+    int bits;
 } ima_adpcm_state_t;
 
 #ifdef __cplusplus
@@ -64,35 +70,36 @@ extern "C" {
 
 /*! Initialise an IMA ADPCM encode or decode context.
     \param s The IMA ADPCM context
+    \param variant ???
     \return A pointer to the IMA ADPCM context, or NULL for error. */
-ima_adpcm_state_t *ima_adpcm_init(ima_adpcm_state_t *s);
+ima_adpcm_state_t *ima_adpcm_init(ima_adpcm_state_t *s, int variant);
 
 /*! Free an IMA ADPCM encode or decode context.
     \param s The IMA ADPCM context.
     \return 0 for OK. */
 int ima_adpcm_release(ima_adpcm_state_t *s);
 
+/*! Encode a buffer of linear PCM data to IMA ADPCM.
+    \param s The IMA ADPCM context.
+    \param ima_data The IMA ADPCM data produced.
+    \param amp The audio sample buffer.
+    \param len The number of samples in the buffer.
+    \return The number of bytes of IMA ADPCM data produced. */
+int ima_adpcm_encode(ima_adpcm_state_t *s,
+                     uint8_t ima_data[],
+                     const int16_t amp[],
+                     int len);
+
 /*! Decode a buffer of IMA ADPCM data to linear PCM.
     \param s The IMA ADPCM context.
-    \param amp
+    \param amp The audio sample buffer.
     \param ima_data
     \param ima_bytes
     \return The number of samples returned. */
-int ima_adpcm_to_linear(ima_adpcm_state_t *s,
-                        int16_t *amp,
-                        const uint8_t *ima_data,
-                        int ima_bytes);
-
-/*! Encode a buffer of linear PCM data to IMA ADPCM.
-    \param s The IMA ADPCM context.
-    \param ima_data
-    \param amp
-    \param samples
-    \return The number of bytes of IMA ADPCM data produced. */
-int ima_linear_to_adpcm(ima_adpcm_state_t *s,
-                        uint8_t *ima_data,
-                        const int16_t *amp,
-                        int samples);
+int ima_adpcm_decode(ima_adpcm_state_t *s,
+                     int16_t amp[],
+                     const uint8_t ima_data[],
+                     int ima_bytes);
 
 #ifdef __cplusplus
 }

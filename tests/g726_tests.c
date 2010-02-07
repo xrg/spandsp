@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g726_tests.c,v 1.9 2006/05/24 09:19:11 steveu Exp $
+ * $Id: g726_tests.c,v 1.16 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \file */
@@ -57,9 +56,8 @@ any parameters.
 
 To perform a general audio quality test, g726_tests should be run with a parameter specifying
 the required bit rate for compression. The valid parameters are "-16", "-24", "-32", and "-40".
-The file pre_g726.wav will be compressed to the specified bit rate, decompressed, and the
-resulting audio stored in post_g726.wav. pre_g726.wav must be a valid wave file containing a single
-channel of 16 bit linear PCM data, at 8000 samples/second.
+The test file ../localtests/short_nb_voice.wav will be compressed to the specified bit rate,
+decompressed, and the resulting audio stored in post_g726.wav.
 */
 
 #ifdef HAVE_CONFIG_H
@@ -73,7 +71,12 @@ channel of 16 bit linear PCM data, at 8000 samples/second.
 #include <inttypes.h>
 #include <memory.h>
 #include <stdlib.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 #include <audiofile.h>
 #include <ctype.h>
 #include <tiffio.h>
@@ -83,7 +86,7 @@ channel of 16 bit linear PCM data, at 8000 samples/second.
 #define BLOCK_LEN           320
 #define MAX_TEST_VECTOR_LEN 40000
 
-#define IN_FILE_NAME    "pre_g726.wav"
+#define IN_FILE_NAME    "../localtests/short_nb_voice.wav"
 #define OUT_FILE_NAME   "post_g726.wav"
 
 #define TESTDATA_DIR    "../itutests/g726/"
@@ -1097,12 +1100,14 @@ int main(int argc, char *argv[])
     int samples;
     int conditioning_adpcm;
     int adpcm;
+    int packing;
     float x;
 
     i = 1;
     bit_rate = 32000;
     itutests = TRUE;
-    if (argc > i)
+    packing = G726_PACKING_NONE;
+    while (argc > i)
     {
         if (strcmp(argv[i], "-16") == 0)
         {
@@ -1126,6 +1131,16 @@ int main(int argc, char *argv[])
         {
             bit_rate = 40000;
             itutests = FALSE;
+            i++;
+        }
+        else if (strcmp(argv[i], "-l") == 0)
+        {
+            packing = G726_PACKING_LEFT;
+            i++;
+        }
+        else if (strcmp(argv[i], "-r") == 0)
+        {
+            packing = G726_PACKING_RIGHT;
             i++;
         }
         else
@@ -1172,7 +1187,7 @@ int main(int argc, char *argv[])
             if (itu_test_sets[test].compression_law != G726_ENCODING_NONE)
             {
                 /* Test the encode side */
-                g726_init(&enc_state, itu_test_sets[test].rate, itu_test_sets[test].compression_law, FALSE);
+                g726_init(&enc_state, itu_test_sets[test].rate, itu_test_sets[test].compression_law, G726_PACKING_NONE);
                 if (itu_test_sets[test].conditioning_pcm_file[0])
                 {
                     conditioning_samples = get_test_vector(itu_test_sets[test].conditioning_pcm_file, xlaw, MAX_TEST_VECTOR_LEN);
@@ -1188,7 +1203,7 @@ int main(int argc, char *argv[])
                 len2 = g726_encode(&enc_state, adpcmdata, itudata, conditioning_samples + samples);
             }
             /* Test the decode side */
-            g726_init(&dec_state, itu_test_sets[test].rate, itu_test_sets[test].decompression_law, FALSE);
+            g726_init(&dec_state, itu_test_sets[test].rate, itu_test_sets[test].decompression_law, G726_PACKING_NONE);
             if (itu_test_sets[test].conditioning_adpcm_file[0])
             {
                 conditioning_adpcm = get_test_vector(itu_test_sets[test].conditioning_adpcm_file, unpacked, MAX_TEST_VECTOR_LEN);
@@ -1299,8 +1314,9 @@ int main(int argc, char *argv[])
             exit(2);
         }
 
-        g726_init(&enc_state, bit_rate, G726_ENCODING_LINEAR, TRUE);
-        g726_init(&dec_state, bit_rate, G726_ENCODING_LINEAR, TRUE);
+        printf("ADPCM packing is %d\n", packing);
+        g726_init(&enc_state, bit_rate, G726_ENCODING_LINEAR, packing);
+        g726_init(&dec_state, bit_rate, G726_ENCODING_LINEAR, packing);
             
         while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, 159)))
         {

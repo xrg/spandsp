@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc.c,v 1.8 2005/11/25 14:51:59 steveu Exp $
+ * $Id: plc.c,v 1.16 2006/11/19 14:07:24 steveu Exp $
  */
 
 /*! \file */
@@ -36,7 +35,12 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 #include <limits.h>
 
 #include "spandsp/telephony.h"
@@ -44,7 +48,7 @@
 #include "spandsp/plc.h"
 
 /* We do a straight line fade to zero volume in 50ms when we are filling in for missing data. */
-#define ATTENUATION_INCREMENT       0.0025                              /* Attenuation per sample */
+#define ATTENUATION_INCREMENT       0.0025f     /* Attenuation per sample */
 
 #define ms_to_samples(t)            (((t)*SAMPLE_RATE)/1000)
 
@@ -72,7 +76,7 @@ static void save_history(plc_state_t *s, int16_t *buf, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void normalise_history(plc_state_t *s)
+static __inline__ void normalise_history(plc_state_t *s)
 {
     int16_t tmp[PLC_HISTORY_LEN];
 
@@ -85,7 +89,7 @@ static void normalise_history(plc_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int __inline__ amdf_pitch(int min_pitch, int max_pitch, int16_t amp[], int len)
+static __inline__ int amdf_pitch(int min_pitch, int max_pitch, int16_t amp[], int len)
 {
     int i;
     int j;
@@ -113,7 +117,6 @@ static int __inline__ amdf_pitch(int min_pitch, int max_pitch, int16_t amp[], in
 int plc_rx(plc_state_t *s, int16_t amp[], int len)
 {
     int i;
-    int overlap_len;
     int pitch_overlap;
     float old_step;
     float new_step;
@@ -131,13 +134,13 @@ int plc_rx(plc_state_t *s, int16_t amp[], int len)
         pitch_overlap = s->pitch >> 2;
         if (pitch_overlap > len)
             pitch_overlap = len;
-        gain = 1.0 - s->missing_samples*ATTENUATION_INCREMENT;
-        if (gain < 0.0)
-            gain = 0.0;
-        new_step = 1.0/pitch_overlap;
+        gain = 1.0f - s->missing_samples*ATTENUATION_INCREMENT;
+        if (gain < 0.0f)
+            gain = 0.0f;
+        new_step = 1.0f/pitch_overlap;
         old_step = new_step*gain;
         new_weight = new_step;
-        old_weight = (1.0 - new_step)*gain;
+        old_weight = (1.0f - new_step)*gain;
         for (i = 0;  i < pitch_overlap;  i++)
         {
             amp[i] = fsaturate(old_weight*s->pitchbuf[s->pitch_offset] + new_weight*amp[i]);
@@ -145,8 +148,8 @@ int plc_rx(plc_state_t *s, int16_t amp[], int len)
                 s->pitch_offset = 0;
             new_weight += new_step;
             old_weight -= old_step;
-            if (old_weight < 0.0)
-                old_weight = 0.0;
+            if (old_weight < 0.0f)
+                old_weight = 0.0f;
         }
         s->missing_samples = 0;
     }
@@ -157,7 +160,6 @@ int plc_rx(plc_state_t *s, int16_t amp[], int len)
 
 int plc_fillin(plc_state_t *s, int16_t amp[], int len)
 {
-    int16_t tmp[PLC_PITCH_OVERLAP_MAX];
     int i;
     int pitch_overlap;
     float old_step;
@@ -184,42 +186,42 @@ int plc_fillin(plc_state_t *s, int16_t amp[], int len)
         for (i = 0;  i < s->pitch - pitch_overlap;  i++)
             s->pitchbuf[i] = s->history[PLC_HISTORY_LEN - s->pitch + i];
         /* The last 1/4 of the cycle is overlapped with the end of the previous cycle */
-        new_step = 1.0/pitch_overlap;
+        new_step = 1.0f/pitch_overlap;
         new_weight = new_step;
         for (  ;  i < s->pitch;  i++)
         {
-            s->pitchbuf[i] = s->history[PLC_HISTORY_LEN - s->pitch + i]*(1.0 - new_weight) + s->history[PLC_HISTORY_LEN - 2*s->pitch + i]*new_weight;
+            s->pitchbuf[i] = s->history[PLC_HISTORY_LEN - s->pitch + i]*(1.0f - new_weight) + s->history[PLC_HISTORY_LEN - 2*s->pitch + i]*new_weight;
             new_weight += new_step;
         }
         /* We should now be ready to fill in the gap with repeated, decaying cycles
            of what is in pitchbuf */
 
+        gain = 1.0f;
         /* We need to OLA the first 1/4 wavelength of the synthetic data, to smooth
            it into the previous real data. To avoid the need to introduce a delay
            in the stream, reverse the last 1/4 wavelength, and OLA with that. */
-        gain = 1.0;
-        new_step = 1.0/pitch_overlap;
+        new_step = 1.0f/pitch_overlap;
         old_step = new_step;
         new_weight = new_step;
-        old_weight = 1.0 - new_step;
+        old_weight = 1.0f - new_step;
         for (i = 0;  i < pitch_overlap;  i++)
         {
             amp[i] = fsaturate(old_weight*s->history[PLC_HISTORY_LEN - 1 - i] + new_weight*s->pitchbuf[i]);
             new_weight += new_step;
             old_weight -= old_step;
-            if (old_weight < 0.0)
-                old_weight = 0.0;
+            if (old_weight < 0.0f)
+                old_weight = 0.0f;
         }
         s->pitch_offset = i;
     }
     else
     {
-        gain = 1.0 - s->missing_samples*ATTENUATION_INCREMENT;
+        gain = 1.0f - s->missing_samples*ATTENUATION_INCREMENT;
         i = 0;
     }
-    for (  ;  gain > 0.0  &&  i < len;  i++)
+    for (  ;  gain > 0.0f  &&  i < len;  i++)
     {
-        amp[i] = s->pitchbuf[s->pitch_offset]*gain;
+        amp[i] = (int16_t) (s->pitchbuf[s->pitch_offset]*gain);
         gain -= ATTENUATION_INCREMENT;
         if (++s->pitch_offset >= s->pitch)
             s->pitch_offset = 0;

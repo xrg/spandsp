@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.9 2005/11/25 14:52:00 steveu Exp $
+ * $Id: v22bis.h,v 1.19 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \file */
@@ -54,10 +53,9 @@ or 1200bps if one or both ends to not acknowledge that 2400bps is OK.
 #define V22BIS_EQUALIZER_LEN    7  /* this much to the left and this much to the right */
 #define V22BIS_EQUALIZER_MASK   15 /* one less than a power of 2 >= (2*V22BIS_EQUALIZER_LEN + 1) */
 
-#define V22BIS_RX_FILTER_STEPS  107
-#define V22BIS_TX_FILTER_STEPS  107
+#define V22BIS_TX_FILTER_STEPS  9
 
-#define V22BIS_BANDPASS_STEPS   54
+#define V22BIS_RX_FILTER_STEPS  37
 
 /*!
     V.22bis modem receive side descriptor. This defines the working state for a
@@ -85,11 +83,8 @@ typedef struct
                routine. */
     void *qam_user_data;
 
-    float bandpass[2*V22BIS_BANDPASS_STEPS];
-    int bandpass_step;
-
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
-    complex_t rx_rrc_filter[2*V22BIS_RX_FILTER_STEPS];
+    float rx_rrc_filter[2*V22BIS_RX_FILTER_STEPS];
     /*! \brief Current offset into the RRC pulse shaping filter buffer. */
     int rx_rrc_filter_step;
 
@@ -120,8 +115,8 @@ typedef struct
 
     float eq_delta;
     /*! \brief The adaptive equalizer coefficients */
-    complex_t eq_coeff[2*V22BIS_EQUALIZER_LEN + 1];
-    complex_t eq_buf[V22BIS_EQUALIZER_MASK + 1];
+    complexf_t eq_coeff[2*V22BIS_EQUALIZER_LEN + 1];
+    complexf_t eq_buf[V22BIS_EQUALIZER_MASK + 1];
     /*! \brief Current offset into equalizer buffer. */
     int eq_step;
     int eq_put_step;
@@ -130,27 +125,23 @@ typedef struct
     int gardner_integrate;
     /*! \brief Current step size of Gardner algorithm integration. */
     int gardner_step;
-    /*! \brief The total gardner timing correction, since the carrier came up.
+    /*! \brief The total symbol timing correction since the carrier came up.
                This is only for performance analysis purposes. */
-    int gardner_total_correction;
+    int total_baud_timing_correction;
     /*! \brief The current fractional phase of the baud timing. */
     int rx_baud_phase;
-
-    /*! \brief Starting phase angles for the coarse carrier aquisition step. */
-    int32_t start_angles[4];
-    /*! \brief History list of phase angles for the coarse carrier aquisition step. */
-    int32_t angles[16];
+    
+    int sixteen_way_decisions;
 
     /* TRANSMIT SECTION */
 
+    /*! \brief The gain factor needed to achieve the specified output power. */
     float tx_gain;
 
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
-    complex_t tx_rrc_filter[2*V22BIS_TX_FILTER_STEPS];
+    complexf_t tx_rrc_filter[2*V22BIS_TX_FILTER_STEPS];
     /*! \brief Current offset into the RRC pulse shaping filter buffer. */
     int tx_rrc_filter_step;
-    /*! \brief The current constellation position. */
-    complex_t current_point;
 
     /*! \brief The register for the data scrambler. */
     unsigned int tx_scramble_reg;
@@ -170,7 +161,7 @@ typedef struct
     uint32_t guard_phase;
     /*! \brief The update rate for the phase of the guard tone (i.e. the DDS increment). */
     int32_t guard_phase_rate;
-    int guard_level;
+    float guard_level;
     /*! \brief The current fractional phase of the baud timing. */
     int tx_baud_phase;
     /*! \brief The code number for the current position in the constellation. */
@@ -181,6 +172,9 @@ typedef struct
     get_bit_func_t current_get_bit;
     
     int detected_unscrambled_ones;
+    int detected_unscrambled_zeros;
+
+    int detected_unscrambled_ones_or_zeros;
     int detected_unscrambled_0011_ending;
     int detected_scrambled_ones_or_zeros_at_1200bps;
     int detected_scrambled_ones_at_2400bps;
@@ -189,7 +183,7 @@ typedef struct
     logging_state_t logging;
 } v22bis_state_t;
 
-extern const complex_t v22bis_constellation[16];
+extern const complexf_t v22bis_constellation[16];
 
 #ifdef __cplusplus
 extern "C" {
@@ -208,13 +202,13 @@ int v22bis_rx_restart(v22bis_state_t *s, int bit_rate);
     \param amp The audio sample buffer.
     \param len The number of samples in the buffer.
     \return The number of samples unprocessed. */
-int v22bis_rx(v22bis_state_t *s, const int16_t *amp, int len);
+int v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len);
 
 /*! Get a snapshot of the current equalizer coefficients.
     \brief Get a snapshot of the current equalizer coefficients.
     \param coeffs The vector of complex coefficients.
     \return The number of coefficients in the vector. */
-int v22bis_rx_equalizer_state(v22bis_state_t *s, complex_t **coeffs);
+int v22bis_rx_equalizer_state(v22bis_state_t *s, complexf_t **coeffs);
 
 /*! Get the current received carrier frequency.
     \param s The modem context.
@@ -243,7 +237,7 @@ void v22bis_rx_set_qam_report_handler(v22bis_state_t *s, qam_report_handler_t *h
     \param amp The audio sample buffer.
     \param len The number of samples to be generated.
     \return The number of samples actually generated. */
-int v22bis_tx(v22bis_state_t *s, int16_t *amp, int len);
+int v22bis_tx(v22bis_state_t *s, int16_t amp[], int len);
 
 /*! Adjust a V.22bis modem transmit context's power output.
     \brief Adjust a V.22bis modem transmit context's output power.

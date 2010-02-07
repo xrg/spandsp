@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model_tests.c,v 1.8 2005/12/29 12:46:21 steveu Exp $
+ * $Id: line_model_tests.c,v 1.15 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \page line_model_tests_page Telephony line model tests
@@ -47,12 +46,16 @@
 #include <fcntl.h>
 #include <audiofile.h>
 #include <tiffio.h>
-
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #define GEN_CONST
 #include <math.h>
+#endif
 
 #include "spandsp.h"
-
+#include "test_utils.h"
 #include "line_model.h"
 
 #if !defined(NULL)
@@ -66,7 +69,7 @@
 #define OUT_FILE_NAME1  "line_model_one_way_test_out.wav"
 #define OUT_FILE_NAME   "line_model_test_out.wav"
 
-void test_one_way_model(int line_model_no, int speech_test)
+static void test_one_way_model(int line_model_no, int speech_test)
 {
     one_way_line_model_state_t *model;
     int16_t input1[BLOCK_LEN];
@@ -75,23 +78,21 @@ void test_one_way_model(int line_model_no, int speech_test)
     AFfilehandle inhandle1;
     AFfilehandle outhandle;
     AFfilesetup filesetup;
-    int inframes;
     int outframes;
     int samples;
     int i;
     int j;
     awgn_state_t noise1;
     
-    if ((model = one_way_line_model_init(line_model_no, -50)) == NULL)
+    if ((model = one_way_line_model_init(line_model_no, -50, MUNGE_CODEC_ALAW)) == NULL)
     {
         fprintf(stderr, "    Failed to create line model\n");
         exit(2);
     }
     
-    awgn_init(&noise1, 1234567, -10);
+    awgn_init_dbm0(&noise1, 1234567, -10.0f);
 
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
+    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
     {
         fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
@@ -101,14 +102,12 @@ void test_one_way_model(int line_model_no, int speech_test)
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
 
-    inhandle1 = afOpenFile(IN_FILE_NAME1, "r", NULL);
-    if (inhandle1 == AF_NULL_FILEHANDLE)
+    if ((inhandle1 = afOpenFile(IN_FILE_NAME1, "r", NULL)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot open wave file '%s'\n", IN_FILE_NAME1);
         exit(2);
     }
-    outhandle = afOpenFile(OUT_FILE_NAME1, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile(OUT_FILE_NAME1, "w", filesetup)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME1);
         exit(2);
@@ -162,7 +161,7 @@ void test_one_way_model(int line_model_no, int speech_test)
     one_way_line_model_release(model);
 }
 
-void test_both_ways_model(int line_model_no, int speech_test)
+static void test_both_ways_model(int line_model_no, int speech_test)
 {
     both_ways_line_model_state_t *model;
     int16_t input1[BLOCK_LEN];
@@ -174,7 +173,6 @@ void test_both_ways_model(int line_model_no, int speech_test)
     AFfilehandle inhandle2;
     AFfilehandle outhandle;
     AFfilesetup filesetup;
-    int inframes;
     int outframes;
     int samples;
     int i;
@@ -182,14 +180,14 @@ void test_both_ways_model(int line_model_no, int speech_test)
     awgn_state_t noise1;
     awgn_state_t noise2;
     
-    if ((model = both_ways_line_model_init(line_model_no, -50, line_model_no + 1, -35)) == NULL)
+    if ((model = both_ways_line_model_init(line_model_no, -50, line_model_no + 1, -35, MUNGE_CODEC_ALAW)) == NULL)
     {
         fprintf(stderr, "    Failed to create line model\n");
         exit(2);
     }
     
-    awgn_init(&noise1, 1234567, -10);
-    awgn_init(&noise2, 1234567, -10);
+    awgn_init_dbm0(&noise1, 1234567, -10.0f);
+    awgn_init_dbm0(&noise2, 1234567, -10.0f);
 
     filesetup = afNewFileSetup();
     if (filesetup == AF_NULL_FILESETUP)

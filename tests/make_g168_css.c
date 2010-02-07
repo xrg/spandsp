@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: make_g168_css.c,v 1.3 2005/12/25 15:08:36 steveu Exp $
+ * $Id: make_g168_css.c,v 1.9 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \page makecss_page CSS construction for G.168 testing
@@ -52,9 +51,13 @@
 #else
 #include <fftw.h>
 #endif
-
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #define GEN_CONST
 #include <math.h>
+#endif
 
 #include "spandsp.h"
 #include "spandsp/g168models.h"
@@ -115,18 +118,19 @@ int main(int argc, char *argv[])
         exit(2);
     }
 
-    for (i = 0;  i < sizeof(css_c1)/sizeof(css_c1[0]);  i++)
+    for (i = 0;  i < (int)(sizeof(css_c1)/sizeof(css_c1[0]));  i++)
         voiced_sound[i] = css_c1[i];
     voiced_length = i;
 
     ms = 0;
+    peak = 0;
     for (i = 0;  i < voiced_length;  i++)
     {
         if (abs(voiced_sound[i]) > peak)
             peak = abs(voiced_sound[i]);
         ms += voiced_sound[i]*voiced_sound[i];
     }
-    ms = 20.0*log10(sqrt(ms/voiced_length)/32767.0) + 3.14;
+    ms = 20.0*log10(sqrt(ms/voiced_length)/32767.0) + DBM0_MAX_POWER;
     printf("Voiced level = %.2fdB\n", ms);
 
 #if defined(HAVE_FFTW3_H)    
@@ -178,7 +182,7 @@ int main(int argc, char *argv[])
         in[i][0] = 0.0;
         in[i][1] = (rand() & 0x1)  ?  1.0  :  -1.0;
         in[i][1] *= pow(10.0, scale/20.0);
-        in[i][1] *= 35.0; //305360;
+        in[i][1] *= 35.0; //305360
         //printf("%10d %15.5f %15.5f\n", i, in[i].re, in[i].im);
         in[8192 - i][0] = 0.0;
         in[8192 - i][1] = -in[i][1];
@@ -187,7 +191,7 @@ int main(int argc, char *argv[])
         in[i].re = 0.0;
         in[i].im = (rand() & 0x1)  ?  1.0  :  -1.0;
         in[i].im *= pow(10.0, scale/20.0);
-        in[i].im *= 35.0; //305360;
+        in[i].im *= 35.0; //305360
         in[8192 - i].re = 0.0;
         in[8192 - i].im = -in[i].im;
         //printf("%10d %15.5f %15.5f\n", i, in[i].re, in[i].im);
@@ -216,7 +220,7 @@ int main(int argc, char *argv[])
             peak = abs(noise_sound[i]);
         ms += noise_sound[i]*noise_sound[i];
     }
-    printf("Noise level = %.2fdB\n", 20.0*log10(sqrt(ms/8192.0)/32767.0) + 3.14);
+    printf("Noise level = %.2fdB\n", 20.0*log10(sqrt(ms/8192.0)/32767.0) + DBM0_MAX_POWER);
     printf("Crest factor = %.2fdB\n", 20.0*log10(peak/sqrt(ms/8192.0)));
     
     for (i = 0;  i < 8192;  i++)
@@ -290,7 +294,7 @@ int main(int argc, char *argv[])
         exit(2);
     }
 
-    for (i = 0;  i < sizeof(css_c3)/sizeof(css_c3[0]);  i++)
+    for (i = 0;  i < (int) (sizeof(css_c3)/sizeof(css_c3[0]));  i++)
         voiced_sound[i] = css_c3[i];
     voiced_length = i;
 
@@ -301,10 +305,10 @@ int main(int argc, char *argv[])
             peak = abs(voiced_sound[i]);
         ms += voiced_sound[i]*voiced_sound[i];
     }
-    ms = 20.0*log10(sqrt(ms/voiced_length)/32767.0) + 3.14;
+    ms = 20.0*log10(sqrt(ms/voiced_length)/32767.0) + DBM0_MAX_POWER;
     printf("Voiced level = %.2fdB\n", ms);
 
-    awgn_init(&noise_source, 7162534, (int) (ms + 0.5));
+    awgn_init_dbm0(&noise_source, 7162534, ms);
     for (i = 0;  i < 8192;  i++)
         noise_sound[i] = awgn(&noise_source);
     peak = 0;
@@ -315,7 +319,7 @@ int main(int argc, char *argv[])
             peak = abs(noise_sound[i]);
         ms += noise_sound[i]*noise_sound[i];
     }
-    printf("Noise level = %.2fdB\n", 20.0*log10(sqrt(ms/8192.0)/32767.0) + 3.14);
+    printf("Noise level = %.2fdB\n", 20.0*log10(sqrt(ms/8192.0)/32767.0) + DBM0_MAX_POWER);
     printf("Crest factor = %.2fdB\n", 20.0*log10(peak/sqrt(ms/8192.0)));
 
     for (j = 0;  j < 14;  j++)

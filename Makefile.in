@@ -100,6 +100,10 @@ COND_DOC_FALSE = @COND_DOC_FALSE@
 COND_DOC_TRUE = @COND_DOC_TRUE@
 COND_ITUTESTS_FALSE = @COND_ITUTESTS_FALSE@
 COND_ITUTESTS_TRUE = @COND_ITUTESTS_TRUE@
+COND_MMX_FALSE = @COND_MMX_FALSE@
+COND_MMX_TRUE = @COND_MMX_TRUE@
+COND_SSE_FALSE = @COND_SSE_FALSE@
+COND_SSE_TRUE = @COND_SSE_TRUE@
 COND_TESTS_FALSE = @COND_TESTS_FALSE@
 COND_TESTS_TRUE = @COND_TESTS_TRUE@
 CPP = @CPP@
@@ -190,13 +194,23 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
+@COND_MMX_TRUE@EX_CFLAGS = -mmmx -O3
+@COND_SSE_TRUE@EX_CFLAGS = -msse -O3
+AM_CFLAGS = $(EX_CFLAGS) -std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes
 noinst_SCRIPTS = spandsp.spec
 nobase_data_DATA = spandsp/global-tones.xml spandsp/tones.dtd
 MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = DueDiligence \
              spandsp.spec \
              wrapper.xsl \
+             libspandsp.vcproj \
              doc/libspandsp-doxygen \
+             src/msvc/gettimeofday.c \
+             src/msvc/inttypes.h \
+             src/msvc/tgmath.h \
+             src/msvc/unistd.h \
+             src/msvc/sys/time.h \
+             src/msvc/spandsp.def \
              spandsp/global-tones.xml \
              spandsp/tones.dtd
 
@@ -408,7 +422,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/. $(distdir)/config $(distdir)/doc $(distdir)/spandsp
+	$(mkdir_p) $(distdir)/. $(distdir)/config $(distdir)/doc $(distdir)/spandsp $(distdir)/src/msvc $(distdir)/src/msvc/sys
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

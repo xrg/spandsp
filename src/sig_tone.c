@@ -11,9 +11,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -24,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.c,v 1.8 2006/01/31 05:34:27 steveu Exp $
+ * $Id: sig_tone.c,v 1.15 2006/11/19 14:07:25 steveu Exp $
  */
 
 /*! \file */
@@ -36,7 +35,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 #include <memory.h>
 #include <string.h>
 
@@ -52,7 +56,8 @@
 
 sig_tone_descriptor_t sig_tones[4] =
 {
-    {   /* 2280Hz (e.g. AC15,  and many other European protocols) */
+    {
+        /* 2280Hz (e.g. AC15, and many other European protocols) */
         {2280,  0},
         {-10, -20},
         400*8,
@@ -94,7 +99,8 @@ sig_tone_descriptor_t sig_tones[4] =
     
         57
     },
-    {   /* 2600Hz (e.g. many US protocols) */
+    {
+        /* 2600Hz (e.g. many US protocols) */
         {2600, 0},
         {-8, -8},
         400*8,
@@ -136,7 +142,8 @@ sig_tone_descriptor_t sig_tones[4] =
     
         52
     },
-    {   /* 2400Hz / 2600Hz (e.g. SS5 and SS5bis) */
+    {
+        /* 2400Hz / 2600Hz (e.g. SS5 and SS5bis) */
         {2400, 2600},
         {-8, -8},
         400*8,
@@ -239,7 +246,71 @@ int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len)
         }
         /*endif*/
 
-        if (!s->flat_mode)
+        if (s->flat_mode)
+        {
+            /* Flat mode */
+    
+            /* The bandpass filter is a single bi-quad stage */
+            bandpass_signal = amp[i];
+            bandpass_signal *= s->desc->broad_a[0];
+            bandpass_signal += s->broad_z[1]*s->desc->broad_b[1];
+            bandpass_signal += s->broad_z[2]*s->desc->broad_b[2];
+            x = bandpass_signal;
+            bandpass_signal += s->broad_z[1]*s->desc->broad_a[1];
+            bandpass_signal += s->broad_z[2]*s->desc->broad_a[2];
+            s->broad_z[2] = s->broad_z[1];
+            s->broad_z[1] = x >> 15;
+            bandpass_signal >>= s->desc->broad_postscale;
+    
+            /* Leaky integrate the bandpassed data */
+            s->broad_zl = ((s->broad_zl*s->desc->broad_slugi) >> 15)
+                        + ((abs(bandpass_signal)*s->desc->broad_slugp) >> 15);
+    
+            /* For the broad band receiver we use a simple linear threshold! */
+            if (s->tone_present)
+            {
+                s->tone_present = (s->broad_zl > s->desc->broad_threshold);
+                if (!s->tone_present)
+                {
+                    if (s->sig_update)
+                        s->sig_update(s->user_data, SIG_TONE_1_CHANGE | (s->signaling_state_duration << 16));
+                    /*endif*/
+                    s->signaling_state_duration = 0;
+                }
+                /*endif*/
+            }
+            else
+            {
+                s->tone_present = (s->broad_zl > s->desc->broad_threshold);
+                if (s->tone_present)
+                {
+                    if (s->sig_update)
+                        s->sig_update(s->user_data, SIG_TONE_1_CHANGE | SIG_TONE_1_PRESENT | (s->signaling_state_duration << 16));
+                    /*endif*/
+                    s->signaling_state_duration = 0;
+                }
+                /*endif*/
+            }
+            /*endif*/
+            /* Notch insertion logic */
+    
+            /* tone_present and tone_on are equivalent in flat mode */
+            if (s->tone_present)
+            {
+                s->notch_enabled = s->desc->notch_allowed;
+                s->notch_insertion_timeout = s->desc->notch_lag_time;
+            }
+            else
+            {
+                if (s->notch_insertion_timeout > 0)
+                    s->notch_insertion_timeout--;
+                else
+                    s->notch_enabled = FALSE;
+                /*endif*/
+            }
+            /*endif*/
+        }
+        else
         {
             /* Sharp mode */
 
@@ -263,7 +334,7 @@ int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len)
                         s->tone_persistence_timeout = s->desc->tone_off_check_time;
                         s->notch_insertion_timeout = s->desc->notch_lag_time;
                         if (s->sig_update)
-                            s->sig_update(s->user_data, 0x02 | SIG_TONE_1_PRESENT | (s->signaling_state_duration << 16));
+                            s->sig_update(s->user_data, SIG_TONE_1_CHANGE | SIG_TONE_1_PRESENT | (s->signaling_state_duration << 16));
                         /*endif*/
                         s->signaling_state_duration = 0;
                     }
@@ -299,7 +370,7 @@ int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len)
                         s->tone_present = FALSE;
                         s->tone_persistence_timeout = s->desc->tone_on_check_time;
                         if (s->sig_update)
-                            s->sig_update(s->user_data, 0x02 | (s->signaling_state_duration << 16));
+                            s->sig_update(s->user_data, SIG_TONE_1_CHANGE | (s->signaling_state_duration << 16));
                         /*endif*/
                         s->signaling_state_duration = 0;
                     }
@@ -317,76 +388,12 @@ int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len)
             }
             /*endif*/
         }
-        else
-        {
-            /* Flat mode */
-    
-            /* The bandpass filter is a single bi-quad stage */
-            bandpass_signal = amp[i];
-            bandpass_signal *= s->desc->broad_a[0];
-            bandpass_signal += s->broad_z[1]*s->desc->broad_b[1];
-            bandpass_signal += s->broad_z[2]*s->desc->broad_b[2];
-            x = bandpass_signal;
-            bandpass_signal += s->broad_z[1]*s->desc->broad_a[1];
-            bandpass_signal += s->broad_z[2]*s->desc->broad_a[2];
-            s->broad_z[2] = s->broad_z[1];
-            s->broad_z[1] = x >> 15;
-            bandpass_signal >>= s->desc->broad_postscale;
-    
-            /* Leaky integrate the bandpassed data */
-            s->broad_zl = ((s->broad_zl*s->desc->broad_slugi) >> 15)
-                        + ((abs(bandpass_signal)*s->desc->broad_slugp) >> 15);
-    
-            /* For the broad band receiver we use a simple linear threshold! */
-            if (!s->tone_present)
-            {
-                s->tone_present = (s->broad_zl > s->desc->broad_threshold);
-                if (s->tone_present)
-                {
-                    if (s->sig_update)
-                        s->sig_update(s->user_data, 0x02 | SIG_TONE_1_PRESENT | (s->signaling_state_duration << 16));
-                    /*endif*/
-                    s->signaling_state_duration = 0;
-                }
-                /*endif*/
-            }
-            else
-            {
-                s->tone_present = (s->broad_zl > s->desc->broad_threshold);
-                if (!s->tone_present)
-                {
-                    if (s->sig_update)
-                        s->sig_update(s->user_data, 0x02 | (s->signaling_state_duration << 16));
-                    /*endif*/
-                    s->signaling_state_duration = 0;
-                }
-                /*endif*/
-            }
-            /*endif*/
-            /* Notch insertion logic */
-    
-            /* tone_present and tone on are equivalent in flat mode */
-            if (s->tone_present)
-            {
-                s->notch_enabled = s->desc->notch_allowed;
-                s->notch_insertion_timeout = s->desc->notch_lag_time;
-            }
-            else
-            {
-                if (s->notch_insertion_timeout > 0)
-                    s->notch_insertion_timeout--;
-                else
-                    s->notch_enabled = FALSE;
-                /*endif*/
-            }
-            /*endif*/
-        }
         /*endif*/
 
-        if (s->current_tx_tone & SIG_TONE_RX_PASSTHROUGH)
+        if ((s->current_tx_tone & SIG_TONE_RX_PASSTHROUGH))
         {
-            if (1) //s->notch_enabled)
-                amp[i] = notched_signal;
+            //if (s->notch_enabled)
+                amp[i] = (int16_t) notched_signal;
             /*endif*/
         }
         else
@@ -485,11 +492,6 @@ int sig_tone_tx(sig_tone_state_t *s, int16_t amp[], int len)
 
 sig_tone_state_t *sig_tone_init(sig_tone_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data)
 {
-    int32_t itone;
-    int i;
-    double f;
-    double tone;
-
     if (tone_type <= 0  ||  tone_type > 3)
         return NULL;
     /*endif*/
@@ -502,14 +504,14 @@ sig_tone_state_t *sig_tone_init(sig_tone_state_t *s, int tone_type, sig_tone_fun
     s->desc = &sig_tones[tone_type - 1];
 
     /* Set up the transmit side */
-    s->phase_rate[0] = dds_phase_step(s->desc->tone_freq[0]);
+    s->phase_rate[0] = dds_phase_rate((float) s->desc->tone_freq[0]);
     if (s->desc->tone_freq[1])
-        s->phase_rate[1] = dds_phase_step(s->desc->tone_freq[1]);
+        s->phase_rate[1] = dds_phase_rate((float) s->desc->tone_freq[1]);
     else
         s->phase_rate[1] = 0;
     /*endif*/
-    s->tone_scaling[0] = dds_scaling_dbm0(s->desc->tone_amp[0]);
-    s->tone_scaling[1] = dds_scaling_dbm0(s->desc->tone_amp[1]);
+    s->tone_scaling[0] = dds_scaling_dbm0((float) s->desc->tone_amp[0]);
+    s->tone_scaling[1] = dds_scaling_dbm0((float) s->desc->tone_amp[1]);
 
     /* Set up the receive side */
     s->flat_mode_timeout = 0;

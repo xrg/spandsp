@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bert.h,v 1.9 2005/12/29 09:54:24 steveu Exp $
+ * $Id: bert.h,v 1.13 2006/10/24 13:45:27 steveu Exp $
  */
 
 #if !defined(_BERT_H_)
@@ -90,7 +89,18 @@ enum
     BERT_PATTERN_ITU_O153_9
 };
 
-typedef void (*bert_report_func_t)(void *user_data, int reason);
+/*!
+    Bit error rate tester (BERT) results descriptor. This is used to report the
+    results of a BER test.
+*/
+typedef struct
+{
+    int total_bits;
+    int bad_bits;
+    int resyncs;
+} bert_results_t;
+
+typedef void (*bert_report_func_t)(void *user_data, int reason, bert_results_t *bert_results);
 
 /*!
     Bit error rate tester (BERT) descriptor. This defines the working state for a
@@ -123,9 +133,6 @@ typedef struct
     int resync_percent;
     int resync_bad_bits;
     int resync_cnt;
-    int total_bits;
-    int bad_bits;
-    int resyncs;
     
     uint32_t mask;
     int shift;
@@ -141,18 +148,12 @@ typedef struct
 
     int bit_error_status;
     int report_countdown;
-} bert_state_t;
 
-/*!
-    Bit error rate tester (BERT) results descriptor. This is used to report the
-    results of a BER test.
-*/
-typedef struct
-{
-    int total_bits;
-    int bad_bits;
-    int resyncs;
-} bert_results_t;
+    bert_results_t results;
+
+    /*! \brief Error and flow logging control */
+    logging_state_t logging;
+} bert_state_t;
 
 #ifdef __cplusplus
 extern "C" {

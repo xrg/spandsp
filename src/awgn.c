@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn.c,v 1.6 2005/11/27 12:36:22 steveu Exp $
+ * $Id: awgn.c,v 1.11 2006/11/19 14:07:24 steveu Exp $
  */
 
 /*! \file */
@@ -48,10 +47,15 @@
 #endif
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <inttypes.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 
+#include "spandsp/telephony.h"
 #include "spandsp/dc_restore.h"
 #include "spandsp/awgn.h"
 
@@ -79,8 +83,8 @@ static double ran1(awgn_state_t *s)
     j = 1 + ((97*s->ix3)/M3);
     if (j > 97  ||  j < 1)
     {
-        fprintf(stderr, "Random number generator error - %d\n", j);
-        exit(-1);
+        /* Error */
+        return -1;
     }
     temp = s->r[j];
     s->r[j] = (s->ix1 + s->ix2*RM2)*RM1;
@@ -88,14 +92,20 @@ static double ran1(awgn_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-void awgn_init(awgn_state_t *s, int idum, int level)
+void awgn_init_dbm0(awgn_state_t *s, int idum, float level)
+{
+    awgn_init_dbov(s, idum, level - DBM0_MAX_POWER);
+}
+/*- End of function --------------------------------------------------------*/
+
+void awgn_init_dbov(awgn_state_t *s, int idum, float level)
 {
     int j;
 
     if (idum < 0)
         idum = -idum;
 
-    s->rms = pow(10.0, (level - 3.14)/20.0)*(32768.0*0.70711);
+    s->rms = pow(10.0, level/20.0)*32768.0;
 
     s->ix1 = (IC1 + idum)%M1;
     s->ix1 = (IA1*s->ix1 + IC1)%M1;

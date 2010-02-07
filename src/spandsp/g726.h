@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -49,7 +48,7 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.h,v 1.6 2006/05/24 09:19:11 steveu Exp $
+ * $Id: g726.h,v 1.12 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \file */
@@ -72,9 +71,19 @@ It passes the ITU tests.
 ???.
 */
 
-#define G726_ENCODING_LINEAR    0   /* 16 bit signed linear */
-#define G726_ENCODING_ULAW      1   /* u-law */
-#define G726_ENCODING_ALAW      2   /* A-law */
+enum
+{
+    G726_ENCODING_LINEAR = 0,   /* Interworking with 16 bit signed linear */
+    G726_ENCODING_ULAW,         /* Interworking with u-law */
+    G726_ENCODING_ALAW          /* Interworking with A-law */
+};
+
+enum
+{
+    G726_PACKING_NONE = 0,
+    G726_PACKING_LEFT = 1,
+    G726_PACKING_RIGHT = 2
+};
 
 struct g726_state_s;
 
@@ -99,8 +108,8 @@ typedef struct g726_state_s
     int ext_coding;
     /*! The number of bits per sample */
     int bits_per_sample;
-    /*! TRUE if the G.726 data is packed */
-    int packed;
+    /*! One fo the G.726_PACKING_xxx options */
+    int packing;
 
     /*! Locked or steady state step size multiplier. */
     int32_t yl;
@@ -128,10 +137,7 @@ typedef struct g726_state_s
     /*! Delayed tone detect */
     int td;
     
-    unsigned int in_buffer;
-    int in_bits;
-    unsigned int out_buffer;
-    int out_bits;
+    bitstream_state_t bs;
 
     g726_encoder_func_t enc_func;
     g726_decoder_func_t dec_func;
@@ -146,10 +152,9 @@ extern "C" {
     \param bit_rate The required bit rate for the ADPCM data.
            The valid rates are 16000, 24000, 32000 and 40000.
     \param ext_coding The coding used outside G.726.
-    \param packed TRUE to use packed G.726. Otherwise G.726 will be expected as
-           one code per octet.
+    \param packing One of the G.726_PACKING_xxx options.
     \return A pointer to the G.726 context, or NULL for error. */
-g726_state_t *g726_init(g726_state_t *s, int bit_rate, int ext_coding, int packed);
+g726_state_t *g726_init(g726_state_t *s, int bit_rate, int ext_coding, int packing);
 
 /*! Free a G.726 encode or decode context.
     \param s The G.726 context.
@@ -158,7 +163,7 @@ int g726_release(g726_state_t *s);
 
 /*! Decode a buffer of G.726 ADPCM data to linear PCM, a-law or u-law.
     \param s The G.726 context.
-    \param amp
+    \param amp The audio sample buffer.
     \param g726_data
     \param g726_bytes
     \return The number of samples returned. */
@@ -169,14 +174,14 @@ int g726_decode(g726_state_t *s,
 
 /*! Encode a buffer of linear PCM data to G.726 ADPCM.
     \param s The G.726 context.
-    \param g726_data
-    \param amp
-    \param samples
+    \param g726_data The G.726 data produced.
+    \param amp The audio sample buffer.
+    \param len The number of samples in the buffer.
     \return The number of bytes of G.726 data produced. */
 int g726_encode(g726_state_t *s,
                 uint8_t g726_data[],
                 const int16_t amp[],
-                int samples);
+                int len);
 
 #ifdef __cplusplus
 }

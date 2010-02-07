@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -29,7 +28,7 @@
  * Computer Science, Speech Group
  * Chengxiang Lu and Alex Hauptmann
  *
- * $Id: g722_encode.c,v 1.11 2006/05/22 12:47:24 steveu Exp $
+ * $Id: g722_encode.c,v 1.16 2006/11/19 14:07:24 steveu Exp $
  */
 
 /*! \file */
@@ -38,11 +37,15 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
 #include <inttypes.h>
 #include <memory.h>
 #include <stdlib.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 
 #include "spandsp/telephony.h"
 #include "spandsp/dc_restore.h"
@@ -53,8 +56,6 @@ static void block4(g722_encode_state_t *s, int band, int d)
     int wd1;
     int wd2;
     int wd3;
-    int wd4;
-    int wd5;
     int i;
 
     /* Block 4, RECONS */
@@ -72,15 +73,13 @@ static void block4(g722_encode_state_t *s, int band, int d)
     wd2 = (s->band[band].sg[0] == s->band[band].sg[1])  ?  -wd1  :  wd1;
     if (wd2 > 32767)
         wd2 = 32767;
-    wd3 = (s->band[band].sg[0] == s->band[band].sg[2])  ?  128  :  -128;
-    wd4 = (wd2 >> 7) + wd3;
-    wd5 = (s->band[band].a[2]*32512) >> 15;
-
-    s->band[band].ap[2] = wd4 + wd5;
-    if (s->band[band].ap[2] > 12288)
-        s->band[band].ap[2] = 12288;
-    else if (s->band[band].ap[2] < -12288)
-        s->band[band].ap[2] = -12288;
+    wd3 = (wd2 >> 7) + ((s->band[band].sg[0] == s->band[band].sg[2])  ?  128  :  -128);
+    wd3 += (s->band[band].a[2]*32512) >> 15;
+    if (wd3 > 12288)
+        wd3 = 12288;
+    else if (wd3 < -12288)
+        wd3 = -12288;
+    s->band[band].ap[2] = wd3;
 
     /* Block 4, UPPOL1 */
     s->band[band].sg[0] = s->band[band].p[0] >> 15;
@@ -141,7 +140,7 @@ static void block4(g722_encode_state_t *s, int band, int d)
 }
 /*- End of function --------------------------------------------------------*/
 
-g722_encode_state_t *g722_encode_init(g722_encode_state_t *s, int rate, int packed)
+g722_encode_state_t *g722_encode_init(g722_encode_state_t *s, int rate, int options)
 {
     if (s == NULL)
     {
@@ -155,7 +154,12 @@ g722_encode_state_t *g722_encode_init(g722_encode_state_t *s, int rate, int pack
         s->bits_per_sample = 7;
     else
         s->bits_per_sample = 8;
-    s->packed = (s->bits_per_sample != 8)  ?  packed  :  FALSE;
+    if ((options & G722_SAMPLE_RATE_8000))
+        s->eight_k = TRUE;
+    if ((options & G722_PACKED)  &&  s->bits_per_sample != 8)
+        s->packed = TRUE;
+    else
+        s->packed = FALSE;
     s->band[0].det = 32;
     s->band[1].det = 8;
     return s;
@@ -231,10 +235,8 @@ int g722_encode(g722_encode_state_t *s, uint8_t g722_data[], const int16_t amp[]
     int dlow;
     int dhigh;
     int el;
-    int mil;
     int wd;
     int wd1;
-    int hdu;
     int ril;
     int wd2;
     int il4;
@@ -242,7 +244,6 @@ int g722_encode(g722_encode_state_t *s, uint8_t g722_data[], const int16_t amp[]
     int wd3;
     int eh;
     int mih;
-    int *xp;
     int i;
     int j;
     /* Low and high band PCM from the QMF */
@@ -257,6 +258,7 @@ int g722_encode(g722_encode_state_t *s, uint8_t g722_data[], const int16_t amp[]
     int code;
 
     g722_bytes = 0;
+    xhigh = 0;
     for (j = 0;  j < len;  )
     {
         if (s->itu_test_mode)
@@ -266,25 +268,30 @@ int g722_encode(g722_encode_state_t *s, uint8_t g722_data[], const int16_t amp[]
         }
         else
         {
-            /* Process PCM through the QMF */
-            /* Shuffle the buffer down */
-            for (i = 23;  i >= 2;  i--)
-                s->x[i] = s->x[i - 2];
-            s->x[1] = amp[j++];
-            s->x[0] = amp[j++];
-
-            /* Discard every other QMF output */
-            sumeven = 0;
-            sumodd = 0;
-            xp = s->x;
-            for (i = 0;  i < 12;  i++)
+            if (s->eight_k)
             {
-                sumeven += *xp++ * qmf_coeffs[i];
-                sumodd += *xp++ * qmf_coeffs[11 - i];
+                xlow = amp[j++];
             }
-
-            xlow = (sumeven + sumodd) >> 13;
-            xhigh = (sumeven - sumodd) >> 13;
+            else
+            {
+                /* Apply the transmit QMF */
+                /* Shuffle the buffer down */
+                for (i = 0;  i < 22;  i++)
+                    s->x[i] = s->x[i + 2];
+                s->x[22] = amp[j++];
+                s->x[23] = amp[j++];
+    
+                /* Discard every other QMF output */
+                sumeven = 0;
+                sumodd = 0;
+                for (i = 0;  i < 12;  i++)
+                {
+                    sumodd += s->x[2*i]*qmf_coeffs[i];
+                    sumeven += s->x[2*i + 1]*qmf_coeffs[11 - i];
+                }
+                xlow = (sumeven + sumodd) >> 13;
+                xhigh = (sumeven - sumodd) >> 13;
+            }
         }
         /* Block 1L, SUBTRA */
         el = saturate(xlow - s->band[0].s);
@@ -292,17 +299,13 @@ int g722_encode(g722_encode_state_t *s, uint8_t g722_data[], const int16_t amp[]
         /* Block 1L, QUANTL */
         wd = (el >= 0)  ?  el  :  -(el + 1);
 
-        mil = 1;
         for (i = 1;  i < 30;  i++)
         {
-            wd2 = q6[i]*s->band[0].det;
-            wd1 = wd2 >> 12;
+            wd1 = (q6[i]*s->band[0].det) >> 12;
             if (wd < wd1)
                 break;
-            mil++;
         }
-
-        ilow = (el < 0)  ?  iln[mil]  :  ilp[mil];
+        ilow = (el < 0)  ?  iln[i]  :  ilp[i];
 
         /* Block 2L, INVQAL */
         ril = ilow >> 2;
@@ -320,46 +323,51 @@ int g722_encode(g722_encode_state_t *s, uint8_t g722_data[], const int16_t amp[]
 
         /* Block 3L, SCALEL */
         wd1 = (s->band[0].nb >> 6) & 31;
-        wd2 = s->band[0].nb >> 11;
-        wd3 = ((8 - wd2) < 0)  ?  ilb[wd1] << (wd2 - 8)  :  ilb[wd1] >> (8 - wd2);
+        wd2 = 8 - (s->band[0].nb >> 11);
+        wd3 = (wd2 < 0)  ?  (ilb[wd1] << -wd2)  :  (ilb[wd1] >> wd2);
         s->band[0].det = wd3 << 2;
 
         block4(s, 0, dlow);
         
-        /* Block 1H, SUBTRA */
-        eh = saturate(xhigh - s->band[1].s);
+        if (s->eight_k)
+        {
+            /* Just leave the high bits as zero */
+            code = (0xC0 | ilow) >> (8 - s->bits_per_sample);
+        }
+        else
+        {
+            /* Block 1H, SUBTRA */
+            eh = saturate(xhigh - s->band[1].s);
 
-        /* Block 1H, QUANTH */
-        wd = (eh >= 0)  ?  eh  :  -(eh + 1);
+            /* Block 1H, QUANTH */
+            wd = (eh >= 0)  ?  eh  :  -(eh + 1);
+            wd1 = (564*s->band[1].det) >> 12;
+            mih = (wd >= wd1)  ?  2  :  1;
+            ihigh = (eh < 0)  ?  ihn[mih]  :  ihp[mih];
 
-        hdu = 564*s->band[1].det;
-        wd1 = hdu >> 12;
-        mih = (wd >= wd1)  ?  2  :  1;
+            /* Block 2H, INVQAH */
+            wd2 = qm2[ihigh];
+            dhigh = (s->band[1].det*wd2) >> 15;
 
-        ihigh = (eh < 0)  ?  ihn[mih]  :  ihp[mih];
+            /* Block 3H, LOGSCH */
+            ih2 = rh2[ihigh];
+            wd = (s->band[1].nb*127) >> 7;
+            s->band[1].nb = wd + wh[ih2];
+            if (s->band[1].nb < 0)
+                s->band[1].nb = 0;
+            else if (s->band[1].nb > 22528)
+                s->band[1].nb = 22528;
 
-        /* Block 2H, INVQAH */
-        wd2 = qm2[ihigh];
-        dhigh = (s->band[1].det*wd2) >> 15;
+            /* Block 3H, SCALEH */
+            wd1 = (s->band[1].nb >> 6) & 31;
+            wd2 = 10 - (s->band[1].nb >> 11);
+            wd3 = (wd2 < 0)  ?  (ilb[wd1] << -wd2)  :  (ilb[wd1] >> wd2);
+            s->band[1].det = wd3 << 2;
 
-        /* Block 3H, LOGSCH */
-        ih2 = rh2[ihigh];
-        wd = (s->band[1].nb*127) >> 7;
-        s->band[1].nb = wd + wh[ih2];
-        if (s->band[1].nb < 0)
-            s->band[1].nb = 0;
-        else if (s->band[1].nb > 22528)
-            s->band[1].nb = 22528;
+            block4(s, 1, dhigh);
+            code = ((ihigh << 6) | ilow) >> (8 - s->bits_per_sample);
+        }
 
-        /* Block 3H, SCALEH */
-        wd1 = (s->band[1].nb >> 6) & 31;
-        wd2 = s->band[1].nb >> 11;
-        wd3 = ((10 - wd2) < 0)  ?  (ilb[wd1] << (wd2 - 10))  :  (ilb[wd1] >> (10 - wd2));
-        s->band[1].det = wd3 << 2;
-
-        block4(s, 1, dhigh);
-
-        code = ((ihigh << 6) | ilow) >> (8 - s->bits_per_sample);
         if (s->packed)
         {
             /* Pack the code bits */

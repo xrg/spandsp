@@ -12,9 +12,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,14 +24,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g168_tests.c,v 1.5 2005/09/01 17:06:45 steveu Exp $
+ * $Id: g168_tests.c,v 1.9 2006/11/19 14:07:27 steveu Exp $
  */
 
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 #include <tiffio.h>
 
 #include "spandsp.h"
@@ -130,10 +134,10 @@ int main (int argc, char *argv[])
                power[7]);
     }
     
-    for (i = 0;  i < sizeof(css_c1)/sizeof(css_c1[0]);  i++)
+    for (i = 0;  i < (int) (sizeof(css_c1)/sizeof(css_c1[0]));  i++)
         printf("%d\n", css_c1[i]);
     printf("\n");
-    for (i = 0;  i < sizeof(css_c1)/sizeof(css_c3[0]);  i++)
+    for (i = 0;  i < (int) (sizeof(css_c1)/sizeof(css_c3[0]));  i++)
         printf("%d\n", css_c3[i]);
     return  0;
 }

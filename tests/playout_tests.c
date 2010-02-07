@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: playout_tests.c,v 1.11 2005/12/29 09:54:24 steveu Exp $
+ * $Id: playout_tests.c,v 1.14 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \page playout_tests_page Playout (jitter buffering) tests
@@ -36,7 +35,12 @@ how well the playout module copes.
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 #include <tiffio.h>
 
 #include <audiofile.h>
@@ -48,7 +52,7 @@ how well the playout module copes.
 
 #define BLOCK_LEN           160
 
-void dynamic_buffer_tests(void)
+static void dynamic_buffer_tests(void)
 {
     playout_state_t *s;
     playout_frame_t frame;
@@ -245,7 +249,7 @@ printf("len = %d\n", len);
 }
 /*- End of function --------------------------------------------------------*/
 
-void static_buffer_tests(void)
+static void static_buffer_tests(void)
 {
     playout_state_t *s;
     playout_frame_t frame;

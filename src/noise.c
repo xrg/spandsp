@@ -11,9 +11,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -24,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: noise.c,v 1.8 2005/12/06 14:34:02 steveu Exp $
+ * $Id: noise.c,v 1.16 2006/11/19 14:07:24 steveu Exp $
  */
 
 /*! \file */
@@ -36,8 +35,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
+#include <memory.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 
+#include "spandsp/telephony.h"
 #include "spandsp/dc_restore.h"
 #include "spandsp/noise.h"
 
@@ -70,19 +76,31 @@ int16_t noise(noise_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-noise_state_t *noise_init(noise_state_t *s, int seed, int level, int class_of_noise, int quality)
+noise_state_t *noise_init_dbm0(noise_state_t *s, int seed, float level, int class_of_noise, int quality)
 {
-    double rms;
+    return noise_init_dbov(s, seed, (level - DBM0_MAX_POWER), class_of_noise, quality);
+}
+/*- End of function --------------------------------------------------------*/
 
+noise_state_t *noise_init_dbov(noise_state_t *s, int seed, float level, int class_of_noise, int quality)
+{
+    float rms;
+
+    memset(s, 0, sizeof(*s));
     s->rndnum = (uint32_t) seed;
-    rms = 1.3108*32768.0*0.70711*pow(10.0, (level - 3.14)/20.0);
-    s->rms = rms;
+    rms = 32768.0f*powf(10.0f, level/20.0f);
     if (quality < 4)
         s->quality = 4;
     else if (quality > 20)
         s->quality = 20;
     else
         s->quality = quality;
+    if (class_of_noise == NOISE_CLASS_HOTH)
+    {
+        /* Allow for the gain of the filtering */
+        rms *= 1.043;
+    }
+    s->rms = (int32_t) (rms*sqrt(12.0/quality));
     s->class_of_noise = class_of_noise;
     return s;
 }

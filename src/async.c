@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: async.c,v 1.1 2005/11/23 17:09:46 steveu Exp $
+ * $Id: async.c,v 1.6 2006/11/19 14:07:24 steveu Exp $
  */
 
 /*! \file */
@@ -34,9 +33,7 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
-#include <math.h>
 #include <assert.h>
 
 #include "spandsp/telephony.h"
@@ -67,7 +64,7 @@ void async_rx_init(async_rx_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-void async_rx_bit(void *user_data, int bit)
+void async_rx_put_bit(void *user_data, int bit)
 {
     async_rx_state_t *s;
 
@@ -94,18 +91,14 @@ void async_rx_bit(void *user_data, int bit)
     }
     if (s->bitpos == 0)
     {
-        if (bit == 0)
-        {
-            /* Start bit */
-            s->bitpos++;
-            s->parity_bit = 0;
-        }
+        /* Search for the start bit */
+        s->bitpos += (bit ^ 1);
+        s->parity_bit = 0;
+        s->byte_in_progress = 0;
     }
     else if (s->bitpos <= s->data_bits)
     {
-        s->byte_in_progress >>= 1;
-        if (bit)
-            s->byte_in_progress |= 0x80;
+        s->byte_in_progress = (s->byte_in_progress >> 1) | (bit << 7);
         s->parity_bit ^= bit;
         s->bitpos++;
     }
@@ -129,28 +122,24 @@ void async_rx_bit(void *user_data, int bit)
             s->put_byte(s->user_data, s->byte_in_progress);
             s->bitpos = 0;
         }
+        else if (s->use_v14)
+        {
+            /* This is actually the start bit for the next character, and
+               the stop bit has been dropped from the stream. This is the
+               rate adaption specified in V.14 */
+            /* Align the received value */
+            if (s->data_bits < 8)
+                s->byte_in_progress >>= (8 - s->data_bits);
+            s->put_byte(s->user_data, s->byte_in_progress);
+            s->bitpos = 1;
+            s->parity_bit = 0;
+            s->byte_in_progress = 0;
+        }
         else
         {
-            if (s->use_v14)
-            {
-                /* This is actually the start bit for the next character, and
-                   the stop bit has been dropped from the stream. This is the
-                   rate adaption specified in V.14 */
-                /* Align the received value */
-                if (s->data_bits < 8)
-                    s->byte_in_progress >>= (8 - s->data_bits);
-                s->put_byte(s->user_data, s->byte_in_progress);
-                s->bitpos = 1;
-            }
-            else
-            {
-                if (bit != 1)
-                    s->framing_errors++;
-                s->bitpos = 0;
-            }
+            s->framing_errors++;
+            s->bitpos = 0;
         }
-        s->parity_bit = 0;
-        s->byte_in_progress = 0;
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -163,6 +152,9 @@ void async_tx_init(async_tx_state_t *s,
                    get_byte_func_t get_byte,
                    void *user_data)
 {
+    /* We have a use_v14 parameter for completeness, but right now V.14 only
+       applies to the receive side. We are unlikely to have an application where
+       flow control does not exist, so V.14 stuffing is not needed. */
     s->data_bits = data_bits;
     s->parity = parity;
     s->stop_bits = stop_bits;
@@ -178,7 +170,7 @@ void async_tx_init(async_tx_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-int async_tx_bit(void *user_data)
+int async_tx_get_bit(void *user_data)
 {
     async_tx_state_t *s;
     int bit;
@@ -202,8 +194,8 @@ int async_tx_bit(void *user_data)
     else if (s->bitpos <= s->data_bits)
     {
         bit = s->byte_in_progress & 1;
-        s->parity_bit ^= bit;
         s->byte_in_progress >>= 1;
+        s->parity_bit ^= bit;
         s->bitpos++;
     }
     else if (s->parity  &&  s->bitpos == s->data_bits + 1)

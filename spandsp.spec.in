@@ -27,10 +27,6 @@ PreReq:    /sbin/install-info
 This package includes the header files and libraries needed for
 developing programs using spandsp.
 
-%changelog
-* Fri Mar 12 2004 Steve Underwood <steveu@coppice.org>
-  [0.0.1-1]
-
 %prep
 %setup
 
@@ -67,6 +63,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_prefix}/share/%{name}/global-tones.xml
 %{_prefix}/share/%{name}/tones.dtd
 
+%changelog
 %changelog
 * Sat Oct 16 2004 Steve Underwood <steveu@coppice.org> 0.0.2-1
 - Preparing for 0.0.2 release

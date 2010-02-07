@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.h,v 1.12 2005/12/06 14:34:03 steveu Exp $
+ * $Id: v42.h,v 1.17 2006/10/24 13:22:02 steveu Exp $
  */
 
 /*! \page v42_page V.42 modem error correction
@@ -58,7 +57,7 @@ typedef struct lapm_frame_queue_s
 {
     struct lapm_frame_queue_s *next;
     int len;
-    uint8_t frame[0];
+    uint8_t frame[];
 } lapm_frame_queue_t;
 
 /*!
@@ -114,7 +113,7 @@ typedef struct
     lapm_frame_queue_t *tx_last;
     queue_t tx_queue;
     
-    sp_sched_state_t sched;
+    span_sched_state_t sched;
     /*! \brief Error and flow logging control */
     logging_state_t logging;
 } lapm_state_t;
@@ -159,6 +158,8 @@ typedef struct
 extern "C" {
 #endif
 
+const char *lapm_status_to_str(int status);
+
 /*! Dump LAP.M frames in a raw and/or decoded forms
     \param frame The frame itself
     \param len The length of the frame, in octets
@@ -179,6 +180,18 @@ int lapm_tx(lapm_state_t *s, const void *buf, int len);
 */
 int lapm_tx_iframe(lapm_state_t *s, const void *buf, int len, int cr);
 
+/*! Send a break over a LAP.M connection
+*/
+int lapm_break(lapm_state_t *s, int enable);
+
+/*! Initiate an orderly release of a LAP.M connection
+*/
+int lapm_release(lapm_state_t *s);
+
+/*! Enable or disable loopback of a LAP.M connection
+*/
+int lapm_loopback(lapm_state_t *s, int enable);
+
 /*! Assign or remove a callback routine used to deal with V.42 status changes.
 */
 void v42_set_status_callback(v42_state_t *s, v42_status_func_t callback, void *user_data);
@@ -196,8 +209,9 @@ int v42_tx_bit(void *user_data);
     \param caller TRUE if caller mode, else answerer mode.
     \param frame_handler A callback function to handle received frames of data.
     \param user_data An opaque pointer passed to the frame handler routine.
+    \return ???
 */
-void v42_init(v42_state_t *s, int caller, int detect, v42_frame_handler_t frame_handler, void *user_data);
+v42_state_t *v42_init(v42_state_t *s, int caller, int detect, v42_frame_handler_t frame_handler, void *user_data);
 
 /*! Restart a V.42 context.
     \param s The V.42 context.

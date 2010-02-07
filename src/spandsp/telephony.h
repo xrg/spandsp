@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,13 +22,31 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: telephony.h,v 1.3 2005/11/17 17:10:45 steveu Exp $
+ * $Id: telephony.h,v 1.8 2006/10/24 13:45:28 steveu Exp $
  */
 
 #if !defined(_TELEPHONY_H_)
 #define _TELEPHONY_H_
 
-#define SAMPLE_RATE     8000
+#define SAMPLE_RATE             8000
+
+/* This is based on A-law, but u-law is only 0.03dB different */
+#define DBM0_MAX_POWER          (3.14 + 3.02)
+#define DBM0_MAX_SINE_POWER     (3.14)
+/* This is based on the ITU definition of dbOv in G.100.1 */
+#define DBOV_MAX_POWER          (0.0)
+#define DBOV_MAX_SINE_POWER     (-3.02)
+
+/*! \brief A handler for pure receive. The buffer cannot be altered. */
+typedef int (span_rx_handler_t)(void *s, const int16_t amp[], int len);
+
+/*! \brief A handler for receive, where the buffer can be altered. */
+typedef int (span_mod_handler_t)(void *s, int16_t amp[], int len);
+
+/*! \brief A handler for transmit, where the buffer will be filled. */
+typedef int (span_tx_handler_t)(void *s, int16_t amp[], int max_len);
+
+#define ms_to_samples(t)    (((t)*SAMPLE_RATE)/1000)
 
 #if !defined(FALSE)
 #define FALSE 0
@@ -40,7 +57,10 @@
 
 #if defined(__cplusplus)
 /* C++ doesn't seem to have sane rounding functions/macros yet */
+#ifndef _MSC_VER
+#define lrint(x) ((long int) (x))
 #define lrintf(x) ((long int) (x))
+#endif
 #endif
 
 #endif

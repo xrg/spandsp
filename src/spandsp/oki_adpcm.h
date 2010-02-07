@@ -14,9 +14,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -27,7 +26,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm.h,v 1.9 2005/11/27 12:36:22 steveu Exp $
+ * $Id: oki_adpcm.h,v 1.13 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \file */
@@ -83,25 +82,25 @@ int oki_adpcm_release(oki_adpcm_state_t *s);
 
 /*! Decode a buffer of Oki ADPCM data to linear PCM.
     \param s The Oki ADPCM context.
-    \param amp
+    \param amp The audio sample buffer.
     \param oki_data
     \param oki_bytes
     \return The number of samples returned. */
-int oki_adpcm_to_linear(oki_adpcm_state_t *s,
-                        int16_t *amp,
-                        const uint8_t *oki_data,
-                        int oki_bytes);
+int oki_adpcm_decode(oki_adpcm_state_t *s,
+                     int16_t amp[],
+                     const uint8_t oki_data[],
+                     int oki_bytes);
 
 /*! Encode a buffer of linear PCM data to Oki ADPCM.
     \param s The Oki ADPCM context.
-    \param oki_data
-    \param amp
-    \param samples
+    \param oki_data The Oki ADPCM data produced
+    \param amp The audio sample buffer.
+    \param len The number of samples in the buffer.
     \return The number of bytes of Oki ADPCM data produced. */
-int oki_linear_to_adpcm(oki_adpcm_state_t *s,
-                        uint8_t *oki_data,
-                        const int16_t *amp,
-                        int samples);
+int oki_adpcm_encode(oki_adpcm_state_t *s,
+                     uint8_t oki_data[],
+                     const int16_t amp[],
+                     int len);
 
 #ifdef __cplusplus
 }

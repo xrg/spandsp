@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate_tests.c,v 1.8 2006/01/31 05:34:28 steveu Exp $
+ * $Id: tone_generate_tests.c,v 1.12 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \page tone_generate_tests_page Tone generation tests
@@ -31,10 +30,15 @@
 */
 
 #include <stdlib.h>
-#include <math.h>
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 #include <time.h>
 #include <fcntl.h>
 #include <audiofile.h>
@@ -48,8 +52,6 @@ int main(int argc, char *argv[])
 {
     tone_gen_descriptor_t tone_desc;
     tone_gen_state_t tone_state;
-    int pitch;
-    int level;
     int i;
     int16_t amp[16384];
     int len;

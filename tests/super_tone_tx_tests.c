@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx_tests.c,v 1.8 2005/12/25 17:33:37 steveu Exp $
+ * $Id: super_tone_tx_tests.c,v 1.15 2006/11/20 13:58:57 steveu Exp $
  */
 
 /*! \file */
@@ -36,7 +35,6 @@
 #include "config.h"
 #endif
 
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -46,11 +44,22 @@
 #include <time.h>
 #include <inttypes.h>
 #include <sys/socket.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 
+#if defined(HAVE_LIBXML_XMLMEMORY_H)
 #include <libxml/xmlmemory.h>
+#endif
+#if defined(HAVE_LIBXML_PARSER_H)
 #include <libxml/parser.h>
+#endif
+#if defined(HAVE_LIBXML_XINCLUDE_H)
 #include <libxml/xinclude.h>
+#endif
 
 #include <audiofile.h>
 #include <tiffio.h>
@@ -93,6 +102,7 @@ static void play_tones(super_tone_tx_state_t *tone, int max_samples)
 }
 /*- End of function --------------------------------------------------------*/
 
+#if defined(HAVE_LIBXML2)
 static int parse_tone(super_tone_tx_step_t **tree, xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur)
 {
     xmlChar *x;
@@ -205,7 +215,7 @@ printf("Len %p %p %d %d\n", tone.levels[0], tone_tree, tone_tree->length, tone_t
 }
 /*- End of function --------------------------------------------------------*/
 
-static void get_tone_set(char *tone_file, char *set_id)
+static void get_tone_set(const char *tone_file, const char *set_id)
 {
     xmlDocPtr doc;
     xmlNsPtr ns;
@@ -214,7 +224,8 @@ static void get_tone_set(char *tone_file, char *set_id)
     xmlValidCtxt valid;
 #endif
     xmlChar *x;
-    
+
+    ns = NULL;    
     xmlKeepBlanksDefault(0);
     xmlCleanupParser();
     doc = xmlParseFile(tone_file);
@@ -275,28 +286,28 @@ static void get_tone_set(char *tone_file, char *set_id)
     xmlFreeDoc(doc);
 }
 /*- End of function --------------------------------------------------------*/
+#endif
 
 int main(int argc, char *argv[])
 {
-    filesetup = afNewFileSetup ();
-    if (filesetup == AF_NULL_FILESETUP)
+    if ((filesetup = afNewFileSetup ()) == AF_NULL_FILESETUP)
     {
     	fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
     }
     afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
     afInitRate(filesetup, AF_DEFAULT_TRACK, 8000.0);
-    //afInitCompression(filesetup, AF_DEFAULT_TRACK, AF_COMPRESSION_G711_ALAW);
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
 
-    outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot open audio file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
+#if defined(HAVE_LIBXML2)
     get_tone_set("../spandsp/global-tones.xml", (argc > 1)  ?  argv[1]  :  "hk");
+#endif
     if (afCloseFile (outhandle) != 0)
     {
         fprintf(stderr, "    Cannot close audio file '%s'\n", OUT_FILE_NAME);

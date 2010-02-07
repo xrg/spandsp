@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * alaw_ulaw_tests.c
+ * g711_tests.c
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,58 +22,60 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: alaw_ulaw_tests.c,v 1.1 2006/01/18 13:21:37 steveu Exp $
+ * $Id: g711_tests.c,v 1.4 2006/11/19 14:07:27 steveu Exp $
  */
 
-/*! \page alaw_ulaw_tests_page A-law and u-law conversion tests
-\section alaw_ulaw_tests_page_sec_1 What does it do?
+/*! \page g711_tests_page A-law and u-law conversion tests
+\section g711_tests_page_sec_1 What does it do?
 
-\section alaw_ulaw_tests_page_sec_2 How is it used?
+\section g711_tests_page_sec_2 How is it used?
 */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#if defined(HAVE_FL_FL_H)  &&  defined(HAVE_FL_FL_CARTESIAN_H)
-#define ENABLE_GUI
-#endif
-
 #include <inttypes.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 #include <assert.h>
 #include <audiofile.h>
 #include <tiffio.h>
 
 #include "spandsp.h"
 
-#define OUT_FILE_NAME   "alaw_ulaw.wav"
+#define OUT_FILE_NAME   "g711.wav"
 
 int16_t amp[65536];
+
+const uint8_t alaw_1khz_sine[] = {0x34, 0x21, 0x21, 0x34, 0xB4, 0xA1, 0xA1, 0xB4};
+const uint8_t ulaw_1khz_sine[] = {0x1E, 0x0B, 0x0B, 0x1E, 0x9E, 0x8B, 0x8B, 0x9E};
 
 int main(int argc, char *argv[])
 {
     AFfilehandle outhandle;
     AFfilesetup filesetup;
+    power_meter_t power_meter;
     int outframes;
     int i;
     int block;
     int pre;
     int post;
-    uint8_t law;
     int alaw_failures;
     int ulaw_failures;
     float worst_alaw;
     float worst_ulaw;
     float tmp;
     
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
+    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
     {
         fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
@@ -89,6 +90,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
+
+    printf("Conversion accuracy tests.\n");
     alaw_failures = 0;
     ulaw_failures = 0;
     worst_alaw = 0.0;
@@ -166,12 +169,6 @@ int main(int argc, char *argv[])
             exit(2);
         }
     }
-    if (afCloseFile(outhandle))
-    {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
-        exit(2);
-    }
-    afFreeFileSetup(filesetup);
     printf("Worst A-law error (ignoring small values) %f%%\n", worst_alaw*100.0);
     printf("Worst u-law error (ignoring small values) %f%%\n", worst_ulaw*100.0);
     if (alaw_failures  ||  ulaw_failures)
@@ -181,7 +178,89 @@ int main(int argc, char *argv[])
         printf("Tests failed\n");
         exit(2);
     }
-    printf("Tests passed\n");
+    
+    printf("Reference power level tests.\n");
+    power_meter_init(&power_meter, 7);
+
+    for (i = 0;  i < 8000;  i++)
+    {
+        amp[i] = ulaw_to_linear(ulaw_1khz_sine[i & 7]);
+        power_meter_update(&power_meter, amp[i]);
+    }
+    printf("Reference u-law 1kHz tone is %fdBm0\n", power_meter_dbm0(&power_meter));
+    outframes = afWriteFrames(outhandle,
+                              AF_DEFAULT_TRACK,
+                              amp,
+                              8000);
+    if (outframes != 8000)
+    {
+        fprintf(stderr, "    Error writing wave file\n");
+        exit(2);
+    }
+    if (0.1f < fabs(power_meter_dbm0(&power_meter)))
+    {
+        printf("Test failed.\n");
+        exit(2);
+    }
+
+    for (i = 0;  i < 8000;  i++)
+    {
+        amp[i] = alaw_to_linear(alaw_1khz_sine[i & 7]);
+        power_meter_update(&power_meter, amp[i]);
+    }
+    printf("Reference A-law 1kHz tone is %fdBm0\n", power_meter_dbm0(&power_meter));
+    outframes = afWriteFrames(outhandle,
+                              AF_DEFAULT_TRACK,
+                              amp,
+                              8000);
+    if (outframes != 8000)
+    {
+        fprintf(stderr, "    Error writing wave file\n");
+        exit(2);
+    }
+    if (0.1f < fabs(power_meter_dbm0(&power_meter)))
+    {
+        printf("Test failed.\n");
+        exit(2);
+    }
+
+    /* Check the transcoding functions. */
+    printf("Testing transcoding A-law -> u-law -> A-law\n");
+    for (i = 0;  i < 256;  i++)
+    {
+        if (alaw_to_ulaw(ulaw_to_alaw(i)) != i)
+        {
+            if (abs(alaw_to_ulaw(ulaw_to_alaw(i)) - i) > 1)
+            {
+                printf("u-law -> A-law -> u-law gave %d -> %d\n", i, alaw_to_ulaw(ulaw_to_alaw(i)));
+                printf("Test failed\n");
+                exit(2);
+            }
+        }
+    }
+
+    printf("Testing transcoding u-law -> A-law -> u-law\n");
+    for (i = 0;  i < 256;  i++)
+    {
+        if (ulaw_to_alaw(alaw_to_ulaw(i)) != i)
+        {
+            if (abs(alaw_to_ulaw(ulaw_to_alaw(i)) - i) > 1)
+            {
+                printf("A-law -> u-law -> A-law gave %d -> %d\n", i, ulaw_to_alaw(alaw_to_ulaw(i)));
+                printf("Test failed\n");
+                exit(2);
+            }
+        }
+    }
+    
+    if (afCloseFile(outhandle))
+    {
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
+        exit(2);
+    }
+    afFreeFileSetup(filesetup);
+
+    printf("Tests passed.\n");
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

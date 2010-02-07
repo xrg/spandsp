@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.c,v 1.10 2005/12/29 12:46:20 steveu Exp $
+ * $Id: line_model.c,v 1.21 2006/11/19 14:07:27 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,13 +38,18 @@
 #include <fcntl.h>
 #include <audiofile.h>
 #include <tiffio.h>
-
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #define GEN_CONST
 #include <math.h>
+#endif
 
 #include "spandsp.h"
 #include "spandsp/g168models.h"
 
+#include "test_utils.h"
 #include "line_model.h"
 #include "line_models.h"
 
@@ -182,27 +186,28 @@ float null_line_model[] =
         0.0,
         0.0,
         0.0,
+        0.0,
         1.0
 };
 
 static float *models[] =
 {
-    null_line_model,
+    null_line_model,        /* 0 */
     proakis_line_model,
     ad_1_edd_1_model,
     ad_1_edd_2_model,
     ad_1_edd_3_model,
-    ad_5_edd_1_model,
+    ad_5_edd_1_model,       /* 5 */
     ad_5_edd_2_model,
     ad_5_edd_3_model,
     ad_6_edd_1_model,
     ad_6_edd_2_model,
-    ad_6_edd_3_model,
+    ad_6_edd_3_model,       /* 10 */
     ad_7_edd_1_model,
     ad_7_edd_2_model,
     ad_7_edd_3_model,
     ad_8_edd_1_model,
-    ad_8_edd_2_model,
+    ad_8_edd_2_model,       /* 15 */
     ad_8_edd_3_model,
     ad_9_edd_1_model,
     ad_9_edd_2_model,
@@ -276,6 +281,7 @@ void one_way_line_model(one_way_line_model_state_t *s,
     float in;
     float out;
     float out1;
+    int16_t amp[1];
 
     /* The path being modelled is:
         terminal
@@ -307,12 +313,9 @@ void one_way_line_model(one_way_line_model_state_t *s,
     
         /* Long distance digital section */
 
-        /* Introduce distortion due to A-law or u-law munging. */
-        if (s->alaw_munge)
-            out = alaw_to_linear(linear_to_alaw(out));
-        if (s->ulaw_munge)
-            out = ulaw_to_linear(linear_to_ulaw(out));
-
+        amp[0] = out;
+        codec_munge(s->munge, amp, 1);
+        out = amp[0];
         /* Introduce the bulk delay of the long distance link. */
         out1 = s->bulk_delay_buf[s->bulk_delay_ptr];
         s->bulk_delay_buf[s->bulk_delay_ptr] = out;
@@ -344,6 +347,7 @@ void both_ways_line_model(both_ways_line_model_state_t *s,
     float out2;
     float tmp1;
     float tmp2;
+    int16_t amp[1];
 
     /* The path being modelled is:
         terminal
@@ -381,15 +385,13 @@ void both_ways_line_model(both_ways_line_model_state_t *s,
         /* Long distance digital section */
 
         /* Introduce distortion due to A-law or u-law munging. */
-        if (s->line1.alaw_munge)
-            s->fout1 = alaw_to_linear(linear_to_alaw(s->fout1));
-        if (s->line1.ulaw_munge)
-            s->fout1 = ulaw_to_linear(linear_to_ulaw(s->fout1));
+        amp[0] = s->fout1;
+        codec_munge(s->line1.munge, amp, 1);
+        s->fout1 = amp[0];
 
-        if (s->line2.alaw_munge)
-            s->fout2 = alaw_to_linear(linear_to_alaw(s->fout2));
-        if (s->line2.ulaw_munge)
-            s->fout2 = ulaw_to_linear(linear_to_ulaw(s->fout2));
+        amp[0] = s->fout2;
+        codec_munge(s->line2.munge, amp, 1);
+        s->fout2 = amp[0];
 
         /* Introduce the bulk delay of the long distance digital link. */
         out1 = s->line1.bulk_delay_buf[s->line1.bulk_delay_ptr];
@@ -420,10 +422,8 @@ void both_ways_line_model(both_ways_line_model_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-one_way_line_model_state_t *one_way_line_model_init(int model, int noise)
+one_way_line_model_state_t *one_way_line_model_init(int model, float noise, int codec)
 {
-    float p;
-    int i;
     one_way_line_model_state_t *s;
 
     if ((s = (one_way_line_model_state_t *) malloc(sizeof(*s))) == NULL)
@@ -433,8 +433,7 @@ one_way_line_model_state_t *one_way_line_model_init(int model, int noise)
     s->bulk_delay = 8;
     s->bulk_delay_ptr = 0;
 
-    s->alaw_munge = TRUE;
-    s->ulaw_munge = FALSE;
+    s->munge = codec_munge_init(codec);
 
     s->near_filter = models[model];
     s->near_filter_len = 129;
@@ -442,8 +441,8 @@ one_way_line_model_state_t *one_way_line_model_init(int model, int noise)
     s->far_filter = models[model];
     s->far_filter_len = 129;
 
-    awgn_init(&s->near_noise, 1234567, noise);
-    awgn_init(&s->far_noise, 1234567, noise);
+    awgn_init_dbm0(&s->near_noise, 1234567, noise);
+    awgn_init_dbm0(&s->far_noise, 1234567, noise);
     return s;
 }
 /*- End of function --------------------------------------------------------*/
@@ -456,24 +455,20 @@ int one_way_line_model_release(one_way_line_model_state_t *s)
 /*- End of function --------------------------------------------------------*/
 
 both_ways_line_model_state_t *both_ways_line_model_init(int model1,
-                                                        int noise1,
+                                                        float noise1,
                                                         int model2,
-                                                        int noise2)
+                                                        float noise2,
+                                                        int codec)
 {
-    float p;
     float echo_level;
-    int i;
     both_ways_line_model_state_t *s;
 
     if ((s = (both_ways_line_model_state_t *) malloc(sizeof(*s))) == NULL)
         return NULL;
     memset(s, 0, sizeof(*s));
 
-    s->line1.alaw_munge = TRUE;
-    s->line1.ulaw_munge = FALSE;
-
-    s->line2.alaw_munge = TRUE;
-    s->line2.ulaw_munge = FALSE;
+    s->line1.munge = codec_munge_init(codec);
+    s->line2.munge = codec_munge_init(codec);
 
     s->line1.bulk_delay = 8;
     s->line2.bulk_delay = 8;
@@ -491,11 +486,11 @@ both_ways_line_model_state_t *both_ways_line_model_init(int model1,
     s->line2.far_filter = models[model2];
     s->line2.far_filter_len = 129;
 
-    awgn_init(&s->line1.near_noise, 1234567, noise1);
-    awgn_init(&s->line2.near_noise, 7654321, noise2);
+    awgn_init_dbm0(&s->line1.near_noise, 1234567, noise1);
+    awgn_init_dbm0(&s->line2.near_noise, 7654321, noise2);
 
-    awgn_init(&s->line1.far_noise, 1234567, noise1);
-    awgn_init(&s->line2.far_noise, 7654321, noise2);
+    awgn_init_dbm0(&s->line1.far_noise, 1234567, noise1);
+    awgn_init_dbm0(&s->line2.far_noise, 7654321, noise2);
 
     /* Echos */
     echo_level = -15; /* in dB */

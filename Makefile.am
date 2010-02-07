@@ -1,9 +1,8 @@
 ## Makefile.am -- Process this file with automake to produce Makefile.in
 ##
 ## This program is free software; you can redistribute it and/or modify
-## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation; either version 2, or (at your option)
-## any later version.
+## it under the terms of the GNU General Public License version 2, as
+## published by the Free Software Foundation.
 ##
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -14,7 +13,15 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.9 2005/08/31 19:27:51 steveu Exp $
+## $Id: Makefile.am,v 1.16 2006/10/24 13:21:57 steveu Exp $
+
+if COND_MMX
+    EX_CFLAGS = -mmmx -O3
+endif
+if COND_SSE
+    EX_CFLAGS = -msse -O3
+endif
+AM_CFLAGS = $(EX_CFLAGS) -std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes
 
 noinst_SCRIPTS = spandsp.spec
 
@@ -25,7 +32,14 @@ MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = DueDiligence \
              spandsp.spec \
              wrapper.xsl \
+             libspandsp.vcproj \
              doc/libspandsp-doxygen \
+             src/msvc/gettimeofday.c \
+             src/msvc/inttypes.h \
+             src/msvc/tgmath.h \
+             src/msvc/unistd.h \
+             src/msvc/sys/time.h \
+             src/msvc/spandsp.def \
              spandsp/global-tones.xml \
              spandsp/tones.dtd
 

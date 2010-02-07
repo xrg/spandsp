@@ -1,9 +1,8 @@
 # configure.ac -- Process this file with autoconf to produce configure
 #
 # This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2, or (at your option)
-# any later version.
+# it under the terms of the GNU General Public License version 2, as
+# published by the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -14,18 +13,34 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.1 2005/09/03 10:37:56 steveu Exp $
+# $Id: configure.ac,v 1.16 2006/11/20 13:58:57 steveu Exp $
 
 # @start 1
 
 AC_INIT
 
+AC_DEFUN([AX_COMPILER_VENDOR],
+[
+AC_CACHE_CHECK([for _AC_LANG compiler vendor], ax_cv_[]_AC_LANG_ABBREV[]_compiler_vendor,
+ [ax_cv_[]_AC_LANG_ABBREV[]_compiler_vendor=unknown
+  # note: don't check for gcc first since some other compilers define __GNUC__
+  for ventest in intel:__ICC,__ECC,__INTEL_COMPILER ibm:__xlc__,__xlC__,__IBMC__,__IBMCPP__ gnu:__GNUC__ sun:__SUNPRO_C,__SUNPRO_CC hp:__HP_cc,__HP_aCC dec:__DECC,__DECCXX,__DECC_VER,__DECCXX_VER borland:__BORLANDC__,__TURBOC__ comeau:__COMO__ cray:_CRAYC kai:__KCC lcc:__LCC__ metrowerks:__MWERKS__ sgi:__sgi,sgi microsoft:_MSC_VER watcom:__WATCOMC__ portland:__PGI; do
+    vencpp="defined("`echo $ventest | cut -d: -f2 | sed 's/,/) || defined(/g'`")"
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[
+#if !($vencpp)
+      thisisanerror;
+#endif
+])], [ax_cv_]_AC_LANG_ABBREV[_compiler_vendor=`echo $ventest | cut -d: -f1`; break])
+  done
+ ])
+])
+
 SPANDSP_MAJOR_VERSION=0
 SPANDSP_MINOR_VERSION=0
-SPANDSP_MICRO_VERSION=2
+SPANDSP_MICRO_VERSION=3
 
 SPANDSP_LT_CURRENT=0
-SPANDSP_LT_REVISION=1
+SPANDSP_LT_REVISION=2
 SPANDSP_LT_AGE=0
 
 VERSION=$SPANDSP_MAJOR_VERSION.$SPANDSP_MINOR_VERSION.$SPANDSP_MICRO_VERSION
@@ -40,22 +55,29 @@ AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_HEADERS([src/config.h:config-h.in])
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 
+AC_CANONICAL_HOST
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_GCC_TRADITIONAL
 AC_PROG_LIBTOOL
-
 AC_LANG([C])
+
+AX_COMPILER_VENDOR
 
 AC_C_CONST
 AC_C_INLINE
 AC_C_VOLATILE
+
+AC_CHECK_TYPES(long long)
+AC_CHECK_TYPES(long double)
 
 AC_TYPE_SIGNAL
 
 AC_ARG_ENABLE(doc,     [  --enable-doc      Build the documentation])
 AC_ARG_ENABLE(tests,   [  --enable-tests    Build the test programs])
 AC_ARG_ENABLE(itutests,[  --enable-itutests Build TIFF test files for some ITU test images])
+AC_ARG_ENABLE(sse,     [  --enable-mmx      Enable MMX support])
+AC_ARG_ENABLE(sse,     [  --enable-sse      Enable SSE support])
 
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_VPRINTF
@@ -90,6 +112,8 @@ AC_CHECK_HEADERS([stdlib.h])
 AC_CHECK_HEADERS([string.h])
 AC_CHECK_HEADERS([strings.h])
 AC_CHECK_HEADERS([malloc.h])
+AC_CHECK_HEADERS([tgmath.h])
+AC_CHECK_HEADERS([math.h])
 AC_CHECK_HEADERS([float.h])
 AC_CHECK_HEADERS([fcntl.h])
 AC_CHECK_HEADERS([sys/time.h])
@@ -105,12 +129,43 @@ AC_CHECK_HEADERS([pthread.h])
 AC_CHECK_HEADERS([unicall.h])
 AC_CHECK_HEADERS([X11/X.h])
 
+# Determine XML2 include path
+AC_MSG_CHECKING(for libxml/xmlmemory.h)
+
+# Can we include headers using system include dirs?
+AC_TRY_COMPILE([#include <libxml/xmlmemory.h>], [int a = 1;],
+    XML2_INCLUDE=" ",
+    XML2_INCLUDE=
+)
+
+# Hunt through several possible directories to find the includes for libxml2
+if test "x$XML2_INCLUDE" = "x"; then
+    old_CPPFLAGS="$CPPFLAGS"
+    for i in $xml2_include_dir /usr/include /usr/local/include /usr/include/libxml2 /usr/local/include/libxml2 ; do
+        CPPFLAGS="$old_CPPFLAGS -I$i"
+        AC_TRY_COMPILE([#include <libxml/xmlmemory.h>], [int a = 1;],
+            XML2_INCLUDE="-I$i",
+            XML2_INCLUDE=
+        )
+        if test "x$XML2_INCLUDE" != "x"; then
+            break;
+        fi
+    done
+    CPPFLAGS="$old_CPPFLAGS $XML2_INCLUDE"
+fi
+
+AC_CHECK_HEADERS([libxml/xmlmemory.h])
+AC_CHECK_HEADERS([libxml/parser.h])
+AC_CHECK_HEADERS([libxml/xinclude.h])
+
 AC_LANG([C++])
 AC_CHECK_HEADERS([FL/Fl.H])
 AC_CHECK_HEADERS([FL/Fl_Overlay_Window.H])
 AC_CHECK_HEADERS([FL/Fl_Light_Button.H])
 AC_CHECK_HEADERS([FL/fl_draw.H])
-AC_CHECK_HEADERS([FL/Fl_Cartesian.H], [TESTLIBS="$TESTLIBS -lfltk_cartesian -lfltk -lsupc++"], [], [],[[#include <FL/Fl.H>
+AC_CHECK_HEADERS([FL/Fl_Cartesian.H], [], [], [],[[#include <FL/Fl.H>
+]])
+AC_CHECK_HEADERS([FL/Fl_Audio_Meter.H], [], [], [],[[#include <FL/Fl.H>
 ]])
 
 AC_LANG([C])
@@ -121,11 +176,16 @@ AC_CHECK_FILE([/usr/X11R6/lib64], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib64"], AC_
 AC_CHECK_LIB([Xft], [XftFontOpen], TESTLIBS="$TESTLIBS -lXft",, $TESTLIBS)
 AC_CHECK_LIB([Xext], [XextCreateExtension], TESTLIBS="$TESTLIBS -lXext",, $TESTLIBS)
 AC_CHECK_LIB([X11], [XOpenDisplay], TESTLIBS="$TESTLIBS -lX11",, $TESTLIBS)
-AC_CHECK_LIB([tiff], [TIFFOpen],,echo "Can't build without libtiff"; exit 1, -lm)
+AC_CHECK_LIB([tiff], [TIFFOpen], , AC_MSG_ERROR("Can't build without libtiff (does your system require a libtiff-devel package?)"), -lm)
 AC_CHECK_LIB([m], [cos])
-AC_CHECK_LIB([xml2], [xmlParseFile], TESTLIBS="$TESTLIBS -lxml2")
+AC_CHECK_LIB([xml2], [xmlParseFile], [AC_DEFINE([HAVE_LIBXML2], [1], [Define to 1 if you have the 'libxml2' library (-lxml2).]) TESTLIBS="$TESTLIBS -lxml2"])
 if test -n "$enable_tests" ; then
-    AC_CHECK_LIB([audiofile], [afOpenFile], TESTLIBS="$TESTLIBS -laudiofile",echo "Can't make tests without libaudiofile"; exit 1)
+    AC_LANG([C++])
+    AC_CHECK_LIB([fltk], [main], TESTLIBS="$TESTLIBS -lfltk -lsupc++")
+    AC_CHECK_LIB([fltk_cartesian], [main], TESTLIBS="-lfltk_cartesian $TESTLIBS")
+    AC_CHECK_LIB([fltk_audio_meter], [main], TESTLIBS="-lfltk_audio_meter $TESTLIBS")
+    AC_LANG([C])
+    AC_CHECK_LIB([audiofile], [afOpenFile], TESTLIBS="$TESTLIBS -laudiofile", AC_MSG_ERROR("Can't make tests without libaudiofile (does your system require a libaudiofile-devel package?)"))
     AC_CHECK_LIB([fftw3], [fftw_plan_dft_1d], TESTLIBS="$TESTLIBS -lfftw3")
     AC_CHECK_LIB([fftw], [fftw_create_plan], TESTLIBS="$TESTLIBS -lfftw")
     AC_CHECK_LIB([pthread], [pthread_attr_init], TESTLIBS="$TESTLIBS -lpthread")
@@ -136,6 +196,8 @@ fi
 AM_CONDITIONAL([COND_DOC], [test "$enable_doc" = yes])
 AM_CONDITIONAL([COND_TESTS], [test "$enable_tests" = yes])
 AM_CONDITIONAL([COND_ITUTESTS], [test "$enable_itutests" = yes])
+AM_CONDITIONAL([COND_MMX], [test "$enable_mmx" = yes])
+AM_CONDITIONAL([COND_SSE], [test "$enable_sse" = yes])
 
 AC_SUBST(TESTLIBS, $TESTLIBS)
 

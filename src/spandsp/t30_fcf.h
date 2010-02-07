@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_fcf.h,v 1.1 2004/03/12 16:27:25 steveu Exp $
+ * $Id: t30_fcf.h,v 1.9 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \file */
@@ -52,15 +51,15 @@
 /*! Commands to receive */
 /*! From a calling terminal wishing to be a transmitter, to a called terminal
     which is capable of receiving. */
-#define T30_DCS     0x83        /*! Digital command signal */
-#define T30_TSI     0x43        /*! Transmitting subscriber information */
-#define T30_NSS     0x23        /*! Non-standard facilities set-up */
-#define T30_SUB     0xC3        /*! Subaddress */
-#define T30_SID     0xA3        /*! Sender identification */
+#define T30_DCS     0x82        /*! Digital command signal */
+#define T30_TSI     0x42        /*! Transmitting subscriber information */
+#define T30_NSS     0x22        /*! Non-standard facilities set-up */
+#define T30_SUB     0xC2        /*! Subaddress */
+#define T30_SID     0xA2        /*! Sender identification */
 /*! T30_TCF - Training check is a burst of 1.5s of zeros sent using the image modem */
 #define T30_CTC     0x12        /*! Continue to correct */
-#define T30_TSA     0x63        /*! Transmitting subscriber internet address */
-#define T30_IRA     0xE3        /*! Internet routing address */
+#define T30_TSA     0x62        /*! Transmitting subscriber internet address */
+#define T30_IRA     0xE2        /*! Internet routing address */
 
 /*! Pre-message response signals */
 /*! From the receiver to the transmitter. */
@@ -70,12 +69,12 @@
 #define T30_CSA     0x24        /*! Called subscriber internet address */
 
 /*! Post-message commands */
-#define T30_EOM     0x8F        /*! End of message */
-#define T30_MPS     0x4F        /*! Multipage signal */
-#define T30_EOP     0x2F        /*! End of procedure */
-#define T30_PRI_EOM 0x9F        /*! Procedure interrupt - end of procedure */
-#define T30_PRI_MPS 0x5F        /*! Procedure interrupt - multipage signal */
-#define T30_PRI_EOP 0x3F        /*! Procedure interrupt - end of procedure */
+#define T30_EOM     0x8E        /*! End of message */
+#define T30_MPS     0x4E        /*! Multipage signal */
+#define T30_EOP     0x2E        /*! End of procedure */
+#define T30_PRI_EOM 0x9E        /*! Procedure interrupt - end of procedure */
+#define T30_PRI_MPS 0x5E        /*! Procedure interrupt - multipage signal */
+#define T30_PRI_EOP 0x3E        /*! Procedure interrupt - end of procedure */
 #define T30_EOS     0x1E        /*! End of selection */
 #define T30_PPS     0xBE        /*! Partial page signal */
 #define T30_EOR     0xCE        /*! End of retransmission */
@@ -93,19 +92,19 @@
 #define T30_FDM     0xFC        /*! File diagnostics message */
 
 /*! Other line control signals */
-#define T30_DCN     0xFB        /*! Disconnect (sender to receiver) */
-#define T30_XCN     0xFA        /*! Disconnect (receiver to sender) */
-#define T30_CRP     0x1B        /*! Command repeat */
-#define T30_FNV     0xCB        /*! Field not valid */
+#define T30_DCN     0xFA        /*! Disconnect */
+#define T30_CRP     0x1A        /*! Command repeat */
+#define T30_FNV     0xCA        /*! Field not valid */
 #define T30_TNR     0xEA        /*! Transmit not ready */
 #define T30_TR      0x6A        /*! Transmit ready */
+#define T30_PID     0x6C        /*! Procedure interrupt disconnect */
 
 /*! Something only use as a secondary value in error correcting mode */
 #define T30_NULL    0x00        /*! Nothing to say */
 
 /*! Information frame types used for error correction mode, in T.4 */
 #define T4_FCD      0x06        /*! Facsimile coded data */
-#define T4_RCP      0x16        /*! Return to control for partial page */
+#define T4_RCP      0x86        /*! Return to control for partial page */
 
 #endif
 /*- End of file ------------------------------------------------------------*/

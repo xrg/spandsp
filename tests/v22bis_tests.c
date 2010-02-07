@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tests.c,v 1.18 2005/12/25 15:08:37 steveu Exp $
+ * $Id: v22bis_tests.c,v 1.37 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
@@ -42,26 +41,33 @@ display of modem status is maintained.
 #include "config.h"
 #endif
 
-#if defined(HAVE_FL_FL_H)  &&  defined(HAVE_FL_FL_CARTESIAN_H)
+#if defined(HAVE_FL_FL_H)  &&  defined(HAVE_FL_FL_CARTESIAN_H)  &&  defined(HAVE_FL_FL_AUDIO_METER_H)
 #define ENABLE_GUI
 #endif
 
 #include <inttypes.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 #include <assert.h>
 #include <audiofile.h>
 #include <tiffio.h>
 
 #include "spandsp.h"
+#include "test_utils.h"
 #include "line_model.h"
 #if defined(ENABLE_GUI)
 #include "modem_monitor.h"
 #endif
+
+#define BLOCK_LEN       160
 
 #define IN_FILE_NAME    "v22bis_samp.wav"
 #define OUT_FILE_NAME   "v22bis.wav"
@@ -79,19 +85,32 @@ int tx_ptr = 0;
 int rx_bits = 0;
 int rx_bad_bits = 0;
 
-int symbol_no = 0;
+int use_gui = FALSE;
 
 both_ways_line_model_state_t *model;
 
 v22bis_state_t caller;
 v22bis_state_t answerer;
 
+struct qam_report_control_s
+{
+    v22bis_state_t *s;
+#if defined(ENABLE_GUI)
+    qam_monitor_t *qam_monitor;
+#endif
+    float smooth_power;
+    int symbol_no;
+};
+
+struct qam_report_control_s qam_caller;
+struct qam_report_control_s qam_answerer;
+
 static void v22bis_putbit(void *user_data, int bit)
 {
     v22bis_state_t *s;
     int i;
     int len;
-    complex_t *coeffs;
+    complexf_t *coeffs;
     
     s = (v22bis_state_t *) user_data;
     if (bit < 0)
@@ -107,7 +126,7 @@ static void v22bis_putbit(void *user_data, int bit)
             len = v22bis_rx_equalizer_state(s, &coeffs);
             printf("Equalizer:\n");
             for (i = 0;  i < len;  i++)
-                printf("%3d (%15.5f, %15.5f) -> %15.5f\n", i, coeffs[i].re, coeffs[i].im, power(&coeffs[i]));
+                printf("%3d (%15.5f, %15.5f) -> %15.5f\n", i, coeffs[i].re, coeffs[i].im, powerf(&coeffs[i]));
             break;
         case PUTBIT_CARRIER_UP:
             printf("Carrier up\n");
@@ -149,7 +168,7 @@ static int v22bis_getbit(void *user_data)
     if (tx_ptr > 1000)
         tx_ptr = 0;
     //printf("Tx bit %d\n", bit);
-    if (++tx_bits > 50000)
+    if (++tx_bits > 100000)
     {
         tx_bits = 0;
         bit = 2;
@@ -158,38 +177,41 @@ static int v22bis_getbit(void *user_data)
 }
 /*- End of function --------------------------------------------------------*/
 
-void qam_report(void *user_data, const complex_t *constel, const complex_t *target, int symbol)
+static void qam_report(void *user_data, const complexf_t *constel, const complexf_t *target, int symbol)
 {
     int i;
     int len;
-    complex_t *coeffs;
+    complexf_t *coeffs;
     float fpower;
-    v22bis_state_t *rx;
-    static float smooth_power = 0.0;
+    struct qam_report_control_s *s;
 
-    rx = (v22bis_state_t *) user_data;
+    s = (struct qam_report_control_s *) user_data;
     if (constel)
     {
 #if defined(ENABLE_GUI)
-        update_qam_monitor(constel);
-        update_qam_carrier_tracking(v22bis_rx_carrier_frequency(rx));
-        update_qam_symbol_tracking(v22bis_rx_symbol_timing_correction(rx));
+        if (use_gui)
+        {
+            qam_monitor_update_constel(s->qam_monitor, constel);
+            qam_monitor_update_carrier_tracking(s->qam_monitor, v22bis_rx_carrier_frequency(s->s));
+            qam_monitor_update_symbol_tracking(s->qam_monitor, v22bis_rx_symbol_timing_correction(s->s));
+        }
 #endif
         fpower = (constel->re - target->re)*(constel->re - target->re)
                + (constel->im - target->im)*(constel->im - target->im);
-        smooth_power = 0.95*smooth_power + 0.05*fpower;
-        printf("%8d [%8.4f, %8.4f] [%8.4f, %8.4f] %8.4f %8.4f\n", symbol_no, constel->re, constel->im, target->re, target->im, fpower, smooth_power);
-        symbol_no++;
+        s->smooth_power = 0.95*s->smooth_power + 0.05*fpower;
+        printf("%8d [%8.4f, %8.4f] [%8.4f, %8.4f] %8.4f %8.4f\n", s->symbol_no, constel->re, constel->im, target->re, target->im, fpower, s->smooth_power);
+        s->symbol_no++;
     }
     else
     {
         printf("Gardner step %d\n", symbol);
-        len = v22bis_rx_equalizer_state(rx, &coeffs);
+        len = v22bis_rx_equalizer_state(s->s, &coeffs);
         printf("Equalizer A:\n");
         for (i = 0;  i < len;  i++)
-            printf("%3d (%15.5f, %15.5f) -> %15.5f\n", i, coeffs[i].re, coeffs[i].im, power(&coeffs[i]));
+            printf("%3d (%15.5f, %15.5f) -> %15.5f\n", i, coeffs[i].re, coeffs[i].im, powerf(&coeffs[i]));
 #if defined(ENABLE_GUI)
-        update_qam_equalizer_monitor(coeffs, len);
+        if (use_gui)
+            qam_monitor_update_equalizer(s->qam_monitor, coeffs, len);
 #endif
     }
 }
@@ -197,28 +219,66 @@ void qam_report(void *user_data, const complex_t *constel, const complex_t *targ
 
 int main(int argc, char *argv[])
 {
-    int16_t caller_amp[160];
-    int16_t answerer_amp[160];
-    int16_t caller_model_amp[160];
-    int16_t answerer_model_amp[160];
-    int16_t out_amp[2*160];
+    int16_t caller_amp[BLOCK_LEN];
+    int16_t answerer_amp[BLOCK_LEN];
+    int16_t caller_model_amp[BLOCK_LEN];
+    int16_t answerer_model_amp[BLOCK_LEN];
+    int16_t out_amp[2*BLOCK_LEN];
     AFfilehandle outhandle;
     AFfilesetup filesetup;
-    int inframes;
     int outframes;
     int samples;
     int i;
     int test_bps;
     int line_model_no;
-
+    int bits_per_test;
+    int noise_level;
+    int signal_level;
+    int log_audio;
+    int channel_codec;
+    
+    channel_codec = MUNGE_CODEC_NONE;
     test_bps = 2400;
     line_model_no = 0;
+    noise_level = -70;
+    signal_level = -13;
+    bits_per_test = 50000;
+    log_audio = FALSE;
     for (i = 1;  i < argc;  i++)
     {
+        if (strcmp(argv[i], "-b") == 0)
+        {
+            bits_per_test = atoi(argv[++i]);
+            continue;
+        }
+        if (strcmp(argv[i], "-c") == 0)
+        {
+            channel_codec = atoi(argv[++i]);
+            continue;
+        }
+        if (strcmp(argv[i], "-g") == 0)
+        {
+            use_gui = TRUE;
+            continue;
+        }
         if (strcmp(argv[i], "-m") == 0)
         {
-            i++;
-            line_model_no = atoi(argv[i]);
+            log_audio = TRUE;
+            continue;
+        }
+        if (strcmp(argv[i], "-m") == 0)
+        {
+            line_model_no = atoi(argv[++i]);
+            continue;
+        }
+        if (strcmp(argv[i], "-n") == 0)
+        {
+            noise_level = atoi(argv[++i]);
+            continue;
+        }
+        if (strcmp(argv[i], "-s") == 0)
+        {
+            signal_level = atoi(argv[++i]);
             continue;
         }
         if (strcmp(argv[i], "2400") == 0)
@@ -231,43 +291,68 @@ int main(int argc, char *argv[])
             exit(2);
         }
     }
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
+    filesetup = AF_NULL_FILESETUP;
+    outhandle = AF_NULL_FILEHANDLE;
+    if (log_audio)
     {
-        fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
-    }
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
+        if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
+        {
+            fprintf(stderr, "    Failed to create file setup\n");
+            exit(2);
+        }
+        afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
+        afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
+        afInitFileFormat(filesetup, AF_FILE_WAVE);
+        afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
 
-    outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
-    {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
-        exit(2);
+        if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
+        {
+            fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
+            exit(2);
+        }
     }
     v22bis_init(&caller, test_bps, 2, TRUE, v22bis_getbit, v22bis_putbit, &caller);
+    v22bis_tx_power(&caller, signal_level);
     /* Move the carrier off a bit */
-    //caller.tx_carrier_phase_rate = dds_phase_stepf(1205.0);
+    caller.tx_carrier_phase_rate = dds_phase_ratef(1207.0);
     v22bis_init(&answerer, test_bps, 2, FALSE, v22bis_getbit, v22bis_putbit, &answerer);
-    //answerer.tx_carrier_phase_rate = dds_phase_stepf(2405.0);
-    v22bis_rx_set_qam_report_handler(&caller, qam_report, (void *) &caller);
-    //v22bis_rx_set_qam_report_handler(&answerer, qam_report, (void *) &answerer);
+    v22bis_tx_power(&answerer, signal_level);
+    answerer.tx_carrier_phase_rate = dds_phase_ratef(2407.0);
+    v22bis_rx_set_qam_report_handler(&caller, qam_report, (void *) &qam_caller);
+    v22bis_rx_set_qam_report_handler(&answerer, qam_report, (void *) &qam_answerer);
+    span_log_set_level(&caller.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);
+    span_log_set_tag(&caller.logging, "caller");
+    span_log_set_level(&answerer.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);
+    span_log_set_tag(&answerer.logging, "answerer");
+
+    qam_caller.s = &caller;
+    qam_caller.smooth_power = 0.0;
+    qam_caller.symbol_no = 0;
+
+    qam_answerer.s = &answerer;
+    qam_answerer.smooth_power = 0.0;
+    qam_answerer.symbol_no = 0;
 
 #if defined(ENABLE_GUI)
-    start_qam_monitor(6.0);
+    if (use_gui)
+    {
+        qam_caller.qam_monitor = qam_monitor_init(6.0, "Calling modem");
+        qam_answerer.qam_monitor = qam_monitor_init(6.0, "Answering modem");
+    }
 #endif
 
-    if ((model = both_ways_line_model_init(line_model_no, -45, line_model_no, -45)) == NULL)
+    if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, (float) noise_level, channel_codec)) == NULL)
     {
         fprintf(stderr, "    Failed to create line model\n");
         exit(2);
     }
     for (;;)
     {
-        samples = v22bis_tx(&caller, caller_amp, 160);
+        samples = v22bis_tx(&caller, caller_amp, BLOCK_LEN);
+#if defined(ENABLE_GUI)
+        if (use_gui)
+            qam_monitor_update_audio_level(qam_caller.qam_monitor, caller_amp, samples);
+#endif
         if (samples == 0)
         {
             printf("Restarting on zero output\n");
@@ -276,7 +361,11 @@ int main(int argc, char *argv[])
             tx_ptr = 0;
         }
 
-        samples = v22bis_tx(&answerer, answerer_amp, 160);
+        samples = v22bis_tx(&answerer, answerer_amp, BLOCK_LEN);
+#if defined(ENABLE_GUI)
+        if (use_gui)
+            qam_monitor_update_audio_level(qam_answerer.qam_monitor, answerer_amp, samples);
+#endif
         if (samples == 0)
         {
             printf("Restarting on zero output\n");
@@ -291,30 +380,41 @@ int main(int argc, char *argv[])
                              answerer_model_amp,
                              answerer_amp,
                              samples);
-        v22bis_rx(&answerer, caller_model_amp, samples);
-        v22bis_rx(&caller, answerer_model_amp, samples);
 
+        v22bis_rx(&answerer, caller_model_amp, samples);
         for (i = 0;  i < samples;  i++)
-        {
             out_amp[2*i] = caller_model_amp[i];
+        for (  ;  i < BLOCK_LEN;  i++)
+            out_amp[2*i] = 0;
+
+        v22bis_rx(&caller, answerer_model_amp, samples);
+        for (i = 0;  i < samples;  i++)
             out_amp[2*i + 1] = answerer_model_amp[i];
-        }
-        outframes = afWriteFrames(outhandle,
-                                  AF_DEFAULT_TRACK,
-                                  out_amp,
-                                  samples);
-        if (outframes != samples)
+        for (  ;  i < BLOCK_LEN;  i++)
+            out_amp[2*i + 1] = 0;
+
+        if (log_audio)
         {
-            fprintf(stderr, "    Error writing wave file\n");
+            outframes = afWriteFrames(outhandle,
+                                      AF_DEFAULT_TRACK,
+                                      out_amp,
+                                      BLOCK_LEN);
+            if (outframes != BLOCK_LEN)
+            {
+                fprintf(stderr, "    Error writing wave file\n");
+                exit(2);
+            }
+        }
+    }
+    if (log_audio)
+    {
+        if (afCloseFile(outhandle) != 0)
+        {
+            fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
             exit(2);
         }
+        afFreeFileSetup(filesetup);
     }
-    if (afCloseFile(outhandle) != 0)
-    {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
-        exit(2);
-    }
-    afFreeFileSetup(filesetup);
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

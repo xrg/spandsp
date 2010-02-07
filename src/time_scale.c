@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.c,v 1.8 2005/12/01 14:34:42 steveu Exp $
+ * $Id: time_scale.c,v 1.15 2006/11/19 14:07:25 steveu Exp $
  */
 
 /*! \file */
@@ -36,11 +35,15 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <string.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
 #include <limits.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 
 #include "spandsp/telephony.h"
 #include "spandsp/time_scale.h"
@@ -50,7 +53,7 @@
     OverLap and Add (PICOLA) method, developed by Morita Naotaka.
  */
 
-static int __inline__ amdf_pitch(int min_pitch, int max_pitch, int16_t amp[], int len)
+static __inline__ int amdf_pitch(int min_pitch, int max_pitch, int16_t amp[], int len)
 {
     int i;
     int j;
@@ -75,7 +78,7 @@ static int __inline__ amdf_pitch(int min_pitch, int max_pitch, int16_t amp[], in
 }
 /*- End of function --------------------------------------------------------*/
 
-static void __inline__ overlap_add(int16_t amp1[], int16_t amp2[], int len)
+static __inline__ void overlap_add(int16_t amp1[], int16_t amp2[], int len)
 {
     int i;
     double weight;
@@ -86,7 +89,7 @@ static void __inline__ overlap_add(int16_t amp1[], int16_t amp2[], int len)
     for (i = 0;  i < len;  i++)
     {
         /* TODO: saturate */
-        amp2[i] = (double) amp1[i]*(1.0 - weight) + (double) amp2[i]*weight;
+        amp2[i] = (int16_t) ((double) amp1[i]*(1.0 - weight) + (double) amp2[i]*weight);
         weight += step;
     }
 }
@@ -135,7 +138,6 @@ int time_scale(time_scale_t *s, int16_t out[], int16_t in[], int len)
     int pitch;
     int out_len;
     int in_len;
-    int i;
     int k;
 
     out_len = 0;
@@ -197,7 +199,7 @@ int time_scale(time_scale_t *s, int16_t out[], int16_t in[], int len)
             pitch = amdf_pitch(SAMPLE_RATE/TIME_SCALE_MIN_PITCH, SAMPLE_RATE/TIME_SCALE_MAX_PITCH, s->buf, SAMPLE_RATE/TIME_SCALE_MIN_PITCH);
             lcpf = (double) pitch*s->rcomp;
             /* Nudge around to compensate for fractional samples */
-            s->lcp = lcpf;
+            s->lcp = (int) lcpf;
             /* Note that s->lcp and lcpf are not the same, as lcpf has a fractional part, and s->lcp doesn't */
             s->rate_nudge += s->lcp - lcpf;
             if (s->rate_nudge >= 0.5)

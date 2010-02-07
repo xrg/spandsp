@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone_tests.c,v 1.8 2006/01/31 05:34:28 steveu Exp $
+ * $Id: sig_tone_tests.c,v 1.15 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \file */
@@ -40,12 +39,16 @@
 #include "config.h"
 #endif
 
-#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
 #include <memory.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 #include <audiofile.h>
 #include <tiffio.h>
 
@@ -58,24 +61,26 @@ static int tone_1_present = 0;
 static int tone_2_present = 0;
 static int ping = 0;
 
-int handler(void *user_data, int what)
+void map_frequency_response(sig_tone_state_t *s);
+
+static int handler(void *user_data, int what)
 {
     //printf("What - %d\n", what);
-    if (what & 0x02)
+    if ((what & SIG_TONE_1_CHANGE))
     {
-        tone_1_present = what & 0x01;
+        tone_1_present = what & SIG_TONE_1_PRESENT;
         printf("Tone 1 is %s after %d samples\n", (tone_1_present)  ?  "on"  : "off", (what >> 16) & 0xFFFF);
     }
     /*endif*/
-    if (what & 0x08)
+    if ((what & SIG_TONE_2_CHANGE))
     {
-        tone_2_present = what & 0x04;
+        tone_2_present = what & SIG_TONE_2_PRESENT;
         printf("Tone 2 is %s after %d samples\n", (tone_2_present)  ?  "on"  : "off", (what >> 16) & 0xFFFF);
     }
     /*endif*/
-    if (what & SIG_TONE_UPDATE_REQUEST)
+    if ((what & SIG_TONE_UPDATE_REQUEST))
     {
-        /* The signaling processor want to know what to do next */
+        /* The signaling processor wants to know what to do next */
         if (sampleno < 800)
         {
             /* 100ms off-hook */
@@ -116,7 +121,7 @@ int handler(void *user_data, int what)
 }
 /*- End of function --------------------------------------------------------*/
 
-void map_response(sig_tone_state_t *s)
+void map_frequency_response(sig_tone_state_t *s)
 {
     int16_t buf[8192];
     awgn_state_t noise_source;
@@ -127,22 +132,26 @@ void map_response(sig_tone_state_t *s)
     int32_t scaling;
     double sum;
     
-
-    awgn_init(&noise_source, 1234567, -10);
+    /* Things like noise don't highlight the frequency response of the high Q notch
+       very well. We use a slowly swept frequency to check it. */
+    awgn_init_dbm0(&noise_source, 1234567, -10.0f);
     for (f = 1;  f < 4000;  f++)
     {
-        phase_rate = dds_phase_step(f);
+        phase_rate = dds_phase_rate(f);
         scaling = dds_scaling_dbm0(-10);
         phase_acc = 0;
         for (i = 0;  i < 8192;  i++)
             buf[i] = dds_mod(&phase_acc, phase_rate, scaling, 0);
+        /*endfor*/
         sig_tone_rx(s, buf, 8192);
         sum = 0.0;
         for (i = 1000;  i < 8192;  i++)
             sum += (double) buf[i]*(double) buf[i];
+        /*endfor*/
         sum = sqrt(sum);
         printf("%7d %f\n", f, sum);
     }
+    /*endfor*/
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -154,7 +163,6 @@ int main(int argc, char *argv[])
     AFfilesetup filesetup;
     int outframes;
     int i;
-    int j;
     int rx_samples;
     int tx_samples;
     sig_tone_state_t state;
@@ -166,6 +174,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
     }
+    /*endif*/
     afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
     afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
     afInitFileFormat(filesetup, AF_FILE_WAVE);
@@ -177,24 +186,29 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
+    /*endif*/
 
-    awgn_init(&noise_source, 1234567, -30);
+    awgn_init_dbm0(&noise_source, 1234567, -30.0f);
 
+    printf("2400Hz/26000Hz tests.\n");
     sig_tone_init(&state, SIG_TONE_2400HZ_2600HZ, handler, NULL);
     state.current_tx_tone |= SIG_TONE_RX_PASSTHROUGH;
     
-    map_response(&state);
+    map_frequency_response(&state);
 
     for (sampleno = 0;  sampleno < 20000;  sampleno += 160)
     {
         tx_samples = 160;
         for (i = 0;  i < tx_samples;  i++)
             amp[i] = alaw_to_linear(linear_to_alaw(awgn(&noise_source)));
+        /*endfor*/
         for (i = 0;  i < tx_samples;  i++)
             out_amp[2*i] = amp[i];
+        /*endfor*/
         rx_samples = sig_tone_rx(&state, amp, tx_samples);
         for (i = 0;  i < rx_samples;  i++)
             out_amp[2*i + 1] = amp[i];
+        /*endfor*/
         outframes = afWriteFrames(outhandle,
                                   AF_DEFAULT_TRACK,
                                   out_amp,
@@ -204,18 +218,26 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Error writing wave file\n");
             exit(2);
         }
+        /*endif*/
     }
 
+    printf("2280Hz tests.\n");
     sig_tone_init(&state, SIG_TONE_2280HZ, handler, NULL);
+    state.current_tx_tone |= SIG_TONE_RX_PASSTHROUGH;
+    
+    map_frequency_response(&state);
+
     for (sampleno = 0;  sampleno < 20000;  sampleno += 160)
     {
         memset(amp, 0, sizeof(int16_t)*160);
         tx_samples = sig_tone_tx(&state, amp, 160);
         for (i = 0;  i < tx_samples;  i++)
             out_amp[2*i] = amp[i];
+        /*endfor*/
         rx_samples = sig_tone_rx(&state, amp, tx_samples);
         for (i = 0;  i < rx_samples;  i++)
             out_amp[2*i + 1] = amp[i];
+        /*endfor*/
         outframes = afWriteFrames(outhandle,
                                   AF_DEFAULT_TRACK,
                                   out_amp,
@@ -225,6 +247,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Error writing wave file\n");
             exit(2);
         }
+        /*endif*/
     }
     /*endfor*/
     if (afCloseFile(outhandle) != 0)
@@ -232,7 +255,10 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
+    /*endif*/
     afFreeFileSetup(filesetup);
+    
+    printf("Tests completed.\n");
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

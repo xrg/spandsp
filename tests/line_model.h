@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.h,v 1.5 2005/12/29 12:46:20 steveu Exp $
+ * $Id: line_model.h,v 1.12 2006/10/24 13:45:29 steveu Exp $
  */
 
 /*! \file */
@@ -65,8 +64,7 @@ The path being modelled is:
 */
 typedef struct
 {
-    int alaw_munge;
-    int ulaw_munge;
+    codec_munge_state_t *munge;
 
     /*! The coefficients for the near end analogue section simulation filter */
     float *near_filter;
@@ -132,9 +130,10 @@ void both_ways_line_model(both_ways_line_model_state_t *s,
                           int samples);
 
 both_ways_line_model_state_t *both_ways_line_model_init(int model1,
-                                                        int noise1,
+                                                        float noise1,
                                                         int model2,
-                                                        int noise2);
+                                                        float noise2,
+                                                        int codec);
 
 int both_ways_line_model_release(both_ways_line_model_state_t *s);
 
@@ -143,7 +142,7 @@ void one_way_line_model(one_way_line_model_state_t *s,
                         const int16_t *input,
                         int samples);
 
-one_way_line_model_state_t *one_way_line_model_init(int model, int noise);
+one_way_line_model_state_t *one_way_line_model_init(int model, float noise, int codec);
 
 int one_way_line_model_release(one_way_line_model_state_t *s);
 

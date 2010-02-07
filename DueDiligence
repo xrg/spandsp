@@ -42,7 +42,7 @@ very simple standard. There seems to be nothing innovative about it.
 Many patents are listed as relevant to the T.30 standard. However, they all
 appear to relate to newer features, such as colour FAX, added in recent years.
 The current implementation only covers the original features from the late
-1970s, where there appear to be to patent issues.
+1970s, where there appear to be patent issues.
 
 The T.4 standard defines the image compression and decompression techniques
 used for group 3 FAXes. The spandsp implementation is based on code derived

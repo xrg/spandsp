@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo.c,v 1.7 2005/11/23 17:09:46 steveu Exp $
+ * $Id: modem_echo.c,v 1.17 2006/11/19 14:07:24 steveu Exp $
  */
 
 /*! \file */
@@ -38,28 +37,24 @@
 #endif
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 
 #include "spandsp/telephony.h"
-#include "spandsp/alaw_ulaw.h"
+#include "spandsp/bit_operations.h"
 #include "spandsp/dc_restore.h"
 #include "spandsp/modem_echo.h"
-
-#if !defined(NULL)
-#define NULL (void *) 0
-#endif
-#define FALSE 0
-#define TRUE (!FALSE)
 
 modem_echo_can_state_t *modem_echo_can_create(int len)
 {
     modem_echo_can_state_t *ec;
-    int i;
-    int j;
 
     ec = (modem_echo_can_state_t *) malloc(sizeof(*ec));
     if (ec == NULL)
@@ -102,8 +97,6 @@ void modem_echo_can_free(modem_echo_can_state_t *ec)
 
 void modem_echo_can_flush(modem_echo_can_state_t *ec)
 {
-    int i;
-
     ec->tx_power = 0;
 
     fir16_flush(&ec->fir_state);
@@ -144,7 +137,7 @@ int16_t modem_echo_can_update(modem_echo_can_state_t *ec, int16_t tx, int16_t rx
 
     /* And the answer is..... */
     clean_rx = rx - echo_value;
-printf("%8d %8d %8d %8d\n", tx, rx, echo_value, clean_rx);
+    //printf("%8d %8d %8d %8d\n", tx, rx, echo_value, clean_rx);
     if (ec->adapt)
     {
         /* Calculate short term power levels using very simple single pole IIRs */
@@ -163,13 +156,13 @@ printf("%8d %8d %8d %8d\n", tx, rx, echo_value, clean_rx);
                adaption process to bring them back under control. */
             ec->fir_taps32[i] -= (ec->fir_taps32[i] >> 23);
             ec->fir_taps32[i] += (ec->fir_state.history[i - offset1]*clean_rx) >> shift;
-            ec->fir_taps16[i] = ec->fir_taps32[i] >> 15;
+            ec->fir_taps16[i] = (int16_t) (ec->fir_taps32[i] >> 15);
         }
         for (  ;  i >= 0;  i--)
         {
             ec->fir_taps32[i] -= (ec->fir_taps32[i] >> 23);
             ec->fir_taps32[i] += (ec->fir_state.history[i + offset2]*clean_rx) >> shift;
-            ec->fir_taps16[i] = ec->fir_taps32[i] >> 15;
+            ec->fir_taps16[i] = (int16_t) (ec->fir_taps32[i] >> 15);
         }
     }
 
@@ -177,7 +170,7 @@ printf("%8d %8d %8d %8d\n", tx, rx, echo_value, clean_rx);
     if (ec->curr_pos <= 0)
         ec->curr_pos = ec->taps;
     ec->curr_pos--;
-    return  clean_rx;
+    return  (int16_t) clean_rx;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

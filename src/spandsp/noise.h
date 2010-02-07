@@ -11,9 +11,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -24,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: noise.h,v 1.5 2005/11/27 15:20:30 steveu Exp $
+ * $Id: noise.h,v 1.8 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \file */
@@ -115,7 +114,9 @@ extern "C" {
            generation to be adjusted.
     \return A pointer to the noise generator context.
 */
-noise_state_t *noise_init(noise_state_t *s, int seed, int level, int class_of_noise, int quality);
+noise_state_t *noise_init_dbm0(noise_state_t *s, int seed, float level, int class_of_noise, int quality);
+
+noise_state_t *noise_init_dbov(noise_state_t *s, int seed, float level, int class_of_noise, int quality);
 
 /*! Generate a sample of audio noise.
     \brief Generate a sample of audio noise.

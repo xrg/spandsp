@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx_tests.c,v 1.8 2006/01/11 08:06:10 steveu Exp $
+ * $Id: super_tone_rx_tests.c,v 1.18 2006/11/20 13:58:57 steveu Exp $
  */
 
 /*! \file */
@@ -36,7 +35,6 @@
 #include "config.h"
 #endif
 
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -46,11 +44,22 @@
 #include <time.h>
 #include <inttypes.h>
 #include <sys/socket.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 
+#if defined(HAVE_LIBXML_XMLMEMORY_H)
 #include <libxml/xmlmemory.h>
+#endif
+#if defined(HAVE_LIBXML_PARSER_H)
 #include <libxml/parser.h>
+#endif
+#if defined(HAVE_LIBXML_XINCLUDE_H)
 #include <libxml/xinclude.h>
+#endif
 
 #include <audiofile.h>
 #include <tiffio.h>
@@ -60,7 +69,7 @@
 #define IN_FILE_NAME    "super_tone.wav"
 #define BELLCORE_DIR	"../itutests/bellcore/"
 
-char *bellcore_files[] =
+const char *bellcore_files[] =
 {
     BELLCORE_DIR "tr-tsy-00763-1.wav",
     BELLCORE_DIR "tr-tsy-00763-2.wav",
@@ -71,7 +80,7 @@ char *bellcore_files[] =
     ""
 };
 
-char *tone_names[20] = {NULL};
+const char *tone_names[20] = {NULL};
 
 AFfilehandle inhandle;
 
@@ -84,6 +93,7 @@ super_tone_tx_step_t *nutone_tree = NULL;
 super_tone_tx_step_t *congestiontone_tree = NULL;
 super_tone_tx_step_t *waitingtone_tree = NULL;
 
+#if defined(HAVE_LIBXML2)
 static int parse_tone(super_tone_rx_descriptor_t *desc, int tone_id, super_tone_tx_step_t **tree, xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur)
 {
     xmlChar *x;
@@ -255,7 +265,7 @@ static void parse_tone_set(super_tone_rx_descriptor_t *desc, xmlDocPtr doc, xmlN
 }
 /*- End of function --------------------------------------------------------*/
 
-static void get_tone_set(super_tone_rx_descriptor_t *desc, char *tone_file, char *set_id)
+static void get_tone_set(super_tone_rx_descriptor_t *desc, const char *tone_file, const char *set_id)
 {
     xmlDocPtr doc;
     xmlNsPtr ns;
@@ -265,6 +275,7 @@ static void get_tone_set(super_tone_rx_descriptor_t *desc, char *tone_file, char
 #endif
     xmlChar *x;
     
+    ns = NULL;
     xmlKeepBlanksDefault(0);
     xmlCleanupParser();
     doc = xmlParseFile(tone_file);
@@ -323,6 +334,7 @@ static void get_tone_set(super_tone_rx_descriptor_t *desc, char *tone_file, char
     xmlFreeDoc(doc);
 }
 /*- End of function --------------------------------------------------------*/
+#endif
 
 static void super_tone_rx_fill_descriptor(super_tone_rx_descriptor_t *desc)
 {
@@ -362,7 +374,6 @@ static void tone_segment(void *data, int f1, int f2, int duration)
 int main(int argc, char *argv[])
 {
     int x;
-    int j;
     int16_t amp[8000];
     int sample;
     int frames;
@@ -382,24 +393,26 @@ int main(int argc, char *argv[])
     }
     if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
     {
-        printf("    Unexpected sample rate in wave file '%s'\n", bellcore_files[j]);
+        printf("    Unexpected sample rate in wave file '%s'\n", IN_FILE_NAME);
         exit(2);
     }
     if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
     {
-        printf("    Unexpected number of channels in wave file '%s'\n", bellcore_files[j]);
+        printf("    Unexpected number of channels in wave file '%s'\n", IN_FILE_NAME);
         exit(2);
     }
     super_tone_rx_make_descriptor(&desc);
+#if defined(HAVE_LIBXML2)
     get_tone_set(&desc, "../spandsp/global-tones.xml", (argc > 1)  ?  argv[1]  :  "hk");
+#endif
     super_tone_rx_fill_descriptor(&desc);
-    if ((super = super_tone_rx_init(NULL, &desc, wakeup, "test")) == NULL)
+    if ((super = super_tone_rx_init(NULL, &desc, wakeup, (void *) "test")) == NULL)
     {
         printf("    Failed to create detector.\n");
         exit(2);
     }
     super_tone_rx_segment_callback(super, tone_segment);
-    awgn_init(&noise_source, 1234567, -30);
+    awgn_init_dbm0(&noise_source, 1234567, -30.0f);
     printf("Processing file\n");
     while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, 8000)))
     {
@@ -412,12 +425,13 @@ int main(int argc, char *argv[])
             sample += x;
         }
     }
-    if (afCloseFile(inhandle) != 0)
+    if (afCloseFile(inhandle))
     {
         fprintf(stderr, "    Cannot close audio file '%s'\n", IN_FILE_NAME);
         exit(2);
     }
 #if 0
+    /* Test for voice immunity */
     for (j = 0;  bellcore_files[j][0];  j++)
     {
         if ((inhandle = afOpenFile(bellcore_files[j], "r", 0)) == AF_NULL_FILEHANDLE)
@@ -455,7 +469,7 @@ int main(int argc, char *argv[])
     	}
     }
 #endif
-    free(super);
+    super_tone_rx_free(super);
     printf("Done\n");
     return 0;
 }

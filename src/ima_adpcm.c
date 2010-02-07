@@ -2,7 +2,7 @@
  * SpanDSP - a series of DSP components for telephony
  *
  * ima_adpcm.c - Conversion routines between linear 16 bit PCM data and
- *	             IMA/DVI/Intel ADPCM format.
+ *                 IMA/DVI/Intel ADPCM format.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -11,9 +11,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -24,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm.c,v 1.4 2005/11/25 14:51:59 steveu Exp $
+ * $Id: ima_adpcm.c,v 1.16 2006/11/19 14:07:24 steveu Exp $
  */
 
 /*! \file */
@@ -34,11 +33,17 @@
 #endif
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <inttypes.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 
 #include "spandsp/telephony.h"
+#include "spandsp/dc_restore.h"
 #include "spandsp/ima_adpcm.h"
 
 /*
@@ -46,6 +51,29 @@
  *
  * The algorithm for this coder was taken from the IMA Compatability Project
  * proceedings, Vol 2, Number 2; May 1992.
+ *
+ * The RTP payload specs. reference a variant of DVI, called VDVI. This attempts to
+ * further compresses, in a variable bit rate manner, by expressing the 4 bit codes
+ * from the DVI codec as:
+ *
+ *  0 00
+ *  1 010
+ *  2 1100
+ *  3 11100
+ *  4 111100
+ *  5 1111100
+ *  6 11111100
+ *  7 11111110
+ *  8 10
+ *  9 011
+ * 10 1101
+ * 11 11101
+ * 12 111101
+ * 13 1111101
+ * 14 11111101
+ * 15 11111111
+ *
+ * Any left over bits in the last octet of an encoded burst are set to one.
  */
 
 /* Intel ADPCM step variation table */
@@ -67,11 +95,60 @@ static const int step_adjustment[8] =
     -1, -1, -1, -1, 2, 4, 6, 8
 };
 
-static int16_t imaadpcm_decode(ima_adpcm_state_t *s, uint8_t adpcm)
+static const struct
 {
-    int16_t e;
-    int16_t ss;
-    int linear;
+    uint8_t code;
+    uint8_t bits;
+} vdvi_encode[] =
+{
+    {0x00,       2},
+    {0x02,       3},
+    {0x0C,       4},
+    {0x1C,       5},
+    {0x3C,       6},
+    {0x7C,       7},
+    {0xFC,       8},
+    {0xFE,       8},
+    {0x02,       2},
+    {0x03,       3},
+    {0x0D,       4},
+    {0x1D,       5},
+    {0x3D,       6},
+    {0x7D,       7},
+    {0xFD,       8},
+    {0xFF,       8}
+};
+
+static const struct
+{
+    uint16_t code;
+    uint16_t mask;
+    uint8_t bits;
+} vdvi_decode[] =
+{
+    {0x0000,    0xC000,     2},
+    {0x4000,    0xE000,     3},
+    {0xC000,    0xF000,     4},
+    {0xE000,    0xF800,     5},
+    {0xF000,    0xFC00,     6},
+    {0xF800,    0xFE00,     7},
+    {0xFC00,    0xFF00,     8},
+    {0xFE00,    0xFF00,     8},
+    {0x8000,    0xC000,     2},
+    {0x6000,    0xE000,     3},
+    {0xD000,    0xF000,     4},
+    {0xE800,    0xF800,     5},
+    {0xF400,    0xFC00,     6},
+    {0xFA00,    0xFE00,     7},
+    {0xFD00,    0xFF00,     8},
+    {0xFF00,    0xFF00,     8}
+};
+
+static int16_t decode(ima_adpcm_state_t *s, uint8_t adpcm)
+{
+    int e;
+    int ss;
+    int16_t linear;
 
     /* e = (adpcm+0.5)*step/4 */
 
@@ -89,12 +166,7 @@ static int16_t imaadpcm_decode(ima_adpcm_state_t *s, uint8_t adpcm)
     if (adpcm & 0x08)
         e = -e;
     /*endif*/
-    linear = s->last + e;
-    if (linear > 32767)
-        linear = 32767;
-    else if (linear < -32768)
-        linear = -32768;
-    /*endif*/
+    linear = saturate(s->last + e);
     s->last = linear;
     s->step_index += step_adjustment[adpcm & 0x07];
     if (s->step_index < 0)
@@ -106,7 +178,7 @@ static int16_t imaadpcm_decode(ima_adpcm_state_t *s, uint8_t adpcm)
 }
 /*- End of function --------------------------------------------------------*/
 
-int imaadpcm_encode(ima_adpcm_state_t *state, int16_t linear)
+static int encode(ima_adpcm_state_t *s, int16_t linear)
 {
     int e;
     int ss;
@@ -114,70 +186,64 @@ int imaadpcm_encode(ima_adpcm_state_t *state, int16_t linear)
     int diff;
     int initial_e;
 
-    ss = step_size[state->step_index];
+    ss = step_size[s->step_index];
     initial_e =
-	e = linear - state->last;
-	diff = ss >> 3;
+    e = linear - s->last;
+    diff = ss >> 3;
     adpcm = (uint8_t) 0x00;
-	if (e < 0)
+    if (e < 0)
     {
         adpcm = (uint8_t) 0x08;
         e = -e;
     }
     /*endif*/
-	if (e >= ss)
+    if (e >= ss)
     {
-	    adpcm |= (uint8_t) 0x04;
-	    e -= ss;
-	}
+        adpcm |= (uint8_t) 0x04;
+        e -= ss;
+    }
     /*endif*/
-	ss >>= 1;
-	if (e >= ss)
+    ss >>= 1;
+    if (e >= ss)
     {
-	    adpcm |= (uint8_t) 0x02;
-	    e -= ss;
-	}
+        adpcm |= (uint8_t) 0x02;
+        e -= ss;
+    }
     /*endif*/
-	ss >>= 1;
-	if (e >= ss)
+    ss >>= 1;
+    if (e >= ss)
     {
-	    adpcm |= (uint8_t) 0x01;
-	    e -= ss;
-	}
+        adpcm |= (uint8_t) 0x01;
+        e -= ss;
+    }
     /*endif*/
 
-	if (initial_e < 0)
+    if (initial_e < 0)
         diff = -(diff - initial_e - e);
     else
         diff = diff + initial_e - e;
     /*endif*/
-    diff += state->last;
-
-	if (diff > 32767)
-	    diff = 32767;
-	else if (diff < -32768)
-	    diff = -32768;
-    /*endif*/
-    state->last = diff;
-
-	state->step_index += step_adjustment[adpcm & 0x07];
-	if (state->step_index < 0)
-        state->step_index = 0;
-	else if (state->step_index > 88)
-        state->step_index = 88;
+    s->last = saturate(diff + s->last);
+    s->step_index += step_adjustment[adpcm & 0x07];
+    if (s->step_index < 0)
+        s->step_index = 0;
+    else if (s->step_index > 88)
+        s->step_index = 88;
     /*endif*/
     return adpcm;
 }
 /*- End of function --------------------------------------------------------*/
 
-ima_adpcm_state_t *ima_adpcm_init(ima_adpcm_state_t *s)
+ima_adpcm_state_t *ima_adpcm_init(ima_adpcm_state_t *s, int variant)
 {
     if (s == NULL)
     {
         if ((s = (ima_adpcm_state_t *) malloc(sizeof(*s))) == NULL)
-        	return  NULL;
+            return  NULL;
     }
+    /*endif*/
     memset(s, 0, sizeof(*s));
+    s->variant = variant;
     return  s;
 }
 /*- End of function --------------------------------------------------------*/
@@ -189,42 +255,132 @@ int ima_adpcm_release(ima_adpcm_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int ima_adpcm_to_linear(ima_adpcm_state_t *s,
-                        int16_t *amp,
-                        const uint8_t *ima_data,
-                        int ima_bytes)
+int ima_adpcm_decode(ima_adpcm_state_t *s,
+                     int16_t amp[],
+                     const uint8_t ima_data[],
+                     int ima_bytes)
 {
     int i;
+    int j;
     int samples;
+    uint16_t code;
 
     samples = 0;
-    for (i = 0;  i < ima_bytes;  i++)
+    if (s->variant == IMA_ADPCM_VDVI)
     {
-        amp[samples++] = imaadpcm_decode(s, ima_data[i] & 0xF);
-        amp[samples++] = imaadpcm_decode(s, (ima_data[i] >> 4) & 0xF);
+        code = 0;
+        s->bits = 0;
+        for (i = 0;  ;  )
+        {
+            if (s->bits <= 8)
+            {
+                if (i >= ima_bytes)
+                    break;
+                /*endif*/
+                code |= ((uint16_t) ima_data[i++] << (8 - s->bits));
+                s->bits += 8;
+            }
+            /*endif*/
+            for (j = 0;  j < 8;  j++)
+            {
+                if ((vdvi_decode[j].mask & code) == vdvi_decode[j].code)
+                    break;
+                if ((vdvi_decode[j + 8].mask & code) == vdvi_decode[j + 8].code)
+                {
+                    j += 8;
+                    break;
+                }
+                /*endif*/
+            }
+            /*endfor*/
+            amp[samples++] = decode(s, j);
+            code <<= vdvi_decode[j].bits;
+            s->bits -= vdvi_decode[j].bits;
+        }
+        /*endfor*/
+        /* Use up the remanents of the last octet */
+        while (s->bits > 0)
+        {
+            for (j = 0;  j < 8;  j++)
+            {
+                if ((vdvi_decode[j].mask & code) == vdvi_decode[j].code)
+                    break;
+                /*endif*/
+                if ((vdvi_decode[j + 8].mask & code) == vdvi_decode[j + 8].code)
+                {
+                    j += 8;
+                    break;
+                }
+                /*endif*/
+            }
+            /*endfor*/
+            if (vdvi_decode[j].bits > s->bits)
+                break;
+            /*endif*/
+            amp[samples++] = decode(s, j);
+            code <<= vdvi_decode[j].bits;
+            s->bits -= vdvi_decode[j].bits;
+        }
+        /*endfor*/
     }
-    /*endwhile*/
+    else
+    {
+        for (i = 0;  i < ima_bytes;  i++)
+        {
+            amp[samples++] = decode(s, ima_data[i] & 0xF);
+            amp[samples++] = decode(s, (ima_data[i] >> 4) & 0xF);
+        }
+        /*endwhile*/
+    }
+    /*endif*/
     return samples;
 }
 /*- End of function --------------------------------------------------------*/
 
-int ima_linear_to_adpcm(ima_adpcm_state_t *s,
-                        uint8_t *ima_data,
-                        const int16_t *amp,
-                        int samples)
+int ima_adpcm_encode(ima_adpcm_state_t *s,
+                     uint8_t ima_data[],
+                     const int16_t amp[],
+                     int len)
 {
-    int n;
+    int i;
     int bytes;
+    uint8_t code;
 
     bytes = 0;
-    for (n = 0;  n < samples;  n++)
+    if (s->variant == IMA_ADPCM_VDVI)
     {
-        s->ima_byte = (s->ima_byte >> 4) | (imaadpcm_encode(s, amp[n]) << 4);
-        if ((s->mark++ & 1))
-            ima_data[bytes++] = s->ima_byte;
+        s->bits = 0;
+        for (i = 0;  i < len;  i++)
+        {
+            code = encode(s, amp[i]);
+            s->ima_byte = (s->ima_byte << vdvi_encode[code].bits) | vdvi_encode[code].code;
+            s->bits += vdvi_encode[code].bits;
+            if (s->bits >= 8)
+            {
+                s->bits -= 8;
+                ima_data[bytes++] = s->ima_byte >> s->bits;
+            }
+            /*endif*/
+        }
+        /*endfor*/
+        if (s->bits)
+        {
+            ima_data[bytes++] = ((s->ima_byte << 8) | 0xFF) >> s->bits;
+        }
         /*endif*/
     }
-    /*endfor*/
+    else
+    {
+        for (i = 0;  i < len;  i++)
+        {
+            s->ima_byte = (uint8_t) ((s->ima_byte >> 4) | (encode(s, amp[i]) << 4));
+            if ((s->bits++ & 1))
+                ima_data[bytes++] = s->ima_byte;
+            /*endif*/
+        }
+        /*endfor*/
+    }
+    /*endif*/
     return  bytes;
 }
 /*- End of function --------------------------------------------------------*/

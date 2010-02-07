@@ -11,9 +11,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -24,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: testcpuid.c,v 1.6 2005/08/31 19:27:52 steveu Exp $
+ * $Id: testcpuid.c,v 1.9 2006/10/24 13:45:27 steveu Exp $
  */
 
 /*! \file */
@@ -57,7 +56,7 @@
 #define X86_EFLAGS_ID   0x00200000 /* CPUID detection flag */
 
 /* Standard macro to see if a specific flag is changeable */
-static inline int flag_is_changeable_p(uint32_t flag)
+static __inline__ int flag_is_changeable_p(uint32_t flag)
 {
     uint32_t f1;
     uint32_t f2;
@@ -78,12 +77,14 @@ static inline int flag_is_changeable_p(uint32_t flag)
 
     return ((f1^f2) & flag) != 0;
 }
+/*- End of function --------------------------------------------------------*/
 
 /* Probe for the CPUID instruction */
 static int have_cpuid_p(void)
 {
     return flag_is_changeable_p(X86_EFLAGS_ID);
 }
+/*- End of function --------------------------------------------------------*/
 
 int has_MMX(void)
 {
@@ -107,6 +108,7 @@ int has_MMX(void)
         : "ecx", "edx");
     return  result;
 }
+/*- End of function --------------------------------------------------------*/
         
 int has_SIMD(void)
 {
@@ -130,6 +132,7 @@ int has_SIMD(void)
         : "ecx", "edx");
     return  result;
 }
+/*- End of function --------------------------------------------------------*/
 
 int has_SIMD2(void)
 {
@@ -153,6 +156,7 @@ int has_SIMD2(void)
         : "ecx", "edx");
     return  result;
 }
+/*- End of function --------------------------------------------------------*/
         
 int has_3DNow(void)
 {
@@ -181,6 +185,7 @@ int has_3DNow(void)
         : "eax", "edx");
     return  result;
 }
+/*- End of function --------------------------------------------------------*/
 
 #if defined(TESTBED)
 int main(int argc, char *argv[])
@@ -197,6 +202,8 @@ int main(int argc, char *argv[])
     printf("3DNow is %x\n", result);
     return  0;
 }
+/*- End of function --------------------------------------------------------*/
 #endif
 
 #endif
+/*- End of file ------------------------------------------------------------*/

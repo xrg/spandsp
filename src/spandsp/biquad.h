@@ -11,9 +11,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -24,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: biquad.h,v 1.5 2006/02/03 15:56:27 steveu Exp $
+ * $Id: biquad.h,v 1.9 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \page biquad_page Bi-quadratic filter sections
@@ -61,12 +60,12 @@ typedef struct
 extern "C" {
 #endif
 
-static inline void biquad2_init(biquad2_state_t *bq,
-                                int32_t gain,
-                                int32_t a1,
-                                int32_t a2,
-                                int32_t b1,
-                                int32_t b2)
+static __inline__ void biquad2_init(biquad2_state_t *bq,
+                                    int32_t gain,
+                                    int32_t a1,
+                                    int32_t a2,
+                                    int32_t b1,
+                                    int32_t b2)
 {
     bq->gain = gain;
     bq->a1 = a1;
@@ -86,7 +85,7 @@ static inline void biquad2_init(biquad2_state_t *bq,
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int16_t biquad2(biquad2_state_t *bq, int16_t sample)
+static __inline__ int16_t biquad2(biquad2_state_t *bq, int16_t sample)
 {
     int32_t y;
     int32_t z0;
@@ -105,7 +104,7 @@ static inline int16_t biquad2(biquad2_state_t *bq, int16_t sample)
     bq->residue1 = y & 0x7FFF;
 #endif
     y >>= 15;
-    return  y;
+    return (int16_t) y;
 }
 /*- End of function --------------------------------------------------------*/
 

@@ -13,9 +13,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -26,76 +25,43 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo_tests.c,v 1.15 2006/01/11 07:44:30 steveu Exp $
+ * $Id: echo_tests.c,v 1.27 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \page echo_can_tests_page Line echo cancellation for voice tests
 
 \section echo_can_tests_page_sec_1 What does it do?
-Currently the echo cancellation tests only provide simple exercising of the
-cancellor in the way it might be used for line echo cancellation. The test code
-is in echotests.c. 
-
-The goal is to test the echo cancellor again the G.16X specs. Clearly, that also
-means the goal for the cancellor itself is to comply with those specs. Right
-now, the only aspect of these tests implemented is the line impulse response
-models in g168tests.c. 
+The echo cancellation tests test the echo cancellor against the G.168 spec. Not
+all the tests in G.168 are fully implemented at this time.
 
 \section echo_can_tests_page_sec_2 How does it work?
-The current test consists of feeding a wave file of real speech to the echo
-cancellor as the transmit signal. A very simple model of a telephone line is
-used to simulate a simple echo from the transmit signal. A second wave file of
-real speech is also used to simulate a signal received form the far end of the
-line. This is gated so it is only placed for one second every 10 seconds,
-simulating the double talk condition. The resulting echo cancelled signal can
-either be store in a file for further analysis, or played back as the data is
-processed. 
-
-A number of modified versions of this test have been performed. The signal level
-of the two speech sources has been varied. Several simple models of the
-telephone line have been used. Although the current cancellor design has known
-limitations, it seems stable for all these test conditions. No instability has
-been observed in the current version due to arithmetic overflow when the speech
-is very loud (with earlier versions, well, ....:) ). The lack of saturating
-arithmetic in general purpose CPUs is a huge disadvantage here, as software
-saturation logic would cause a major slow down. Floating point would be good,
-but is not usable in the Linux kernel. Anyway, the bottom line seems to be the
-current design is genuinely useful, if imperfect. 
 
 \section echo_can_tests_page_sec_2 How do I use it?
 
-Build the tests with the command "./build". Currently there is no proper make
-setup, or way to build individual tests. "./build" will built all the tests
-which currently exist for the DSP functions. The echo cancellation test assumes
-there are two wave files containing mono, 16 bit signed PCM speech data, sampled
-at 8kHz. These should be called local_sound.wav and far_sound.wav. A third wave
-file will be produced. This very crudely starts with the first 256 bytes from
-the local_sound.wav file, followed by the results of the echo cancellation. The
-resulting audio is also played to the /dev/dsp device. A printf near the end of
-echo_tests.c is commented out with a #if. If this is enabled, detailed
-information about the results of the echo cancellation will be written to
-stdout. By saving this into a file, Grace (recommended), GnuPlot, or some other
-plotting package may be used to graphically display the functioning of the
-cancellor.  
 */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#if defined(HAVE_FL_FL_H)  &&  defined(HAVE_FL_FL_CARTESIAN_H)
+#if defined(HAVE_FL_FL_H)  &&  defined(HAVE_FL_FL_CARTESIAN_H)  &&  defined(HAVE_FL_FL_AUDIO_METER_H)
 #define ENABLE_GUI
 #endif
 
 #define _GNU_SOURCE
 
-#include <inttypes.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 #include <assert.h>
 #include <audiofile.h>
 #include <tiffio.h>
@@ -105,7 +71,9 @@ cancellor.
 
 #include "spandsp.h"
 #include "spandsp/g168models.h"
+#if defined(ENABLE_GUI)
 #include "echo_monitor.h"
+#endif
 
 #define TEST_EC_TAPS            256
 
@@ -138,7 +106,7 @@ int test_list;
 
 typedef struct
 {
-    char *name;
+    const char *name;
     int max;
     int cur;
     AFfilehandle handle;
@@ -185,7 +153,7 @@ static inline void put_residue(int16_t amp)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void signal_load(signal_source_t *sig, char *name)
+static void signal_load(signal_source_t *sig, const char *name)
 {
     float x;
 
@@ -246,7 +214,7 @@ static int16_t signal_amp(signal_source_t *sig)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int16_t alaw_munge(int16_t amp)
+static inline int16_t codec_munge(int16_t amp)
 {
     return alaw_to_linear(linear_to_alaw(amp));
 }
@@ -278,7 +246,7 @@ static int channel_model_create(int model)
         sizeof(line_model_d9_coeffs)/sizeof(int32_t)
     };
 
-    if (model < 0  ||  model >= sizeof(line_model_sizes)/sizeof(line_model_sizes[0]))
+    if (model < 0  ||  model >= (int) (sizeof(line_model_sizes)/sizeof(line_model_sizes[0])))
         return -1;
     fir32_create(&line_model, line_models[model], line_model_sizes[model]);
     return 0;
@@ -296,17 +264,17 @@ static int16_t channel_model(int16_t *new_local, int16_t *new_far, int16_t local
 
     /* The local tx signal will usually have gone through an A-law munging before
        it reached the line's analogue area, where the echo occurs. */
-    local = alaw_munge(local);
+    local = codec_munge(local);
     /* Now we need to model the echo. We only model a single analogue segment, as per
        the G.168 spec. However, there will generally be near end and far end analogue/echoey
        segments in the real world, unless an end is purely digital. */
     echo = fir32(&line_model, local/8);
     /* The far end signal will have been through an A-law munging, although
        this should not affect things. */
-    rx = echo + alaw_munge(far);
+    rx = echo + codec_munge(far);
     /* This mixed echo and far end signal will have been through an A-law munging
        when it came back into the digital network. */
-    rx = alaw_munge(rx);
+    rx = codec_munge(rx);
     if (new_far)
         *new_far = rx;
     if (new_local)
@@ -340,6 +308,7 @@ static int level_measurement_device_release(level_measurement_device_t *s)
     fir_float_free(s->fir);
     free(s->fir);
     free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -401,6 +370,7 @@ int main(int argc, char *argv[])
     float pp1;
     float pp2;
     int model_number;
+    int use_gui;
 
     power_meter_1 = NULL;
     power_meter_2 = NULL;
@@ -409,6 +379,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Usage: echo tests <list of test numbers>\n");
     test_list = 0;
     model_number = 0;
+    use_gui = FALSE;
     for (i = 1;  i < argc;  i++)
     {
         if (strcasecmp(argv[i], "2a") == 0)
@@ -456,6 +427,10 @@ int main(int argc, char *argv[])
             if (++i < argc)
                 model_number = atoi(argv[i]);
         }
+        else if (strcmp(argv[i], "-g") == 0)
+        {
+            use_gui = TRUE;
+        }
         else
         {
             fprintf(stderr, "Unknown test '%s' specified\n", argv[i]);
@@ -470,7 +445,7 @@ int main(int argc, char *argv[])
     time(&now);
     tone_burst_step = 0;
     ctx = echo_can_create(TEST_EC_TAPS, 0);
-    awgn_init(&far_noise_source, 7162534, -50);
+    awgn_init_dbm0(&far_noise_source, 7162534, -50.0f);
 
     signal_load(&local_css, "sound_c1_8k.wav");
     signal_load(&far_css, "sound_c3_8k.wav");
@@ -519,8 +494,11 @@ int main(int argc, char *argv[])
         exit(2);
     }
 #if defined(ENABLE_GUI)
-    start_echo_can_monitor(TEST_EC_TAPS);
-    echo_can_monitor_line_model_update(line_model.coeffs, line_model.taps);
+    if (use_gui)
+    {
+        start_echo_can_monitor(TEST_EC_TAPS);
+        echo_can_monitor_line_model_update(line_model.coeffs, line_model.taps);
+    }
 #endif
     power_meter_1 = level_measurement_device_create(0);
     power_meter_2 = level_measurement_device_create(0);
@@ -671,10 +649,14 @@ int main(int argc, char *argv[])
             pp2 = level_measurement_device(power_meter_2, clean);
             residue = 100.0*pp1/pp2;
             put_residue(residue);
-            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+#if defined(ENABLE_GUI)
+            if (use_gui)
+                echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+#endif
         }
 #if defined(ENABLE_GUI)
-        echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+        if (use_gui)
+            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
 #endif
     }
 
@@ -697,10 +679,14 @@ int main(int argc, char *argv[])
             channel_model(&tx, &rx, tx, 0);
             clean = echo_can_update(ctx, tx, rx);
             put_residue(clean);
-            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+#if defined(ENABLE_GUI)
+            if (use_gui)
+                echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+#endif
         }
 #if defined(ENABLE_GUI)
-        echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+        if (use_gui)
+            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
 #endif
     }
 
@@ -718,7 +704,7 @@ int main(int argc, char *argv[])
             put_residue(clean);
         }
         /* TODO: This uses a crude approx. to Hoth noise. We need the real thing. */
-        awgn_init(&far_noise_source, 7162534, -40);
+        awgn_init_dbm0(&far_noise_source, 7162534, -40.0f);
         hoth_noise = 0;
         for (i = 0;  i < SAMPLE_RATE*5;  i++)
         {
@@ -739,7 +725,8 @@ int main(int argc, char *argv[])
         }
         echo_can_adaption_mode(ctx, ECHO_CAN_USE_ADAPTION);
 #if defined(ENABLE_GUI)
-        echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+        if (use_gui)
+            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
 #endif
     }
 
@@ -780,7 +767,8 @@ int main(int argc, char *argv[])
         }
         echo_can_adaption_mode(ctx, ECHO_CAN_USE_ADAPTION);
 #if defined(ENABLE_GUI)
-        echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+        if (use_gui)
+            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
 #endif
     }
 
@@ -828,7 +816,8 @@ int main(int argc, char *argv[])
         }
         echo_can_adaption_mode(ctx, ECHO_CAN_USE_ADAPTION);
 #if defined(ENABLE_GUI)
-        echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+        if (use_gui)
+            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
 #endif
     }
 
@@ -885,7 +874,8 @@ int main(int argc, char *argv[])
             put_residue(clean - rx);
         }
 #if defined(ENABLE_GUI)
-        echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+        if (use_gui)
+            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
 #endif
     }
 
@@ -921,7 +911,8 @@ int main(int argc, char *argv[])
         }
         echo_can_adaption_mode(ctx, ECHO_CAN_USE_ADAPTION);
 #if defined(ENABLE_GUI)
-        echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+        if (use_gui)
+            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
 #endif
     }
 
@@ -946,12 +937,13 @@ int main(int argc, char *argv[])
         {
             tx = signal_amp(&local_css);
             rx = 0;
-            tx = alaw_munge(tx);
+            tx = codec_munge(tx);
             clean = echo_can_update(ctx, tx, rx);
             put_residue(clean);
         }
 #if defined(ENABLE_GUI)
-        echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+        if (use_gui)
+            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
 #endif
     }
 
@@ -997,14 +989,18 @@ int main(int argc, char *argv[])
                     put_residue(clean);
                 }
 #if defined(ENABLE_GUI)
-                echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
-                echo_can_monitor_update_display();
-                usleep(100000);
+                if (use_gui)
+                {
+                    echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+                    echo_can_monitor_update_display();
+                    usleep(100000);
+                }
 #endif
             }
         }
 #if defined(ENABLE_GUI)
-        echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+        if (use_gui)
+            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
 #endif
     }
 
@@ -1039,13 +1035,17 @@ int main(int argc, char *argv[])
                 put_residue(clean);
             }
 #if defined(ENABLE_GUI)
-            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
-            echo_can_monitor_update_display();
-            usleep(100000);
+            if (use_gui)
+            {
+                echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+                echo_can_monitor_update_display();
+                usleep(100000);
+            }
 #endif
         }
 #if defined(ENABLE_GUI)
-        echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+        if (use_gui)
+            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
 #endif
     }
 
@@ -1073,7 +1073,7 @@ int main(int argc, char *argv[])
             put_residue(clean);
         }
         echo_can_adaption_mode(ctx, ECHO_CAN_USE_ADAPTION | ECHO_CAN_USE_NLP | ECHO_CAN_USE_CNG);
-        awgn_init(&far_noise_source, 7162534, -45);
+        awgn_init_dbm0(&far_noise_source, 7162534, -45.0f);
         for (i = 0;  i < SAMPLE_RATE*30;  i++)
         {
             tx = 0;
@@ -1082,7 +1082,7 @@ int main(int argc, char *argv[])
             clean = echo_can_update(ctx, tx, rx);
             put_residue(clean);
         }
-        awgn_init(&local_noise_source, 1234567, -10);
+        awgn_init_dbm0(&local_noise_source, 1234567, -10.0f);
         for (i = 0;  i < SAMPLE_RATE*2;  i++)
         {
             tx = awgn(&local_noise_source);
@@ -1093,7 +1093,7 @@ int main(int argc, char *argv[])
         }
 
         /* Test 9 part 2 - adjust down */
-        awgn_init(&far_noise_source, 7162534, -55);
+        awgn_init_dbm0(&far_noise_source, 7162534, -55.0f);
         for (i = 0;  i < SAMPLE_RATE*10;  i++)
         {
             tx = 0;
@@ -1111,7 +1111,8 @@ int main(int argc, char *argv[])
             put_residue(clean);
         }
 #if defined(ENABLE_GUI)
-        echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
+        if (use_gui)
+            echo_can_monitor_can_update(ctx->fir_taps16[ctx->tap_set], TEST_EC_TAPS);
 #endif
     }
 
@@ -1204,7 +1205,8 @@ int main(int argc, char *argv[])
     printf("Run time %lds\n", time(NULL) - now);
     
 #if defined(ENABLE_GUI)
-    echo_can_monitor_wait_to_end();
+    if (use_gui)
+        echo_can_monitor_wait_to_end();
 #endif
 
     if (power_meter_1)
@@ -1212,6 +1214,7 @@ int main(int argc, char *argv[])
     if (power_meter_2)
         level_measurement_device_release(power_meter_2);
 
+    printf("Tests passed.\n");
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

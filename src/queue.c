@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: queue.c,v 1.4 2005/08/31 19:27:52 steveu Exp $
+ * $Id: queue.c,v 1.10 2006/11/19 14:07:25 steveu Exp $
  */
 
 /*! \file */
@@ -38,9 +37,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <inttypes.h>
-#include <math.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 
 #include <tiffio.h>
 
@@ -247,7 +244,7 @@ int queue_write_msg(queue_t *p, const uint8_t *buf, int len)
 {
     uint16_t lenx;
 
-    if (queue_free_space(p) < (len + sizeof(uint16_t)))
+    if (queue_free_space(p) < (int) (len + sizeof(uint16_t)))
         return 0;
     /*endif*/
     lenx = (uint16_t) len;
@@ -284,7 +281,11 @@ int queue_delete(queue_t *p)
     p->iptr =
     p->optr = 0;
     p->len = 0;
-    free(p->data);
+    if (p->data)
+    {
+        free(p->data);
+        p->data = NULL;
+    }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

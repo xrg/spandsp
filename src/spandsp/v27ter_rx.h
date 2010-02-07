@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.h,v 1.23 2005/12/09 19:36:00 steveu Exp $
+ * $Id: v27ter_rx.h,v 1.34 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \file */
@@ -34,12 +33,24 @@
 /*! \page v27ter_rx_page The V.27ter receiver
 
 \section v27ter_rx_page_sec_1 What does it do?
+The V.27ter receiver implements the receive side of a V.27ter modem. This can operate
+at data rates of 4800 and 2400 bits/s. The audio input is a stream of 16 bit samples,
+at 8000 samples/second. The transmit and receive side of V.27ter modems operate
+independantly. V.27ter is mostly used for FAX transmission, where it provides the
+standard 4800 bits/s rate (the 2400 bits/s mode is not used for FAX). 
 
 \section v27ter_rx_page_sec_2 How does it work?
+V.27ter defines two modes of operation. One uses 8-PSK at 1600 baud, giving 4800bps.
+The other uses 4-PSK at 1200 baud, giving 2400bps. A training sequence is specified
+at the start of transmission, which makes the design of a V.27ter receiver relatively
+straightforward.
 */
 
-#define V27TER_EQUALIZER_LEN            7   /* this much to the left and this much to the right */
-#define V27TER_EQUALIZER_MASK           15  /* one less than a power of 2 >= (2*V27TER_EQUALIZER_LEN + 1) */
+/* Target length for the equalizer is about 43 taps for 4800bps and 32 taps for 2400bps
+   to deal with the worst stuff in V.56bis. */
+#define V27TER_EQUALIZER_PRE_LEN        15  /* this much before the real event */
+#define V27TER_EQUALIZER_POST_LEN       15  /* this much after the real event */
+#define V27TER_EQUALIZER_MASK           63  /* one less than a power of 2 >= (V27TER_EQUALIZER_PRE_LEN + 1 + V27TER_EQUALIZER_POST_LEN) */
 
 #define V27TER_RX_4800_FILTER_STEPS     27
 #define V27TER_RX_2400_FILTER_STEPS     27
@@ -70,7 +81,7 @@ typedef struct
     void *qam_user_data;
 
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
-    complex_t rrc_filter[2*V27TER_RX_FILTER_STEPS];
+    float rrc_filter[2*V27TER_RX_FILTER_STEPS];
     /*! \brief Current offset into the RRC pulse shaping filter buffer. */
     int rrc_filter_step;
 
@@ -84,11 +95,16 @@ typedef struct
     int training_count;
     float training_error;
     int carrier_present;
+    int16_t last_sample;
+    /*! \brief TRUE if the previous trained values are to be reused. */
+    int old_train;
 
     /*! \brief The current phase of the carrier (i.e. the DDS parameter). */
     uint32_t carrier_phase;
     /*! \brief The update rate for the phase of the carrier (i.e. the DDS increment). */
     int32_t carrier_phase_rate;
+    /*! \brief The carrier update rate saved for reuse when using short training. */
+    int32_t carrier_phase_rate_save;
     float carrier_track_p;
     float carrier_track_i;
 
@@ -96,13 +112,15 @@ typedef struct
     int32_t carrier_on_power;
     int32_t carrier_off_power;
     float agc_scaling;
-    
+    float agc_scaling_save;
+
     int constellation_state;
 
     float eq_delta;
     /*! \brief The adaptive equalizer coefficients */
-    complex_t eq_coeff[2*V27TER_EQUALIZER_LEN + 1];
-    complex_t eq_buf[V27TER_EQUALIZER_MASK + 1];
+    complexf_t eq_coeff[V27TER_EQUALIZER_PRE_LEN + 1 + V27TER_EQUALIZER_POST_LEN];
+    complexf_t eq_coeff_save[V27TER_EQUALIZER_PRE_LEN + 1 + V27TER_EQUALIZER_POST_LEN];
+    complexf_t eq_buf[V27TER_EQUALIZER_MASK + 1];
     /*! \brief Current offset into equalizer buffer. */
     int eq_step;
     int eq_put_step;
@@ -112,9 +130,9 @@ typedef struct
     int gardner_integrate;
     /*! \brief Current step size of Gardner algorithm integration. */
     int gardner_step;
-    /*! \brief The total gardner timing correction, since the carrier came up.
+    /*! \brief The total symbol timing correction since the carrier came up.
                This is only for performance analysis purposes. */
-    int gardner_total_correction;
+    int total_baud_timing_correction;
     /*! \brief The current fractional phase of the baud timing. */
     int baud_phase;
 
@@ -143,8 +161,9 @@ v27ter_rx_state_t *v27ter_rx_init(v27ter_rx_state_t *s, int rate, put_bit_func_t
     \brief Reinitialise an existing V.27ter modem receive context.
     \param s The modem context.
     \param rate The bit rate of the modem. Valid values are 2400 and 4800.
+    \param old_train TRUE if a previous trained values are to be reused.
     \return 0 for OK, -1 for bad parameter */
-int v27ter_rx_restart(v27ter_rx_state_t *s, int rate);
+int v27ter_rx_restart(v27ter_rx_state_t *s, int rate, int old_train);
 
 /*! Release a V.27ter modem receive context.
     \brief Release a V.27ter modem receive context.
@@ -166,13 +185,13 @@ void v27ter_rx_set_put_bit(v27ter_rx_state_t *s, put_bit_func_t put_bit, void *u
     \param len The number of samples in the buffer.
     \return The number of samples unprocessed.
 */
-int v27ter_rx(v27ter_rx_state_t *s, const int16_t *amp, int len);
+int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len);
 
 /*! Get a snapshot of the current equalizer coefficients.
     \brief Get a snapshot of the current equalizer coefficients.
     \param coeffs The vector of complex coefficients.
     \return The number of coefficients in the vector. */
-int v27ter_rx_equalizer_state(v27ter_rx_state_t *s, complex_t **coeffs);
+int v27ter_rx_equalizer_state(v27ter_rx_state_t *s, complexf_t **coeffs);
 
 /*! Get the current received carrier frequency.
     \param s The modem context.

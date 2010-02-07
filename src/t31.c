@@ -5,14 +5,16 @@
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
- * Copyright (C) 2004 Steve Underwood
+ * Special thanks to Lee Howard <faxguy@howardsilvan.com>
+ * for his great work debugging and polishing this code.
+ *
+ * Copyright (C) 2004, 2005, 2006 Steve Underwood
  *
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.32 2005/12/01 14:34:42 steveu Exp $
+ * $Id: t31.c,v 1.82 2006/11/19 14:07:25 steveu Exp $
  */
 
 /*! \file */
@@ -32,25 +34,36 @@
 #include <config.h>
 #endif
 
+#define _GNU_SOURCE
+
 #include <inttypes.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <time.h>
 #include <memory.h>
-#include <strings.h>
+#include <string.h>
 #include <ctype.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 #include <assert.h>
+#include <tiffio.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
+#include "spandsp/bit_operations.h"
+#include "spandsp/dc_restore.h"
 #include "spandsp/queue.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/complex.h"
 #include "spandsp/tone_generate.h"
 #include "spandsp/async.h"
 #include "spandsp/hdlc.h"
+#include "spandsp/silence_gen.h"
 #include "spandsp/fsk.h"
 #include "spandsp/v29rx.h"
 #include "spandsp/v29tx.h"
@@ -60,49 +73,18 @@
 #include "spandsp/v17rx.h"
 #include "spandsp/v17tx.h"
 #endif
+#include "spandsp/t4.h"
+#include "spandsp/t30.h"
+#include "spandsp/t38_core.h"
 
+#include "spandsp/at_interpreter.h"
 #include "spandsp/t31.h"
 
-#define ms_to_samples(t)    (((t)*SAMPLE_RATE)/1000)
-
-enum
-{
-    ASCII_RESULT_CODES = 1,
-    NUMERIC_RESULT_CODES,
-    NO_RESULT_CODES
-};
-
-t31_profile_t profiles[3] =
-{
-    {
-        .echo = TRUE,
-        .verbose = TRUE,
-        .result_code_format = ASCII_RESULT_CODES,
-        .pulse_dial = FALSE,
-        .double_escape = FALSE,
-        .adaptive_receive = FALSE,
-        .s_regs[0] = 0,
-        .s_regs[3] = '\r',
-        .s_regs[4] = '\n',
-        .s_regs[5] = '\b',
-        .s_regs[6] = 1,
-        .s_regs[7] = 60,
-        .s_regs[8] = 5,
-        .s_regs[10] = 0
-    }
-};
+#define MS_PER_TX_CHUNK             30
+#define INDICATOR_TX_COUNT          4
+#define DEFAULT_DTE_TIMEOUT         5
 
 typedef const char *(*at_cmd_service_t)(t31_state_t *s, const char *cmd);
-
-typedef struct
-{
-    const char *tag;
-    at_cmd_service_t serv;
-} at_cmd_item_t;
-
-static char *manufacturer = "www.soft-switch.org";
-static char *model = "spandsp";
-static char *revision = "0.0.3";
 
 #define ETX 0x03
 #define DLE 0x10
@@ -110,9 +92,12 @@ static char *revision = "0.0.3";
 
 enum
 {
-    T31_SILENCE,
+    T31_FLUSH,
+    T31_SILENCE_TX,
+    T31_SILENCE_RX,
     T31_CED_TONE,
     T31_CNG_TONE,
+    T31_NOCNG_TONE,
     T31_V21_TX,
     T31_V17_TX,
     T31_V27TER_TX,
@@ -125,112 +110,375 @@ enum
 
 enum
 {
-    RESPONSE_CODE_OK = 0,
-    RESPONSE_CODE_CONNECT,
-    RESPONSE_CODE_RING,
-    RESPONSE_CODE_NO_CARRIER,
-    RESPONSE_CODE_ERROR,
-    RESPONSE_CODE_XXX,
-    RESPONSE_CODE_NO_DIALTONE,
-    RESPONSE_CODE_BUSY,
-    RESPONSE_CODE_NO_ANSWER,
-    RESPONSE_CODE_FCERROR,
-    RESPONSE_CODE_FRH3
-};
-
-const char *response_codes[] =
-{
-    "OK",
-    "CONNECT",
-    "RING",
-    "NO CARRIER",
-    "ERROR",
-    "???",
-    "NO DIALTONE",
-    "BUSY",
-    "NO ANSWER",
-    "+FCERROR",
-    "+FRH:3"
+    T38_TIMED_STEP_NONE = 0,
+    T38_TIMED_STEP_NON_ECM_MODEM,
+    T38_TIMED_STEP_NON_ECM_MODEM_2,
+    T38_TIMED_STEP_NON_ECM_MODEM_3,
+    T38_TIMED_STEP_HDLC_MODEM,
+    T38_TIMED_STEP_HDLC_MODEM_2,
+    T38_TIMED_STEP_HDLC_MODEM_3,
+    T38_TIMED_STEP_HDLC_MODEM_4,
+    T38_TIMED_STEP_PAUSE
 };
 
 static int restart_modem(t31_state_t *s, int new_modem);
+static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len);
+#if defined(ENABLE_V17)
+static int early_v17_rx(void *user_data, const int16_t amp[], int len);
+#endif
+static int early_v27ter_rx(void *user_data, const int16_t amp[], int len);
+static int early_v29_rx(void *user_data, const int16_t amp[], int len);
+static int dummy_rx(void *s, const int16_t amp[], int len);
+static int silence_rx(void *user_data, const int16_t amp[], int len);
+static int cng_rx(void *user_data, const int16_t amp[], int len);
 
-static void at_put_response(t31_state_t *s, const char *t)
+static __inline__ void t31_set_at_rx_mode(t31_state_t *s, int new_mode)
 {
-    uint8_t buf[3];
+    s->at_state.at_rx_mode = new_mode;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int process_rx_indicator(t38_core_state_t *s, void *user_data, int indicator)
+{
+    t31_state_t *t;
     
-    buf[0] = s->p.s_regs[3];
-    buf[1] = s->p.s_regs[4];
-    buf[2] = '\0';
-    if (s->p.result_code_format == ASCII_RESULT_CODES)
-        s->at_tx_handler(s, s->at_tx_user_data, buf, 2);
-    s->at_tx_handler(s, s->at_tx_user_data, (uint8_t *) t, strlen(t));
-    s->at_tx_handler(s, s->at_tx_user_data, buf, 2);
-}
-/*- End of function --------------------------------------------------------*/
-
-static void at_put_numeric_response(t31_state_t *s, int val)
-{
-    char buf[20];
-
-    snprintf(buf, sizeof(buf), "%d", val);
-    at_put_response(s, buf);
-}
-/*- End of function --------------------------------------------------------*/
-
-static void at_put_response_code(t31_state_t *s, int code)
-{
-    uint8_t buf[20];
-
-    switch (s->p.result_code_format)
+    t = (t31_state_t *) user_data;
+    switch (indicator)
     {
-    case ASCII_RESULT_CODES:
-        at_put_response(s, response_codes[code]);
+    case T38_IND_NO_SIGNAL:
         break;
-    case NUMERIC_RESULT_CODES:
-        snprintf((char *) buf, sizeof(buf), "%d%c", code, s->p.s_regs[3]);
-        s->at_tx_handler(s, s->at_tx_user_data, buf, strlen((char *) buf));
+    case T38_IND_CNG:
+        break;
+    case T38_IND_CED:
+        break;
+    case T38_IND_V21_PREAMBLE:
+        t->hdlc_rx_len = 0;
+        break;
+    case T38_IND_V27TER_2400_TRAINING:
+        break;
+    case T38_IND_V27TER_4800_TRAINING:
+        break;
+    case T38_IND_V29_7200_TRAINING:
+        break;
+    case T38_IND_V29_9600_TRAINING:
+        break;
+    case T38_IND_V17_7200_SHORT_TRAINING:
+        break;
+    case T38_IND_V17_7200_LONG_TRAINING:
+        break;
+    case T38_IND_V17_9600_SHORT_TRAINING:
+        break;
+    case T38_IND_V17_9600_LONG_TRAINING:
+        break;
+    case T38_IND_V17_12000_SHORT_TRAINING:
+        break;
+    case T38_IND_V17_12000_LONG_TRAINING:
+        break;
+    case T38_IND_V17_14400_SHORT_TRAINING:
+        break;
+    case T38_IND_V17_14400_LONG_TRAINING:
+        break;
+    case T38_IND_V8_ANSAM:
+        break;
+    case T38_IND_V8_SIGNAL:
+        break;
+    case T38_IND_V34_CNTL_CHANNEL_1200:
+        break;
+    case T38_IND_V34_PRI_CHANNEL:
+        break;
+    case T38_IND_V34_CC_RETRAIN:
+        break;
+    case T38_IND_V33_12000_TRAINING:
+        break;
+    case T38_IND_V33_14400_TRAINING:
         break;
     default:
-        /* No result codes */
         break;
     }
+    t->missing_data = FALSE;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-static void t31_reset_callid(t31_state_t *s)
+static int process_rx_data(t38_core_state_t *s, void *user_data, int data_type, int field_type, const uint8_t *buf, int len)
 {
-    s->callid_displayed = 0;
-    s->call_date = NULL;
-    s->call_time = NULL;
-    s->originating_name = NULL;
-    s->originating_number = NULL;
-    s->originating_ani = NULL;
-    s->destination_number = NULL;
+    t31_state_t *t;
+    int i;
+    
+    t = (t31_state_t *) user_data;
+    switch (data_type)
+    {
+    case T38_DATA_V21:
+    case T38_DATA_V27TER_2400:
+    case T38_DATA_V27TER_4800:
+    case T38_DATA_V29_7200:
+    case T38_DATA_V29_9600:
+    case T38_DATA_V17_7200:
+    case T38_DATA_V17_9600:
+    case T38_DATA_V17_12000:
+    case T38_DATA_V17_14400:
+    case T38_DATA_V8:
+    case T38_DATA_V34_PRI_RATE:
+    case T38_DATA_V34_CC_1200:
+    case T38_DATA_V34_PRI_CH:
+    case T38_DATA_V33_12000:
+    case T38_DATA_V33_14400:
+    default:
+        break;
+    }
+    switch (field_type)
+    {
+    case T38_FIELD_HDLC_DATA:
+        if (t->hdlc_rx_len + len <= 256 - 2)
+        {
+            for (i = 0;  i < len;  i++)
+                t->hdlc_rx_buf[t->hdlc_rx_len++] = bit_reverse8(buf[i]);
+        }
+        break;
+    case T38_FIELD_HDLC_FCS_OK:
+        if (len > 0)
+            span_log(&t->logging, SPAN_LOG_WARNING, "There is data in a T38_FIELD_HDLC_FCS_OK!\n");
+        span_log(&t->logging, SPAN_LOG_FLOW, "Type %s - CRC OK (%s)\n", t30_frametype(t->tx_data[2]), (t->missing_data)  ?  "missing octets"  :  "clean");
+        /* Don't deal with zero length frames. Some T.38 implementations send multiple T38_FIELD_HDLC_FCS_OK
+           packets, when they have sent no data for the body of the frame. */
+        if (t->current_rx_type == T31_V21_RX  &&  t->tx_out_bytes > 0  &&  !t->missing_data)
+            hdlc_accept((void *) t, TRUE, t->hdlc_rx_buf, t->hdlc_rx_len);
+        t->hdlc_rx_len = 0;
+        t->missing_data = FALSE;
+        break;
+    case T38_FIELD_HDLC_FCS_BAD:
+        if (len > 0)
+            span_log(&t->logging, SPAN_LOG_WARNING, "There is data in a T38_FIELD_HDLC_FCS_BAD!\n");
+        span_log(&t->logging, SPAN_LOG_FLOW, "Type %s - CRC bad (%s)\n", t30_frametype(t->tx_data[2]), (t->missing_data)  ?  "missing octets"  :  "clean");
+        t->hdlc_rx_len = 0;
+        t->missing_data = FALSE;
+        break;
+    case T38_FIELD_HDLC_FCS_OK_SIG_END:
+        if (len > 0)
+            span_log(&t->logging, SPAN_LOG_WARNING, "There is data in a T38_FIELD_HDLC_FCS_OK_SIG_END!\n");
+        span_log(&t->logging, SPAN_LOG_FLOW, "Type %s - CRC OK, sig end (%s)\n", t30_frametype(t->tx_data[2]), (t->missing_data)  ?  "missing octets"  :  "clean");
+        if (t->current_rx_type == T31_V21_RX)
+        {
+            /* Don't deal with zero length frames. Some T.38 implementations send multiple T38_FIELD_HDLC_FCS_OK
+               packets, when they have sent no data for the body of the frame. */
+            if (t->tx_out_bytes > 0)
+                hdlc_accept((void *) t, TRUE, t->hdlc_rx_buf, t->hdlc_rx_len);
+            hdlc_accept((void *) t, TRUE, NULL, PUTBIT_CARRIER_DOWN);
+        }
+        t->tx_out_bytes = 0;
+        t->missing_data = FALSE;
+        t->hdlc_rx_len = 0;
+        t->missing_data = FALSE;
+        break;
+    case T38_FIELD_HDLC_FCS_BAD_SIG_END:
+        if (len > 0)
+            span_log(&t->logging, SPAN_LOG_WARNING, "There is data in a T38_FIELD_HDLC_FCS_BAD_SIG_END!\n");
+        span_log(&t->logging, SPAN_LOG_FLOW, "Type %s - CRC bad, sig end (%s)\n", t30_frametype(t->tx_data[2]), (t->missing_data)  ?  "missing octets"  :  "clean");
+        if (t->current_rx_type == T31_V21_RX)
+            hdlc_accept((void *) t, TRUE, NULL, PUTBIT_CARRIER_DOWN);
+        t->hdlc_rx_len = 0;
+        t->missing_data = FALSE;
+        break;
+    case T38_FIELD_HDLC_SIG_END:
+        if (len > 0)
+            span_log(&t->logging, SPAN_LOG_WARNING, "There is data in a T38_FIELD_HDLC_SIG_END!\n");
+        /* This message is expected under 2 circumstances. One is as an alternative to T38_FIELD_HDLC_FCS_OK_SIG_END - 
+           i.e. they send T38_FIELD_HDLC_FCS_OK, and then T38_FIELD_HDLC_SIG_END when the carrier actually drops.
+           The other is because the HDLC signal drops unexpectedly - i.e. not just after a final frame. */
+        if (t->current_rx_type == T31_V21_RX)
+            hdlc_accept((void *) t, TRUE, NULL, PUTBIT_CARRIER_DOWN);
+        t->hdlc_rx_len = 0;
+        t->missing_data = FALSE;
+        break;
+    case T38_FIELD_T4_NON_ECM_DATA:
+        break;
+    case T38_FIELD_T4_NON_ECM_SIG_END:
+        break;
+    case T38_FIELD_CM_MESSAGE:
+    case T38_FIELD_JM_MESSAGE:
+    case T38_FIELD_CI_MESSAGE:
+    case T38_FIELD_V34RATE:
+    default:
+        break;
+    }
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-static void t31_display_callid(t31_state_t *s)
+static int process_rx_missing(t38_core_state_t *s, void *user_data, int rx_seq_no, int expected_seq_no)
 {
-    char buf[132 + 1];
-
-    snprintf(buf, sizeof(buf), "DATE=%s", (s->call_date)  ?  s->call_date  :  "<NONE>");
-    at_put_response(s, buf);
-    snprintf(buf, sizeof(buf), "TIME=%s", (s->call_time)  ?  s->call_time  :  "<NONE>");
-    at_put_response(s, buf);
-    snprintf(buf, sizeof(buf), "NAME=%s", (s->originating_name)  ?  s->originating_name  :  "<NONE>");
-    at_put_response(s, buf);
-    snprintf(buf, sizeof(buf), "NMBR=%s", (s->originating_number)  ?  s->originating_number  :  "<NONE>");
-    at_put_response(s, buf);
-    snprintf(buf, sizeof(buf), "ANID=%s", (s->originating_ani)  ?  s->originating_ani  :  "<NONE>");
-    at_put_response(s, buf);
-    snprintf(buf, sizeof(buf), "NDID=%s", (s->destination_number)  ?  s->destination_number  :  "<NONE>");
-    at_put_response(s, buf);
-    s->callid_displayed = 1;
+    t31_state_t *t;
+    
+    t = (t31_state_t *) user_data;
+    t->missing_data = TRUE;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-static void fast_putbit(void *user_data, int bit)
+int t31_t38_send_timeout(t31_state_t *s, int samples)
+{
+    int len;
+    uint8_t buf[100];
+    /* Training times for all the modem options, with and without TEP */
+    static const int training_time[] =
+    {
+           0,      0,   /* T38_IND_NO_SIGNAL */
+           0,      0,   /* T38_IND_CNG */
+           0,      0,   /* T38_IND_CED */
+        1000,   1000,   /* T38_IND_V21_PREAMBLE */
+         943,   1158,   /* T38_IND_V27TER_2400_TRAINING */
+         708,    923,   /* T38_IND_V27TER_4800_TRAINING */
+         234,    454,   /* T38_IND_V29_7200_TRAINING */
+         234,    454,   /* T38_IND_V29_9600_TRAINING */
+         142,    367,   /* T38_IND_V17_7200_SHORT_TRAINING */
+        1393,   1618,   /* T38_IND_V17_7200_LONG_TRAINING */
+         142,    367,   /* T38_IND_V17_9600_SHORT_TRAINING */
+        1393,   1618,   /* T38_IND_V17_9600_LONG_TRAINING */
+         142,    367,   /* T38_IND_V17_12000_SHORT_TRAINING */
+        1393,   1618,   /* T38_IND_V17_12000_LONG_TRAINING */
+         142,    367,   /* T38_IND_V17_14400_SHORT_TRAINING */
+        1393,   1618,   /* T38_IND_V17_14400_LONG_TRAINING */
+           0,      0,   /* T38_IND_V8_ANSAM */
+           0,      0,   /* T38_IND_V8_SIGNAL */
+           0,      0,   /* T38_IND_V34_CNTL_CHANNEL_1200 */
+           0,      0,   /* T38_IND_V34_PRI_CHANNEL */
+           0,      0,   /* T38_IND_V34_CC_RETRAIN */
+           0,      0,   /* T38_IND_V33_12000_TRAINING */
+           0,      0,   /* T38_IND_V33_14400_TRAINING */
+    };
+
+    s->call_samples += samples;
+        
+    if (s->timed_step == T38_TIMED_STEP_NONE)
+        return 0;
+    if (s->call_samples < s->next_send_samples)
+        return 0;
+    len = 0;
+    switch (s->timed_step)
+    {
+    case T38_TIMED_STEP_NON_ECM_MODEM:
+        /* Create a 75ms silence */
+        t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, INDICATOR_TX_COUNT);
+        s->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_2;
+        s->next_send_samples += ms_to_samples(75);
+        break;
+    case T38_TIMED_STEP_NON_ECM_MODEM_2:
+        /* Switch on a fast modem, and give the training time to complete */
+        t38_core_send_indicator(&s->t38, s->next_tx_indicator, INDICATOR_TX_COUNT);
+        s->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_3;
+        s->next_send_samples += ms_to_samples(training_time[s->next_tx_indicator << 1]);
+        break;
+    case T38_TIMED_STEP_NON_ECM_MODEM_3:
+        /* Send a chunk of non-ECM image data */
+        //if ((len = get_non_ecm_image_chunk(s, buf, s->octets_per_non_ecm_packet)))
+        //    t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_T4_NON_ECM_DATA, buf, abs(len));
+        if (len > 0)
+        {
+            s->next_send_samples += ms_to_samples(MS_PER_TX_CHUNK);
+        }
+        else
+        {
+            t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_T4_NON_ECM_SIG_END, NULL, 0);
+            t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, INDICATOR_TX_COUNT);
+            s->timed_step = T38_TIMED_STEP_NONE;
+        }
+        break;
+    case T38_TIMED_STEP_HDLC_MODEM:
+        /* Send HDLC preambling */
+        t38_core_send_indicator(&s->t38, s->next_tx_indicator, INDICATOR_TX_COUNT);
+        s->next_send_samples += ms_to_samples(training_time[s->next_tx_indicator << 1]);
+        s->timed_step = T38_TIMED_STEP_HDLC_MODEM_2;
+        break;
+    case T38_TIMED_STEP_HDLC_MODEM_2:
+        /* Send HDLC octet */
+        buf[0] = bit_reverse8(s->hdlc_tx_buf[s->hdlc_tx_ptr++]);
+        t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_HDLC_DATA, buf, 1);
+        if (s->hdlc_tx_ptr >= s->hdlc_tx_len)
+            s->timed_step = T38_TIMED_STEP_HDLC_MODEM_3;
+        s->next_send_samples += ms_to_samples(MS_PER_TX_CHUNK);
+        break;
+    case T38_TIMED_STEP_HDLC_MODEM_3:
+        /* End of HDLC frame */
+        s->hdlc_tx_ptr = 0;
+        if (s->hdlc_final)
+        {
+            s->hdlc_tx_len = 0;
+            t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_HDLC_FCS_OK_SIG_END, NULL, 0);
+            s->timed_step = T38_TIMED_STEP_HDLC_MODEM_4;
+            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
+            t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+            s->hdlc_final = FALSE;
+            restart_modem(s, T31_SILENCE_TX);
+        }
+        else
+        {
+            t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_HDLC_FCS_OK, NULL, 0);
+            s->timed_step = T38_TIMED_STEP_HDLC_MODEM_2;
+            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
+        }
+        s->next_send_samples += ms_to_samples(MS_PER_TX_CHUNK);
+        break;
+    case T38_TIMED_STEP_HDLC_MODEM_4:
+        /* End of HDLC transmission */
+        /* We have already sent T38_FIELD_HDLC_FCS_OK_SIG_END. It seems some boxes may not like
+           us sending a T38_FIELD_HDLC_SIG_END at this point. Just say there is no signal. */
+        //t38_core_send_data(&s->t38, s->current_tx_data, T38_FIELD_HDLC_SIG_END, NULL, 0);
+        t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, INDICATOR_TX_COUNT);
+        s->timed_step = T38_TIMED_STEP_NONE;
+        break;
+    case T38_TIMED_STEP_PAUSE:
+        /* End of timed pause */
+        s->timed_step = T38_TIMED_STEP_NONE;
+        break;
+    }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int t31_modem_control_handler(at_state_t *s, void *user_data, int op, const char *num)
+{
+    t31_state_t *t;
+    
+    t = (t31_state_t *) user_data;
+    switch (op)
+    {
+    case AT_MODEM_CONTROL_ANSWER:
+        t->call_samples = 0;
+        break;
+    case AT_MODEM_CONTROL_CALL:
+        t->call_samples = 0;
+        break;
+    case AT_MODEM_CONTROL_ONHOOK:
+        if (t->tx_holding)
+        {
+            t->tx_holding = FALSE;
+            /* Tell the application to release further data */
+            at_modem_control(&t->at_state, AT_MODEM_CONTROL_CTS, (void *) 1);
+        }
+        if (t->at_state.rx_signal_present)
+        {
+            t->at_state.rx_data[t->at_state.rx_data_bytes++] = DLE;
+            t->at_state.rx_data[t->at_state.rx_data_bytes++] = ETX;
+            t->at_state.at_tx_handler(&t->at_state, t->at_state.at_tx_user_data, t->at_state.rx_data, t->at_state.rx_data_bytes);
+            t->at_state.rx_data_bytes = 0;
+        }
+        restart_modem(t, T31_SILENCE_TX);
+        break;
+    case AT_MODEM_CONTROL_RESTART:
+        restart_modem(t, (intptr_t) num);
+        return 0;
+    case AT_MODEM_CONTROL_DTE_TIMEOUT:
+        if (num)
+            t->dte_data_timeout = t->call_samples + ms_to_samples((intptr_t) num);
+        else
+            t->dte_data_timeout = 0;
+        return 0;
+    }
+    return t->modem_control_handler(t, t->modem_control_user_data, op, num);
+}
+/*- End of function --------------------------------------------------------*/
+
+static void non_ecm_put_bit(void *user_data, int bit)
 {
     t31_state_t *s;
 
@@ -241,29 +489,32 @@ static void fast_putbit(void *user_data, int bit)
         switch (bit)
         {
         case PUTBIT_TRAINING_FAILED:
+            s->at_state.rx_trained = FALSE;
             break;
         case PUTBIT_TRAINING_SUCCEEDED:
             /* The modem is now trained */
-            at_put_response_code(s, RESPONSE_CODE_CONNECT);
-            s->rx_signal_present = TRUE;
+            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
+            s->at_state.rx_signal_present = TRUE;
+            s->at_state.rx_trained = TRUE;
             break;
         case PUTBIT_CARRIER_UP:
             break;
         case PUTBIT_CARRIER_DOWN:
-            if (s->rx_signal_present)
+            if (s->at_state.rx_signal_present)
             {
-                s->rx_data[s->rx_data_bytes++] = DLE;
-                s->rx_data[s->rx_data_bytes++] = ETX;
-                s->at_tx_handler(s, s->at_tx_user_data, s->rx_data, s->rx_data_bytes);
-                s->rx_data_bytes = 0;
-                at_put_response_code(s, RESPONSE_CODE_NO_CARRIER);
-                s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
+                s->at_state.rx_data[s->at_state.rx_data_bytes++] = DLE;
+                s->at_state.rx_data[s->at_state.rx_data_bytes++] = ETX;
+                s->at_state.at_tx_handler(&s->at_state, s->at_state.at_tx_user_data, s->at_state.rx_data, s->at_state.rx_data_bytes);
+                s->at_state.rx_data_bytes = 0;
+                at_put_response_code(&s->at_state, AT_RESPONSE_CODE_NO_CARRIER);
+                t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
             }
-            s->rx_signal_present = FALSE;
+            s->at_state.rx_signal_present = FALSE;
+            s->at_state.rx_trained = FALSE;
             break;
         default:
-            if (s->p.result_code_format)
-                fprintf(stderr, "Eh!\n");
+            if (s->at_state.p.result_code_format)
+                span_log(&s->logging, SPAN_LOG_FLOW, "Eh!\n");
             break;
         }
         return;
@@ -272,12 +523,12 @@ static void fast_putbit(void *user_data, int bit)
     if (++s->bit_no >= 8)
     {
         if (s->current_byte == DLE)
-            s->rx_data[s->rx_data_bytes++] = s->current_byte;
-        s->rx_data[s->rx_data_bytes++] = s->current_byte;
-        if (s->rx_data_bytes >= 250)
+            s->at_state.rx_data[s->at_state.rx_data_bytes++] = (uint8_t) s->current_byte;
+        s->at_state.rx_data[s->at_state.rx_data_bytes++] = (uint8_t) s->current_byte;
+        if (s->at_state.rx_data_bytes >= 250)
         {
-            s->at_tx_handler(s, s->at_tx_user_data, s->rx_data, s->rx_data_bytes);
-            s->rx_data_bytes = 0;
+            s->at_state.at_tx_handler(&s->at_state, s->at_state.at_tx_user_data, s->at_state.rx_data, s->at_state.rx_data_bytes);
+            s->at_state.rx_data_bytes = 0;
         }
         s->bit_no = 0;
         s->current_byte = 0;
@@ -285,7 +536,7 @@ static void fast_putbit(void *user_data, int bit)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int fast_getbit(void *user_data)
+static int non_ecm_get_bit(void *user_data)
 {
     t31_state_t *s;
     int bit;
@@ -296,6 +547,7 @@ static int fast_getbit(void *user_data)
     {
         if (s->tx_out_bytes != s->tx_in_bytes)
         {
+            /* There is real data available to send */
             s->current_byte = s->tx_data[s->tx_out_bytes];
             s->tx_out_bytes = (s->tx_out_bytes + 1) & (T31_TX_BUF_LEN - 1);
             if (s->tx_holding)
@@ -304,13 +556,14 @@ static int fast_getbit(void *user_data)
                 fill = (s->tx_in_bytes - s->tx_out_bytes);
                 if (s->tx_in_bytes < s->tx_out_bytes)
                     fill += (T31_TX_BUF_LEN + 1);
-                if (fill < 1024)
+                if (fill < T31_TX_BUF_LOW_TIDE)
                 {
                     s->tx_holding = FALSE;
                     /* Tell the application to release further data */
-                    s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_CTS, (void *) 1);
+                    at_modem_control(&s->at_state, AT_MODEM_CONTROL_CTS, (void *) 1);
                 }
             }
+            s->tx_data_started = TRUE;
         }
         else
         {
@@ -319,12 +572,11 @@ static int fast_getbit(void *user_data)
                 s->data_final = FALSE;
                 /* This will put the modem into its shutdown sequence. When
                    it has finally shut down, an OK response will be sent. */
-                return 3;
+                return PUTBIT_END_OF_DATA;
             }
-            /* Fill with 0xFF bytes. This is appropriate at the start of transmission,
-               as per T.30. If it happens in the middle of data, it is bad. What else
-               can be done, though? */
-            s->current_byte = 0xFF;
+            /* Fill with 0xFF bytes at the start of transmission, or 0x00 if we are in
+               the middle of transmission. This follows T.31 and T.30 practice. */
+            s->current_byte = (s->tx_data_started)  ?  0x00  :  0xFF;
         }
         s->bit_no = 8;
     }
@@ -342,15 +594,13 @@ static void hdlc_tx_underflow(void *user_data)
     s = (t31_state_t *) user_data;
     if (s->hdlc_final)
     {
-        at_put_response_code(s, RESPONSE_CODE_OK);
-        s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
         s->hdlc_final = FALSE;
-        restart_modem(s, T31_SILENCE);
+        /* Schedule an orderly shutdown of the modem */
+        hdlc_tx_frame(&(s->hdlctx), NULL, 0);
     }
     else
     {
-        s->last_dtedata_samples = s->call_samples;
-        at_put_response_code(s, RESPONSE_CODE_CONNECT);
+        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -367,35 +617,54 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
         /* Special conditions */
         switch (len)
         {
+        case PUTBIT_TRAINING_FAILED:
+            s->at_state.rx_trained = FALSE;
+            break;
+        case PUTBIT_TRAINING_SUCCEEDED:
+            /* The modem is now trained */
+            s->at_state.rx_signal_present = TRUE;
+            s->at_state.rx_trained = TRUE;
+            break;
         case PUTBIT_CARRIER_UP:
-            if (s->modem == T31_CNG_TONE  ||  s->modem == T31_V21_RX)
+            if (s->modem == T31_CNG_TONE  ||  s->modem == T31_NOCNG_TONE  ||  s->modem == T31_V21_RX)
             {
-                s->rx_signal_present = TRUE;
+                s->at_state.rx_signal_present = TRUE;
                 s->rx_message_received = FALSE;
             }
             break;
         case PUTBIT_CARRIER_DOWN:
             if (s->rx_message_received)
             {
-                if (s->dte_is_waiting)
+                if (s->at_state.dte_is_waiting)
                 {
-                    at_put_response_code(s, RESPONSE_CODE_NO_CARRIER);
+                    if (s->at_state.ok_is_pending)
+                    {
+                        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
+                        s->at_state.ok_is_pending = FALSE;
+                    }
+                    else
+                    {
+                        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_NO_CARRIER);
+                        t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+                    }
+                    s->at_state.dte_is_waiting = FALSE;
                 }
                 else
                 {
-                    buf[0] = RESPONSE_CODE_NO_CARRIER;
+                    buf[0] = AT_RESPONSE_CODE_NO_CARRIER;
                     queue_write_msg(&(s->rx_queue), buf, 1);
                 }
             }
-            s->rx_signal_present = FALSE;
+            s->at_state.rx_signal_present = FALSE;
+            s->at_state.rx_trained = FALSE;
             break;
         case PUTBIT_FRAMING_OK:
-            if (s->modem == T31_CNG_TONE)
+            if (s->modem == T31_CNG_TONE  ||  s->modem == T31_NOCNG_TONE)
             {
                 /* Once we get any valid HDLC the CNG tone stops, and we drop
                    to the V.21 receive modem on its own. */
                 s->modem = T31_V21_RX;
-                s->transmit = FALSE;
+                s->at_state.transmit = FALSE;
             }
             if (s->modem != T31_V21_RX)
             {
@@ -403,76 +672,104 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
                    If +FAR=0 then result +FCERROR and return to command-mode.
                    If +FAR=1 then report +FRH:3 and CONNECT, switching to
                    V.21 receive mode. */
-                if (s->p.adaptive_receive)
+                if (s->at_state.p.adaptive_receive)
                 {
-                    s->rx_signal_present = TRUE;
-                    s->rx_message_received = FALSE;
+                    s->at_state.rx_signal_present = TRUE;
+                    s->rx_message_received = TRUE;
                     s->modem = T31_V21_RX;
-                    s->transmit = FALSE;
-                    s->dte_is_waiting = TRUE;
-                    at_put_response_code(s, RESPONSE_CODE_FRH3);
+                    s->at_state.transmit = FALSE;
+                    s->at_state.dte_is_waiting = TRUE;
+                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_FRH3);
+                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
                 }
                 else
                 {
-                    s->modem = T31_SILENCE;
-                    s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
-                    at_put_response_code(s, RESPONSE_CODE_FCERROR);
+                    s->modem = T31_SILENCE_TX;
+                    t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+                    s->rx_message_received = FALSE;
+                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_FCERROR);
+                }
+            }
+            else
+            {
+                if (!s->rx_message_received)
+                {
+                    /* Report CONNECT as soon as possible to avoid a timeout. */
+                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
+                    s->rx_message_received = TRUE;
                 }
             }
             break;
+        case PUTBIT_ABORT:
+            /* Just ignore these */
+            break;
         default:
-            fprintf(stderr, "Unexpected HDLC special length - %d!\n", len);
+            span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected HDLC special length - %d!\n", len);
             break;
         }
         return;
     }
-    
-    s->rx_message_received = TRUE;
-    if (s->dte_is_waiting)
+    /* If OK is pending then we just ignore whatever comes in */
+    if (!s->at_state.ok_is_pending)
     {
-        at_put_response_code(s, RESPONSE_CODE_CONNECT);
-        /* Send straight away */
-        /* It is safe to look at the two bytes beyond the length of the message,
-           and expect to find the FCS there. */
-        for (i = 0;  i < len + 2;  i++)
+        if (s->at_state.dte_is_waiting)
         {
-            if (msg[i] == DLE)
-                s->rx_data[s->rx_data_bytes++] = DLE;
-            s->rx_data[s->rx_data_bytes++] = msg[i];
+            /* Send straight away */
+            /* It is safe to look at the two bytes beyond the length of the message,
+               and expect to find the FCS there. */
+            for (i = 0;  i < len + 2;  i++)
+            {
+                if (msg[i] == DLE)
+                    s->at_state.rx_data[s->at_state.rx_data_bytes++] = DLE;
+                s->at_state.rx_data[s->at_state.rx_data_bytes++] = msg[i];
+            }
+            s->at_state.rx_data[s->at_state.rx_data_bytes++] = DLE;
+            s->at_state.rx_data[s->at_state.rx_data_bytes++] = ETX;
+            s->at_state.at_tx_handler(&s->at_state, s->at_state.at_tx_user_data, s->at_state.rx_data, s->at_state.rx_data_bytes);
+            s->at_state.rx_data_bytes = 0;
+            if (msg[1] == 0x13  &&  ok)
+            {
+                /* This is the last frame.  We don't send OK until the carrier drops to avoid
+                   redetecting it later. */
+                s->at_state.ok_is_pending = TRUE;
+            }
+            else
+            {
+                at_put_response_code(&s->at_state, (ok)  ?  AT_RESPONSE_CODE_OK  :  AT_RESPONSE_CODE_ERROR);
+                s->at_state.dte_is_waiting = FALSE;
+                s->rx_message_received = FALSE;
+            }
         }
-        s->rx_data[s->rx_data_bytes++] = DLE;
-        s->rx_data[s->rx_data_bytes++] = ETX;
-        s->at_tx_handler(s, s->at_tx_user_data, s->rx_data, s->rx_data_bytes);
-        s->rx_data_bytes = 0;
-        at_put_response_code(s, (ok)  ?  RESPONSE_CODE_OK  :  RESPONSE_CODE_ERROR);
-        s->dte_is_waiting = FALSE;
+        else
+        {
+            /* Queue it */
+            buf[0] = (ok)  ?  AT_RESPONSE_CODE_OK  :  AT_RESPONSE_CODE_ERROR;
+            /* It is safe to look at the two bytes beyond the length of the message,
+               and expect to find the FCS there. */
+            memcpy(buf + 1, msg, len + 2);
+            queue_write_msg(&(s->rx_queue), buf, len + 3);
+        }
     }
-    else
-    {
-        /* Queue it */
-        buf[0] = (ok)  ?  RESPONSE_CODE_OK  :  RESPONSE_CODE_ERROR;
-        s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
-        memcpy(buf + 1, msg, len);
-        queue_write_msg(&(s->rx_queue), buf, len + 1);
-    }
-    s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
+    t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
 }
 /*- End of function --------------------------------------------------------*/
 
-void t31_v21_rx(t31_state_t *s)
+static void t31_v21_rx(t31_state_t *s)
 {
     hdlc_rx_init(&(s->hdlcrx), FALSE, TRUE, 5, hdlc_accept, s);
+    s->at_state.ok_is_pending = FALSE;
     s->hdlc_final = FALSE;
-    s->hdlc_len = 0;
+    s->hdlc_tx_len = 0;
     s->dled = FALSE;
-    fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_bit, &(s->hdlcrx));
-    s->transmit = TRUE;
+    fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &(s->hdlcrx));
+    s->at_state.transmit = TRUE;
 }
 /*- End of function --------------------------------------------------------*/
 
 static int restart_modem(t31_state_t *s, int new_modem)
 {
     tone_gen_descriptor_t tone_desc;
+    int ind;
 
     span_log(&s->logging, SPAN_LOG_FLOW, "Restart modem %d\n", new_modem);
     if (s->modem == new_modem)
@@ -480,94 +777,279 @@ static int restart_modem(t31_state_t *s, int new_modem)
     queue_flush(&(s->rx_queue));
     s->modem = new_modem;
     s->data_final = FALSE;
-    s->rx_signal_present = FALSE;
+    s->at_state.rx_signal_present = FALSE;
+    s->at_state.rx_trained = FALSE;
     s->rx_message_received = FALSE;
+    s->rx_handler = (span_rx_handler_t *) &dummy_rx;
+    s->rx_user_data = NULL;
     switch (s->modem)
     {
-    case T31_CED_TONE:
-        s->silent_samples += SAMPLE_RATE*0.2;
-        make_tone_gen_descriptor(&tone_desc,
-                                 2100,
-                                 -11,
-                                 0,
-                                 0,
-                                 2600,
-                                 75,
-                                 0,
-                                 0,
-                                 FALSE);
-        tone_gen_init(&(s->tone_gen), &tone_desc);
-        s->transmit = TRUE;
-        break;
     case T31_CNG_TONE:
-        /* CNG is special, since we need to receive V.21 HDLC messages while sending the
-           tone. Everything else in FAX processing sends only one way at a time. */
-        /* 0.5s of 1100Hz + 3.0s of silence repeating */
-        make_tone_gen_descriptor(&tone_desc,
-                                 1100,
-                                 -11,
-                                 0,
-                                 0,
-                                 500,
-                                 3000,
-                                 0,
-                                 0,
-                                 TRUE);
-        tone_gen_init(&(s->tone_gen), &tone_desc);
-        /* Do V.21/HDLC receive in parallel. The other end may send its
-           first message at any time. The CNG tone will continue until
-           we get a valid preamble. */
-        t31_v21_rx(s);
+        if (s->t38_mode)
+        {
+            t38_core_send_indicator(&s->t38, T38_IND_CNG, INDICATOR_TX_COUNT);
+        }
+        else
+        {
+            /* CNG is special, since we need to receive V.21 HDLC messages while sending the
+               tone. Everything else in FAX processing sends only one way at a time. */
+            /* 0.5s of 1100Hz + 3.0s of silence repeating */
+            make_tone_gen_descriptor(&tone_desc,
+                                     1100,
+                                     -11,
+                                     0,
+                                     0,
+                                     500,
+                                     3000,
+                                     0,
+                                     0,
+                                     TRUE);
+            tone_gen_init(&(s->tone_gen), &tone_desc);
+            /* Do V.21/HDLC receive in parallel. The other end may send its
+               first message at any time. The CNG tone will continue until
+               we get a valid preamble. */
+            s->rx_handler = (span_rx_handler_t *) &cng_rx;
+            s->rx_user_data = s;
+            t31_v21_rx(s);
+            s->tx_handler = (span_tx_handler_t *) &tone_gen;
+            s->tx_user_data = &(s->tone_gen);
+            s->next_tx_handler = NULL;
+        }
+        s->at_state.transmit = TRUE;
+        break;
+    case T31_NOCNG_TONE:
+        if (s->t38_mode)
+        {
+        }
+        else
+        {
+            s->rx_handler = (span_rx_handler_t *) &cng_rx;
+            s->rx_user_data = s;
+            t31_v21_rx(s);
+            silence_gen_set(&(s->silence_gen), 0);
+            s->tx_handler = (span_tx_handler_t *) &silence_gen;
+            s->tx_user_data = &(s->silence_gen);
+        }
+        s->at_state.transmit = FALSE;
+        break;
+    case T31_CED_TONE:
+        if (s->t38_mode)
+        {
+            t38_core_send_indicator(&s->t38, T38_IND_CED, INDICATOR_TX_COUNT);
+        }
+        else
+        {
+            silence_gen_alter(&(s->silence_gen), ms_to_samples(200));
+            make_tone_gen_descriptor(&tone_desc,
+                                     2100,
+                                     -11,
+                                     0,
+                                     0,
+                                     2600,
+                                     75,
+                                     0,
+                                     0,
+                                     FALSE);
+            tone_gen_init(&(s->tone_gen), &tone_desc);
+            s->tx_handler = (span_tx_handler_t *) &silence_gen;
+            s->tx_user_data = &(s->silence_gen);
+            s->next_tx_handler = (span_tx_handler_t *) &tone_gen;
+            s->next_tx_user_data = &(s->tone_gen);
+        }
+        s->at_state.transmit = TRUE;
         break;
     case T31_V21_TX:
-        hdlc_tx_init(&(s->hdlctx), FALSE, hdlc_tx_underflow, s);
-        hdlc_tx_preamble(&(s->hdlctx), 43);
+        if (s->t38_mode)
+        {
+            t38_core_send_indicator(&s->t38, T38_IND_V21_PREAMBLE, INDICATOR_TX_COUNT);
+        }
+        else
+        {
+            hdlc_tx_init(&(s->hdlctx), FALSE, 2, FALSE, hdlc_tx_underflow, s);
+            /* The spec says 1s +-15% of preamble. So, the minimum is 32 octets. */
+            hdlc_tx_preamble(&(s->hdlctx), 32);
+            fsk_tx_init(&(s->v21tx), &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &(s->hdlctx));
+            s->tx_handler = (span_tx_handler_t *) &fsk_tx;
+            s->tx_user_data = &(s->v21tx);
+            s->next_tx_handler = NULL;
+        }
         s->hdlc_final = FALSE;
-        s->hdlc_len = 0;
+        s->hdlc_tx_len = 0;
         s->dled = FALSE;
-        fsk_tx_init(&(s->v21tx), &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_getbit, &(s->hdlctx));
-        s->transmit = TRUE;
+        s->at_state.transmit = TRUE;
         break;
     case T31_V21_RX:
-        t31_v21_rx(s);
+        if (s->t38_mode)
+        {
+        }
+        else
+        {
+            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            s->rx_user_data = &(s->v21rx);
+            t31_v21_rx(s);
+        }
         break;
 #if defined(ENABLE_V17)
     case T31_V17_TX:
-        v17_tx_restart(&(s->v17tx), s->bit_rate, FALSE, s->short_train);
+        if (s->t38_mode)
+        {
+            switch (s->bit_rate)
+            {
+            case 7200:
+                ind = (s->short_train)  ?  T38_IND_V17_7200_SHORT_TRAINING  :  T38_IND_V17_7200_LONG_TRAINING;
+                break;
+            case 9600:
+                ind = (s->short_train)  ?  T38_IND_V17_9600_SHORT_TRAINING  :  T38_IND_V17_9600_LONG_TRAINING;
+                break;
+            case 12000:
+                ind = (s->short_train)  ?  T38_IND_V17_12000_SHORT_TRAINING  :  T38_IND_V17_12000_LONG_TRAINING;
+                break;
+            case 14400:
+            default:
+                ind = (s->short_train)  ?  T38_IND_V17_14400_SHORT_TRAINING  :  T38_IND_V17_14400_LONG_TRAINING;
+                break;
+            }
+            t38_core_send_indicator(&s->t38, ind, INDICATOR_TX_COUNT);
+        }
+        else
+        {
+            v17_tx_restart(&(s->v17tx), s->bit_rate, FALSE, s->short_train);
+            s->tx_handler = (span_tx_handler_t *) &v17_tx;
+            s->tx_user_data = &(s->v17tx);
+            s->next_tx_handler = NULL;
+        }
         s->tx_out_bytes = 0;
-        s->transmit = TRUE;
+        s->tx_data_started = FALSE;
+        s->at_state.transmit = TRUE;
         break;
     case T31_V17_RX:
-        /* Allow for +FCERROR/+FRH:3 */
-        t31_v21_rx(s);
-        v17_rx_restart(&(s->v17rx), s->bit_rate, s->short_train);
-        s->transmit = FALSE;
+        if (!s->t38_mode)
+        {
+            s->rx_handler = (span_rx_handler_t *) &early_v17_rx;
+            s->rx_user_data = s;
+            v17_rx_restart(&(s->v17rx), s->bit_rate, s->short_train);
+            /* Allow for +FCERROR/+FRH:3 */
+            t31_v21_rx(s);
+        }
+        s->at_state.transmit = FALSE;
         break;
 #endif
     case T31_V27TER_TX:
-        v27ter_tx_restart(&(s->v27ter_tx), s->bit_rate, FALSE);
+        if (s->t38_mode)
+        {
+            switch (s->bit_rate)
+            {
+            case 2400:
+                ind = T38_IND_V27TER_2400_TRAINING;
+                break;
+            case 4800:
+            default:
+                ind = T38_IND_V27TER_4800_TRAINING;
+                break;
+            }
+            t38_core_send_indicator(&s->t38, ind, INDICATOR_TX_COUNT);
+        }
+        else
+        {
+            v27ter_tx_restart(&(s->v27ter_tx), s->bit_rate, FALSE);
+            s->tx_handler = (span_tx_handler_t *) &v27ter_tx;
+            s->tx_user_data = &(s->v27ter_tx);
+            s->next_tx_handler = NULL;
+        }
         s->tx_out_bytes = 0;
-        s->transmit = TRUE;
+        s->tx_data_started = FALSE;
+        s->at_state.transmit = TRUE;
         break;
     case T31_V27TER_RX:
-        /* Allow for +FCERROR/+FRH:3 */
-        t31_v21_rx(s);
-        v27ter_rx_restart(&(s->v27ter_rx), s->bit_rate);
-        s->transmit = FALSE;
+        if (!s->t38_mode)
+        {
+            s->rx_handler = (span_rx_handler_t *) &early_v27ter_rx;
+            s->rx_user_data = s;
+            v27ter_rx_restart(&(s->v27ter_rx), s->bit_rate, FALSE);
+            /* Allow for +FCERROR/+FRH:3 */
+            t31_v21_rx(s);
+        }
+        s->at_state.transmit = FALSE;
         break;
     case T31_V29_TX:
-        v29_tx_restart(&(s->v29tx), s->bit_rate, FALSE);
+        if (s->t38_mode)
+        {
+            switch (s->bit_rate)
+            {
+            case 7200:
+                ind = T38_IND_V29_7200_TRAINING;
+                break;
+            case 9600:
+            default:
+                ind = T38_IND_V29_9600_TRAINING;
+                break;
+            }
+            t38_core_send_indicator(&s->t38, ind, INDICATOR_TX_COUNT);
+        }
+        else
+        {
+            v29_tx_restart(&(s->v29tx), s->bit_rate, FALSE);
+            s->tx_handler = (span_tx_handler_t *) &v29_tx;
+            s->tx_user_data = &(s->v29tx);
+            s->next_tx_handler = NULL;
+        }
         s->tx_out_bytes = 0;
-        s->transmit = TRUE;
+        s->tx_data_started = FALSE;
+        s->at_state.transmit = TRUE;
         break;
     case T31_V29_RX:
-        /* Allow for +FCERROR/+FRH:3 */
-        t31_v21_rx(s);
-        v29_rx_restart(&(s->v29rx), s->bit_rate);
-        s->transmit = FALSE;
+        if (!s->t38_mode)
+        {
+            s->rx_handler = (span_rx_handler_t *) &early_v29_rx;
+            s->rx_user_data = s;
+            v29_rx_restart(&(s->v29rx), s->bit_rate, FALSE);
+            /* Allow for +FCERROR/+FRH:3 */
+            t31_v21_rx(s);
+        }
+        s->at_state.transmit = FALSE;
         break;
-    case T31_SILENCE:
-        s->transmit = FALSE;
+    case T31_SILENCE_TX:
+        if (s->t38_mode)
+        {
+            t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, INDICATOR_TX_COUNT);
+        }
+        else
+        {
+            silence_gen_set(&(s->silence_gen), 0);
+            s->tx_handler = (span_tx_handler_t *) &silence_gen;
+            s->tx_user_data = &(s->silence_gen);
+            s->next_tx_handler = NULL;
+        }
+        s->at_state.transmit = FALSE;
+        break;
+    case T31_SILENCE_RX:
+        if (!s->t38_mode)
+        {
+            s->rx_handler = (span_rx_handler_t *) &silence_rx;
+            s->rx_user_data = s;
+
+            silence_gen_set(&(s->silence_gen), 0);
+            s->tx_handler = (span_tx_handler_t *) &silence_gen;
+            s->tx_user_data = &(s->silence_gen);
+            s->next_tx_handler = NULL;
+        }
+        s->at_state.transmit = FALSE;
+        break;
+    case T31_FLUSH:
+        /* Send 200ms of silence to "push" the last audio out */
+        if (s->t38_mode)
+        {
+            t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, INDICATOR_TX_COUNT);
+        }
+        else
+        {
+            s->modem = T31_SILENCE_TX;
+            silence_gen_alter(&(s->silence_gen), ms_to_samples(200));
+            s->tx_handler = (span_tx_handler_t *) &silence_gen;
+            s->tx_user_data = &(s->silence_gen);
+            s->next_tx_handler = NULL;
+            s->at_state.transmit = TRUE;
+        }
         break;
     }
     s->bit_no = 0;
@@ -588,20 +1070,24 @@ static __inline__ void dle_unstuff_hdlc(t31_state_t *s, const char *stuffed, int
             s->dled = FALSE;
             if (stuffed[i] == ETX)
             {
-                hdlc_tx_preamble(&(s->hdlctx), 2);
-                hdlc_tx_frame(&(s->hdlctx), s->hdlc_buf, s->hdlc_len);
-                hdlc_tx_preamble(&(s->hdlctx), 2);
-                s->hdlc_final = (s->hdlc_buf[1] & 0x10);
-                s->hdlc_len = 0;
+                if (s->t38_mode)
+                {
+                }
+                else
+                {
+                    hdlc_tx_frame(&(s->hdlctx), s->hdlc_tx_buf, s->hdlc_tx_len);
+                }
+                s->hdlc_final = (s->hdlc_tx_buf[1] & 0x10);
+                s->hdlc_tx_len = 0;
             }
             else if (stuffed[i] == SUB)
             {
-                s->hdlc_buf[s->hdlc_len++] = DLE;
-                s->hdlc_buf[s->hdlc_len++] = DLE;
+                s->hdlc_tx_buf[s->hdlc_tx_len++] = DLE;
+                s->hdlc_tx_buf[s->hdlc_tx_len++] = DLE;
             }
             else
             {
-                s->hdlc_buf[s->hdlc_len++] = stuffed[i];
+                s->hdlc_tx_buf[s->hdlc_tx_len++] = stuffed[i];
             }
         }
         else
@@ -609,7 +1095,7 @@ static __inline__ void dle_unstuff_hdlc(t31_state_t *s, const char *stuffed, int
             if (stuffed[i] == DLE)
                 s->dled = TRUE;
             else
-                s->hdlc_buf[s->hdlc_len++] = stuffed[i];
+                s->hdlc_tx_buf[s->hdlc_tx_len++] = stuffed[i];
         }
     }
 }
@@ -629,7 +1115,7 @@ static __inline__ void dle_unstuff(t31_state_t *s, const char *stuffed, int len)
             if (stuffed[i] == ETX)
             {
                 s->data_final = TRUE;
-                s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
+                t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
                 return;
             }
         }
@@ -653,388 +1139,49 @@ static __inline__ void dle_unstuff(t31_state_t *s, const char *stuffed, int len)
         fill = (s->tx_in_bytes - s->tx_out_bytes);
         if (s->tx_in_bytes < s->tx_out_bytes)
             fill += (T31_TX_BUF_LEN + 1);
-        if (fill > T31_TX_BUF_LEN - 1024)
+        if (fill > T31_TX_BUF_HIGH_TIDE)
         {
             s->tx_holding = TRUE;
             /* Tell the application to hold further data */
-            s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_CTS, (void *) 0);
+            at_modem_control(&s->at_state, AT_MODEM_CONTROL_CTS, (void *) 0);
         }
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-static int parse_num(const char **s, int max_value)
+static int process_class1_cmd(at_state_t *t, void *user_data, int direction, int operation, int val)
 {
-    int i;
-    
-    /* The spec. says no digits is valid, and should be treated as zero. */
-    i = 0;
-    while (isdigit(**s))
-    {
-        i = i*10 + ((**s) - '0');
-        (*s)++;
-    }
-    if (i > max_value)
-        i = -1;
-    return i;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int parse_hex_num(const char **s, int max_value)
-{
-    int i;
-    
-    /* The spec. says a hex value is always 2 digits, and the alpha digits are
-       upper case. */
-    i = 0;
-    if (isdigit(**s))
-        i = **s - '0';
-    else if (**s >= 'A'  &&  **s <= 'F')
-        i = **s - 'A';
-    else
-        return -1;
-    *s++;
-
-    if (isdigit(**s))
-        i = (i << 4)  | (**s - '0');
-    else if (**s >= 'A'  &&  **s <= 'F')
-        i = (i << 4)  | (**s - 'A');
-    else
-        return -1;
-    *s++;
-    if (i > max_value)
-        i = -1;
-    return i;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int parse_out(t31_state_t *s, const char **t, int *target, int max_value, const char *prefix, const char *def)
-{
-    char buf[100];
-    int val;
-
-    switch (*(*t)++)
-    {
-    case '=':
-        switch (**t)
-        {
-        case '?':
-            /* Show possible values */
-            (*t)++;
-            snprintf(buf, sizeof(buf), "%s%s", (prefix)  ?  prefix  :  "", def);
-            at_put_response(s, buf);
-            break;
-        default:
-            /* Set value */
-            if ((val = parse_num(t, max_value)) < 0)
-                return FALSE;
-            if (target)
-                *target = val;
-            break;
-        }
-        break;
-    case '?':
-        /* Show current value */
-        val = (target)  ?  *target  :  0;
-        snprintf(buf, sizeof(buf), "%s%d", (prefix)  ?  prefix  :  "", val);
-        at_put_response(s, buf);
-        break;
-    default:
-        return FALSE;
-    }
-    return TRUE;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int parse_2_out(t31_state_t *s, const char **t, int *target1, int max_value1, int *target2, int max_value2, const char *prefix, const char *def)
-{
-    char buf[100];
-    int val1;
-    int val2;
-
-    switch (*(*t)++)
-    {
-    case '=':
-        switch (**t)
-        {
-        case '?':
-            /* Show possible values */
-            (*t)++;
-            snprintf(buf, sizeof(buf), "%s%s", (prefix)  ?  prefix  :  "", def);
-            at_put_response(s, buf);
-            break;
-        default:
-            /* Set value */
-            if ((val1 = parse_num(t, max_value1)) < 0)
-                return FALSE;
-            if (target1)
-                *target1 = val1;
-            if (**t == ',')
-            {
-                *t++;
-                if ((val2 = parse_num(t, max_value2)) < 0)
-                    return FALSE;
-                if (target2)
-                    *target2 = val2;
-            }
-            break;
-        }
-        break;
-    case '?':
-        /* Show current value */
-        val1 = (target1)  ?  *target1  :  0;
-        val2 = (target2)  ?  *target2  :  0;
-        snprintf(buf, sizeof(buf), "%s%d,%d", (prefix)  ?  prefix  :  "", val1, val2);
-        at_put_response(s, buf);
-        break;
-    default:
-        return FALSE;
-    }
-    return TRUE;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int parse_hex_out(t31_state_t *s, const char **t, int *target, int max_value, const char *prefix, const char *def)
-{
-    char buf[100];
-    int val;
-
-    switch (*(*t)++)
-    {
-    case '=':
-        switch (**t)
-        {
-        case '?':
-            /* Show possible values */
-            (*t)++;
-            snprintf(buf, sizeof(buf), "%s%s", (prefix)  ?  prefix  :  "", def);
-            at_put_response(s, buf);
-            break;
-        default:
-            /* Set value */
-            if ((val = parse_hex_num(t, max_value)) < 0)
-                return FALSE;
-            if (target)
-                *target = val;
-            break;
-        }
-        break;
-    case '?':
-        /* Show current value */
-        val = (target)  ?  *target  :  0;
-        snprintf(buf, sizeof(buf), "%s%02X", (prefix)  ?  prefix  :  "", val);
-        at_put_response(s, buf);
-        break;
-    default:
-        return FALSE;
-    }
-    return TRUE;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int match_element(const char **variant, const char *variants)
-{
-    int element;
-    int i;
-    int len;
-    char const *s;
-    char const *t;
-
-    s = variants;
-    for (i = 0;  *s;  i++)
-    {
-        if ((t = strchr(s, ',')))
-            len = t - s;
-        else
-            len = strlen(s);
-        if (len == strlen(*variant)  &&  memcmp(*variant, s, len) == 0)
-        {
-            *variant += len;
-            return  i;
-        }
-        s += len;
-        if (*s == ',')
-            s++;
-    }
-    return  -1;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int parse_string_out(t31_state_t *s, const char **t, int *target, int max_value, const char *prefix, const char *def)
-{
-    char buf[100];
-    int val;
-    int len;
-    char *tmp;
-
-    switch (*(*t)++)
-    {
-    case '=':
-        switch (**t)
-        {
-        case '?':
-            /* Show possible values */
-            (*t)++;
-            snprintf(buf, sizeof(buf), "%s%s", (prefix)  ?  prefix  :  "", def);
-            at_put_response(s, buf);
-            break;
-        default:
-            /* Set value */
-            if ((val = match_element(t, def)) < 0)
-                return FALSE;
-            if (target)
-                *target = val;
-            break;
-        }
-        break;
-    case '?':
-        /* Show current index value from def */
-        val = (target)  ?  *target  :  0;
-        while (val--  &&  (def = strchr(def, ',')))
-            def++;
-        if ((tmp = strchr(def, ',')))
-            len = tmp - def;
-        else
-            len = strlen(def);
-        snprintf(buf, sizeof(buf), "%s%.*s", (prefix)  ?  prefix  :  "", len, def);
-        at_put_response(s, buf);
-        break;
-    default:
-        return FALSE;
-    }
-    return TRUE;
-}
-/*- End of function --------------------------------------------------------*/
-
-const char *s_reg_handler(t31_state_t *s, const char *t, int reg)
-{
-    int val;
-    uint8_t byte_val;
-    int b;
-    char buf[4];
-
-    /* Set or get an S register */
-    switch (*t++)
-    {
-    case '=':
-        switch (*t)
-        {
-        case '?':
-            t++;
-            snprintf(buf, sizeof(buf), "%3.3d", 0);
-            at_put_response(s, buf);
-            break;
-        default:
-            if ((val = parse_num(&t, 255)) < 0)
-                return NULL;
-            s->p.s_regs[reg] = val;
-            break;
-        }
-        break;
-    case '?':
-        snprintf(buf, sizeof(buf), "%3.3d", s->p.s_regs[reg]);
-        at_put_response(s, buf);
-        break;
-    case '.':
-        if ((b = parse_num(&t, 7)) < 0)
-            return NULL;
-        switch (*t++)
-        {
-        case '=':
-            switch (*t)
-            {
-            case '?':
-                t++;
-                at_put_numeric_response(s, 0);
-                break;
-            default:
-                if ((val = parse_num(&t, 1)) < 0)
-                    return NULL;
-                if (val)
-                    s->p.s_regs[reg] |= (1 << b);
-                else
-                    s->p.s_regs[reg] &= ~(1 << b);
-                break;
-            }
-            break;
-        case '?':
-            at_put_numeric_response(s, (unsigned int) ((s->p.s_regs[reg] >> b) & 1));
-            break;
-        default:
-            return NULL;
-        }
-        break;
-    default:
-        return NULL;
-    }
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int process_class1_cmd(t31_state_t *s, const char **t)
-{
-    int val;
-    int operation;
     int new_modem;
     int new_transmit;
     int i;
     int len;
-    char *allowed;
+    int immediate_response;
+    t31_state_t *s;
     uint8_t msg[256];
 
-    new_transmit = (*(*t + 2) == 'T');
-    operation = *(*t + 3);
-    /* Step past the "+Fxx" */
-    *t += 4;
+    s = (t31_state_t *) user_data;
+    new_transmit = direction;
+    immediate_response = TRUE;
     switch (operation)
     {
     case 'S':
-        allowed = "0-255";
-        break;
-    case 'H':
-        allowed = "3";
-        break;
-    default:
-#if defined(ENABLE_V17)
-        allowed = "24,48,72,73,74,96,97,98,121,122,145,146";
-#else
-        allowed = "24,48,72,96";
-#endif
-        break;
-    }
-    
-    val = -1;
-    if (!parse_out(s, t, &val, 255, NULL, allowed))
-        return TRUE;
-    if (val < 0)
-    {
-        /* It was just a query */
-        return  TRUE;
-    }
-    /* All class 1 FAX commands are supposed to give an ERROR response, if the phone
-       is on-hook. */
-    if (s->at_rx_mode == AT_MODE_ONHOOK_COMMAND)
-        return FALSE;
-
-    switch (operation)
-    {
-    case 'S':
-        s->transmit = new_transmit;
-        s->modem = T31_SILENCE;
+        s->at_state.transmit = new_transmit;
         if (new_transmit)
         {
-            /* Send some silence to space transmissions. */
-            s->silent_samples += val*80;
+            /* Send a specified period of silence, to space transmissions. */
+            restart_modem(s, T31_SILENCE_TX);
+            silence_gen_alter(&(s->silence_gen), val*80);
+            s->at_state.transmit = TRUE;
         }
         else
         {
             /* Wait until we have received a specified period of silence. */
             queue_flush(&(s->rx_queue));
             s->silence_awaited = val*80;
-            s->at_rx_mode = AT_MODE_DELIVERY;
+            t31_set_at_rx_mode(s, AT_MODE_DELIVERY);
+            restart_modem(s, T31_SILENCE_RX);
         }
-        /* Inhibit an immediate response.  (These commands should not be part of a multi-command entry.) */
-        *t = (const char *) -1;
+        immediate_response = FALSE;
         span_log(&s->logging, SPAN_LOG_FLOW, "Silence %dms\n", val*10);
         break;
     case 'H':
@@ -1046,25 +1193,25 @@ static int process_class1_cmd(t31_state_t *s, const char **t)
             s->bit_rate = 300;
             break;
         default:
-            return FALSE;
+            return -1;
         }
         span_log(&s->logging, SPAN_LOG_FLOW, "HDLC\n");
         if (new_modem != s->modem)
         {
             restart_modem(s, new_modem);
-            *t = (const char *) -1;
+            immediate_response = FALSE;
         }
-        s->transmit = new_transmit;
+        s->at_state.transmit = new_transmit;
         if (new_transmit)
         {
-            s->last_dtedata_samples = s->call_samples;
-            at_put_response_code(s, RESPONSE_CODE_CONNECT);
-            s->at_rx_mode = AT_MODE_HDLC;
+            t31_set_at_rx_mode(s, AT_MODE_HDLC);
+            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
         }
         else
         {
             /* Send straight away, if there is something queued. */
-            s->at_rx_mode = AT_MODE_DELIVERY;
+            t31_set_at_rx_mode(s, AT_MODE_DELIVERY);
+            s->rx_message_received = FALSE;
             do
             {
                 if (!queue_empty(&(s->rx_queue)))
@@ -1072,33 +1219,30 @@ static int process_class1_cmd(t31_state_t *s, const char **t)
                     len = queue_read_msg(&(s->rx_queue), msg, 256);
                     if (len > 1)
                     {
-                        if (msg[0] == RESPONSE_CODE_OK)
-                            at_put_response_code(s, RESPONSE_CODE_CONNECT);
+                        if (msg[0] == AT_RESPONSE_CODE_OK)
+                            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
                         for (i = 1;  i < len;  i++)
                         {
                             if (msg[i] == DLE)
-                                s->rx_data[s->rx_data_bytes++] = DLE;
-                            s->rx_data[s->rx_data_bytes++] = msg[i];
+                                s->at_state.rx_data[s->at_state.rx_data_bytes++] = DLE;
+                            s->at_state.rx_data[s->at_state.rx_data_bytes++] = msg[i];
                         }
-                        /* Fake CRC */
-                        s->rx_data[s->rx_data_bytes++] = 0;
-                        s->rx_data[s->rx_data_bytes++] = 0;
-                        s->rx_data[s->rx_data_bytes++] = DLE;
-                        s->rx_data[s->rx_data_bytes++] = ETX;
-                        s->at_tx_handler(s, s->at_tx_user_data, s->rx_data, s->rx_data_bytes);
-                        s->rx_data_bytes = 0;
+                        s->at_state.rx_data[s->at_state.rx_data_bytes++] = DLE;
+                        s->at_state.rx_data[s->at_state.rx_data_bytes++] = ETX;
+                        s->at_state.at_tx_handler(&s->at_state, s->at_state.at_tx_user_data, s->at_state.rx_data, s->at_state.rx_data_bytes);
+                        s->at_state.rx_data_bytes = 0;
                     }
-                    at_put_response_code(s, msg[0]);
+                    at_put_response_code(&s->at_state, msg[0]);
                 }
                 else
                 {
-                    s->dte_is_waiting = TRUE;
+                    s->at_state.dte_is_waiting = TRUE;
                     break;
                 }
             }
-            while (msg[0] == RESPONSE_CODE_CONNECT);
+            while (msg[0] == AT_RESPONSE_CODE_CONNECT);
         }
-        *t = (const char *) -1;
+        immediate_response = FALSE;
         break;
     default:
         switch (val)
@@ -1166,3222 +1310,53 @@ static int process_class1_cmd(t31_state_t *s, const char **t)
             break;
 #endif
         default:
-            return FALSE;
+            return -1;
         }
         span_log(&s->logging, SPAN_LOG_FLOW, "Short training = %d, bit rate = %d\n", s->short_train, s->bit_rate);
         if (new_transmit)
         {
-            at_put_response_code(s, RESPONSE_CODE_CONNECT);
-            s->at_rx_mode = AT_MODE_STUFFED;
+            t31_set_at_rx_mode(s, AT_MODE_STUFFED);
+            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
         }
         else
         {
-            s->at_rx_mode = AT_MODE_DELIVERY;
+            t31_set_at_rx_mode(s, AT_MODE_DELIVERY);
         }
         restart_modem(s, new_modem);
-        *t = (const char *) -1;
+        immediate_response = FALSE;
         break;
     }
-    return TRUE;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_dummy(t31_state_t *s, const char *t)
-{
-    /* Dummy routine to absorb delimiting characters from a command string */
-    return t + 1;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_A(t31_state_t *s, const char *t)
-{
-    tone_gen_descriptor_t tone_desc;
-    int ok;
-
-    /* V.250 6.3.5 - Answer (abortable) */ 
-    t += 1;
-    if ((ok = s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_ANSWER, NULL)) < 0)
-    {
-        at_put_response_code(s, RESPONSE_CODE_ERROR);
-        return NULL;
-    }
-    /* Answering should now be in progress. No AT response should be
-       issued at this point. */
-    s->call_samples = 0;
-    s->dohangup = FALSE;
-    return (const char *) -1;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_D(t31_state_t *s, const char *t)
-{
-    int ok;
-    char *u;
-    const char *w;
-    char num[100 + 1];
-    char ch;
-
-    /* V.250 6.3.1 - Dial (abortable) */ 
-    t31_reset_callid(s);
-    s->dohangup = FALSE;
-    t += 1;
-    ok = FALSE;
-    /* There are a numbers of options in a dial command string.
-       Many are completely irrelevant in this application. */
-    w = t;
-    u = num;
-    for (  ;  (ch = *t);  t++)
-    {
-        if (isdigit(ch))
-        {
-            /* V.250 6.3.1.1 Basic digit set */
-            *u++ = ch;
-        }
-        else
-        {
-            switch (ch)
-            {
-            case 'A':
-            case 'B':
-            case 'C':
-            case 'D':
-            case '*':
-            case '#':
-                /* V.250 6.3.1.1 Full DTMF repertoire */
-                if (!s->p.pulse_dial)
-                    *u++ = ch;
-                break;
-            case '+':
-                /* V.250 6.3.1.1 International access code */
-                /* TODO: */
-                break;
-            case ',':
-                /* V.250 6.3.1.2 Pause */
-                /* TODO: */
-                break;
-            case 'T':
-                /* V.250 6.3.1.3 Tone dial */
-                s->p.pulse_dial = FALSE;
-                break;
-            case 'P':
-                /* V.250 6.3.1.4 Pulse dial */
-                s->p.pulse_dial = TRUE;
-                break;
-            case '!':
-                /* V.250 6.3.1.5 Hook flash, register recall */
-                /* TODO: */
-                break;
-            case 'W':
-                /* V.250 6.3.1.6 Wait for dial tone */
-                /* TODO: */
-                break;
-            case '@':
-                /* V.250 6.3.1.7 Wait for quiet answer */
-                /* TODO: */
-                break;
-            case 'S':
-                /* V.250 6.3.1.8 Invoke stored string */
-                /* TODO: */
-                break;
-            default:
-                return NULL;
-            }
-        }
-    }
-    *u = '\0';
-    if ((ok = s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_CALL, num)) < 0)
-        return NULL;
-    /* Dialing should now be in progress. No AT response should be
-       issued at this point. */
-    s->call_samples = 0;
-    return (const char *) -1;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_E(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.250 6.2.4 - Command echo */ 
-    t += 1;
-    if ((val = parse_num(&t, 1)) < 0)
-        return NULL;
-    s->p.echo = val;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_H(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.250 6.3.6 - Hook control */ 
-    t += 1;
-    if ((val = parse_num(&t, 0)) < 0)
-        return NULL;
-    t31_reset_callid(s);
-    if (s->at_rx_mode != AT_MODE_ONHOOK_COMMAND)
-    {
-        /* Send 200ms of silence to "push" the last audio out */
-        s->transmit = TRUE;
-        s->modem = T31_SILENCE;
-        s->silent_samples += 200*8;
-        s->dohangup = TRUE;
-        s->at_rx_mode = AT_MODE_CONNECTED;
-        return (const char*) -1;
-    }
-    s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_HANGUP, NULL);
-    s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_I(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.250 6.1.3 - Request identification information */ 
-    /* N.B. The information supplied in response to an ATIx command is very
-       variable. It was widely used in different ways before the AT command
-       set was standardised by the ITU. */
-    t += 1;
-    switch (val = parse_num(&t, 255))
-    {
-    case 0:
-        at_put_response(s, model);
-        break;
-    case 3:
-        at_put_response(s, manufacturer);
-        break;
-    default:
-        return NULL;
-    }
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_L(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.250 6.3.13 - Monitor speaker loudness */
-    /* Just absorb this command, as we have no speaker */
-    t += 1;
-    if ((val = parse_num(&t, 255)) < 0)
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_M(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.250 6.3.14 - Monitor speaker mode */ 
-    /* Just absorb this command, as we have no speaker */
-    t += 1;
-    if ((val = parse_num(&t, 255)) < 0)
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_O(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.250 6.3.7 - Return to online data state */ 
-    t += 1;
-    if ((val = parse_num(&t, 1)) < 0)
-        return NULL;
-    if (val == 0)
-    {
-        s->at_rx_mode = AT_MODE_CONNECTED;
-        at_put_response_code(s, RESPONSE_CODE_CONNECT);
-    }
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_P(t31_state_t *s, const char *t)
-{
-    /* V.250 6.3.3 - Select pulse dialling (command) */ 
-    t += 1;
-    s->p.pulse_dial = TRUE;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_Q(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.250 6.2.5 - Result code suppression */ 
-    t += 1;
-    switch (val = parse_num(&t, 1))
-    {
-    case 0:
-        s->p.result_code_format = (s->p.verbose)  ?  ASCII_RESULT_CODES  :  NUMERIC_RESULT_CODES;
-        break;
-    case 1:
-        s->p.result_code_format = NO_RESULT_CODES;
-        break;
-    default:
-        return NULL;
-    }
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_S0(t31_state_t *s, const char *t)
-{
-    /* V.250 6.3.8 - Automatic answer */ 
-    t += 2;
-    return s_reg_handler(s, t, 0);
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_S10(t31_state_t *s, const char *t)
-{
-    /* V.250 6.3.12 - Automatic disconnect delay */ 
-    t += 3;
-    return s_reg_handler(s, t, 10);
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_S3(t31_state_t *s, const char *t)
-{
-    /* V.250 6.2.1 - Command line termination character */ 
-    t += 2;
-    return s_reg_handler(s, t, 3);
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_S4(t31_state_t *s, const char *t)
-{
-    /* V.250 6.2.2 - Response formatting character */ 
-    t += 2;
-    return s_reg_handler(s, t, 4);
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_S5(t31_state_t *s, const char *t)
-{
-    /* V.250 6.2.3 - Command line editing character */ 
-    t += 2;
-    return s_reg_handler(s, t, 5);
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_S6(t31_state_t *s, const char *t)
-{
-    /* V.250 6.3.9 - Pause before blind dialling */ 
-    t += 2;
-    return s_reg_handler(s, t, 6);
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_S7(t31_state_t *s, const char *t)
-{
-    /* V.250 6.3.10 - Connection completion timeout */ 
-    t += 2;
-    return s_reg_handler(s, t, 7);
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_S8(t31_state_t *s, const char *t)
-{
-    /* V.250 6.3.11 - Comma dial modifier time */ 
-    t += 2;
-    return s_reg_handler(s, t, 8);
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_T(t31_state_t *s, const char *t)
-{
-    /* V.250 6.3.2 - Select tone dialling (command) */ 
-    t += 1;
-    s->p.pulse_dial = FALSE;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_V(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.250 6.2.6 - DCE response format */ 
-    t += 1;
-    switch (val = parse_num(&t, 1))
-    {
-    case 0:
-        s->p.verbose = FALSE;
-        if (s->p.result_code_format != NO_RESULT_CODES)
-            s->p.result_code_format = (s->p.verbose)  ?  ASCII_RESULT_CODES  :  NUMERIC_RESULT_CODES;
-        break;
-    case 1:
-        s->p.verbose = TRUE;
-        if (s->p.result_code_format != NO_RESULT_CODES)
-            s->p.result_code_format = (s->p.verbose)  ?  ASCII_RESULT_CODES  :  NUMERIC_RESULT_CODES;
-        break;
-    default:
-        return NULL;
-    }
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_X(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.250 6.2.7 - Result code selection and call progress monitoring control */
-    /* TODO: */
-    t += 1;
-    switch (val = parse_num(&t, 4))
-    {
-    case 0:
-        /* CONNECT result code is given upon entering online data state.
-           Dial tone and busy detection are disabled. */
-        break;
-    case 1:
-        /* CONNECT <text> result code is given upon entering online data state.
-           Dial tone and busy detection are disabled. */
-        break;
-    case 2:
-        /* CONNECT <text> result code is given upon entering online data state.
-           Dial tone detection is enabled, and busy detection is disabled. */
-        break;
-    case 3:
-        /* CONNECT <text> result code is given upon entering online data state.
-           Dial tone detection is disabled, and busy detection is enabled. */
-        break;
-    case 4:
-        /* CONNECT <text> result code is given upon entering online data state.
-           Dial tone and busy detection are both enabled. */
-        break;
-    default:
-        return NULL;
-    }
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_Z(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.250 6.1.1 - Reset to default configuration */ 
-    t += 1;
-    if ((val = parse_num(&t, sizeof(profiles)/sizeof(profiles[0]) - 1)) < 0)
-        return NULL;
-    /* Just make sure we are on hook */
-    s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_HANGUP, NULL);
-    s->p = profiles[val];
-    t31_reset_callid(s);
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_amp_C(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.250 6.2.8 - Circuit 109 (received line signal detector), behaviour */ 
-    /* We have no RLSD pin, so just absorb this. */
-    t += 2;
-    if ((val = parse_num(&t, 1)) < 0)
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_amp_D(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.250 6.2.9 - Circuit 108 (data terminal ready) behaviour */ 
-    t += 2;
-    if ((val = parse_num(&t, 2)) < 0)
-        return NULL;
-    /* TODO: We have no DTR pin, but we need this to get into online
-             command state. */
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_amp_F(t31_state_t *s, const char *t)
-{
-    t += 2;
-
-    /* V.250 6.1.2 - Set to factory-defined configuration */ 
-    /* Just make sure we are on hook */
-    s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_HANGUP, NULL);
-    s->p = profiles[0];
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_A8E(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.251 5.1 - V.8 and V.8bis operation controls */
-    /* Syntax: +A8E=<v8o>,<v8a>,<v8cf>[,<v8b>][,<cfrange>][,<protrange>] */
-    /* <v8o>=0  Disable V.8 origination negotiation
-       <v8o>=1  Enable DCE-controlled V.8 origination negotiation
-       <v8o>=2  Enable DTE-controlled V.8 origination negotiation, send V.8 CI only
-       <v8o>=3  Enable DTE-controlled V.8 origination negotiation, send 1100Hz CNG only
-       <v8o>=4  Enable DTE-controlled V.8 origination negotiation, send 1300Hz CT only
-       <v8o>=5  Enable DTE-controlled V.8 origination negotiation, send no tones
-       <v8o>=6  Enable DCE-controlled V.8 origination negotiation, issue +A8x indications
-       <v8a>=0  Disable V.8 answer negotiation
-       <v8a>=1  Enable DCE-controlled V.8 answer negotiation
-       <v8a>=2  Enable DTE-controlled V.8 answer negotiation, send ANSam
-       <v8a>=3  Enable DTE-controlled V.8 answer negotiation, send no signal
-       <v8a>=4  Disable DTE-controlled V.8 answer negotiation, send ANS
-       <v8a>=5  Enable DCE-controlled V.8 answer negotiation, issue +A8x indications
-       <v8cf>=X..Y	Set the V.8 CI signal call function to the hexadecimal octet value X..Y
-       <v8b>=0	Disable V.8bis negotiation
-       <v8b>=1  Enable DCE-controlled V.8bis negotiation
-       <v8b>=2  Enable DTE-controlled V.8bis negotiation
-       <cfrange>="<string of values>"   Set to alternative list of call function "option bit"
-                                        values that the answering DCE shall accept from the caller
-       <protrange>="<string of values>" Set to alternative list of protocol "option bit" values that
-                                        the answering DCE shall accept from the caller
-    */
-    /* TODO: */
-    t += 4;
-    if (!parse_out(s, &t, &val, 6, "+A8E:", "(0-6),(0-5),(00-FF)"))
-        return NULL;
-    if (*t != ',')
-        return t;
-    if ((val = parse_num(&t, 5)) < 0)
-        return NULL;
-    if (*t != ',')
-        return t;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_A8M(t31_state_t *s, const char *t)
-{
-    /* V.251 5.2 - Send V.8 menu signals */
-    /* Syntax: +A8M=<hexadecimal coded CM or JM octet string>  */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_A8T(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* V.251 5.3 - Send V.8bis signal and/or message(s) */
-    /* Syntax: +A8T=<signal>[,<1st message>][,<2nd message>][,<sig_en>][,<msg_en>][,<supp_delay>] */
-    /*  <signal>=0  None
-        <signal>=1  Initiating Mre
-        <signal>=2  Initiating MRd
-        <signal>=3  Initiating CRe, low power
-        <signal>=4  Initiating CRe, high power
-        <signal>=5  Initiating CRd
-        <signal>=6  Initiating Esi
-        <signal>=7  Responding MRd, low power
-        <signal>=8  Responding MRd, high power
-        <signal>=9  Responding CRd
-        <signal>=10 Responding Esr
-    */
-    /* TODO: */
-    t += 4;
-    if (!parse_out(s, &t, &val, 10, "+A8T:", "(0-10)"))
-        return NULL;
-    if (*t != ',')
-        return t;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_ASTO(t31_state_t *s, const char *t)
-{
-    /* V.250 6.3.15 - Store telephone number */ 
-    /* TODO: */
-    t += 5;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CAAP(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.25 - Automatic answer for eMLPP Service */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CACM(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.25 - Accumulated call meter */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CACSP(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 11.1.7 - Voice Group or Voice Broadcast Call State Attribute Presentation */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CAEMLPP(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.22 - eMLPP Priority Registration and Interrogation */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CAHLD(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 11.1.3 - Leave an ongoing Voice Group or Voice Broadcast Call */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CAJOIN(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 11.1.1 - Accept an incoming Voice Group or Voice Broadcast Call */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CALA(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.16 - Alarm */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CALCC(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 11.1.6 - List current Voice Group and Voice Broadcast Calls */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CALD(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.38 - Delete alar m */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CALM(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.20 - Alert sound mode */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CAMM(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.26 - Accumulated call meter maximum */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CANCHEV(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 11.1.8 - NCH Support Indication */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CAOC(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.16 - Advice of Charge */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CAPD(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.39 - Postpone or dismiss an alarm */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CAPTT(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 11.1.4 - Talker Access for Voice Group Call */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CAREJ(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 11.1.2 - Reject an incoming Voice Group or Voice Broadcast Call */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CAULEV(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 11.1.5 - Voice Group Call Uplink Status Presentation */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CBC(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.4 - Battery charge */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CBCS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 11.3.2 - VBS subscriptions and GId status */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CBST(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.7 - Select bearer service type */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CCFC(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.11 - Call forwarding number and conditions */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CCLK(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.15 - Clock */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CCUG(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.10 - Closed user group */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CCWA(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.12 - Call waiting */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CCWE(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.28 - Call Meter maximum event */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CDIP(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.9 - Called line identification presentation */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CDIS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.8 - Display control */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CEER(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.10 - Extended error report */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CFCS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.24 - Fast call setup conditions */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CFUN(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.2 - Set phone functionality */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGACT(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.10 - PDP context activate or deactivate */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGANS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.16 - Manual response to a network request for PDP context activation */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGATT(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.9 - PS attach or detach */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGAUTO(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.15 - Automatic response to a network request for PDP context activation */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGCLASS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.17 - GPRS mobile station class (GPRS only) */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGCLOSP(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.13 - Configure local Octet Stream PAD parameters (Obsolete) 
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGCLPAD(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.12 - Configure local triple-X PAD parameters (GPRS only) (Obsolete) */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGCMOD(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.11 - PDP Context Modify */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGCS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 11.3.1 - VGCS subscriptions and GId status */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGDATA(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.12 - Enter data state */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGDCONT(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.1 - Define PDP Context */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGDSCONT(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.2 - Define Secondary PDP Context */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGEQMIN(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.7 - 3G Quality of Service Profile (Minimum acceptable) */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGEQNEG(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.8 - 3G Quality of Service Profile (Negotiated) */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGEQREQ(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.6 - 3G Quality of Service Profile (Requested) */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGEREP(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.18 - Packet Domain event reporting */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGMI(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 5.1 - Request manufacturer identification */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGMM(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 5.2 - Request model identification */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGMR(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 5.3 - Request revision identification */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGPADDR(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.14 - Show PDP address */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGQMIN(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.5 - Quality of Service Profile (Minimum acceptable) */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGQREQ(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.4 - Quality of Service Profile (Requested) */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGREG(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.19 - GPRS network registration status */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGSMS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.20 - Select service for MO SMS messages */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGSN(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 5.4 - Request product serial number identification */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CGTFT(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 10.1.3 - Traffic Flow Template */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CHLD(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.13 - Call related supplementary services */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CHSA(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.18 - HSCSD non-transparent asymmetry configuration */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CHSC(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.15 - HSCSD current call parameters */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CHSD(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.12 - HSCSD device parameters */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CHSN(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.14 - HSCSD non-transparent call configuration */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CHSR(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.16 - HSCSD parameters report */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CHST(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.13 - HSCSD transparent call configuration */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CHSU(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.17 - HSCSD automatic user initiated upgrading */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CHUP(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.5 - Hangup call */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CIMI(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 5.6 - Request international mobile subscriber identity */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CIND(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.9 - Indicator control */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CKPD(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.7 - Keypad control */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CLAC(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.37 - List all available AT commands */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CLAE(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.31 - Language Event */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CLAN(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.30 - Set Language */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CLCC(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.18 - List current calls */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CLCK(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.4 - Facility lock */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CLIP(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.6 - Calling line identification presentation */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CLIR(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.7 - Calling line identification restriction */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CLVL(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.23 - Loudspeaker volume level */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CMAR(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.36 - Master Reset */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CMEC(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.6 - Mobile Termination control mode */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CMER(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.10 - Mobile Termination event reporting */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CMOD(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.4 - Call mode */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CMUT(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.24 - Mute control */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CMUX(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 5.7 - Multiplexing mode */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CNUM(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.1 - Subscriber number */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_COLP(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.8 - Connected line identification presentation */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_COPN(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.21 - Read operator names */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_COPS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.3 - PLMN selection */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_COTDI(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 11.1.9 - Originator to Dispatcher Information */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CPAS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.1 - Phone activity status */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CPBF(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.13 - Find phonebook entries */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CPBR(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.12 - Read phonebook entries */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CPBS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.11 - Select phonebook memory storage */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CPBW(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.14 - Write phonebook entry */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CPIN(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.3 - Enter PIN */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CPLS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.20 - Selection of preferred PLMN list */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CPOL(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.19 - Preferred PLMN list */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CPPS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.23 - eMLPP subscriptions */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CPROT(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.42 - Enter protocol mode */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CPUC(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.27 - Price per unit and currency table */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CPWC(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.29 - Power class */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CPWD(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.5 - Change password */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CR(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.9 - Service reporting control */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CRC(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.11 - Cellular result codes */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CREG(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.2 - Network registration */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CRLP(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.8 - Radio link protocol */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CRMC(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.34 - Ring Melody Control */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CRMP(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.35 - Ring Melody Playback */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CRSL(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.21 - Ringer sound level */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CRSM(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.18 - Restricted SIM access */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CSCC(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.19 - Secure control command */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CSCS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 5.5 - Select TE character set */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CSDF(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.22 - Settings date format */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CSGT(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.32 - Set Greeting Text */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CSIL(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.23 - Silence Command */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CSIM(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.17 - Generic SIM access */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CSNS(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.19 - Single numbering scheme */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CSQ(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.5 - Signal quality */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CSSN(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.17 - Supplementary service notifications */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CSTA(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.1 - Select type of address */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CSTF(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.24 - Settings time format */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CSVM(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.33 - Set Voice Mail Number */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CTFR(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.14 - Call deflection */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CTZR(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.41 - Time Zone Reporting */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CTZU(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.40 - Automatic Time Zone Update */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CUSD(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.15 - Unstructured supplementary service data */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CUUS1(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 7.26 - User to User Signalling Service 1 */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CV120(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.21 - V.120 rate adaption protocol */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CVHU(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 6.20 - Voice Hangup Control */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_CVIB(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 8.22 - Vibrator mode */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_DR(t31_state_t *s, const char *t)
-{
-    /* V.250 6.6.2 - Data compression reporting */ 
-    /* TODO: */
-    t += 3;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_DS(t31_state_t *s, const char *t)
-{
-    /* V.250 6.6.1 - Data compression */ 
-    /* TODO: */
-    t += 3;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_EB(t31_state_t *s, const char *t)
-{
-    /* V.250 6.5.2 - Break handling in error control operation */ 
-    /* TODO: */
-    t += 3;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_EFCS(t31_state_t *s, const char *t)
-{
-    /* V.250 6.5.4 - 32-bit frame check sequence */ 
-    /* TODO: */
-    t += 5;
-    if (!parse_out(s, &t, NULL, 2, "+EFCS:", "(0-2)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_EFRAM(t31_state_t *s, const char *t)
-{
-    /* V.250 6.5.8 - Frame length */ 
-    /* TODO: */
-    t += 6;
-    if (!parse_2_out(s, &t, NULL, 65535, NULL, 65535, "+EFRAM:", "(1-65535),(1-65535)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_ER(t31_state_t *s, const char *t)
-{
-    /* V.250 6.5.5 - Error control reporting */ 
-    /*  0   Error control reporting disabled (no +ER intermediate result code transmitted)
-        1   Error control reporting enabled (+ER intermediate result code transmitted)
-    /* TODO: */
-    t += 3;
-    if (!parse_out(s, &t, NULL, 1, "+ER:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_ES(t31_state_t *s, const char *t)
-{
-    /* V.250 6.5.1 - Error control selection */ 
-    /* TODO: */
-    t += 3;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_ESR(t31_state_t *s, const char *t)
-{
-    /* V.250 6.5.3 - Selective repeat */ 
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_ETBM(t31_state_t *s, const char *t)
-{
-    /* V.250 6.5.6 - Call termination buffer management */ 
-    /* TODO: */
-    t += 5;
-    if (!parse_2_out(s, &t, NULL, 2, NULL, 2, "+ETBM:", "(0-2),(0-2),(0-30)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_EWIND(t31_state_t *s, const char *t)
-{
-    /* V.250 6.5.7 - Window size */ 
-    /* TODO: */
-    t += 6;
-    if (!parse_2_out(s, &t, NULL, 127, NULL, 127, "+EWIND:", "(1-127),(1-127)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_FAR(t31_state_t *s, const char *t)
-{
-    /* T.31 8.5.1 - Adaptive reception control */ 
-    t += 4;
-    if (!parse_out(s, &t, &(s->p.adaptive_receive), 1, NULL, "0,1"))
-         return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_FCL(t31_state_t *s, const char *t)
-{
-    int val;
-    
-    /* T.31 8.5.2 - Carrier loss timeout */ 
-    t += 4;
-    if ((val = parse_num(&t, 255)) < 0)
-        return NULL;
-    s->carrier_loss_timeout = val;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_FCLASS(t31_state_t *s, const char *t)
-{
-    /* T.31 8.2 - Capabilities identification and control */ 
-    t += 7;
-    /* T.31 says the reply string should be "0,1.0", however making
-       it "0,1,1.0" makes things compatible with a lot more software
-       that may be expecting a pre-T.31 modem. */
-    if (!parse_string_out(s, &t, &s->fclass_mode, 1, NULL, "0,1,1.0"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_FDD(t31_state_t *s, const char *t)
-{
-    /* T.31 8.5.3 - Double escape character replacement */ 
-    t += 4;
-    if (!parse_out(s, &t, &s->p.double_escape, 1, NULL, "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_FIT(t31_state_t *s, const char *t)
-{
-    int val1;
-    int val2;
-    
-    /* T.31 8.5.4 - DTE inactivity timeout */ 
-    t += 4;
-    if ((val1 = parse_num(&t, 255)) < 0)
-        return NULL;
-    if (*t != ',')
-        return NULL;
-    t++;
-    if ((val2 = parse_num(&t, 255)) < 0)
-        return NULL;
-    s->dte_inactivity_timeout = val1;
-    s->dte_inactivity_action = val2;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_FLO(t31_state_t *s, const char *t)
-{
-    /* T.31 Annex A */ 
-    /* Implement something similar to the V.250 +IFC command */ 
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_FPR(t31_state_t *s, const char *t)
-{
-    /* T.31 Annex A */ 
-    /* Implement something similar to the V.250 +IPR command */ 
-    t += 4;
-    if (!parse_out(s, &t, &s->dte_rate, 115200, NULL, "115200"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_FRH(t31_state_t *s, const char *t)
-{
-    /* T.31 8.3.6 - HDLC receive */ 
-    if (!process_class1_cmd(s, &t))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_FRM(t31_state_t *s, const char *t)
-{
-    /* T.31 8.3.4 - Facsimile receive */ 
-    if (!process_class1_cmd(s, &t))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_FRS(t31_state_t *s, const char *t)
-{
-    /* T.31 8.3.2 - Receive silence */ 
-    if (!process_class1_cmd(s, &t))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_FTH(t31_state_t *s, const char *t)
-{
-    /* T.31 8.3.5 - HDLC transmit */ 
-    if (!process_class1_cmd(s, &t))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_FTM(t31_state_t *s, const char *t)
-{
-    /* T.31 8.3.3 - Facsimile transmit */ 
-    if (!process_class1_cmd(s, &t))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_FTS(t31_state_t *s, const char *t)
-{
-    /* T.31 8.3.1 - Transmit silence */ 
-    if (!process_class1_cmd(s, &t))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_GCAP(t31_state_t *s, const char *t)
-{
-    /* V.250 6.1.9 - Request complete capabilities list */
-    t += 5;
-    /* Response elements
-       +FCLASS     +F (FAX) commands
-       +MS         +M (modulation control) commands +MS and +MR
-       +MV18S      +M (modulation control) commands +MV18S and +MV18R
-       +ES         +E (error control) commands +ES, +EB, +ER, +EFCS, and +ETBM
-       +DS         +D (data compression) commands +DS and +DR */
-    /* TODO: make this adapt to the configuration we really have. */
-    if (t[0] == '='  &&  t[1] == '?')
-    {
-        at_put_response(s, "+GCAP:+FCLASS");
-        t += 2;
-    }
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_GCI(t31_state_t *s, const char *t)
-{
-    int val;
-    char buf[50];
-
-    /* V.250 6.1.10 - Country of installation, */ 
-    t += 4;
-    if (!parse_hex_out(s, &t, &s->country_of_installation, 255, "+GCI:", "(00-FF)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_GMI(t31_state_t *s, const char *t)
-{
-    /* V.250 6.1.4 - Request manufacturer identification */ 
-    t += 4;
-    if (t[0] == '='  &&  t[1] == '?')
-    {
-        at_put_response(s, manufacturer);
-        t += 2;
-    }
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_GMM(t31_state_t *s, const char *t)
-{
-    /* V.250 6.1.5 - Request model identification */ 
-    t += 4;
-    if (t[0] == '='  &&  t[1] == '?')
-    {
-        at_put_response(s, model);
-        t += 2;
-    }
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_GMR(t31_state_t *s, const char *t)
-{
-    /* V.250 6.1.6 - Request revision identification */ 
-    t += 4;
-    if (t[0] == '='  &&  t[1] == '?')
-    {
-        at_put_response(s, revision);
-        t += 2;
-    }
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_GOI(t31_state_t *s, const char *t)
-{
-    /* V.250 6.1.8 - Request global object identification */ 
-    /* TODO: */
-    t += 4;
-    if (t[0] == '='  &&  t[1] == '?')
-    {
-        at_put_response(s, "42");
-        t += 2;
-    }
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_GSN(t31_state_t *s, const char *t)
-{
-    /* V.250 6.1.7 - Request product serial number identification */ 
-    /* TODO: */
-    t += 4;
-    if (t[0] == '='  &&  t[1] == '?')
-    {
-        at_put_response(s, "42");
-        t += 2;
-    }
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_ICF(t31_state_t *s, const char *t)
-{
-    /* V.250 6.2.11 - DTE-DCE character framing */ 
-    t += 4;
-    /* Character format
-        0    auto detect
-        1    8 data 2 stop
-        2    8 data 1 parity 1 stop
-        3    8 data 1 stop
-        4    7 data 2 stop
-        5    7 data 1 parity 1 stop
-        6    7 data 1 stop
-    
-       parity
-        0    Odd
-        1    Even
-        2    Mark
-        3    Space */
-    if (!parse_2_out(s, &t, &s->dte_char_format, 6, &s->dte_parity, 3, "+ICF:", "(0-6),(0-3)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_ICLOK(t31_state_t *s, const char *t)
-{
-    /* V.250 6.2.14 - Select sync transmit clock source */ 
-    t += 6;
-    if (!parse_out(s, &t, NULL, 2, "+ICLOK:", "(0-2)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_IDSR(t31_state_t *s, const char *t)
-{
-    /* V.250 6.2.16 - Select data set ready option */ 
-    t += 5;
-    if (!parse_out(s, &t, NULL, 2, "+IDSR:", "(0-2)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_IFC(t31_state_t *s, const char *t)
-{
-    /* V.250 6.2.12 - DTE-DCE local flow control */ 
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_ILRR(t31_state_t *s, const char *t)
-{
-    /* V.250 6.2.13 - DTE-DCE local rate reporting */ 
-    /* TODO: */
-    t += 5;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_ILSD(t31_state_t *s, const char *t)
-{
-    /* V.250 6.2.15 - Select long space disconnect option */ 
-    t += 5;
-    if (!parse_out(s, &t, NULL, 2, "+ILSD:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_IPR(t31_state_t *s, const char *t)
-{
-    /* V.250 6.2.10 - Fixed DTE rate */ 
-    /* TODO: */
-    t += 4;
-    if (!parse_out(s, &t, &s->dte_rate, 115200, "+IPR:", "(115200),(115200)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_IRTS(t31_state_t *s, const char *t)
-{
-    /* V.250 6.2.17 - Select synchronous mode RTS option */ 
-    t += 5;
-    if (!parse_out(s, &t, NULL, 1, "+IRTS:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_MA(t31_state_t *s, const char *t)
-{
-    /* V.250 6.4.2 - Modulation automode control */ 
-    /* TODO: */
-    t += 3;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_MR(t31_state_t *s, const char *t)
-{
-    /* V.250 6.4.3 - Modulation reporting control */ 
-    /*  0    Disables reporting of modulation connection (+MCR: and +MRR: are not transmitted)
-        1    Enables reporting of modulation connection (+MCR: and +MRR: are transmitted) */
-    /* TODO: */
-    t += 3;
-    if (!parse_out(s, &t, NULL, 1, "+MR:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_MS(t31_state_t *s, const char *t)
-{
-    /* V.250 6.4.1 - Modulation selection */ 
-    /* TODO: */
-    t += 3;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_MSC(t31_state_t *s, const char *t)
-{
-    /* V.250 6.4.8 - Seamless rate change enable */ 
-    /*  0   Disables V.34 seamless rate change 
-        1   Enables V.34 seamless rate change */
-    /* TODO: */
-    t += 4;
-    if (!parse_out(s, &t, NULL, 1, "+MSC:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_MV18AM(t31_state_t *s, const char *t)
-{
-    /* V.250 6.4.6 - V.18 answering message editing */ 
-    /* TODO: */
-    t += 7;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_MV18P(t31_state_t *s, const char *t)
-{
-    /* V.250 6.4.7 - Order of probes */ 
-    /*  2    Send probe message in 5-bit (Baudot) mode
-        3    Send probe message in DTMF mode
-        4    Send probe message in EDT mode
-        5    Send Rec. V.21 carrier as a probe
-        6    Send Rec. V.23 carrier as a probe
-        7    Send Bell 103 carrier as a probe */
-    /* TODO: */
-    t += 6;
-    if (!parse_out(s, &t, NULL, 7, "+MV18P:", "(2-7)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_MV18R(t31_state_t *s, const char *t)
-{
-    /* V.250 6.4.5 - V.18 reporting control */ 
-    /* TODO: */
-    t += 6;
-    if (!parse_out(s, &t, NULL, 1, "+MV18R:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_MV18S(t31_state_t *s, const char *t)
-{
-    /* V.250 6.4.4 - V.18 selection */ 
-    /*  mode:
-        0    Disables V.18 operation
-        1    V.18 operation, auto detect mode
-        2    V.18 operation, connect in 5-bit (Baudot) mode
-        3    V.18 operation, connect in DTMF mode
-        4    V.18 operation, connect in EDT mode
-        5    V.18 operation, connect in V.21 mode
-        6    V.18 operation, connect in V.23 mode
-        7    V.18 operation, connect in Bell 103-type mode
-
-        dflt_ans_mode:
-        0    Disables V.18 answer operation
-        1    No default specified (auto detect)
-        2    V.18 operation connect in 5-bit (Baudot) mode
-        3    V.18 operation connect in DTMF mode
-        4    V.18 operation connect in EDT mode
-
-        fbk_time_enable:
-        0    Disable
-        1    Enable
-
-        ans_msg_enable
-        0    Disable
-        1    Enable
-
-        probing_en
-        0    Disable probing
-        1    Enable probing
-        2    Initiate probing */
-    /* TODO: */
-    t += 6;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TADR(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.9 - Local V.54 address */ 
-    /* TODO: */
-    t += 5;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TAL(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.15 - Local analogue loop */ 
-    /* Action
-        0   Disable analogue loop
-        1   Enable analogue loop
-       Band
-        0   Low frequency band
-        1   High frequency band */
-    /* TODO: */
-    t += 4;
-    if (!parse_2_out(s, &t, NULL, 1, NULL, 1, "+TAL:", "(0,1),(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TALS(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.6 - Analogue loop status */ 
-    /*  0   Inactive
-        1   V.24 circuit 141 invoked
-        2   Front panel invoked
-        3   Network management system invoked */
-    /* TODO: */
-    t += 5;
-    if (!parse_out(s, &t, NULL, 3, "+TALS:", "(0-3)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TDLS(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.7 - Local digital loop status */ 
-    /*  0   Disabled
-        1   Enabled, inactive
-        2   Front panel invoked
-        3   Network management system invoked
-        4   Remote invoked */
-    /* TODO: */
-    t += 5;
-    if (!parse_out(s, &t, NULL, 3, "+TDLS:", "(0-4)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TE140(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.1 - Enable ckt 140 */ 
-    /*  0   Disabled
-        1   Enabled */
-    /* TODO: */
-    t += 6;
-    if (!parse_out(s, &t, NULL, 1, "+TE140:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TE141(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.2 - Enable ckt 141 */ 
-    /*  0   Response is disabled
-        1   Response is enabled */
-    /* TODO: */
-    t += 6;
-    if (!parse_out(s, &t, NULL, 1, "+TE141:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TEPAL(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.5 - Enable front panel analogue loop */ 
-    /*  0   Disabled
-        1   Enabled */
-    /* TODO: */
-    t += 6;
-    if (!parse_out(s, &t, NULL, 1, "+TEPAL:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TEPDL(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.4 - Enable front panel RDL */ 
-    /*  0   Disabled
-        1   Enabled */
-    /* TODO: */
-    t += 6;
-    if (!parse_out(s, &t, NULL, 1, "+TEPDL:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TERDL(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.3 - Enable RDL from remote */ 
-    /*  0   Local DCE will ignore command from remote
-        1   Local DCE will obey command from remote */
-    /* TODO: */
-    t += 6;
-    if (!parse_out(s, &t, NULL, 1, "+TERDL:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TLDL(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.13 - Local digital loop */
-    /*  0   Stop test
-        1   Start test */
-    /* TODO: */
-    t += 5;
-    if (!parse_out(s, &t, NULL, 1, "+TLDL:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TMODE(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.10 - Set V.54 mode */ 
-    /* TODO: */
-    t += 6;
-    if (!parse_out(s, &t, NULL, 1, "+TMODE:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TNUM(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.12 - Errored bit and block counts */ 
-    /* TODO: */
-    t += 5;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TRDL(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.14 - Request remote digital loop */ 
-    /*  0   Stop RDL
-        1   Start RDL */
-    /* TODO: */
-    t += 5;
-    if (!parse_out(s, &t, NULL, 1, "+TRDL:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TRDLS(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.8 - Remote digital loop status */ 
-    /* TODO: */
-    t += 6;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TRES(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.17 - Self test result */ 
-    /*  0   No test
-        1   Pass
-        2   Fail */
-    /* TODO: */
-    t += 5;
-    if (!parse_out(s, &t, NULL, 1, "+TRES:", "(0-2)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TSELF(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.16 - Self test */ 
-    /*  0   Intrusive full test
-        1   Safe partial test */
-    /* TODO: */
-    t += 6;
-    if (!parse_out(s, &t, NULL, 1, "+TSELF:", "(0,1)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_TTER(t31_state_t *s, const char *t)
-{
-    /* V.250 6.7.2.11 - Test error rate */ 
-    /* TODO: */
-    t += 5;
-    if (!parse_2_out(s, &t, NULL, 65535, NULL, 65535, "+TTER:", "(0-65535),(0-65535)"))
-        return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VBT(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 C.2.2 - Buffer threshold setting */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VCID(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 C.2.3 - Calling number ID presentation */
-    /* TODO: */
-    t += 5;
-    if (!parse_out(s, &t, &(s->display_callid), 1, NULL, "0,1"))
-         return NULL;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VDR(t31_state_t *s, const char *t)
-{
-    /* V.253 10.3.1 - Distinctive ring (ring cadence reporting) */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VDT(t31_state_t *s, const char *t)
-{
-    /* V.253 10.3.2 - Control tone cadence reporting */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VDX(t31_state_t *s, const char *t)
-{
-    /* V.253 10.5.6 - Speakerphone duplex mode */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VEM(t31_state_t *s, const char *t)
-{
-    /* V.253 10.5.7 - Deliver event reports */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VGM(t31_state_t *s, const char *t)
-{
-    /* V.253 10.5.2 - Microphone gain */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VGR(t31_state_t *s, const char *t)
-{
-    /* V.253 10.2.1 - Receive gain selection */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VGS(t31_state_t *s, const char *t)
-{
-    /* V.253 10.5.3 - Speaker gain */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VGT(t31_state_t *s, const char *t)
-{
-    /* V.253 10.2.2 - Volume selection */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VIP(t31_state_t *s, const char *t)
-{
-    /* V.253 10.1.1 - Initialize voice parameters */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VIT(t31_state_t *s, const char *t)
-{
-    /* V.253 10.2.3 - DTE/DCE inactivity timer */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VLS(t31_state_t *s, const char *t)
-{
-    /* V.253 10.2.4 - Analogue source/destination selection */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VPP(t31_state_t *s, const char *t)
-{
-    /* V.253 10.4.2 - Voice packet protocol */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VRA(t31_state_t *s, const char *t)
-{
-    /* V.253 10.2.5 - Ringing tone goes away timer */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VRID(t31_state_t *s, const char *t)
-{
-    int val;
-
-    /* Extension of V.253 +VCID, Calling number ID report/repeat */
-    t += 5;
-    val = 0;
-    if (!parse_out(s, &t, &val, 1, NULL, "0,1"))
-         return NULL;
-    if (val == 1)
-        t31_display_callid(s);
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VRL(t31_state_t *s, const char *t)
-{
-    /* V.253 10.1.2 - Ring local phone */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VRN(t31_state_t *s, const char *t)
-{
-    /* V.253 10.2.6 - Ringing tone never appeared timer */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VRX(t31_state_t *s, const char *t)
-{
-    /* V.253 10.1.3 - Voice receive state */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VSD(t31_state_t *s, const char *t)
-{
-    /* V.253 10.2.7 - Silence detection (QUIET and SILENCE) */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VSM(t31_state_t *s, const char *t)
-{
-    /* V.253 10.2.8 - Compression method selection */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VSP(t31_state_t *s, const char *t)
-{
-    /* V.253 10.5.1 - Voice speakerphone state */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VTA(t31_state_t *s, const char *t)
-{
-    /* V.253 10.5.4 - Train acoustic echo-canceller */ 
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VTD(t31_state_t *s, const char *t)
-{
-    /* V.253 10.2.9 - Beep tone duration timer */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VTH(t31_state_t *s, const char *t)
-{
-    /* V.253 10.5.5 - Train line echo-canceller */ 
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VTR(t31_state_t *s, const char *t)
-{
-    /* V.253 10.1.4 - Voice duplex state */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VTS(t31_state_t *s, const char *t)
-{
-    /* V.253 10.1.5 - DTMF and tone generation in voice */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_VTX(t31_state_t *s, const char *t)
-{
-    /* V.253 10.1.6 - Transmit data state */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-static const char *at_cmd_plus_WS46(t31_state_t *s, const char *t)
-{
-    /* 3GPP TS 27.007 5.9 - PCCA STD-101 [17] select wireless network */
-    /* TODO: */
-    t += 4;
-    return t;
-}
-/*- End of function --------------------------------------------------------*/
-
-/*
-    AT command group prefixes:
-
-    +A    Call control (network addressing) issues, common, PSTN, ISDN, Rec. X.25, switched digital
-    +C    Digital cellular extensions
-    +D    Data compression, Rec. V.42bis
-    +E    Error control, Rec. V.42
-    +F    Facsimile, Rec. T.30, etc.
-    +G    Generic issues such as identity and capabilities
-    +I    DTE-DCE interface issues, Rec. V.24, etc.
-    +M    Modulation, Rec. V.32bis, etc.
-    +S    Switched or simultaneous data types
-    +T    Test issues
-    +V    Voice extensions
-    +W    Wireless extensions
-*/
-
-at_cmd_item_t at_commands[] =
-{
-    {" ", at_cmd_dummy},                /* Dummy to absorb spaces in commands */
-    {"&C", at_cmd_amp_C},               /* V.250 6.2.8 - Circuit 109 (received line signal detector), behaviour */ 
-    {"&D", at_cmd_amp_D},               /* V.250 6.2.9 - Circuit 108 (data terminal ready) behaviour */ 
-    {"&F", at_cmd_amp_F},               /* V.250 6.1.2 - Set to factory-defined configuration */ 
-    {"+A8E", at_cmd_plus_A8E},          /* V.251 5.1 - V.8 and V.8bis operation controls */
-    {"+A8M", at_cmd_plus_A8M},          /* V.251 5.2 - Send V.8 menu signals */
-    {"+A8T", at_cmd_plus_A8T},          /* V.251 5.3 - Send V.8bis signal and/or message(s) */
-    {"+ASTO", at_cmd_plus_ASTO},        /* V.250 6.3.15 - Store telephone number */ 
-    {"+CAAP", at_cmd_plus_CAAP},        /* 3GPP TS 27.007 7.25 - Automatic answer for eMLPP Service */
-    {"+CACM", at_cmd_plus_CACM},        /* 3GPP TS 27.007 8.25 - Accumulated call meter */
-    {"+CACSP", at_cmd_plus_CACSP},      /* 3GPP TS 27.007 11.1.7 - Voice Group or Voice Broadcast Call State Attribute Presentation */
-    {"+CAEMLPP", at_cmd_plus_CAEMLPP},  /* 3GPP TS 27.007 7.22 - eMLPP Priority Registration and Interrogation */
-    {"+CAHLD", at_cmd_plus_CAHLD},      /* 3GPP TS 27.007 11.1.3 - Leave an ongoing Voice Group or Voice Broadcast Call */
-    {"+CAJOIN", at_cmd_plus_CAJOIN},    /* 3GPP TS 27.007 11.1.1 - Accept an incoming Voice Group or Voice Broadcast Call */
-    {"+CALA", at_cmd_plus_CALA},        /* 3GPP TS 27.007 8.16 - Alarm */
-    {"+CALCC", at_cmd_plus_CALCC},      /* 3GPP TS 27.007 11.1.6 - List current Voice Group and Voice Broadcast Calls */
-    {"+CALD", at_cmd_plus_CALD},        /* 3GPP TS 27.007 8.38 - Delete alar m */
-    {"+CALM", at_cmd_plus_CALM},        /* 3GPP TS 27.007 8.20 - Alert sound mode */
-    {"+CAMM", at_cmd_plus_CAMM},        /* 3GPP TS 27.007 8.26 - Accumulated call meter maximum */
-    {"+CANCHEV", at_cmd_plus_CANCHEV},  /* 3GPP TS 27.007 11.1.8 - NCH Support Indication */
-    {"+CAOC", at_cmd_plus_CAOC},        /* 3GPP TS 27.007 7.16 - Advice of Charge */
-    {"+CAPD", at_cmd_plus_CAPD},        /* 3GPP TS 27.007 8.39 - Postpone or dismiss an alarm */
-    {"+CAPTT", at_cmd_plus_CAPTT},      /* 3GPP TS 27.007 11.1.4 - Talker Access for Voice Group Call */
-    {"+CAREJ", at_cmd_plus_CAREJ},      /* 3GPP TS 27.007 11.1.2 - Reject an incoming Voice Group or Voice Broadcast Call */
-    {"+CAULEV", at_cmd_plus_CAULEV},    /* 3GPP TS 27.007 11.1.5 - Voice Group Call Uplink Status Presentation */
-    {"+CBC", at_cmd_plus_CBC},          /* 3GPP TS 27.007 8.4 - Battery charge */
-    {"+CBCS", at_cmd_plus_CBCS},        /* 3GPP TS 27.007 11.3.2 - VBS subscriptions and GId status */
-    {"+CBST", at_cmd_plus_CBST},        /* 3GPP TS 27.007 6.7 - Select bearer service type */
-    {"+CCFC", at_cmd_plus_CCFC},        /* 3GPP TS 27.007 7.11 - Call forwarding number and conditions */
-    {"+CCLK", at_cmd_plus_CCLK},        /* 3GPP TS 27.007 8.15 - Clock */
-    {"+CCUG", at_cmd_plus_CCUG},        /* 3GPP TS 27.007 7.10 - Closed user group */
-    {"+CCWA", at_cmd_plus_CCWA},        /* 3GPP TS 27.007 7.12 - Call waiting */
-    {"+CCWE", at_cmd_plus_CCWE},        /* 3GPP TS 27.007 8.28 - Call Meter maximum event */
-    {"+CDIP", at_cmd_plus_CDIP},        /* 3GPP TS 27.007 7.9 - Called line identification presentation */
-    {"+CDIS", at_cmd_plus_CDIS},        /* 3GPP TS 27.007 8.8 - Display control */
-    {"+CEER", at_cmd_plus_CEER},        /* 3GPP TS 27.007 6.10 - Extended error report */
-    {"+CFCS", at_cmd_plus_CFCS},        /* 3GPP TS 27.007 7.24 - Fast call setup conditions */
-    {"+CFUN", at_cmd_plus_CFUN},        /* 3GPP TS 27.007 8.2 - Set phone functionality */
-    {"+CGACT", at_cmd_plus_CGACT},      /* 3GPP TS 27.007 10.1.10 - PDP context activate or deactivate */
-    {"+CGANS", at_cmd_plus_CGANS},      /* 3GPP TS 27.007 10.1.16 - Manual response to a network request for PDP context activation */
-    {"+CGATT", at_cmd_plus_CGATT},      /* 3GPP TS 27.007 10.1.9 - PS attach or detach */
-    {"+CGAUTO", at_cmd_plus_CGAUTO},    /* 3GPP TS 27.007 10.1.15 - Automatic response to a network request for PDP context activation */
-    {"+CGCLASS", at_cmd_plus_CGCLASS},  /* 3GPP TS 27.007 10.1.17 - GPRS mobile station class (GPRS only) */
-    {"+CGCLOSP", at_cmd_plus_CGCLOSP},  /* 3GPP TS 27.007 10.1.13 - Configure local octet stream PAD parameters (Obsolete) */
-    {"+CGCLPAD", at_cmd_plus_CGCLPAD},  /* 3GPP TS 27.007 10.1.12 - Configure local triple-X PAD parameters (GPRS only) (Obsolete) */
-    {"+CGCMOD", at_cmd_plus_CGCMOD},    /* 3GPP TS 27.007 10.1.11 - PDP Context Modify */
-    {"+CGCS", at_cmd_plus_CGCS},        /* 3GPP TS 27.007 11.3.1 - VGCS subscriptions and GId status */
-    {"+CGDATA", at_cmd_plus_CGDATA},    /* 3GPP TS 27.007 10.1.12 - Enter data state */
-    {"+CGDCONT", at_cmd_plus_CGDCONT},  /* 3GPP TS 27.007 10.1.1 - Define PDP Context */
-    {"+CGDSCONT", at_cmd_plus_CGDSCONT},/* 3GPP TS 27.007 10.1.2 - Define Secondary PDP Context */
-    {"+CGEQMIN", at_cmd_plus_CGEQMIN},  /* 3GPP TS 27.007 10.1.7 - 3G Quality of Service Profile (Minimum acceptable) */
-    {"+CGEQNEG", at_cmd_plus_CGEQNEG},  /* 3GPP TS 27.007 10.1.8 - 3G Quality of Service Profile (Negotiated) */
-    {"+CGEQREQ", at_cmd_plus_CGEQREQ},  /* 3GPP TS 27.007 10.1.6 - 3G Quality of Service Profile (Requested) */
-    {"+CGEREP", at_cmd_plus_CGEREP},    /* 3GPP TS 27.007 10.1.18 - Packet Domain event reporting */
-    {"+CGMI", at_cmd_plus_CGMI},        /* 3GPP TS 27.007 5.1 - Request manufacturer identification */
-    {"+CGMM", at_cmd_plus_CGMM},        /* 3GPP TS 27.007 5.2 - Request model identification */
-    {"+CGMR", at_cmd_plus_CGMR},        /* 3GPP TS 27.007 5.3 - Request revision identification */
-    {"+CGPADDR", at_cmd_plus_CGPADDR},  /* 3GPP TS 27.007 10.1.14 - Show PDP address */
-    {"+CGQMIN", at_cmd_plus_CGQMIN},    /* 3GPP TS 27.007 10.1.5 - Quality of Service Profile (Minimum acceptable) */
-    {"+CGQREQ", at_cmd_plus_CGQREQ},    /* 3GPP TS 27.007 10.1.4 - Quality of Service Profile (Requested) */
-    {"+CGREG", at_cmd_plus_CGREG},      /* 3GPP TS 27.007 10.1.19 - GPRS network registration status */
-    {"+CGSMS", at_cmd_plus_CGSMS},      /* 3GPP TS 27.007 10.1.20 - Select service for MO SMS messages */
-    {"+CGSN", at_cmd_plus_CGSN},        /* 3GPP TS 27.007 5.4 - Request product serial number identification */
-    {"+CGTFT", at_cmd_plus_CGTFT},      /* 3GPP TS 27.007 10.1.3 - Traffic Flow Template */
-    {"+CHLD", at_cmd_plus_CHLD},        /* 3GPP TS 27.007 7.13 - Call related supplementary services */
-    {"+CHSA", at_cmd_plus_CHSA},        /* 3GPP TS 27.007 6.18 - HSCSD non-transparent asymmetry configuration */
-    {"+CHSC", at_cmd_plus_CHSC},        /* 3GPP TS 27.007 6.15 - HSCSD current call parameters */
-    {"+CHSD", at_cmd_plus_CHSD},        /* 3GPP TS 27.007 6.12 - HSCSD device parameters */
-    {"+CHSN", at_cmd_plus_CHSN},        /* 3GPP TS 27.007 6.14 - HSCSD non-transparent call configuration */
-    {"+CHSR", at_cmd_plus_CHSR},        /* 3GPP TS 27.007 6.16 - HSCSD parameters report */
-    {"+CHST", at_cmd_plus_CHST},        /* 3GPP TS 27.007 6.13 - HSCSD transparent call configuration */
-    {"+CHSU", at_cmd_plus_CHSU},        /* 3GPP TS 27.007 6.17 - HSCSD automatic user initiated upgrading */
-    {"+CHUP", at_cmd_plus_CHUP},        /* 3GPP TS 27.007 6.5 - Hangup call */
-    {"+CIMI", at_cmd_plus_CIMI},        /* 3GPP TS 27.007 5.6 - Request international mobile subscriber identity */
-    {"+CIND", at_cmd_plus_CIND},        /* 3GPP TS 27.007 8.9 - Indicator control */
-    {"+CKPD", at_cmd_plus_CKPD},        /* 3GPP TS 27.007 8.7 - Keypad control */
-    {"+CLAC", at_cmd_plus_CLAC},        /* 3GPP TS 27.007 8.37 - List all available AT commands */
-    {"+CLAE", at_cmd_plus_CLAE},        /* 3GPP TS 27.007 8.31 - Language Event */
-    {"+CLAN", at_cmd_plus_CLAN},        /* 3GPP TS 27.007 8.30 - Set Language */
-    {"+CLCC", at_cmd_plus_CLCC},        /* 3GPP TS 27.007 7.18 - List current calls */
-    {"+CLCK", at_cmd_plus_CLCK},        /* 3GPP TS 27.007 7.4 - Facility lock */
-    {"+CLIP", at_cmd_plus_CLIP},        /* 3GPP TS 27.007 7.6 - Calling line identification presentation */
-    {"+CLIR", at_cmd_plus_CLIR},        /* 3GPP TS 27.007 7.7 - Calling line identification restriction */
-    {"+CLVL", at_cmd_plus_CLVL},        /* 3GPP TS 27.007 8.23 - Loudspeaker volume level */
-    {"+CMAR", at_cmd_plus_CMAR},        /* 3GPP TS 27.007 8.36 - Master Reset */
-    {"+CMEC", at_cmd_plus_CMEC},        /* 3GPP TS 27.007 8.6 - Mobile Termination control mode */
-    {"+CMER", at_cmd_plus_CMER},        /* 3GPP TS 27.007 8.10 - Mobile Termination event reporting */
-    {"+CMOD", at_cmd_plus_CMOD},        /* 3GPP TS 27.007 6.4 - Call mode */
-    {"+CMUT", at_cmd_plus_CMUT},        /* 3GPP TS 27.007 8.24 - Mute control */
-    {"+CMUX", at_cmd_plus_CMUX},        /* 3GPP TS 27.007 5.7 - Multiplexing mode */
-    {"+CNUM", at_cmd_plus_CNUM},        /* 3GPP TS 27.007 7.1 - Subscriber number */
-    {"+COLP", at_cmd_plus_COLP},        /* 3GPP TS 27.007 7.8 - Connected line identification presentation */
-    {"+COPN", at_cmd_plus_COPN},        /* 3GPP TS 27.007 7.21 - Read operator names */
-    {"+COPS", at_cmd_plus_COPS},        /* 3GPP TS 27.007 7.3 - PLMN selection */
-    {"+COTDI", at_cmd_plus_COTDI},      /* 3GPP TS 27.007 11.1.9 - Originator to Dispatcher Information */
-    {"+CPAS", at_cmd_plus_CPAS},        /* 3GPP TS 27.007 8.1 - Phone activity status */
-    {"+CPBF", at_cmd_plus_CPBF},        /* 3GPP TS 27.007 8.13 - Find phonebook entries */
-    {"+CPBR", at_cmd_plus_CPBR},        /* 3GPP TS 27.007 8.12 - Read phonebook entries */
-    {"+CPBS", at_cmd_plus_CPBS},        /* 3GPP TS 27.007 8.11 - Select phonebook memory storage */
-    {"+CPBW", at_cmd_plus_CPBW},        /* 3GPP TS 27.007 8.14 - Write phonebook entry */
-    {"+CPIN", at_cmd_plus_CPIN},        /* 3GPP TS 27.007 8.3 - Enter PIN */
-    {"+CPLS", at_cmd_plus_CPLS},        /* 3GPP TS 27.007 7.20 - Selection of preferred PLMN list */
-    {"+CPOL", at_cmd_plus_CPOL},        /* 3GPP TS 27.007 7.19 - Preferred PLMN list */
-    {"+CPPS", at_cmd_plus_CPPS},        /* 3GPP TS 27.007 7.23 - eMLPP subscriptions */
-    {"+CPROT", at_cmd_plus_CPROT},      /* 3GPP TS 27.007 8.42 - Enter protocol mode */
-    {"+CPUC", at_cmd_plus_CPUC},        /* 3GPP TS 27.007 8.27 - Price per unit and currency table */
-    {"+CPWC", at_cmd_plus_CPWC},        /* 3GPP TS 27.007 8.29 - Power class */
-    {"+CPWD", at_cmd_plus_CPWD},        /* 3GPP TS 27.007 7.5 - Change password */
-    {"+CR", at_cmd_plus_CR},            /* 3GPP TS 27.007 6.9 - Service reporting control */
-    {"+CRC", at_cmd_plus_CRC},          /* 3GPP TS 27.007 6.11 - Cellular result codes */
-    {"+CREG", at_cmd_plus_CREG},        /* 3GPP TS 27.007 7.2 - Network registration */
-    {"+CRLP", at_cmd_plus_CRLP},        /* 3GPP TS 27.007 6.8 - Radio link protocol */
-    {"+CRMC", at_cmd_plus_CRMC},        /* 3GPP TS 27.007 8.34 - Ring Melody Control */
-    {"+CRMP", at_cmd_plus_CRMP},        /* 3GPP TS 27.007 8.35 - Ring Melody Playback */
-    {"+CRSL", at_cmd_plus_CRSL},        /* 3GPP TS 27.007 8.21 - Ringer sound level */
-    {"+CRSM", at_cmd_plus_CRSM},        /* 3GPP TS 27.007 8.18 - Restricted SIM access */
-    {"+CSCC", at_cmd_plus_CSCC},        /* 3GPP TS 27.007 8.19 - Secure control command */
-    {"+CSCS", at_cmd_plus_CSCS},        /* 3GPP TS 27.007 5.5 - Select TE character set */
-    {"+CSDF", at_cmd_plus_CSDF},        /* 3GPP TS 27.007 6.22 - Settings date format */
-    {"+CSGT", at_cmd_plus_CSGT},        /* 3GPP TS 27.007 8.32 - Set Greeting Text */
-    {"+CSIL", at_cmd_plus_CSIL},        /* 3GPP TS 27.007 6.23 - Silence Command */
-    {"+CSIM", at_cmd_plus_CSIM},        /* 3GPP TS 27.007 8.17 - Generic SIM access */
-    {"+CSNS", at_cmd_plus_CSNS},        /* 3GPP TS 27.007 6.19 - Single numbering scheme */
-    {"+CSQ", at_cmd_plus_CSQ},          /* 3GPP TS 27.007 8.5 - Signal quality */
-    {"+CSSN", at_cmd_plus_CSSN},        /* 3GPP TS 27.007 7.17 - Supplementary service notifications */
-    {"+CSTA", at_cmd_plus_CSTA},        /* 3GPP TS 27.007 6.1 - Select type of address */
-    {"+CSTF", at_cmd_plus_CSTF},        /* 3GPP TS 27.007 6.24 - Settings time format */
-    {"+CSVM", at_cmd_plus_CSVM},        /* 3GPP TS 27.007 8.33 - Set Voice Mail Number */
-    {"+CTFR", at_cmd_plus_CTFR},        /* 3GPP TS 27.007 7.14 - Call deflection */
-    {"+CTZR", at_cmd_plus_CTZR},        /* 3GPP TS 27.007 8.41 - Time Zone Reporting */
-    {"+CTZU", at_cmd_plus_CTZU},        /* 3GPP TS 27.007 8.40 - Automatic Time Zone Update */
-    {"+CUSD", at_cmd_plus_CUSD},        /* 3GPP TS 27.007 7.15 - Unstructured supplementary service data */
-    {"+CUUS1", at_cmd_plus_CUUS1},      /* 3GPP TS 27.007 7.26 - User to User Signalling Service 1 */
-    {"+CV120", at_cmd_plus_CV120},      /* 3GPP TS 27.007 6.21 - V.120 rate adaption protocol */
-    {"+CVHU", at_cmd_plus_CVHU},        /* 3GPP TS 27.007 6.20 - Voice Hangup Control */
-    {"+CVIB", at_cmd_plus_CVIB},        /* 3GPP TS 27.007 8.22 - Vibrator mode */
-    {"+DR", at_cmd_plus_DR},            /* V.250 6.6.2 - Data compression reporting */ 
-    {"+DS", at_cmd_plus_DS},            /* V.250 6.6.1 - Data compression */ 
-    {"+EB", at_cmd_plus_EB},            /* V.250 6.5.2 - Break handling in error control operation */ 
-    {"+EFCS", at_cmd_plus_EFCS},        /* V.250 6.5.4 - 32-bit frame check sequence */ 
-    {"+EFRAM", at_cmd_plus_EFRAM},      /* V.250 6.5.8 - Frame length */ 
-    {"+ER", at_cmd_plus_ER},            /* V.250 6.5.5 - Error control reporting */ 
-    {"+ES", at_cmd_plus_ES},            /* V.250 6.5.1 - Error control selection */ 
-    {"+ESR", at_cmd_plus_ESR},          /* V.250 6.5.3 - Selective repeat */ 
-    {"+ETBM", at_cmd_plus_ETBM},        /* V.250 6.5.6 - Call termination buffer management */ 
-    {"+EWIND", at_cmd_plus_EWIND},      /* V.250 6.5.7 - Window size */ 
-    {"+FAR", at_cmd_plus_FAR},          /* T.31 8.5.1 - Adaptive reception control */ 
-    {"+FCL", at_cmd_plus_FCL},          /* T.31 8.5.2 - Carrier loss timeout */ 
-    {"+FCLASS", at_cmd_plus_FCLASS},    /* T.31 8.2 - Capabilities identification and control */ 
-    {"+FDD", at_cmd_plus_FDD},          /* T.31 8.5.3 - Double escape character replacement */ 
-    {"+FIT", at_cmd_plus_FIT},          /* T.31 8.5.4 - DTE inactivity timeout */ 
-    {"+FLO", at_cmd_plus_FLO},          /* T.31 says to implement something similar to +IFC */ 
-    {"+FMI", at_cmd_plus_GMI},          /* T.31 says to duplicate +GMI */ 
-    {"+FMM", at_cmd_plus_GMM},          /* T.31 says to duplicate +GMM */ 
-    {"+FMR", at_cmd_plus_GMR},          /* T.31 says to duplicate +GMR */ 
-    {"+FPR", at_cmd_plus_FPR},          /* T.31 says to implement something similar to +IPR */ 
-    {"+FRH", at_cmd_plus_FRH},          /* T.31 8.3.6 - HDLC receive */ 
-    {"+FRM", at_cmd_plus_FRM},          /* T.31 8.3.4 - Facsimile receive */ 
-    {"+FRS", at_cmd_plus_FRS},          /* T.31 8.3.2 - Receive silence */ 
-    {"+FTH", at_cmd_plus_FTH},          /* T.31 8.3.5 - HDLC transmit */ 
-    {"+FTM", at_cmd_plus_FTM},          /* T.31 8.3.3 - Facsimile transmit */ 
-    {"+FTS", at_cmd_plus_FTS},          /* T.31 8.3.1 - Transmit silence */ 
-    {"+GCAP", at_cmd_plus_GCAP},        /* V.250 6.1.9 - Request complete capabilities list */ 
-    {"+GCI", at_cmd_plus_GCI},          /* V.250 6.1.10 - Country of installation, */ 
-    {"+GMI", at_cmd_plus_GMI},          /* V.250 6.1.4 - Request manufacturer identification */ 
-    {"+GMM", at_cmd_plus_GMM},          /* V.250 6.1.5 - Request model identification */ 
-    {"+GMR", at_cmd_plus_GMR},          /* V.250 6.1.6 - Request revision identification */ 
-    {"+GOI", at_cmd_plus_GOI},          /* V.250 6.1.8 - Request global object identification */ 
-    {"+GSN", at_cmd_plus_GSN},          /* V.250 6.1.7 - Request product serial number identification */ 
-    {"+ICF", at_cmd_plus_ICF},          /* V.250 6.2.11 - DTE-DCE character framing */ 
-    {"+ICLOK", at_cmd_plus_ICLOK},      /* V.250 6.2.14 - Select sync transmit clock source */ 
-    {"+IDSR", at_cmd_plus_IDSR},        /* V.250 6.2.16 - Select data set ready option */ 
-    {"+IFC", at_cmd_plus_IFC},          /* V.250 6.2.12 - DTE-DCE local flow control */ 
-    {"+ILRR", at_cmd_plus_ILRR},        /* V.250 6.2.13 - DTE-DCE local rate reporting */ 
-    {"+ILSD", at_cmd_plus_ILSD},        /* V.250 6.2.15 - Select long space disconnect option */ 
-    {"+IPR", at_cmd_plus_IPR},          /* V.250 6.2.10 - Fixed DTE rate */ 
-    {"+IRTS", at_cmd_plus_IRTS},        /* V.250 6.2.17 - Select synchronous mode RTS option */ 
-    {"+MA", at_cmd_plus_MA},            /* V.250 6.4.2 - Modulation automode control */ 
-    {"+MR", at_cmd_plus_MR},            /* V.250 6.4.3 - Modulation reporting control */ 
-    {"+MS", at_cmd_plus_MS},            /* V.250 6.4.1 - Modulation selection */ 
-    {"+MSC", at_cmd_plus_MSC},          /* V.250 6.4.8 - Seamless rate change enable */ 
-    {"+MV18AM", at_cmd_plus_MV18AM},    /* V.250 6.4.6 - V.18 answering message editing */ 
-    {"+MV18P", at_cmd_plus_MV18P},      /* V.250 6.4.7 - Order of probes */ 
-    {"+MV18R", at_cmd_plus_MV18R},      /* V.250 6.4.5 - V.18 reporting control */ 
-    {"+MV18S", at_cmd_plus_MV18S},      /* V.250 6.4.4 - V.18 selection */ 
-    {"+TADR", at_cmd_plus_TADR},        /* V.250 6.7.2.9 - Local V.54 address */ 
-    {"+TAL", at_cmd_plus_TAL},          /* V.250 6.7.2.15 - Local analogue loop */ 
-    {"+TALS", at_cmd_plus_TALS},        /* V.250 6.7.2.6 - Analogue loop status */ 
-    {"+TDLS", at_cmd_plus_TDLS},        /* V.250 6.7.2.7 - Local digital loop status */ 
-    {"+TE140", at_cmd_plus_TE140},      /* V.250 6.7.2.1 - Enable ckt 140 */ 
-    {"+TE141", at_cmd_plus_TE141},      /* V.250 6.7.2.2 - Enable ckt 141 */ 
-    {"+TEPAL", at_cmd_plus_TEPAL},      /* V.250 6.7.2.5 - Enable front panel analogue loop */ 
-    {"+TEPDL", at_cmd_plus_TEPDL},      /* V.250 6.7.2.4 - Enable front panel RDL */ 
-    {"+TERDL", at_cmd_plus_TERDL},      /* V.250 6.7.2.3 - Enable RDL from remote */ 
-    {"+TLDL", at_cmd_plus_TLDL},        /* V.250 6.7.2.13 - Local digital loop */ 
-    {"+TMODE", at_cmd_plus_TMODE},      /* V.250 6.7.2.10 - Set V.54 mode */ 
-    {"+TNUM", at_cmd_plus_TNUM},        /* V.250 6.7.2.12 - Errored bit and block counts */ 
-    {"+TRDL", at_cmd_plus_TRDL},        /* V.250 6.7.2.14 - Request remote digital loop */ 
-    {"+TRDLS", at_cmd_plus_TRDLS},      /* V.250 6.7.2.8 - Remote digital loop status */ 
-    {"+TRES", at_cmd_plus_TRES},        /* V.250 6.7.2.17 - Self test result */ 
-    {"+TSELF", at_cmd_plus_TSELF},      /* V.250 6.7.2.16 - Self test */ 
-    {"+TTER", at_cmd_plus_TTER},        /* V.250 6.7.2.11 - Test error rate */ 
-    {"+VBT", at_cmd_plus_VBT},          /* 3GPP TS 27.007 C.2.2 - Buffer threshold setting */
-    {"+VCID", at_cmd_plus_VCID},        /* 3GPP TS 27.007 C.2.3 - Calling number ID presentation */
-    {"+VDR", at_cmd_plus_VDR},          /* V.253 10.3.1 - Distinctive ring (ring cadence reporting) */
-    {"+VDT", at_cmd_plus_VDT},          /* V.253 10.3.2 - Control tone cadence reporting */
-    {"+VDX", at_cmd_plus_VDX},          /* V.253 10.5.6 - Speakerphone duplex mode */
-    {"+VEM", at_cmd_plus_VEM},          /* V.253 10.5.7 - Deliver event reports */
-    {"+VGM", at_cmd_plus_VGM},          /* V.253 10.5.2 - Microphone gain */
-    {"+VGR", at_cmd_plus_VGR},          /* V.253 10.2.1 - Receive gain selection */
-    {"+VGS", at_cmd_plus_VGS},          /* V.253 10.5.3 - Speaker gain */
-    {"+VGT", at_cmd_plus_VGT},          /* V.253 10.2.2 - Volume selection */
-    {"+VIP", at_cmd_plus_VIP},          /* V.253 10.1.1 - Initialize voice parameters */
-    {"+VIT", at_cmd_plus_VIT},          /* V.253 10.2.3 - DTE/DCE inactivity timer */
-    {"+VLS", at_cmd_plus_VLS},          /* V.253 10.2.4 - Analogue source/destination selection */
-    {"+VPP", at_cmd_plus_VPP},          /* V.253 10.4.2 - Voice packet protocol */
-    {"+VRA", at_cmd_plus_VRA},          /* V.253 10.2.5 - Ringing tone goes away timer */
-    {"+VRID", at_cmd_plus_VRID},        /* Extension - Find the originating and destination numbers */
-    {"+VRL", at_cmd_plus_VRL},          /* V.253 10.1.2 - Ring local phone */
-    {"+VRN", at_cmd_plus_VRN},          /* V.253 10.2.6 - Ringing tone never appeared timer */
-    {"+VRX", at_cmd_plus_VRX},          /* V.253 10.1.3 - Voice receive state */
-    {"+VSD", at_cmd_plus_VSD},          /* V.253 10.2.7 - Silence detection (QUIET and SILENCE) */
-    {"+VSM", at_cmd_plus_VSM},          /* V.253 10.2.8 - Compression method selection */
-    {"+VSP", at_cmd_plus_VSP},          /* V.253 10.5.1 - Voice speakerphone state */
-    {"+VTA", at_cmd_plus_VTA},          /* V.253 10.5.4 - Train acoustic echo-canceller */ 
-    {"+VTD", at_cmd_plus_VTD},          /* V.253 10.2.9 - Beep tone duration timer */
-    {"+VTH", at_cmd_plus_VTH},          /* V.253 10.5.5 - Train line echo-canceller */ 
-    {"+VTR", at_cmd_plus_VTR},          /* V.253 10.1.4 - Voice duplex state */
-    {"+VTS", at_cmd_plus_VTS},          /* V.253 10.1.5 - DTMF and tone generation in voice */
-    {"+VTX", at_cmd_plus_VTX},          /* V.253 10.1.6 - Transmit data state */
-    {"+WS46", at_cmd_plus_WS46},        /* 3GPP TS 27.007 5.9 - PCCA STD-101 [17] select wireless network */
-    {";", at_cmd_dummy},                /* Dummy to absorb semi-colon delimiters in commands */
-    {"A", at_cmd_A},                    /* V.250 6.3.5 - Answer */ 
-    {"D", at_cmd_D},                    /* V.250 6.3.1 - Dial */ 
-    {"E", at_cmd_E},                    /* V.250 6.2.4 - Command echo */ 
-    {"H", at_cmd_H},                    /* V.250 6.3.6 - Hook control */ 
-    {"I", at_cmd_I},                    /* V.250 6.1.3 - Request identification information */ 
-    {"L", at_cmd_L},                    /* V.250 6.3.13 - Monitor speaker loudness */ 
-    {"M", at_cmd_M},                    /* V.250 6.3.14 - Monitor speaker mode */ 
-    {"O", at_cmd_O},                    /* V.250 6.3.7 - Return to online data state */ 
-    {"P", at_cmd_P},                    /* V.250 6.3.3 - Select pulse dialling (command) */ 
-    {"Q", at_cmd_Q},                    /* V.250 6.2.5 - Result code suppression */ 
-    {"S0", at_cmd_S0},                  /* V.250 6.3.8 - Automatic answer */ 
-    {"S10", at_cmd_S10},                /* V.250 6.3.12 - Automatic disconnect delay */ 
-    {"S3", at_cmd_S3},                  /* V.250 6.2.1 - Command line termination character */ 
-    {"S4", at_cmd_S4},                  /* V.250 6.2.2 - Response formatting character */ 
-    {"S5", at_cmd_S5},                  /* V.250 6.2.3 - Command line editing character */ 
-    {"S6", at_cmd_S6},                  /* V.250 6.3.9 - Pause before blind dialling */ 
-    {"S7", at_cmd_S7},                  /* V.250 6.3.10 - Connection completion timeout */ 
-    {"S8", at_cmd_S8},                  /* V.250 6.3.11 - Comma dial modifier time */ 
-    {"T", at_cmd_T},                    /* V.250 6.3.2 - Select tone dialling (command) */ 
-    {"V", at_cmd_V},                    /* V.250 6.2.6 - DCE response format */ 
-    {"X", at_cmd_X},                    /* V.250 6.2.7 - Result code selection and call progress monitoring control */ 
-    {"Z", at_cmd_Z},                    /* V.250 6.1.1 - Reset to default configuration */
-};
-
-static int cmd_compare(const void *a, const void *b)
-{
-    /* V.250 5.4.1 says upper and lower case are equivalent in commands */
-    return strncasecmp(((at_cmd_item_t *) a)->tag, ((at_cmd_item_t *) b)->tag, strlen(((at_cmd_item_t *) b)->tag));
-}
-/*- End of function --------------------------------------------------------*/
-
-static void at_interpreter(t31_state_t *s, const char *cmd, int len)
-{
-    int i;
-    int c;
-    at_cmd_item_t xxx;
-    at_cmd_item_t *yyy;
-    const char *t;
-
-    if (s->p.echo)
-        s->at_tx_handler(s, s->at_tx_user_data, (uint8_t *) cmd, len);
-
-    for (i = 0;  i < len;  i++)
-    {
-        /* The spec says the top bit should be ignored */
-        c = *cmd++ & 0x7F;
-        /* Handle incoming character */
-        if (s->line_ptr < 2)
-        {
-            /* Look for the initial "at", "AT", "a/" or "A/", and ignore anything before it */
-            /* V.250 5.2.1 only shows "at" and "AT" as command prefixes. "At" and "aT" are
-               not specified, despite 5.4.1 saying upper and lower case are equivalent in
-               commands. Let's be tolerant and accept them. */
-            if (tolower(c) == 'a')
-            {
-                s->line_ptr = 0;
-                s->line[s->line_ptr++] = toupper(c);
-            }
-            else if (s->line_ptr == 1)
-            {
-                if (tolower(c) == 't')
-                {
-                    /* We have an "AT" command */
-                    s->line[s->line_ptr++] = toupper(c);
-                }
-                else if (c == '/')
-                {
-                    /* We have an "A/" command */
-                    /* TODO: implement "A/" command repeat */
-                    s->line[s->line_ptr++] = c;
-                }
-                else
-                {
-                    s->line_ptr = 0;
-                }
-            }
-        }
-        else
-        {
-            /* We are beyond the initial AT */
-            if (c >= 0x20)
-            {
-                /* Add a new char */
-                if (s->line_ptr < (sizeof(s->line) - 1))
-                    s->line[s->line_ptr++] = toupper(c);
-            }
-            else if (c == s->p.s_regs[3])
-            {
-                /* End of command line. Do line validation */
-                s->line[s->line_ptr] = '\0';
-                if (s->line_ptr > 2)
-                {
-                    /* The spec says the commands within a command line are executed in order, until
-                       an error is found, or the end of the command line is reached. */
-                    t = s->line + 2;
-                    while (t  &&  *t)
-                    {
-                        xxx.tag = t;
-                        xxx.serv = 0;
-                        yyy = (at_cmd_item_t *) bsearch(&xxx, at_commands, sizeof(at_commands)/sizeof(at_cmd_item_t), sizeof(at_cmd_item_t), cmd_compare);
-                        if (yyy == NULL)
-                        {
-                            t = NULL;
-                            break;
-                        }
-                        /* We have a match. See if there is a better (i.e. longer) one */
-                        while (++yyy < &at_commands[sizeof(at_commands)/sizeof(at_cmd_item_t)]  &&  cmd_compare(&xxx, yyy) == 0)
-                            /* dummy */;
-                        yyy--;
-                        if ((t = yyy->serv(s, t)) == NULL)
-                            break;
-                        if (t == (const char *) -1)
-                            break;
-                    }
-                    if (t != (const char *) -1)
-                    {
-                        if (t == NULL)
-                            at_put_response_code(s, RESPONSE_CODE_ERROR);
-                        else
-                            at_put_response_code(s, RESPONSE_CODE_OK);
-                    }
-                }
-                else if (s->line_ptr == 2)
-                {
-                    /* It's just an empty "AT" command, return OK. */
-                    at_put_response_code(s, RESPONSE_CODE_OK);
-                }
-                s->line_ptr = 0;
-            }
-            else if (c == s->p.s_regs[5])
-            {
-                /* Command line editing character (backspace) */
-                if (s->line_ptr > 0)
-                    s->line_ptr--;
-            }
-            /* The spec says control characters, other than those
-               explicitly handled, should be ignored. */
-        }
-    }
+    return immediate_response;
 }
 /*- End of function --------------------------------------------------------*/
 
 void t31_call_event(t31_state_t *s, int event)
 {
-    tone_gen_descriptor_t tone_desc;
-
     span_log(&s->logging, SPAN_LOG_FLOW, "Call event %d received\n", event);
-    switch (event)
-    {
-    case T31_CALL_EVENT_ALERTING:
-        s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_RNG, (void *) 1);
-        if (s->display_callid && !s->callid_displayed)
-            t31_display_callid(s);
-        at_put_response_code(s, RESPONSE_CODE_RING);
-        break;
-    case T31_CALL_EVENT_ANSWERED:
-        s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_RNG, (void *) 0);
-        if (s->fclass_mode == 0)
-        {
-            /* Normal data modem connection */
-            s->at_rx_mode = AT_MODE_CONNECTED;
-            /* TODO: */
-        }
-        else
-        {
-            /* FAX modem connection */
-            s->at_rx_mode = AT_MODE_DELIVERY;
-            restart_modem(s, T31_CED_TONE);
-        }
-        break;
-    case T31_CALL_EVENT_CONNECTED:
-        span_log(&s->logging, SPAN_LOG_FLOW, "Dial call - connected. fclass=%d\n", s->fclass_mode);
-        s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_RNG, (void *) 0);
-        if (s->fclass_mode == 0)
-        {
-            /* Normal data modem connection */
-            s->at_rx_mode = AT_MODE_CONNECTED;
-            /* TODO: */
-        }
-        else
-        {
-            /* FAX modem connection */
-            s->at_rx_mode = AT_MODE_DELIVERY;
-            restart_modem(s, T31_CNG_TONE);
-            s->dte_is_waiting = TRUE;
-        }
-        break;
-    case T31_CALL_EVENT_BUSY:
-        s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
-        at_put_response_code(s, RESPONSE_CODE_BUSY);
-        break;
-    case T31_CALL_EVENT_NO_DIALTONE:
-        s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
-        at_put_response_code(s, RESPONSE_CODE_NO_DIALTONE);
-        break;
-    case T31_CALL_EVENT_NO_ANSWER:
-        s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
-        at_put_response_code(s, RESPONSE_CODE_NO_ANSWER);
-        break;
-    case T31_CALL_EVENT_HANGUP:
-        span_log(&s->logging, SPAN_LOG_FLOW, "Hangup... at_rx_mode %d\n", s->at_rx_mode);
-        s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_RNG, (void *) 0);
-        if (s->at_rx_mode != AT_MODE_OFFHOOK_COMMAND && s->at_rx_mode != AT_MODE_ONHOOK_COMMAND)
-            at_put_response_code(s, RESPONSE_CODE_NO_CARRIER);
-        s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
-        break;
-    default:
-        break;
-    }
+    at_call_event(&s->at_state, event);
 }
 /*- End of function --------------------------------------------------------*/
 
 int t31_at_rx(t31_state_t *s, const char *t, int len)
 {
-    s->last_dtedata_samples = s->call_samples;
-
-    switch (s->at_rx_mode)
+    if (s->dte_data_timeout)
+        s->dte_data_timeout = s->call_samples + ms_to_samples(5000);
+    switch (s->at_state.at_rx_mode)
     {
     case AT_MODE_ONHOOK_COMMAND:
     case AT_MODE_OFFHOOK_COMMAND:
-        at_interpreter(s, t, len);
+        at_interpreter(&s->at_state, t, len);
         break;
     case AT_MODE_DELIVERY:
         /* Data from the DTE in this state returns us to command mode */
-        s->rx_data_bytes = 0;
-        s->transmit = FALSE;
-        s->modem = T31_SILENCE;
-        s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
-        at_put_response_code(s, RESPONSE_CODE_OK);
+        if (len)
+        {
+            s->at_state.rx_data_bytes = 0;
+            s->at_state.transmit = FALSE;
+            s->modem = T31_SILENCE_TX;
+            t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
+        }
         break;
     case AT_MODE_HDLC:
         dle_unstuff_hdlc(s, t, len);
@@ -4394,215 +1369,337 @@ int t31_at_rx(t31_state_t *s, const char *t, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t31_rx(t31_state_t *s, int16_t *buf, int len)
+static int dummy_rx(void *user_data, const int16_t amp[], int len)
 {
-    int i;
-
-    /* Monitor for received silence.  Maximum needed detection is AT+FRS=255 (255*10ms). */
-    /* We could probably only run this loop if (s->modem == T31_SILENCE), however,
-       the spec says "when silence has been present on the line for the amount of
-       time specified".  That means some of the silence may have occurred before
-       the AT+FRS=n command. This condition, however, is not likely to ever be the
-       case.  (AT+FRS=n will usually be issued before the remote goes silent.) */
-    for (i = 0;  i < len;  i++)
-    {
-        if (power_meter_update(&(s->rx_power), buf[i]) > s->silence_threshold_power)
-        {
-            s->silence_heard = 0;
-        }
-        else
-        {        
-            if (s->silence_heard <= 255*ms_to_samples(10))
-                s->silence_heard++;
-        }
-    }
-
-    /* Time is determined by counting audio packets come in. */
-    s->call_samples += len;
-    /* In HDLC transmit mode if 5 seconds elapse without data from the DTE
-       then we must result in ERROR, returning to command-mode. */
-    if (s->at_rx_mode == AT_MODE_HDLC
-        &&
-        s->call_samples > s->last_dtedata_samples + ms_to_samples(5000))
-    {
-        s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
-        at_put_response_code(s, RESPONSE_CODE_ERROR);
-        restart_modem(s, T31_SILENCE);
-    }
-
-    if (!s->transmit  ||  s->modem == T31_CNG_TONE)
-    {
-        switch (s->modem)
-        {
-        case T31_CED_TONE:
-            break;
-        case T31_CNG_TONE:
-        case T31_V21_RX:
-            fsk_rx(&(s->v21rx), buf, len);
-            break;
-#if defined(ENABLE_V17)
-        case T31_V17_RX:
-            v17_rx(&(s->v17rx), buf, len);
-            if (!(s->rx_signal_present))
-                fsk_rx(&(s->v21rx), buf, len);
-            break;
-#endif
-        case T31_V27TER_RX:
-            v27ter_rx(&(s->v27ter_rx), buf, len);
-            if (!(s->rx_signal_present))
-                fsk_rx(&(s->v21rx), buf, len);
-            break;
-        case T31_V29_RX:
-            v29_rx(&(s->v29rx), buf, len);
-            if (!(s->rx_signal_present))
-                fsk_rx(&(s->v21rx), buf, len);
-            break;
-        case T31_SILENCE:
-            if (s->silence_awaited  &&  s->silence_heard >= s->silence_awaited)
-            {
-                s->silence_heard = 0;
-                s->silence_awaited = 0;
-                at_put_response_code(s, RESPONSE_CODE_OK);
-                s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
-            }
-            break;
-        default:
-            /* Absorb the data, but ignore it. */
-            break;
-        }
-    }
-    return  0;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-int t31_tx(t31_state_t *s, int16_t *buf, int max_len)
+static int silence_rx(void *user_data, const int16_t amp[], int len)
 {
-    int len;
-    int lenx;
+    t31_state_t *s;
 
-    len = 0;
-    if (s->transmit)
+    /* Searching for a specified minimum period of silence. */
+    s = (t31_state_t *) user_data;
+    if (s->silence_awaited  &&  s->silence_heard >= s->silence_awaited)
     {
-        if (s->silent_samples)
-        {
-            len = s->silent_samples;
-            if (len > max_len)
-                len = max_len;
-            s->silent_samples -= len;
-            max_len -= len;
-            memset(buf, 0, len*sizeof(int16_t));
-            if ((max_len > 0  ||  !s->silent_samples)
-                &&
-                s->modem == T31_SILENCE)
-            {
-                at_put_response_code(s, RESPONSE_CODE_OK);
-                max_len = 0;
-                if (s->dohangup)
-                {
-                    s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_HANGUP, NULL);
-                    s->dohangup = FALSE;
-                    s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
-                }
-                else
-                {
-                    s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
-                }
-            }
-        }
-        if (max_len > 0)
-        {
-            switch (s->modem)
-            {
-            case T31_CED_TONE:
-                if ((lenx = tone_gen(&(s->tone_gen), buf + len, max_len)) <= 0)
-                {
-                    /* Go directly to V.21/HDLC transmit. */
-                    restart_modem(s, T31_V21_TX);
-                    s->at_rx_mode = AT_MODE_HDLC;
-                }
-                len += lenx;
-                break;
-            case T31_CNG_TONE:
-                len += tone_gen(&(s->tone_gen), buf + len, max_len);
-                break;
-            case T31_V21_TX:
-                len += fsk_tx(&(s->v21tx), buf + len, max_len);
-                break;
+        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
+        t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+        s->silence_heard = 0;
+        s->silence_awaited = 0;
+    }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int cng_rx(void *user_data, const int16_t amp[], int len)
+{
+    t31_state_t *s;
+
+    s = (t31_state_t *) user_data;
+    if (s->call_samples > ms_to_samples(s->at_state.p.s_regs[7]*1000))
+    {
+        /* After calling, S7 has elapsed... no carrier found. */
+        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_NO_CARRIER);
+        restart_modem(s, T31_SILENCE_TX);
+        at_modem_control(&s->at_state, AT_MODEM_CONTROL_HANGUP, NULL);
+        t31_set_at_rx_mode(s, AT_MODE_ONHOOK_COMMAND);
+    }
+    else
+    {
+        fsk_rx(&(s->v21rx), amp, len);
+    }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
 #if defined(ENABLE_V17)
-            case T31_V17_TX:
-                if ((lenx = v17_tx(&(s->v17tx), buf + len, max_len)) <= 0)
-                {
-                    at_put_response_code(s, RESPONSE_CODE_OK);
-                    s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
-                    restart_modem(s, T31_SILENCE);
-                }
-                len += lenx;
-                break;
+static int early_v17_rx(void *user_data, const int16_t amp[], int len)
+{
+    t31_state_t *s;
+
+    s = (t31_state_t *) user_data;
+    v17_rx(&(s->v17rx), amp, len);
+    if (s->at_state.rx_trained)
+    {
+        /* The fast modem has trained, so we no longer need to run the slow
+           one in parallel. */
+        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&(s->v17rx)));
+        s->rx_handler = (span_rx_handler_t *) &v17_rx;
+        s->rx_user_data = &(s->v17rx);
+    }
+    else
+    {
+        fsk_rx(&(s->v21rx), amp, len);
+        if (s->rx_message_received)
+        {
+            /* We have received something, and the fast modem has not trained. We must
+               be receiving valid V.21 */
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.21\n");
+            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            s->rx_user_data = &(s->v21rx);
+        }
+    }
+    return len;
+}
+/*- End of function --------------------------------------------------------*/
 #endif
-            case T31_V27TER_TX:
-                if ((lenx = v27ter_tx(&(s->v27ter_tx), buf + len, max_len)) <= 0)
-                {
-                    at_put_response_code(s, RESPONSE_CODE_OK);
-                    s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
-                    restart_modem(s, T31_SILENCE);
-                }
-                len += lenx;
-                break;
-            case T31_V29_TX:
-                if ((lenx = v29_tx(&(s->v29tx), buf + len, max_len)) <= 0)
-                {
-                    at_put_response_code(s, RESPONSE_CODE_OK);
-                    s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
-                    restart_modem(s, T31_SILENCE);
-                }
-                len += lenx;
-                break;
-            }
+
+static int early_v27ter_rx(void *user_data, const int16_t amp[], int len)
+{
+    t31_state_t *s;
+
+    s = (t31_state_t *) user_data;
+    v27ter_rx(&(s->v27ter_rx), amp, len);
+    if (s->at_state.rx_trained)
+    {
+        /* The fast modem has trained, so we no longer need to run the slow
+           one in parallel. */
+        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.27ter (%.2fdBm0)\n", v27ter_rx_signal_power(&(s->v27ter_rx)));
+        s->rx_handler = (span_rx_handler_t *) &v27ter_rx;
+        s->rx_user_data = &(s->v27ter_rx);
+    }
+    else
+    {
+        fsk_rx(&(s->v21rx), amp, len);
+        if (s->rx_message_received)
+        {
+            /* We have received something, and the fast modem has not trained. We must
+               be receiving valid V.21 */
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.21\n");
+            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            s->rx_user_data = &(s->v21rx);
         }
     }
     return len;
 }
 /*- End of function --------------------------------------------------------*/
 
-int t31_init(t31_state_t *s,
-             t31_at_tx_handler_t *at_tx_handler,
-             void *at_tx_user_data,
-             t31_modem_control_handler_t *modem_control_handler,
-             void *modem_control_user_data)
+static int early_v29_rx(void *user_data, const int16_t amp[], int len)
 {
-    memset(s, 0, sizeof(*s));
-    if (at_tx_handler == NULL  ||  modem_control_handler == NULL)
-        return -1;
-#if defined(ENABLE_V17)
-    v17_rx_init(&(s->v17rx), 14400, fast_putbit, s);
-    v17_tx_init(&(s->v17tx), 14400, FALSE, fast_getbit, s);
-#endif
-    v29_rx_init(&(s->v29rx), 9600, fast_putbit, s);
-    v29_tx_init(&(s->v29tx), 9600, FALSE, fast_getbit, s);
-    v27ter_rx_init(&(s->v27ter_rx), 4800, fast_putbit, s);
-    v27ter_tx_init(&(s->v27ter_tx), 4800, FALSE, fast_getbit, s);
-    power_meter_init(&(s->rx_power), 4);
-    s->silence_threshold_power = power_meter_level_dbm0(-30);
-    s->rx_signal_present = FALSE;
+    t31_state_t *s;
 
-    t31_reset_callid(s);
-    s->dohangup = FALSE;
-    s->display_callid = 0;
-    s->line_ptr = 0;
-    s->silent_samples = 0;
+    s = (t31_state_t *) user_data;
+    v29_rx(&(s->v29rx), amp, len);
+    if (s->at_state.rx_trained)
+    {
+        /* The fast modem has trained, so we no longer need to run the slow
+           one in parallel. */
+        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&(s->v29rx)));
+        s->rx_handler = (span_rx_handler_t *) &v29_rx;
+        s->rx_user_data = &(s->v29rx);
+    }
+    else
+    {
+        fsk_rx(&(s->v21rx), amp, len);
+        if (s->rx_message_received)
+        {
+            /* We have received something, and the fast modem has not trained. We must
+               be receiving valid V.21 */
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.21\n");
+            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            s->rx_user_data = &(s->v21rx);
+        }
+    }
+    return len;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t31_rx(t31_state_t *s, int16_t amp[], int len)
+{
+    int i;
+    int32_t power;
+
+    /* Monitor for received silence.  Maximum needed detection is AT+FRS=255 (255*10ms). */
+    /* We could probably only run this loop if (s->modem == T31_SILENCE_RX), however,
+       the spec says "when silence has been present on the line for the amount of
+       time specified".  That means some of the silence may have occurred before
+       the AT+FRS=n command. This condition, however, is not likely to ever be the
+       case.  (AT+FRS=n will usually be issued before the remote goes silent.) */
+    for (i = 0;  i < len;  i++)
+    {
+        /* Clean up any DC influence. */
+        power = power_meter_update(&(s->rx_power), amp[i] - s->last_sample);
+        s->last_sample = amp[i];
+        if (power > s->silence_threshold_power)
+        {
+            s->silence_heard = 0;
+        }
+        else
+        {        
+            if (s->silence_heard <= ms_to_samples(255*10))
+                s->silence_heard++;
+        }
+    }
+
+    /* Time is determined by counting the samples in audio packets coming in. */
+    s->call_samples += len;
+
+    /* In HDLC transmit mode, if 5 seconds elapse without data from the DTE
+       we must treat this as an error. We return the result ERROR, and change
+       to command-mode. */
+    if (s->dte_data_timeout  &&  s->call_samples > s->dte_data_timeout)
+    {
+        t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_ERROR);
+        restart_modem(s, T31_SILENCE_TX);
+    }
+
+    if (!s->at_state.transmit  ||  s->modem == T31_CNG_TONE)
+        s->rx_handler(s->rx_user_data, amp, len);
+    return  0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int set_next_tx_type(t31_state_t *s)
+{
+    if (s->next_tx_handler)
+    {
+        s->tx_handler = s->next_tx_handler;
+        s->tx_user_data = s->next_tx_user_data;
+        s->next_tx_handler = NULL;
+        return 0;
+    }
+    /* If there is nothing else to change to, so use zero length silence */
+    silence_gen_alter(&(s->silence_gen), 0);
+    s->tx_handler = (span_tx_handler_t *) &silence_gen;
+    s->tx_user_data = &(s->silence_gen);
+    s->next_tx_handler = NULL;
+    return -1;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t31_tx(t31_state_t *s, int16_t amp[], int max_len)
+{
+    int len;
+
+    len = 0;
+    if (s->at_state.transmit)
+    {
+        if ((len = s->tx_handler(s->tx_user_data, amp, max_len)) < max_len)
+        {
+            /* Allow for one change of tx handler within a block */
+            set_next_tx_type(s);
+            if ((len += s->tx_handler(s->tx_user_data, amp + len, max_len - len)) < max_len)
+            {
+                switch (s->modem)
+                {
+                case T31_SILENCE_TX:
+                    s->modem = -1;
+                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
+                    if (s->at_state.do_hangup)
+                    {
+                        at_modem_control(&s->at_state, AT_MODEM_CONTROL_HANGUP, NULL);
+                        t31_set_at_rx_mode(s, AT_MODE_ONHOOK_COMMAND);
+                        s->at_state.do_hangup = FALSE;
+                    }
+                    else
+                    {
+                        t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+                    }
+                    break;
+                case T31_CED_TONE:
+                    /* Go directly to V.21/HDLC transmit. */
+                    s->modem = -1;
+                    restart_modem(s, T31_V21_TX);
+                    t31_set_at_rx_mode(s, AT_MODE_HDLC);
+                    break;
+                case T31_V21_TX:
+#if defined(ENABLE_V17)
+                case T31_V17_TX:
+#endif
+                case T31_V27TER_TX:
+                case T31_V29_TX:
+                    s->modem = -1;
+                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
+                    t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+                    restart_modem(s, T31_SILENCE_TX);
+                    break;
+                }
+            }
+        }
+    }
+    if (s->transmit_on_idle)
+    {
+        /* Pad to the requested length with silence */
+        memset(amp, 0, max_len*sizeof(int16_t));
+        len = max_len;        
+    }
+    return len;
+}
+/*- End of function --------------------------------------------------------*/
+
+void t31_set_transmit_on_idle(t31_state_t *s, int transmit_on_idle)
+{
+    s->transmit_on_idle = transmit_on_idle;
+}
+/*- End of function --------------------------------------------------------*/
+
+t31_state_t *t31_init(t31_state_t *s,
+                      at_tx_handler_t *at_tx_handler,
+                      void *at_tx_user_data,
+                      t31_modem_control_handler_t *modem_control_handler,
+                      void *modem_control_user_data,
+                      t38_tx_packet_handler_t *tx_t38_packet_handler,
+                      void *tx_t38_packet_user_data)
+{
+    if (at_tx_handler == NULL  ||  modem_control_handler == NULL)
+        return NULL;
+
+    memset(s, 0, sizeof(*s));
+    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
+    span_log_set_protocol(&s->logging, "T.31");
+
+    s->modem_control_handler = modem_control_handler;
+    s->modem_control_user_data = modem_control_user_data;
+#if defined(ENABLE_V17)
+    v17_rx_init(&(s->v17rx), 14400, non_ecm_put_bit, s);
+    v17_tx_init(&(s->v17tx), 14400, FALSE, non_ecm_get_bit, s);
+#endif
+    v29_rx_init(&(s->v29rx), 9600, non_ecm_put_bit, s);
+    v29_rx_signal_cutoff(&(s->v29rx), -45.5);
+    v29_tx_init(&(s->v29tx), 9600, FALSE, non_ecm_get_bit, s);
+    v27ter_rx_init(&(s->v27ter_rx), 4800, non_ecm_put_bit, s);
+    v27ter_tx_init(&(s->v27ter_tx), 4800, FALSE, non_ecm_get_bit, s);
+    silence_gen_init(&(s->silence_gen), 0);
+    power_meter_init(&(s->rx_power), 4);
+    s->last_sample = 0;
+    s->silence_threshold_power = power_meter_level_dbm0(-43);
+    s->at_state.rx_signal_present = FALSE;
+    s->at_state.rx_trained = FALSE;
+
+    s->at_state.do_hangup = FALSE;
+    s->at_state.line_ptr = 0;
     s->silence_heard = 0;
     s->silence_awaited = 0;
     s->call_samples = 0;
-    s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
     s->modem = -1;
-    s->transmit = -1;
-    s->p = profiles[0];
+    s->at_state.transmit = TRUE;
+    s->rx_handler = dummy_rx;
+    s->rx_user_data = NULL;
+    s->tx_handler = (span_tx_handler_t *) &silence_gen;
+    s->tx_user_data = &(s->silence_gen);
+
     if (queue_create(&(s->rx_queue), 4096, QUEUE_WRITE_ATOMIC | QUEUE_READ_ATOMIC) < 0)
-        return -1;
-    s->modem_control_handler = modem_control_handler;
-    s->modem_control_user_data = modem_control_user_data;
-    s->at_tx_handler = at_tx_handler;
-    s->at_tx_user_data = at_tx_user_data;
+        return NULL;
+    at_init(&s->at_state, at_tx_handler, at_tx_user_data, t31_modem_control_handler, s);
+    at_set_class1_handler(&s->at_state, process_class1_cmd, s);
+    s->at_state.dte_inactivity_timeout = DEFAULT_DTE_TIMEOUT;
+    if (tx_t38_packet_handler)
+    {
+        t38_core_init(&s->t38, process_rx_indicator, process_rx_data, process_rx_missing, (void *) s);
+        s->t38.tx_packet_handler = tx_t38_packet_handler;
+        s->t38.tx_packet_user_data = tx_t38_packet_user_data;
+    }
+    s->t38_mode = FALSE;
+    return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t31_release(t31_state_t *s)
+{
+    at_reset_call_info(&s->at_state);
+    free(s);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

@@ -1,11 +1,11 @@
 Summary:   Steve's DSP library for telephony spans.
 Name:      spandsp
-Version:   0.0.2
+Version:   0.0.3
 Release:   1
 License:   GPL
 URL:       http://www.soft-switch.org/spandsp
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
-Source:    http://www.soft-switch.org/spandsp/spandsp-0.0.2.tar.gz
+Source:    http://www.soft-switch.org/spandsp/spandsp-0.0.3.tar.gz
 
 Group:     System Environment/Libraries
 Obsoletes: spandsp
@@ -26,10 +26,6 @@ PreReq:    /sbin/install-info
 %description devel
 This package includes the header files and libraries needed for
 developing programs using spandsp.
-
-%changelog
-* Fri Mar 12 2004 Steve Underwood <steveu@coppice.org>
-  [0.0.1-1]
 
 %prep
 %setup
@@ -67,6 +63,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_prefix}/share/%{name}/global-tones.xml
 %{_prefix}/share/%{name}/tones.dtd
 
+%changelog
 %changelog
 * Sat Oct 16 2004 Steve Underwood <steveu@coppice.org> 0.0.2-1
 - Preparing for 0.0.2 release

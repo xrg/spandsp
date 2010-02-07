@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,10 +22,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis.c,v 1.13 2006/01/27 14:29:09 steveu Exp $
+ * $Id: v42bis.c,v 1.27 2006/11/04 11:28:59 steveu Exp $
  */
 
-/* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
+/* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. 
+   Currently it performs the core compression and decompression functions OK.
+   However, a number of the bells and whistles in V.42bis are incomplete. */
 
 /*! \file */
 
@@ -38,7 +39,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <string.h>
-#include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <ctype.h>
@@ -46,7 +46,7 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
-#include "spandsp/alaw_ulaw.h"
+#include "spandsp/bit_operations.h"
 #include "spandsp/v42bis.h"
 
 /* Fixed parameters from the spec. */
@@ -71,9 +71,9 @@ enum
     V42BIS_RESET = 2        /* Force reinitialisation */
 };
 
-static __inline__ void push_compressed_octet(v42bis_compress_state_t *ss, int octet)
+static __inline__ void push_compressed_raw_octet(v42bis_compress_state_t *ss, int octet)
 {
-    ss->output_buf[ss->output_octet_count++] = octet;
+    ss->output_buf[ss->output_octet_count++] = (uint8_t) octet;
     if (ss->output_octet_count >= ss->max_len)
     {
         ss->handler(ss->user_data, ss->output_buf, ss->output_octet_count);
@@ -88,7 +88,20 @@ static __inline__ void push_compressed_code(v42bis_compress_state_t *ss, int cod
     ss->output_bit_count += ss->v42bis_parm_c2;
     while (ss->output_bit_count >= 8)
     {
-        push_compressed_octet(ss, ss->output_bit_buffer >> 24);
+        push_compressed_raw_octet(ss, ss->output_bit_buffer >> 24);
+        ss->output_bit_buffer <<= 8;
+        ss->output_bit_count -= 8;
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ void push_compressed_octet(v42bis_compress_state_t *ss, int code)
+{
+    ss->output_bit_buffer |= code << (32 - 8 - ss->output_bit_count);
+    ss->output_bit_count += 8;
+    while (ss->output_bit_count >= 8)
+    {
+        push_compressed_raw_octet(ss, ss->output_bit_buffer >> 24);
         ss->output_bit_buffer <<= 8;
         ss->output_bit_count -= 8;
     }
@@ -97,13 +110,10 @@ static __inline__ void push_compressed_code(v42bis_compress_state_t *ss, int cod
 
 int v42bis_compress(v42bis_state_t *s, const uint8_t *buf, int len)
 {
-    int index;
-    int offset;
     int ptr;
     int i;
     uint32_t octet;
     uint32_t code;
-    uint8_t ch;
     v42bis_compress_state_t *ss;
 
     ss = &s->compress;
@@ -128,24 +138,29 @@ int v42bis_compress(v42bis_state_t *s, const uint8_t *buf, int len)
     while (ptr < len)
     {
         octet = buf[ptr++];
-        /* Hash to find a match */
-        index = (octet << (V42BIS_MAX_BITS - V42BIS_N3)) ^ ss->string_code;
-        offset = (index == 0)  ?  1  :  V42BIS_TABLE_SIZE - index;
-        for (;;)
+        if ((ss->dict[ss->string_code].children[octet >> 5] & (1 << (octet & 0x1F))))
         {
-            if (ss->code[index] == 0xFFFF)
-                break;
-            code = ss->code[index];
-            if (ss->prior_code[code] == ss->string_code  &&  ss->node_octet[code] == octet)
-                break;
-            if ((index -= offset) < 0)
-                index += V42BIS_TABLE_SIZE;
+            /* The leaf exists. Now find it in the table. */
+            /* TODO: This is a brute force scan for a match. We need something better. */
+            for (code = 0;  code < ss->v42bis_parm_c3;  code++)
+            {
+                if (ss->dict[code].parent_code == ss->string_code  &&  ss->dict[code].node_octet == octet)
+                    break;
+            }
         }
-        ss->compressibility_filter += (((8 << 20) - ss->compressibility_filter) >> 10);
-        if (ss->code[index] != 0xFFFF)
+        else
+        {
+            /* The leaf does not exist. */
+            code = s->v42bis_parm_n2;
+        }
+        /* 6.3(b) If the string matches a dictionary entry, and the entry is not that entry
+                  created by the last invocation of the string matching procedure, then the
+                  next character shall be read and appended to the string and this step
+                  repeated. */
+        if (code < ss->v42bis_parm_c3  &&  code != ss->latest_code)
         {
             /* The string was found */
-            ss->string_code = ss->code[index];
+            ss->string_code = code;
             ss->string_length++;
         }
         else
@@ -154,7 +169,7 @@ int v42bis_compress(v42bis_state_t *s, const uint8_t *buf, int len)
             if (!ss->transparent)
             {
                 /* 7.4 Encoding - we now have the longest matchable string, and will need to output the code for it. */
-                while (ss->v42bis_parm_c1 >= ss->v42bis_parm_c3)
+                while (ss->v42bis_parm_c1 >= ss->v42bis_parm_c3  &&  ss->v42bis_parm_c3 <= s->v42bis_parm_n2)
                 {
                     /* We need to increase the codeword size */
                     /* 7.4(a) */
@@ -171,85 +186,119 @@ int v42bis_compress(v42bis_state_t *s, const uint8_t *buf, int len)
             /* 7.6    Dictionary updating */
             /* 6.4    Add the string to the dictionary */
             /* 6.4(b) The string is not in the table. */
-            if (ss->string_length < s->v42bis_parm_n7)
+            if (code != ss->latest_code  &&  ss->string_length < s->v42bis_parm_n7)
             {
+                ss->latest_code = ss->v42bis_parm_c1;
                 /* 6.4(a) The length of the string is in range for adding to the dictionary */
-                ss->code[index] = ss->v42bis_parm_c1;
                 /* If the last code was a leaf, it no longer is */
-                ss->leaves[ss->string_code]++;
+                ss->dict[ss->string_code].leaves++;
+                ss->dict[ss->string_code].children[octet >> 5] |= (1 << (octet & 0x1F));
                 /* The new one is definitely a leaf */
-                ss->prior_code[ss->v42bis_parm_c1] = ss->string_code;
-                ss->leaves[ss->v42bis_parm_c1] = 0;
-                ss->node_octet[ss->v42bis_parm_c1] = octet;
+                ss->dict[ss->v42bis_parm_c1].parent_code = (uint16_t) ss->string_code;
+                ss->dict[ss->v42bis_parm_c1].leaves = 0;
+                ss->dict[ss->v42bis_parm_c1].node_octet = (uint8_t) octet;
                 /* 7.7    Node recovery */
                 /* 6.5    Recovering a dictionary entry to use next */
                 for (;;)
                 {
                     /* 6.5(a) and (b) */
-                    if (++ss->v42bis_parm_c1 >= s->v42bis_parm_n2)
+                    if ((int) (++ss->v42bis_parm_c1) >= s->v42bis_parm_n2)
                         ss->v42bis_parm_c1 = V42BIS_N5;
                     /* 6.5(c) We need to reuse a leaf node */
-                    if (ss->leaves[ss->v42bis_parm_c1])
+                    if (ss->dict[ss->v42bis_parm_c1].leaves)
                         continue;
-                    if (ss->prior_code[ss->v42bis_parm_c1] == 0xFFFF)
+                    if (ss->dict[ss->v42bis_parm_c1].parent_code == 0xFFFF)
                         break;
                     /* 6.5(d) Detach the leaf node from its parent, and re-use it */
-                    /* Clear the entry from the hash table */
-                    index = (ss->node_octet[ss->v42bis_parm_c1] << (V42BIS_MAX_BITS - V42BIS_N3)) ^ ss->prior_code[ss->v42bis_parm_c1];
-                    offset = (index == 0)  ?  1  :  V42BIS_TABLE_SIZE - index;
-                    for (;;)
-                    {
-                        if (ss->code[index] == ss->v42bis_parm_c1)
-                        {
-                            ss->code[index] = 0xFFFF;
-                            break;
-                        }
-                        if ((index -= offset) < 0)
-                            index += V42BIS_TABLE_SIZE;
-                    }
                     /* Possibly make the parent a leaf node again */
-                    ss->leaves[ss->prior_code[ss->v42bis_parm_c1]]--;
-                    ss->prior_code[ss->v42bis_parm_c1] = 0xFFFF;
+                    ss->dict[ss->dict[ss->v42bis_parm_c1].parent_code].leaves--;
+                    ss->dict[ss->dict[ss->v42bis_parm_c1].parent_code].children[ss->dict[ss->v42bis_parm_c1].node_octet >> 5] &= ~(1 << (ss->dict[ss->v42bis_parm_c1].node_octet & 0x1F));
+                    ss->dict[ss->v42bis_parm_c1].parent_code = 0xFFFF;
                     break;
-                }
-            }
-            /* 7.8   Data compressibility test */
-            ss->compressibility_filter += (((-ss->v42bis_parm_c2 << 20) - ss->compressibility_filter) >> 10);
-#if 0
-            if (ss->transparent)
-            {
-                /* 7.8.1 Transition to compressed mode - TODO */
-                if (ss->compressibility_filter > 0x1000)
-                {
-                    /* Switch out of transparent now, between codes. We need to send the octet which did not
-                       match, just before switching. */
-                    if (octet == ss->escape_code)
-                    {
-                        push_compressed_octet(ss, ss->escape_code++);
-                        push_compressed_octet(ss, V42BIS_EID);
-                    }
-                    else
-                    {
-                        push_compressed_octet(ss, octet);
-                    }
-                    push_compressed_octet(ss, ss->escape_code++);
-                    push_compressed_octet(ss, V42BIS_ECM);
-                    ss->transparent = FALSE;
                 }
             }
             else
             {
-                /* 7.8.2 Transition to transparent mode - TODO */
-                if (ss->compressibility_filter < 0)
+                ss->latest_code = 0xFFFFFFFF;
+            }
+            /* 7.8 Data compressibility test */
+            /* Filter on the balance of what went into the compressor, and what came out */
+            ss->compressibility_filter += ((((8*ss->string_length - ss->v42bis_parm_c2) << 20) - ss->compressibility_filter) >> 10);
+            if (ss->compression_mode == V42BIS_COMPRESSION_MODE_DYNAMIC)
+            {
+                /* Work out if it is appropriate to change between transparent and
+                   compressed mode. */
+                if (ss->transparent)
                 {
-                    /* Switch into transparent now, between codes, and the unmatched octet should
-                       go out in transparent mode, just below */
-                    push_compressed_code(ss, V42BIS_ETM);
-                    ss->transparent = TRUE;
+                    if (ss->compressibility_filter > 0)
+                    {
+                        if (++ss->compressibility_persistence > 1000)
+                        {
+                            /* Schedule a switch to compressed mode */
+                            ss->change_transparency = -1;
+                            ss->compressibility_persistence = 0;
+                        }
+                    }
+                    else
+                    {
+                        ss->compressibility_persistence = 0;
+                    }
+                }
+                else
+                {
+                    if (ss->compressibility_filter < 0)
+                    {
+                        if (++ss->compressibility_persistence > 1000)
+                        {
+                            /* Schedule a switch to transparent mode */
+                            ss->change_transparency = 1;
+                            ss->compressibility_persistence = 0;
+                        }
+                    }
+                    else
+                    {
+                        ss->compressibility_persistence = 0;
+                    }
                 }
             }
-printf("Compress %x\n", ss->compressibility_filter);
-#endif
+            if (ss->change_transparency)
+            {
+                if (ss->change_transparency < 0)
+                {
+                    if (ss->transparent)
+                    {
+                        printf("Going compressed\n");
+                        /* 7.8.1 Transition to compressed mode */
+                        /* Switch out of transparent now, between codes. We need to send the octet which did not
+                        match, just before switching. */
+                        if (octet == ss->escape_code)
+                        {
+                            push_compressed_octet(ss, ss->escape_code++);
+                            push_compressed_octet(ss, V42BIS_EID);
+                        }
+                        else
+                        {
+                            push_compressed_octet(ss, octet);
+                        }
+                        push_compressed_octet(ss, ss->escape_code++);
+                        push_compressed_octet(ss, V42BIS_ECM);
+                        ss->transparent = FALSE;
+                    }
+                }
+                else
+                {
+                    if (!ss->transparent)
+                    {
+                        printf("Going transparent\n");
+                        /* 7.8.2 Transition to transparent mode */
+                        /* Switch into transparent now, between codes, and the unmatched octet should
+                           go out in transparent mode, just below */
+                        push_compressed_code(ss, V42BIS_ETM);
+                        ss->transparent = TRUE;
+                    }
+                }
+                ss->change_transparency = 0;
+            }
             /* 7.8.3 Reset function - TODO */
             ss->string_code = octet + V42BIS_N6;
             ss->string_length = 1;
@@ -283,12 +332,12 @@ int v42bis_compress_flush(v42bis_state_t *s)
         /* TODO: We use a positive FLUSH at all times. It is really needed, if the
            previous step resulted in no leftover bits. */
         push_compressed_code(ss, V42BIS_FLUSH);
-        while (ss->output_bit_count > 0)
-        {
-            push_compressed_octet(ss, ss->output_bit_buffer >> 24);
-            ss->output_bit_buffer <<= 8;
-            ss->output_bit_count -= 8;
-        }
+    }
+    while (ss->output_bit_count > 0)
+    {
+        push_compressed_raw_octet(ss, ss->output_bit_buffer >> 24);
+        ss->output_bit_buffer <<= 8;
+        ss->output_bit_count -= 8;
     }
     /* Now push out anything remaining. */
     if (ss->output_octet_count > 0)
@@ -307,9 +356,9 @@ int v42bis_compress_dump(v42bis_state_t *s)
     
     for (i = 0;  i < V42BIS_MAX_CODEWORDS;  i++)
     {
-        if (s->compress.prior_code[i] != 0xFFFF)
+        if (s->compress.dict[i].parent_code != 0xFFFF)
         {
-            printf("Entry %4x, prior %4x, leaves %d, octet %2x\n", i, s->compress.prior_code[i], s->compress.leaves[i], s->compress.node_octet[i]);
+            printf("Entry %4x, prior %4x, leaves %d, octet %2x\n", i, s->compress.dict[i].parent_code, s->compress.dict[i].leaves, s->compress.dict[i].node_octet);
         }
     }
     return 0;
@@ -321,12 +370,13 @@ int v42bis_decompress(v42bis_state_t *s, const uint8_t *buf, int len)
 {
     int ptr;
     int i;
-    int n;
     int this_length;
     uint8_t *string;
     uint32_t code;
     uint32_t new_code;
+    int code_len;
     v42bis_decompress_state_t *ss;
+    uint8_t decode_buf[V42BIS_MAX_STRING_SIZE];
 
     ss = &s->decompress;
     if ((s->v42bis_parm_p0 & 1) == 0)
@@ -339,161 +389,176 @@ int v42bis_decompress(v42bis_state_t *s, const uint8_t *buf, int len)
         return 0;
     }
     ptr = 0;
+    code_len = (ss->transparent)  ?  8  :  ss->v42bis_parm_c2;
     for (;;)
     {
-        if (ss->transparent)
-        {
-            /* TODO: implement transparent mode */
-            while (ptr < len)
-            {
-                code = buf[ptr++];
-                if (ss->escaped)
-                {
-                    ss->escaped = FALSE;
-                    switch (code)
-                    {
-                    V42BIS_ECM:
-                        break;
-                    V42BIS_EID:
-                        ss->transparent = FALSE;
-                        break;
-                    V42BIS_RESET:
-                        break;
-                    }
-                }
-                else if (code == ss->escape_code)
-                {
-                    ss->escape_code++;
-                    ss->escaped = TRUE;
-                }
-                else
-                {
-                }
-            }
-            if (ss->transparent)
-                break;
-        }
-        /* Gather enough bits for at least one whole code word */
-        while (ss->input_bit_count <= ss->v42bis_parm_c2  &&  ptr < len)
+        /* Fill up the bit buffer. */
+        while (ss->input_bit_count < 32 - 8  &&  ptr < len)
         {
             ss->input_bit_count += 8;
             ss->input_bit_buffer |= (uint32_t) buf[ptr++] << (32 - ss->input_bit_count);
         }
-        if (ss->input_bit_count <= ss->v42bis_parm_c2)
+        if (ss->input_bit_count < code_len)
             break;
-        new_code = ss->input_bit_buffer >> (32 - ss->v42bis_parm_c2);
-        ss->input_bit_count -= ss->v42bis_parm_c2;
-        ss->input_bit_buffer <<= ss->v42bis_parm_c2;
-        if (new_code < V42BIS_N6)
+        new_code = ss->input_bit_buffer >> (32 - code_len);
+        ss->input_bit_count -= code_len;
+        ss->input_bit_buffer <<= code_len;
+        if (ss->transparent)
         {
-            /* We have a control code. */
-            switch (new_code)
+            code = new_code;
+            if (ss->escaped)
             {
-            case V42BIS_ETM:
-                printf("Hit V42BIS_ETM\n");
-                ss->transparent = TRUE;
-                break;
-            case V42BIS_FLUSH:
-                printf("Hit V42BIS_FLUSH\n");
-                v42bis_decompress_flush(s);
-                break;
-            case V42BIS_STEPUP:
-                /* We need to increase the codeword size */
-                printf("Hit V42BIS_STEPUP\n");
-                if (ss->v42bis_parm_c3 >= s->v42bis_parm_n2)
+                ss->escaped = FALSE;
+                if (code == V42BIS_ECM)
                 {
-                    /* Invalid condition */
-                    return -1;
+                    printf("Hit V42BIS_ECM\n");
+                    ss->transparent = FALSE;
+                    code_len = ss->v42bis_parm_c2;
                 }
-                ss->v42bis_parm_c2++;
-                ss->v42bis_parm_c3 <<= 1;
-                break;
+                else if (code == V42BIS_EID)
+                {
+                    printf("Hit V42BIS_EID\n");
+                    ss->output_buf[ss->output_octet_count++] = ss->escape_code - 1;
+                    if (ss->output_octet_count >= ss->max_len - s->v42bis_parm_n7)
+                    {
+                        ss->handler(ss->user_data, ss->output_buf, ss->output_octet_count);
+                        ss->output_octet_count = 0;
+                    }
+                }
+                else if (code == V42BIS_RESET)
+                {
+                    printf("Hit V42BIS_RESET\n");
+                }
+                else
+                {
+                    printf("Hit V42BIS_???? - %u\n", code);
+                }
             }
-            continue;
+            else if (code == ss->escape_code)
+            {
+                ss->escape_code++;
+                ss->escaped = TRUE;
+            }
+            else
+            {
+                ss->output_buf[ss->output_octet_count++] = code;
+                if (ss->output_octet_count >= ss->max_len - s->v42bis_parm_n7)
+                {
+                    ss->handler(ss->user_data, ss->output_buf, ss->output_octet_count);
+                    ss->output_octet_count = 0;
+                }
+            }
         }
-        if (ss->first)
+        else
         {
-            ss->first = FALSE;
-            ss->octet = new_code - V42BIS_N6;
-            ss->output_buf[0] = ss->octet;
-            ss->output_octet_count = 1;
+            if (new_code < V42BIS_N6)
+            {
+                /* We have a control code. */
+                switch (new_code)
+                {
+                case V42BIS_ETM:
+                    printf("Hit V42BIS_ETM\n");
+                    ss->transparent = TRUE;
+                    code_len = 8;
+                    break;
+                case V42BIS_FLUSH:
+                    printf("Hit V42BIS_FLUSH\n");
+                    v42bis_decompress_flush(s);
+                    break;
+                case V42BIS_STEPUP:
+                    /* We need to increase the codeword size */
+                    printf("Hit V42BIS_STEPUP\n");
+                    if (ss->v42bis_parm_c3 >= s->v42bis_parm_n2)
+                    {
+                        /* Invalid condition */
+                        return -1;
+                    }
+                    code_len = ++ss->v42bis_parm_c2;
+                    ss->v42bis_parm_c3 <<= 1;
+                    break;
+                }
+                continue;
+            }
+            if (ss->first)
+            {
+                ss->first = FALSE;
+                ss->octet = new_code - V42BIS_N6;
+                ss->output_buf[0] = (uint8_t) ss->octet;
+                ss->output_octet_count = 1;
+                if (ss->output_octet_count >= ss->max_len - s->v42bis_parm_n7)
+                {
+                    ss->handler(ss->user_data, ss->output_buf, ss->output_octet_count);
+                    ss->output_octet_count = 0;
+                }
+                ss->old_code = new_code;
+                continue;
+            }
+            /* Start at the end of the buffer, and decode backwards */
+            string = &decode_buf[V42BIS_MAX_STRING_SIZE - 1];
+            /* Check the received code is valid. It can't be too big, as we pulled only the expected number
+            of bits from the input stream. It could, however, be unknown. */
+            if (ss->dict[new_code].parent_code == 0xFFFF)
+                return -1;
+            /* Otherwise we do a straight decode of the new code. */
+            code = new_code;
+            /* Trace back through the octets which form the string, and output them. */
+            while (code >= V42BIS_N5)
+            {
+if (code > 4095) {printf("Code is 0x%X\n", code); exit(2);}
+                *string-- = ss->dict[code].node_octet;
+                code = ss->dict[code].parent_code;
+            }
+            *string = (uint8_t) (code - V42BIS_N6);
+            ss->octet = code - V42BIS_N6;
+            /* Output the decoded string. */
+            this_length = V42BIS_MAX_STRING_SIZE - (int) (string - decode_buf);
+            memcpy(ss->output_buf + ss->output_octet_count, string, this_length);
+            ss->output_octet_count += this_length;
             if (ss->output_octet_count >= ss->max_len - s->v42bis_parm_n7)
             {
                 ss->handler(ss->user_data, ss->output_buf, ss->output_octet_count);
                 ss->output_octet_count = 0;
             }
-            ss->old_code = new_code;
-            continue;
-        }
-        /* Start at the end of the buffer, and decode backwards */
-        string = &ss->decode_buf[V42BIS_MAX_STRING_SIZE - 1];
-        if (new_code == ss->v42bis_parm_c1)
-        {
-            /*
-             * This code deals with special situations like "XXXXXXX". The first X goes out
-             * as 0x5B. A code is then added to the encoder's dictionary for "XX". Immediately,
-             * the second and third X's match this code, even though it has not yet gone into
-             * the decoder's directory. We handle this by decoding the last code, and adding a
-             * single character to the end of the decoded string.
-             */
-            *string-- = ss->octet;
-            code = ss->old_code;
-        }
-        else
-        {
-            /* Check the received code is valid. It can't be too big, as we pulled only the expected number
-               of bits from the input stream. It could, however, be unknown. */
-            if (ss->prior_code[new_code] == 0xFFFF)
-                return -1;
-            /* Otherwise we do a straight decode of the new code. */
-            code = new_code;
-        }
-        /* Trace back through the octets which form the string, and output them. */
-        while (code >= V42BIS_N5)
-        {
-            *string-- = ss->node_octet[code];
-            code = ss->prior_code[code];
-        }
-        *string = code - V42BIS_N6;
-        ss->octet = code - V42BIS_N6;
-        /* Output the decoded string. */
-        this_length = ss->decode_buf + V42BIS_MAX_STRING_SIZE - string;
-        memcpy(ss->output_buf + ss->output_octet_count, string, this_length);
-        ss->output_octet_count += this_length;
-        if (ss->output_octet_count >= ss->max_len - s->v42bis_parm_n7)
-        {
-            ss->handler(ss->user_data, ss->output_buf, ss->output_octet_count);
-            ss->output_octet_count = 0;
-        }
-        /* 6.4    Add the string to the dictionary */
-        /* 6.4(b) The string is not in the table. */
-        if (ss->last_length < s->v42bis_parm_n7)
-        {
-            /* 6.4(a) The length of the string is in range for adding to the dictionary */
-            ss->leaves[ss->old_code]++;
-            /* The new one is definitely a leaf */
-            ss->prior_code[ss->v42bis_parm_c1] = ss->old_code;
-            ss->leaves[ss->v42bis_parm_c1] = 0;
-            ss->node_octet[ss->v42bis_parm_c1] = ss->octet;
-            /* 6.5    Recovering a dictionary entry to use next */
-            for (;;)
+            /* 6.4 Add the string to the dictionary */
+            if (ss->last_length < s->v42bis_parm_n7)
             {
-                /* 6.5(a) and (b) */
-                if (++ss->v42bis_parm_c1 >= s->v42bis_parm_n2)
-                    ss->v42bis_parm_c1 = V42BIS_N5;
-                /* 6.5(c) We need to reuse a leaf node */
-                if (ss->leaves[ss->v42bis_parm_c1])
-                    continue;
-                /* 6.5(d) This is a leaf node, so re-use it */
-                /* Possibly make the parent a leaf node again */
-                if (ss->prior_code[ss->v42bis_parm_c1] != 0xFFFF)
-                    ss->leaves[ss->prior_code[ss->v42bis_parm_c1]]--;
-                ss->prior_code[ss->v42bis_parm_c1] = 0xFFFF;
-                break;
+                /* 6.4(a) The string does not exceed N7 in length */
+                if (ss->last_old_code != ss->old_code
+                    ||
+                    ss->last_extra_octet != *string)
+                {
+                    /* 6.4(b) The string is not in the table. */
+                    ss->dict[ss->old_code].leaves++;
+                    /* The new one is definitely a leaf */
+                    ss->dict[ss->v42bis_parm_c1].parent_code = (uint16_t) ss->old_code;
+                    ss->dict[ss->v42bis_parm_c1].leaves = 0;
+                    ss->dict[ss->v42bis_parm_c1].node_octet = (uint8_t) ss->octet;
+                    /* 6.5 Recovering a dictionary entry to use next */
+                    for (;;)
+                    {
+                        /* 6.5(a) and (b) */
+                        if (++ss->v42bis_parm_c1 >= s->v42bis_parm_n2)
+                            ss->v42bis_parm_c1 = V42BIS_N5;
+                        /* 6.5(c) We need to reuse a leaf node */
+                        if (ss->dict[ss->v42bis_parm_c1].leaves)
+                            continue;
+                        /* 6.5(d) This is a leaf node, so re-use it */
+                        /* Possibly make the parent a leaf node again */
+                        if (ss->dict[ss->v42bis_parm_c1].parent_code != 0xFFFF)
+                            ss->dict[ss->dict[ss->v42bis_parm_c1].parent_code].leaves--;
+                        ss->dict[ss->v42bis_parm_c1].parent_code = 0xFFFF;
+                        break;
+                    }
+                }
             }
+            /* Record the addition to the dictionary, so we can check for repeat attempts
+               at the next code - see II.4.3 */
+            ss->last_old_code = ss->old_code;
+            ss->last_extra_octet = *string;
+
+            ss->old_code = new_code;
+            ss->last_length = this_length;
         }
-        ss->old_code = new_code;
-        ss->last_length = this_length;
     }
     return 0;
 }
@@ -521,15 +586,30 @@ int v42bis_decompress_dump(v42bis_state_t *s)
     
     for (i = 0;  i < V42BIS_MAX_CODEWORDS;  i++)
     {
-        if (s->decompress.prior_code[i] != 0xFFFF)
+        if (s->decompress.dict[i].parent_code != 0xFFFF)
         {
-            printf("Entry %4x, prior %4x, leaves %d, octet %2x\n", i, s->decompress.prior_code[i], s->decompress.leaves[i], s->decompress.node_octet[i]);
+            printf("Entry %4x, prior %4x, leaves %d, octet %2x\n", i, s->decompress.dict[i].parent_code, s->decompress.dict[i].leaves, s->decompress.dict[i].node_octet);
         }
     }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 #endif
+
+void v42bis_compression_control(v42bis_state_t *s, int mode)
+{
+    s->compress.compression_mode = mode;
+    switch (mode)
+    {
+    case V42BIS_COMPRESSION_MODE_ALWAYS:
+        s->compress.change_transparency = -1;
+        break;
+    case V42BIS_COMPRESSION_MODE_NEVER:
+        s->compress.change_transparency = 1;
+        break;
+    }
+}
+/*- End of function --------------------------------------------------------*/
 
 v42bis_state_t *v42bis_init(v42bis_state_t *s,
                             int negotiated_p0,
@@ -581,19 +661,25 @@ v42bis_state_t *v42bis_init(v42bis_state_t *s,
 
     s->compress.first =
     s->decompress.first = TRUE;
-    for (i = 0;  i < V42BIS_TABLE_SIZE;  i++)
-        s->compress.code[i] = 0xFFFF;
     for (i = 0;  i < V42BIS_MAX_CODEWORDS;  i++)
     {
-        s->compress.prior_code[i] =
-        s->decompress.prior_code[i] = 0xFFFF;
-        s->compress.leaves[i] =
-        s->decompress.leaves[i] = 0;
+        s->compress.dict[i].parent_code =
+        s->decompress.dict[i].parent_code = 0xFFFF;
+        s->compress.dict[i].leaves =
+        s->decompress.dict[i].leaves = 0;
     }
     /* Point the root nodes for decompression to themselves. It doesn't matter much what
        they are set to, as long as they are considered "known" codes. */
     for (i = 0;  i < V42BIS_N5;  i++)
-        s->decompress.prior_code[i] = i;
+        s->decompress.dict[i].parent_code = (uint16_t) i;
+    s->compress.string_code = 0xFFFFFFFF;
+    s->compress.latest_code = 0xFFFFFFFF;
+    
+    s->decompress.last_old_code = 0xFFFFFFFF;
+    s->decompress.last_extra_octet = -1;
+
+    s->compress.compression_mode = V42BIS_COMPRESSION_MODE_DYNAMIC;
+
     return s;
 }
 /*- End of function --------------------------------------------------------*/

@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.20 2005/12/25 15:08:36 steveu Exp $
+ * $Id: adsi_tests.c,v 1.28 2006/11/19 14:07:26 steveu Exp $
  */
 
 /*! \page adsi_tests_page ADSI tests
@@ -46,7 +45,12 @@ tests, these tests do not include line modelling.
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 #include <assert.h>
 #include <audiofile.h>
 #include <tiffio.h>
@@ -67,9 +71,11 @@ adsi_tx_state_t tx_adsi;
 int current_standard = 0;
 int good_message_received;
 
+int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg);
+
 int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg)
 {
-    char *t;
+    const char *t;
     int len;
     static int cycle = 0;
 
@@ -499,6 +505,7 @@ static void put_adsi_msg(void *user_data, const uint8_t *msg, int len)
     {
         /* This message appears corrupt */
         printf("Bad message contents\n");
+        exit(2);
     }
     printf("\n");
 }
@@ -514,15 +521,12 @@ int main(int argc, char *argv[])
     AFfilesetup filesetup;
     int outframes;
     int len;
-    char *s;
-    uint8_t ch;
-    int xx;
-    int yy;
     int i;
     int j;
     int push;
-    int samples;
+    int log_audio;
 
+    log_audio = FALSE;
     decode_test_file = NULL;
     current_standard = ADSI_STANDARD_CLASS;
     for (i = 1;  i < argc;  i++)
@@ -533,7 +537,7 @@ int main(int argc, char *argv[])
             decode_test_file = argv[i];
             continue;
         }
-        else if (strcmp(argv[i], "-s") == 0)
+        if (strcmp(argv[i], "-s") == 0)
         {
             i++;
             if (strcasecmp("CLASS", argv[i]) == 0)
@@ -552,8 +556,15 @@ int main(int argc, char *argv[])
                 current_standard = atoi(argv[i]);
             continue;
         }
+        if (strcmp(argv[i], "-l") == 0)
+        {
+            log_audio = TRUE;
+            continue;
+        }
     }
-
+    filesetup = AF_NULL_FILESETUP;
+    outhandle = AF_NULL_FILEHANDLE;
+    
 #if 0
     /* This part tests internal static routines in the ADSI module. It can
        only be run with a modified version of the ADSI module, which makes
@@ -582,16 +593,15 @@ int main(int argc, char *argv[])
     if (decode_test_file)
     {
         /* We will decode the audio from a wave file. */
-        inhandle = afOpenFile(decode_test_file, "r", NULL);
-        if (inhandle == AF_NULL_FILEHANDLE)
+        if ((inhandle = afOpenFile(decode_test_file, "r", NULL)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
             exit(2);
         }
 
         adsi_rx_init(&rx_adsi, current_standard, put_adsi_msg, NULL);
-        rx_adsi.logging.level = SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW;
-        rx_adsi.logging.tag = "ADSI";
+        span_log_set_level(&rx_adsi.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW);
+        span_log_set_tag(&rx_adsi.logging, "ADSI");
         for (;;)
         {
             len = afReadFrames(inhandle,
@@ -610,24 +620,24 @@ int main(int argc, char *argv[])
     }
     else
     {
-        filesetup = afNewFileSetup();
-        if (filesetup == AF_NULL_FILESETUP)
+        if (log_audio)
         {
-            fprintf(stderr, "    Failed to create file setup\n");
-            exit(2);
+            if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
+            {
+                fprintf(stderr, "    Failed to create file setup\n");
+                exit(2);
+            }
+            afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
+            afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
+            afInitFileFormat(filesetup, AF_FILE_WAVE);
+            afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
+        
+            if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
+            {
+                fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
+                exit(2);
+            }
         }
-        afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-        afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-        afInitFileFormat(filesetup, AF_FILE_WAVE);
-        afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
-    
-        outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
-        if (outhandle == AF_NULL_FILEHANDLE)
-        {
-            fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
-            exit(2);
-        }
-
         /* Go through all the standards */
         /* This assumes standard 0 is NULL, and TDD is the last in the list */
         for (j = 1;  j <= ADSI_STANDARD_TDD;  j++)
@@ -654,7 +664,10 @@ int main(int argc, char *argv[])
                     if (--push == 0)
                     {
                         if (!good_message_received)
+                        {
                             printf("No message received %s (%d)\n", adsi_standard_to_str(j), i);
+                            exit(2);
+                        }
                         good_message_received = FALSE;
                         adsi_msg_len = adsi_create_message(&tx_adsi, adsi_msg);
                         adsi_msg_len = adsi_put_message(&tx_adsi, adsi_msg, adsi_msg_len);
@@ -665,27 +678,34 @@ int main(int argc, char *argv[])
                     memset(&amp[len], 0, sizeof(int16_t)*(BLOCK_LEN - len));
                     len = BLOCK_LEN;
                 }
-                outframes = afWriteFrames(outhandle,
-                                          AF_DEFAULT_TRACK,
-                                          amp,
-                                          len);
-                if (outframes != len)
+                if (log_audio)
                 {
-                    fprintf(stderr, "    Error writing wave file\n");
-                    exit(2);
+                    outframes = afWriteFrames(outhandle,
+                                              AF_DEFAULT_TRACK,
+                                              amp,
+                                              len);
+                    if (outframes != len)
+                    {
+                        fprintf(stderr, "    Error writing wave file\n");
+                        exit(2);
+                    }
                 }
                 adsi_rx(&rx_adsi, amp, len);
             }
         }
-        if (afCloseFile(outhandle) != 0)
+        if (log_audio)
         {
-            fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
-            exit(2);
+            if (afCloseFile(outhandle) != 0)
+            {
+                fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
+                exit(2);
+            }
+            afFreeFileSetup(filesetup);
         }
-        afFreeFileSetup(filesetup);
     }
     
-    return  0;
+    printf("Tests passed.\n");
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

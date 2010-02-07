@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: async.h,v 1.2 2005/11/25 14:52:00 steveu Exp $
+ * $Id: async.h,v 1.6 2006/10/24 13:22:01 steveu Exp $
  */
 
 /*! \file */
@@ -53,12 +52,29 @@ and decoding must occur before data is fed to this module.
 /* Special "bit" values for the put and get bit functions */
 enum
 {
+    /*! \brief The carrier signal has dropped. */
     PUTBIT_CARRIER_DOWN = -1,
+    /*! \brief The carrier signal is up. This merely indicates that carrier
+         energy has been seen. It is not an indication that the carrier is either
+         valid, or of the expected type. */
     PUTBIT_CARRIER_UP = -2,
-    PUTBIT_TRAINING_SUCCEEDED = -3,
-    PUTBIT_TRAINING_FAILED = -4,
-    PUTBIT_FRAMING_OK = -5,
-    PUTBIT_END_OF_DATA = -6
+    /*! \brief The modem is training. This is an early indication that the
+        signal seems to be of the right type. This may be needed in time critical
+        applications, like T.38, to forward an early indication of what is happening
+        on the wire. */
+    PUTBIT_TRAINING_IN_PROGRESS = -3,
+    /*! \brief The modem has trained, and is ready for data exchange. */
+    PUTBIT_TRAINING_SUCCEEDED = -4,
+    /*! \brief The modem has failed to train. */
+    PUTBIT_TRAINING_FAILED = -5,
+    /*! \brief Packet framing (e.g. HDLC framing) is OK. */
+    PUTBIT_FRAMING_OK = -6,
+    /*! \brief The data stream has ended. */
+    PUTBIT_END_OF_DATA = -7,
+    /*! \brief An abort signal (e.g. an HDLC abort) has been received. */
+    PUTBIT_ABORT = -8,
+    /*! \brief A break signal (e.g. an async break) has been received. */
+    PUTBIT_BREAK = -9
 };
 
 /*! Message put function for data pumps */
@@ -166,7 +182,7 @@ void async_tx_init(async_tx_state_t *s,
     \brief Get the next bit of a transmitted serial bit stream.
     \param user_data An opaque point which must point to a transmitter context.
     \return the next bit, or PUTBIT_END_OF_DATA to indicate the data stream has ended. */
-int async_tx_bit(void *user_data);
+int async_tx_get_bit(void *user_data);
 
 /*! Initialise an asynchronous data receiver context.
     \brief Initialise an asynchronous data receiver context.
@@ -194,7 +210,7 @@ void async_rx_init(async_rx_state_t *s,
         - PUTBIT_TRAINING_SUCCEEDED
         - PUTBIT_TRAINING_FAILED
         - PUTBIT_END_OF_DATA */
-void async_rx_bit(void *user_data, int bit);
+void async_rx_put_bit(void *user_data, int bit);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,6 @@
-04.04.29 - 0.0.1k - Steve Underwood <steveu@coppice.org>
-    - The first version which gives solid faxing for a large number of people.
+06.05.23 - 0.0.3 - Steve Underwood <steveu@coppice.org>
+    - T.38 now implemented, though it needs further polishing.
+    - G.726 and G.722 now implemented.
 
 04.08.29 - 0.0.2 - Steve Underwood <steveu@coppice.org>
     - T.4 no longer uses libtiff for compresion and decompression on the line side
@@ -37,3 +38,7 @@
     - A bit more documentation added.
     - Some API inconsistencies cleaned up.
     - The usual bundle of assorted buglet fixes and polishing.
+
+04.04.29 - 0.0.1k - Steve Underwood <steveu@coppice.org>
+    - The first version which gives solid faxing for a large number of people.
+

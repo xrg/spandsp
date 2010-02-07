@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis.h,v 1.10 2006/01/27 14:29:09 steveu Exp $
+ * $Id: v42bis.h,v 1.14 2006/11/04 11:28:59 steveu Exp $
  */
 
 /*! \page v42bis_page V.42bis modem data compression
@@ -50,11 +49,32 @@ enum
     V42BIS_P0_BOTH_DIRECTIONS
 };
 
+enum
+{
+    V42BIS_COMPRESSION_MODE_DYNAMIC = 0,
+    V42BIS_COMPRESSION_MODE_ALWAYS,
+    V42BIS_COMPRESSION_MODE_NEVER
+};
+
 typedef void (*v42bis_frame_handler_t)(void *user_data, const uint8_t *pkt, int len);
 typedef void (*v42bis_data_handler_t)(void *user_data, const uint8_t *buf, int len);
 
 typedef struct
 {
+    /*! \brief The prior code for each defined code. */
+    uint16_t parent_code;
+    /*! \brief The number of leaf nodes this node has */
+    int16_t leaves;
+    /*! \brief This leaf octet for each defined code. */
+    uint8_t node_octet;
+    /*! \brief Bit map of the children which exist */
+    uint32_t children[8];
+} v42bis_dict_node_t;
+
+typedef struct
+{
+    /*! \brief Compression mode. */
+    int compression_mode;
     /*! \brief Callback function to handle received frames. */
     v42bis_frame_handler_t handler;
     /*! \brief An opaque pointer passed in calls to frame_handler. */
@@ -63,23 +83,19 @@ typedef struct
     int max_len;
 
     uint32_t string_code;
+    uint32_t latest_code;
     int string_length;
     uint32_t output_bit_buffer;
     int output_bit_count;
     int output_octet_count;
     uint8_t output_buf[1024];
-    /*! \brief The code hash table. */
-    uint16_t code[V42BIS_TABLE_SIZE];
-    /*! \brief The prior code for each defined code. */
-    uint16_t prior_code[V42BIS_MAX_CODEWORDS];
-    /*! \brief The number of leaf nodes this node has */
-    int16_t leaves[V42BIS_MAX_CODEWORDS];
-    /*! \brief This leaf octet for each defined code. */
-    uint8_t node_octet[V42BIS_MAX_CODEWORDS];
+    v42bis_dict_node_t dict[V42BIS_MAX_CODEWORDS];
     /*! \brief TRUE if we are in transparent (i.e. uncompressable) mode */
     int transparent;
+    int change_transparency;
     int compressibility_filter;
-
+    int compressibility_persistence;
+    
     /*! \brief Next empty dictionary entry */
     uint32_t v42bis_parm_c1;
     /*! \brief Current codeword size */
@@ -102,22 +118,18 @@ typedef struct
     int max_len;
 
     uint32_t old_code;
+    uint32_t last_old_code;
     uint32_t input_bit_buffer;
     int input_bit_count;
     int octet;
     int last_length;
     int output_octet_count;
     uint8_t output_buf[1024];
-    /*! \brief The prior code for each defined code. */
-    uint16_t prior_code[V42BIS_MAX_CODEWORDS];
-    /*! \brief The number of leaf nodes this node has */
-    int16_t leaves[V42BIS_MAX_CODEWORDS];
-    /*! \brief This leaf octet for each defined code. */
-    uint8_t node_octet[V42BIS_MAX_CODEWORDS];
-    /*! \brief This buffer holds the decoded string */
-    uint8_t decode_buf[V42BIS_MAX_STRING_SIZE];
+    v42bis_dict_node_t dict[V42BIS_MAX_CODEWORDS];
     /*! \brief TRUE if we are in transparent (i.e. uncompressable) mode */
     int transparent;
+
+    int last_extra_octet;
 
     /*! \brief Next empty dictionary entry */
     int v42bis_parm_c1;
@@ -202,6 +214,14 @@ v42bis_state_t *v42bis_init(v42bis_state_t *s,
                             v42bis_data_handler_t data_handler,
                             void *data_user_data,
                             int max_data_len);
+
+/*! Set the compression mode.
+    \param s The V.42bis context.
+    \param mode One of the V.42bis compression modes -
+            V42BIS_COMPRESSION_MODE_DYNAMIC,
+            V42BIS_COMPRESSION_MODE_ALWAYS,
+            V42BIS_COMPRESSION_MODE_NEVER */
+void v42bis_compression_control(v42bis_state_t *s, int mode);
 
 /*! Release a V.42bis context.
     \param s The V.42bis context.

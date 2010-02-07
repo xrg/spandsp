@@ -11,9 +11,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -24,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.29 2005/12/12 13:29:43 steveu Exp $
+ * $Id: adsi.c,v 1.36 2006/11/19 14:07:23 steveu Exp $
  */
 
 /*! \file */
@@ -37,12 +36,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 #include <assert.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
-#include "spandsp/vector.h"
 #include "spandsp/dds.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/async.h"
@@ -50,6 +53,7 @@
 #include "spandsp/fsk.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
+#include "spandsp/dtmf.h"
 #include "spandsp/adsi.h"
 
 #define BAUDOT_FIGURE_SHIFT     0x1B
@@ -61,10 +65,10 @@
 #define DLE 0x10
 #define SUB 0x1A
 
-static int adsi_encode_baudot(adsi_tx_state_t *s, uint8_t ch);
-static int adsi_decode_baudot(adsi_rx_state_t *s, uint8_t ch);
+static uint8_t adsi_encode_baudot(adsi_tx_state_t *s, uint8_t ch);
+static uint8_t adsi_decode_baudot(adsi_rx_state_t *s, uint8_t ch);
 
-static int adsi_tx_bit(void *user_data)
+static int adsi_tx_get_bit(void *user_data)
 {
     int bit;
     adsi_tx_state_t *s;
@@ -149,7 +153,7 @@ static int adsi_tdd_get_async_byte(void *user_data)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void adsi_rx_bit(void *user_data, int bit)
+static void adsi_rx_put_bit(void *user_data, int bit)
 {
     adsi_rx_state_t *s;
     int i;
@@ -219,11 +223,11 @@ static void adsi_rx_bit(void *user_data, int bit)
                         /* A message should start DLE SOH, but let's just check 
                            we are starting with a DLE for now */
                         if (s->in_progress == (0x80 | DLE))
-                            s->msg[s->msg_len++] = s->in_progress;
+                            s->msg[s->msg_len++] = (uint8_t) s->in_progress;
                     }
                     else
                     {
-                        s->msg[s->msg_len++] = s->in_progress;
+                        s->msg[s->msg_len++] = (uint8_t) s->in_progress;
                     }
                     if (s->msg_len >= 11  &&  s->msg_len == ((s->msg[6] & 0x7F) + 11))
                     {
@@ -247,7 +251,7 @@ static void adsi_rx_bit(void *user_data, int bit)
                 }
                 else
                 {
-                    s->msg[s->msg_len++] = s->in_progress;
+                    s->msg[s->msg_len++] = (uint8_t) s->in_progress;
                     if (s->msg_len >= 3  &&  s->msg_len == (s->msg[1] + 3))
                     {
                         /* Test the checksum */
@@ -276,6 +280,7 @@ static void adsi_rx_bit(void *user_data, int bit)
 static void adsi_tdd_put_async_byte(void *user_data, int byte)
 {
     adsi_rx_state_t *s;
+    uint8_t octet;
     
     s = (adsi_rx_state_t *) user_data;
     if (byte < 0)
@@ -306,8 +311,8 @@ static void adsi_tdd_put_async_byte(void *user_data, int byte)
         }
         return;
     }
-    if ((byte = adsi_decode_baudot(s, byte)))
-        s->msg[s->msg_len++] = byte;
+    if ((octet = adsi_decode_baudot(s, (uint8_t) byte)))
+        s->msg[s->msg_len++] = octet;
     if (s->msg_len >= 256)
     {
         s->put_msg(s->user_data, s->msg, s->msg_len);
@@ -347,18 +352,18 @@ static void start_tx(adsi_tx_state_t *s)
     switch (s->standard)
     {
     case ADSI_STANDARD_CLASS:
-        fsk_tx_init(&(s->fsktx), &preset_fsk_specs[FSK_BELL202], adsi_tx_bit, s);
+        fsk_tx_init(&(s->fsktx), &preset_fsk_specs[FSK_BELL202], adsi_tx_get_bit, s);
         break;
     case ADSI_STANDARD_CLIP:
     case ADSI_STANDARD_ACLIP:
     case ADSI_STANDARD_JCLIP:
-        fsk_tx_init(&(s->fsktx), &preset_fsk_specs[FSK_V23CH1], adsi_tx_bit, s);
+        fsk_tx_init(&(s->fsktx), &preset_fsk_specs[FSK_V23CH1], adsi_tx_get_bit, s);
         break;
     case ADSI_STANDARD_CLIP_DTMF:
         dtmf_tx_init(&(s->dtmftx));
         break;
     case ADSI_STANDARD_TDD:
-        fsk_tx_init(&(s->fsktx), &preset_fsk_specs[FSK_WEITBRECHT], async_tx_bit, &(s->asynctx));
+        fsk_tx_init(&(s->fsktx), &preset_fsk_specs[FSK_WEITBRECHT], async_tx_get_bit, &(s->asynctx));
         async_tx_init(&(s->asynctx), 5, ASYNC_PARITY_NONE, 2, FALSE, adsi_tdd_get_async_byte, s);
         /* Schedule an explicit shift at the start of baudot transmission */
         s->baudot_shift = 2;
@@ -397,18 +402,18 @@ void adsi_rx_init(adsi_rx_state_t *s,
     switch (standard)
     {
     case ADSI_STANDARD_CLASS:
-        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_BELL202], FALSE, adsi_rx_bit, s);
+        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_BELL202], FALSE, adsi_rx_put_bit, s);
         break;
     case ADSI_STANDARD_CLIP:
     case ADSI_STANDARD_ACLIP:
     case ADSI_STANDARD_JCLIP:
-        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_V23CH1], FALSE, adsi_rx_bit, s);
+        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_V23CH1], FALSE, adsi_rx_put_bit, s);
         break;
     case ADSI_STANDARD_CLIP_DTMF:
         dtmf_rx_init(&(s->dtmfrx), adsi_rx_dtmf, s);
         break;
     case ADSI_STANDARD_TDD:
-        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_WEITBRECHT], FALSE, async_rx_bit, &(s->asyncrx));
+        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_WEITBRECHT], FALSE, async_rx_put_bit, &(s->asyncrx));
         async_rx_init(&(s->asyncrx), 5, ASYNC_PARITY_NONE, 2, TRUE, adsi_tdd_put_async_byte, s);
         break;
     }
@@ -451,6 +456,7 @@ int adsi_put_message(adsi_tx_state_t *s, uint8_t *msg, int len)
     int byte;
     int parity;
     int sum;
+    size_t ii;
     uint16_t crc_value;
 
     /* Don't inject a new message when a previous one is still in progress */
@@ -467,7 +473,7 @@ int adsi_put_message(adsi_tx_state_t *s, uint8_t *msg, int len)
         if (len >= 128)
             return -1;
         msg[len] = '\0';
-        len -= dtmf_put(&(s->dtmftx), (char *) msg);
+        len -= (int) dtmf_tx_put(&(s->dtmftx), (char *) msg);
         break;
     case ADSI_STANDARD_JCLIP:
         if (len > 128 - 9)
@@ -479,7 +485,7 @@ int adsi_put_message(adsi_tx_state_t *s, uint8_t *msg, int len)
         s->msg[i++] = DLE;
         s->msg[i++] = STX;
         s->msg[i++] = msg[0];
-        s->msg[i++] = len - 2;
+        s->msg[i++] = (uint8_t) (len - 2);
         /* We might need to byte stuff the overall length, but the rest of the
            message should already be stuffed. */
         if (len - 2 == DLE)
@@ -496,12 +502,12 @@ int adsi_put_message(adsi_tx_state_t *s, uint8_t *msg, int len)
             parity = 0;
             for (k = 1;  k <= 7;  k++)
                 parity ^= (byte << k);
-            s->msg[j] = (s->msg[j] & 0x7F) | (parity & 0x80);
+            s->msg[j] = (s->msg[j] & 0x7F) | ((uint8_t) parity & 0x80);
         }
 
         crc_value = crc_itu16_calc(s->msg + 2, i - 2, 0);
-        s->msg[i++] = crc_value & 0xFF;
-        s->msg[i++] = (crc_value >> 8) & 0xFF;
+        s->msg[i++] = (uint8_t) (crc_value & 0xFF);
+        s->msg[i++] = (uint8_t) ((crc_value >> 8) & 0xFF);
         s->msg_len = i;
 
         s->ones_len = 80;
@@ -517,12 +523,12 @@ int adsi_put_message(adsi_tx_state_t *s, uint8_t *msg, int len)
             return -1;
         memcpy(s->msg, msg, len);
         /* Force the length in case it is wrong */
-        s->msg[1] = len - 2;
+        s->msg[1] = (uint8_t) (len - 2);
         /* Add the sumcheck */
         sum = 0;
-        for (i = 0;  i < len;  i++)
-            sum += s->msg[i];
-        s->msg[len] = (-sum) & 0xFF;
+        for (ii = 0;  ii < (size_t) len;  ii++)
+            sum += s->msg[ii];
+        s->msg[len] = (uint8_t) ((-sum) & 0xFF);
         s->msg_len = len + 1;
         s->ones_len = 80;
         break;
@@ -554,7 +560,7 @@ void adsi_tx_init(adsi_tx_state_t *s, int standard)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int adsi_encode_baudot(adsi_tx_state_t *s, uint8_t ch)
+static uint8_t adsi_encode_baudot(adsi_tx_state_t *s, uint8_t ch)
 {
     static const uint8_t conv[128] =
     {
@@ -712,7 +718,7 @@ static int adsi_encode_baudot(adsi_tx_state_t *s, uint8_t ch)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int adsi_decode_baudot(adsi_rx_state_t *s, uint8_t ch)
+static uint8_t adsi_decode_baudot(adsi_rx_state_t *s, uint8_t ch)
 {
     static const uint8_t conv[2][32] =
     {
@@ -864,9 +870,9 @@ int adsi_add_field(adsi_tx_state_t *s, uint8_t *msg, int len, uint8_t field_type
             if (field_type)
             {
                 msg[len++] = field_type;
-                msg[len++] = field_len;
+                msg[len++] = (uint8_t) field_len;
                 if (field_len == DLE)
-                    msg[len++] = field_len;
+                    msg[len++] = (uint8_t) field_len;
                 memcpy(msg + len, field_body, field_len);
                 len += field_len;
             }
@@ -894,9 +900,9 @@ int adsi_add_field(adsi_tx_state_t *s, uint8_t *msg, int len, uint8_t field_type
             msg[len++] = field_type;
             if (field_type == DLE)
                 msg[len++] = field_type;
-            msg[len++] = field_len;
+            msg[len++] = (uint8_t) field_len;
             if (field_len == DLE)
-                msg[len++] = field_len;
+                msg[len++] = (uint8_t) field_len;
             for (i = 0;  i < field_len;  i++)
             {
                 msg[len++] = field_body[i];
@@ -926,8 +932,8 @@ int adsi_add_field(adsi_tx_state_t *s, uint8_t *msg, int len, uint8_t field_type
             if ((x = adsi_encode_baudot(s, field_body[i])))
             {
                 if ((x & 0x3E0))
-                    msg[len++] = (x >> 5) & 0x1F;
-                msg[len++] = x & 0x1F;
+                    msg[len++] = (uint8_t) ((x >> 5) & 0x1F);
+                msg[len++] = (uint8_t) (x & 0x1F);
             }
         }
         break;

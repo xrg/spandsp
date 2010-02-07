@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn_tests.c,v 1.8 2005/11/27 12:36:22 steveu Exp $
+ * $Id: awgn_tests.c,v 1.12 2006/11/19 14:07:26 steveu Exp $
  */
 
 /*! \page awgn_tests_page AWGN tests
@@ -38,7 +37,12 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 #include <tiffio.h>
 
 #include "spandsp.h"
@@ -46,6 +50,8 @@
 #if !defined(M_PI)
 # define M_PI           3.14159265358979323846  /* pi */
 #endif
+
+#define OUT_FILE_NAME   "awgn.wav"
 
 /* Some simple sanity tests for the Gaussian noise generation routines */
 
@@ -62,9 +68,9 @@ int main (int argc, char *argv[])
     double x;
     double p;
     double o;
+    double error;
     int bins[65536];
     awgn_state_t noise_source;
-
 
     /* Generate noise at several RMS levels between -50dBm and 0dBm. Noise is
        generated for a large number of samples (1,000,000), and the RMS value
@@ -77,7 +83,7 @@ int main (int argc, char *argv[])
         clip_high = 0;
         clip_low = 0;
         total = 0.0;
-        awgn_init(&noise_source, idum, j);
+        awgn_init_dbm0(&noise_source, idum, (float) j);
         total_samples = 1000000;
         for (i = 0;  i < total_samples;  i++)
         {
@@ -87,13 +93,20 @@ int main (int argc, char *argv[])
             else if (value == -32768)
                 clip_low++;
             total += ((double) value)*((double) value);
-    	}
+        }
+        error = 100.0*(1.0 - sqrt(total/total_samples)/noise_source.rms);
         printf("RMS = %.3f (expected %d) %.2f%% error [clipped samples %d+%d]\n",
-               log10(sqrt(total/total_samples)/(32768.0*0.70711))*20.0 + 3.14,
+               log10(sqrt(total/total_samples)/32768.0)*20.0 + DBM0_MAX_POWER,
                j,
-               100.0*(1.0 - sqrt(total/total_samples)/noise_source.rms),
+               error,
                clip_low,
                clip_high);
+        /* We don't check the result at 0dBm0, as there will definitely be a lot of error due to clipping */
+        if (j < 0  &&  fabs(error) > 0.2)
+        {
+            printf("Test failed.\n");
+            exit(2);
+        }
     }
     /* Now look at the statistical spread of the results, by collecting data in
        bins from a large number of samples. Use a fairly high noise level, but
@@ -102,7 +115,7 @@ int main (int argc, char *argv[])
     memset(bins, 0, sizeof(bins));
     clip_high = 0;
     clip_low = 0;
-    awgn_init(&noise_source, idum, -15);
+    awgn_init_dbm0(&noise_source, idum, -15);
     total_samples = 10000000;
     for (i = 0;  i < total_samples;  i++)
     {
@@ -129,6 +142,8 @@ int main (int argc, char *argv[])
         /* Now send it out for graphing. */
         printf("%6d %.7f %.7f\n", i - 32768, x, p);
     }
+    
+    printf("Tests passed.\n");
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

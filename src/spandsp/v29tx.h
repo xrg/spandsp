@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.h,v 1.16 2005/12/29 09:54:24 steveu Exp $
+ * $Id: v29tx.h,v 1.23 2006/10/24 13:22:02 steveu Exp $
  */
 
 /*! \file */
@@ -47,36 +46,55 @@ signal is then a series of complex pulses, each an integer number of samples
 long. These can be shaped, using a suitable complex filter, and multiplied by a
 complex carrier signal to produce the final QAM signal for transmission. 
 
-The sampling rate for our transmitter is defined by the channel - 8000 per
-second. This is not a multiple of the baud rate (i.e. 2400 baud). The baud
-interval is actually 10/3 sample periods. Generating at the lowest common
-multiple of the baud rate and channel sample rate (i.e. 24000 samples/second),
-and then decimating to 8000 samples/second, would give good results. However,
-this would require considerable computation. A shortcut is to use slightly
-shaped pulses, instead of simple square ones. We can achieve the effect of pulse
-transitions at the 1/2 and 2/3 sample points by adjusting the first sample of
-each new pulse. The adjustment is simple. We need the effect of being 60 degrees
-or 120 degrees through a sine wave cycle at the Shannon rate at the sample
-point. This simply means we need to step by 0.25 or 0.75 of the actual step size
-on the first sample of those pulses which should start at the 1/3 or 2/3 sample
-positions. The logic and computation needed for this is much less than the
-computation needed for oversampling at 24000 samples/second. 
-
 The pulse shaping filter is only vaguely defined by the V.29 spec. Some of the
 other ITU modem specs. fully define the filter, typically specifying a root
 raised cosine filter, with 50% excess bandwidth. This is a pity, since it
 increases the variability of the received signal. However, the receiver's
-adaptive equalizer will largely compensate for these differences. The current
-design uses a root raised cosine filter with 50% excess bandwidth. 
+adaptive equalizer will compensate for these differences. The current
+design uses a root raised cosine filter with 25% excess bandwidth. Greater
+excess bandwidth will not allow the tranmitted signal to meet the spectral
+requirements.
+
+The sampling rate for our transmitter is defined by the channel - 8000 per
+second. This is not a multiple of the baud rate (i.e. 2400 baud). The baud
+interval is actually 10/3 sample periods. Instead of using a symmetric
+FIR to pulse shape the signal, a polyphase filter is used. This consists of
+10 sets of coefficients, offering zero to 9/10ths of a baud phase shift as well
+as root raised cosine filtering. The appropriate coefficient set is chosen for
+each signal sample generated.
 
 The carrier is generated using the DDS method. Using two second order resonators,
 started in quadrature, might be more efficient, as it would have less impact on
 the processor cache than a table lookup approach. However, the DDS approach
 suits the receiver better, so the same signal generator is also used for the
 transmitter. 
+
+The equation defining QAM modulation is:
+
+    s(n) = A*cos(2*pi*f*n + phi(n))
+
+where phi(n) is the phase of the information, and A is the amplitude of the information
+
+using the identity
+
+    cos(x + y) = cos(x)*cos(y) - sin(x)*sin(y)
+    
+we get
+
+    s(n) = A {cos(2*pi*f*n)*cos(phi(n)) - sin(2*pi*f*n)*sin(phi(n))}
+    
+substituting with the constellation positions
+
+    I(n) = A*cos(phi(n))
+    Q(n) = A*sin(phi(n))
+    
+gives
+
+    s(n) = I(n)*cos(2*pi*f*n) - Q(n)*sin(2*pi*f*n)
+
 */
 
-#define V29TX_FILTER_STEPS      27
+#define V29_TX_FILTER_STEPS     9
 
 /*!
     V.29 modem transmit side descriptor. This defines the working state for a
@@ -91,14 +109,17 @@ typedef struct
     /*! \brief A user specified opaque pointer passed to the callback function. */
     void *user_data;
 
+    /*! \brief Gain required to achieve the specified output power, not allowing
+               for the size of the current constellation. */
+    float base_gain;
+    /*! \brief Gain required to achieve the specified output power, allowing
+               for the size of the current constellation. */
     float gain;
 
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
-    complex_t rrc_filter[2*V29TX_FILTER_STEPS];
+    complexf_t rrc_filter[2*V29_TX_FILTER_STEPS];
     /*! \brief Current offset into the RRC pulse shaping filter buffer. */
     int rrc_filter_step;
-    /*! \brief The current constellation position. */
-    complex_t current_point;
 
     /*! \brief The register for the data scrambler. */
     unsigned int scramble_reg;
@@ -107,8 +128,6 @@ typedef struct
     /*! \brief TRUE if transmitting the training sequence, or shutting down transmission.
                FALSE if transmitting user data. */
     int in_training;
-    /*! A counter used to track progress through the optional TEP tone burst */
-    int tep_step;
     /*! \brief A counter used to track progress through sending the training sequence. */
     int training_step;
     /*! \brief An offset value into the table of training parameters, used to match the

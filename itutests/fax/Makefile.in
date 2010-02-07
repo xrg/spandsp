@@ -14,11 +14,9 @@
 
 @SET_MAKE@
 
-#
-# Makefile for building TIFF files from the ITU test pages
-#
-# $Id: Makefile.am,v 1.1 2005/12/28 04:25:28 steveu Exp $
-#
+
+SOURCES = $(generate_dithered_tif_SOURCES) $(generate_sized_pages_SOURCES)
+
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
@@ -41,6 +39,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+noinst_PROGRAMS = generate_dithered_tif$(EXEEXT) \
+	generate_sized_pages$(EXEEXT)
 subdir = itutests/fax
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -50,8 +50,39 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/src/config.h
 CONFIG_CLEAN_FILES =
-SOURCES =
-DIST_SOURCES =
+PROGRAMS = $(noinst_PROGRAMS)
+am_generate_dithered_tif_OBJECTS = generate_dithered_tif.$(OBJEXT)
+generate_dithered_tif_OBJECTS = $(am_generate_dithered_tif_OBJECTS)
+generate_dithered_tif_DEPENDENCIES =
+am_generate_sized_pages_OBJECTS = generate_sized_pages.$(OBJEXT)
+generate_sized_pages_OBJECTS = $(am_generate_sized_pages_OBJECTS)
+generate_sized_pages_DEPENDENCIES =
+DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/src
+depcomp = $(SHELL) $(top_srcdir)/config/depcomp
+am__depfiles_maybe = depfiles
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CFLAGS) $(CFLAGS)
+CCLD = $(CC)
+LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+SOURCES = $(generate_dithered_tif_SOURCES) \
+	$(generate_sized_pages_SOURCES)
+DIST_SOURCES = $(generate_dithered_tif_SOURCES) \
+	$(generate_sized_pages_SOURCES)
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
+am__installdirs = "$(DESTDIR)$(datadir)"
+nobase_dataDATA_INSTALL = $(install_sh_DATA)
+DATA = $(nobase_data_DATA)
+ETAGS = etags
+CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
@@ -69,6 +100,10 @@ COND_DOC_FALSE = @COND_DOC_FALSE@
 COND_DOC_TRUE = @COND_DOC_TRUE@
 COND_ITUTESTS_FALSE = @COND_ITUTESTS_FALSE@
 COND_ITUTESTS_TRUE = @COND_ITUTESTS_TRUE@
+COND_MMX_FALSE = @COND_MMX_FALSE@
+COND_MMX_TRUE = @COND_MMX_TRUE@
+COND_SSE_FALSE = @COND_SSE_FALSE@
+COND_SSE_TRUE = @COND_SSE_TRUE@
 COND_TESTS_FALSE = @COND_TESTS_FALSE@
 COND_TESTS_TRUE = @COND_TESTS_TRUE@
 CPP = @CPP@
@@ -159,14 +194,54 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
+AM_CFLAGS = -std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes
 PBM2G3 = pbmtog3
 FAX2TIFF = fax2tiff
 EXTRA_DIST = itu1.pbm itu2.pbm itu3.pbm itu4.pbm itu5.pbm itu6.pbm itu7.pbm itu8.pbm \
                test1.pbm test2.pbm test3.pbm test4.pbm
 
+nobase_data_DATA = itutests.tif \
+                    itu1.tif \
+                    itu2.tif \
+                    itu3.tif \
+                    itu4.tif \
+                    itu5.tif \
+                    itu6.tif \
+                    itu7.tif \
+                    itu8.tif \
+                    test1.tif \
+                    test2.tif \
+                    test3.tif \
+                    test4.tif \
+                    dithered.tif \
+                    100pages.tif \
+                    R16_154_A3.tif \
+                    R16_154_A4.tif \
+                    R16_154_B4.tif \
+                    R16_385_A3.tif \
+                    R16_385_A4.tif \
+                    R16_385_B4.tif \
+                    R16_77_A3.tif \
+                    R16_77_A4.tif \
+                    R16_77_B4.tif \
+                    R8_154_A3.tif \
+                    R8_154_A4.tif \
+                    R8_154_B4.tif \
+                    R8_385_A3.tif \
+                    R8_385_A4.tif \
+                    R8_385_B4.tif \
+                    R8_77_A3.tif \
+                    R8_77_A4.tif \
+                    R8_77_B4.tif
+
+generate_dithered_tif_SOURCES = generate_dithered_tif.c
+generate_dithered_tif_LDADD = -ltiff
+generate_sized_pages_SOURCES = generate_sized_pages.c
+generate_sized_pages_LDADD = -ltiff
 all: all-am
 
 .SUFFIXES:
+.SUFFIXES: .c .g3 .lo .o .obj .pbm .tif
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -197,6 +272,49 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
+clean-noinstPROGRAMS:
+	@list='$(noinst_PROGRAMS)'; for p in $$list; do \
+	  f=`echo $$p|sed 's/$(EXEEXT)$$//'`; \
+	  echo " rm -f $$p $$f"; \
+	  rm -f $$p $$f ; \
+	done
+generate_dithered_tif$(EXEEXT): $(generate_dithered_tif_OBJECTS) $(generate_dithered_tif_DEPENDENCIES) 
+	@rm -f generate_dithered_tif$(EXEEXT)
+	$(LINK) $(generate_dithered_tif_LDFLAGS) $(generate_dithered_tif_OBJECTS) $(generate_dithered_tif_LDADD) $(LIBS)
+generate_sized_pages$(EXEEXT): $(generate_sized_pages_OBJECTS) $(generate_sized_pages_DEPENDENCIES) 
+	@rm -f generate_sized_pages$(EXEEXT)
+	$(LINK) $(generate_sized_pages_LDFLAGS) $(generate_sized_pages_OBJECTS) $(generate_sized_pages_LDADD) $(LIBS)
+
+mostlyclean-compile:
+	-rm -f *.$(OBJEXT)
+
+distclean-compile:
+	-rm -f *.tab.c
+
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/generate_dithered_tif.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/generate_sized_pages.Po@am__quote@
+
+.c.o:
+@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c $<
+
+.c.obj:
+@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ `$(CYGPATH_W) '$<'`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+
+.c.lo:
+@am__fastdepCC_TRUE@	if $(LTCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Plo"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
+
 mostlyclean-libtool:
 	-rm -f *.lo
 
@@ -206,12 +324,73 @@ clean-libtool:
 distclean-libtool:
 	-rm -f libtool
 uninstall-info-am:
+install-nobase_dataDATA: $(nobase_data_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(datadir)" || $(mkdir_p) "$(DESTDIR)$(datadir)"
+	@$(am__vpath_adj_setup) \
+	list='$(nobase_data_DATA)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  $(am__vpath_adj) \
+	  echo " $(nobase_dataDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(datadir)/$$f'"; \
+	  $(nobase_dataDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(datadir)/$$f"; \
+	done
+
+uninstall-nobase_dataDATA:
+	@$(NORMAL_UNINSTALL)
+	@$(am__vpath_adj_setup) \
+	list='$(nobase_data_DATA)'; for p in $$list; do \
+	  $(am__vpath_adj) \
+	  echo " rm -f '$(DESTDIR)$(datadir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(datadir)/$$f"; \
+	done
+
+ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
+	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	mkid -fID $$unique
 tags: TAGS
-TAGS:
 
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+		$(TAGS_FILES) $(LISP)
+	tags=; \
+	here=`pwd`; \
+	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	if test -z "$(ETAGS_ARGS)$$tags$$unique"; then :; else \
+	  test -n "$$unique" || unique=$$empty_fix; \
+	  $(ETAGS) $(ETAGSFLAGS) $(AM_ETAGSFLAGS) $(ETAGS_ARGS) \
+	    $$tags $$unique; \
+	fi
 ctags: CTAGS
-CTAGS:
+CTAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+		$(TAGS_FILES) $(LISP)
+	tags=; \
+	here=`pwd`; \
+	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	test -z "$(CTAGS_ARGS)$$tags$$unique" \
+	  || $(CTAGS) $(CTAGSFLAGS) $(AM_CTAGSFLAGS) $(CTAGS_ARGS) \
+	     $$tags $$unique
 
+GTAGS:
+	here=`$(am__cd) $(top_builddir) && pwd` \
+	  && cd $(top_srcdir) \
+	  && gtags -i $(GTAGS_ARGS) $$here
+
+distclean-tags:
+	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 
 distdir: $(DISTFILES)
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
@@ -242,8 +421,11 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile
+all-am: Makefile $(PROGRAMS) $(DATA)
 installdirs:
+	for dir in "$(DESTDIR)$(datadir)"; do \
+	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
+	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -268,11 +450,14 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-clean-am: clean-generic clean-libtool mostlyclean-am
+clean-am: clean-generic clean-libtool clean-noinstPROGRAMS \
+	mostlyclean-am
 
 distclean: distclean-am
+	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
-distclean-am: clean-am distclean-generic distclean-libtool
+distclean-am: clean-am distclean-compile distclean-generic \
+	distclean-libtool distclean-tags
 
 dvi: dvi-am
 
@@ -284,7 +469,7 @@ info: info-am
 
 info-am:
 
-install-data-am:
+install-data-am: install-nobase_dataDATA
 
 install-exec-am:
 
@@ -295,12 +480,14 @@ install-man:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
+	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
 mostlyclean: mostlyclean-am
 
-mostlyclean-am: mostlyclean-generic mostlyclean-libtool
+mostlyclean-am: mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool
 
 pdf: pdf-am
 
@@ -310,96 +497,59 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-info-am
+uninstall-am: uninstall-info-am uninstall-nobase_dataDATA
 
-.PHONY: all all-am check check-am clean clean-generic clean-libtool \
-	distclean distclean-generic distclean-libtool distdir dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am install-exec install-exec-am \
-	install-info install-info-am install-man install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am uninstall uninstall-am \
-	uninstall-info-am
+.PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
+	clean-libtool clean-noinstPROGRAMS ctags distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am html html-am info info-am \
+	install install-am install-data install-data-am install-exec \
+	install-exec-am install-info install-info-am install-man \
+	install-nobase_dataDATA install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags uninstall uninstall-am uninstall-info-am \
+	uninstall-nobase_dataDATA
 
-
-all: itu1.tif itu2.tif itu3.tif itu4.tif itu5.tif itu6.tif itu7.tif itu8.tif \
-     test1.tif test2.tif test3.tif test4.tif
 
 clean:
 	rm -f *.tif *.g3
 
-itu1.tif: itu1.g3
-	${FAX2TIFF} -M -o itu1.tif itu1.g3
+itutests.tif: itu1.g3 itu2.g3 itu3.g3 itu4.g3 itu5.g3 itu6.g3 itu7.g3 itu8.g3 \
+              test1.g3 test2.g3 test3.g3 test4.g3
+	$(FAX2TIFF) -M -o $@ itu1.g3 itu2.g3 itu3.g3 itu4.g3 itu5.g3 itu6.g3 itu7.g3 itu8.g3 \
+                test1.g3 test2.g3 test3.g3 test4.g3
 
-itu1.g3: itu1.pbm
-	${PBM2G3} itu1.pbm >itu1.g3
+100pages.tif: itu1.g3 itu2.g3 itu3.g3 itu4.g3 itu5.g3 itu6.g3 itu7.g3 itu8.g3 \
+              test1.g3 test2.g3 test3.g3 test4.g3
+	$(FAX2TIFF) -M -o $@ \
+        itu1.g3 itu2.g3 itu3.g3 itu4.g3 itu5.g3 itu6.g3 itu7.g3 itu8.g3 test1.g3 test2.g3 test3.g3 test4.g3 \
+        itu1.g3 itu2.g3 itu3.g3 itu4.g3 itu5.g3 itu6.g3 itu7.g3 itu8.g3 test1.g3 test2.g3 test3.g3 test4.g3 \
+        itu1.g3 itu2.g3 itu3.g3 itu4.g3 itu5.g3 itu6.g3 itu7.g3 itu8.g3 test1.g3 test2.g3 test3.g3 test4.g3 \
+        itu1.g3 itu2.g3 itu3.g3 itu4.g3 itu5.g3 itu6.g3 itu7.g3 itu8.g3 test1.g3 test2.g3 test3.g3 test4.g3 \
+        itu1.g3 itu2.g3 itu3.g3 itu4.g3 itu5.g3 itu6.g3 itu7.g3 itu8.g3 test1.g3 test2.g3 test3.g3 test4.g3 \
+        itu1.g3 itu2.g3 itu3.g3 itu4.g3 itu5.g3 itu6.g3 itu7.g3 itu8.g3 test1.g3 test2.g3 test3.g3 test4.g3 \
+        itu1.g3 itu2.g3 itu3.g3 itu4.g3 itu5.g3 itu6.g3 itu7.g3 itu8.g3 test1.g3 test2.g3 test3.g3 test4.g3 \
+        itu1.g3 itu2.g3 itu3.g3 itu4.g3 itu5.g3 itu6.g3 itu7.g3 itu8.g3 test1.g3 test2.g3 test3.g3 test4.g3 \
+        itu1.g3 itu2.g3 itu3.g3 itu4.g3
 
-itu2.tif: itu2.g3
-	${FAX2TIFF} -M -o itu2.tif itu2.g3
+.g3.tif:
+	${FAX2TIFF} -M -o $*.tif $*.g3
 
-itu2.g3: itu2.pbm
-	${PBM2G3} itu2.pbm >itu2.g3
+.pbm.g3:
+	${PBM2G3} $*.pbm >$*.g3
 
-itu3.tif: itu3.g3
-	${FAX2TIFF} -M -o itu3.tif itu3.g3
+dithered.tif: generate_dithered_tif$(EXEEXT)
+	./generate_dithered_tif$(EXEEXT)
 
-itu3.g3: itu3.pbm
-	${PBM2G3} itu3.pbm >itu3.g3
-
-itu4.tif: itu4.g3
-	${FAX2TIFF} -M -o itu4.tif itu4.g3
-
-itu4.g3: itu4.pbm
-	${PBM2G3} itu4.pbm >itu4.g3
-
-itu5.tif: itu5.g3
-	${FAX2TIFF} -M -o itu5.tif itu5.g3
-
-itu5.g3: itu5.pbm
-	${PBM2G3} itu5.pbm >itu5.g3
-
-itu6.tif: itu6.g3
-	${FAX2TIFF} -M -o itu6.tif itu6.g3
-
-itu6.g3: itu6.pbm
-	${PBM2G3} itu6.pbm >itu6.g3
-
-itu7.tif: itu7.g3
-	${FAX2TIFF} -M -o itu7.tif itu7.g3
-
-itu7.g3: itu7.pbm
-	${PBM2G3} itu7.pbm >itu7.g3
-
-itu8.tif: itu8.g3
-	${FAX2TIFF} -M -o itu8.tif itu8.g3
-
-itu8.g3: itu8.pbm
-	${PBM2G3} itu8.pbm >itu8.g3
-
-test1.tif: test1.g3
-	${FAX2TIFF} -M -o test1.tif test1.g3
-
-test1.g3: test1.pbm
-	${PBM2G3} test1.pbm >test1.g3
-
-test2.tif: test2.g3
-	${FAX2TIFF} -M -o test2.tif test2.g3
-
-test2.g3: test2.pbm
-	${PBM2G3} test2.pbm >test2.g3
-
-test3.tif: test3.g3
-	${FAX2TIFF} -M -o test3.tif test3.g3
-
-test3.g3: test3.pbm
-	${PBM2G3} test3.pbm >test3.g3
-
-test4.tif: test4.g3
-	${FAX2TIFF} -M -o test4.tif test4.g3
-
-test4.g3: test4.pbm
-	${PBM2G3} test4.pbm >test4.g3
+R16_154_A3.tif R16_154_A4.tif R16_154_B4.tif \
+R16_385_A3.tif R16_385_A4.tif R16_385_B4.tif \
+R16_77_A3.tif R16_77_A4.tif R16_77_B4.tif \
+R8_154_A3.tif R8_154_A4.tif R8_154_B4.tif \
+R8_385_A3.tif R8_385_A4.tif R8_385_B4.tif \
+R8_77_A3.tif R8_77_A4.tif R8_77_B4.tif: generate_sized_pages$(EXEEXT)
+	./generate_sized_pages$(EXEEXT)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

@@ -1,9 +1,8 @@
 ## Makefile.am -- Process this file with automake to produce Makefile.in
 ##
 ## This program is free software; you can redistribute it and/or modify
-## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation; either version 2, or (at your option)
-## any later version.
+## it under the terms of the GNU General Public License version 2, as
+## published by the Free Software Foundation.
 ##
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -14,9 +13,15 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.24 2005/03/03 14:18:58 steveu Exp $
+## $Id: Makefile.am,v 1.58 2006/10/24 13:21:58 steveu Exp $
 
-AM_CFLAGS = -std=c99
+if COND_MMX
+    EX_CFLAGS = -mmmx -O3
+endif
+if COND_SSE
+    EX_CFLAGS = -msse -O3
+endif
+AM_CFLAGS = $(EX_CFLAGS) -std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes
 
 MAINTAINERCLEANFILES = Makefile.in
 
@@ -26,36 +31,59 @@ lib_LTLIBRARIES = libspandsp.la
 
 libspandsp_la_SOURCES = adsi.c \
                         async.c \
+                        at_interpreter.c \
                         awgn.c \
+                        bell_r2_mf.c \
                         bert.c \
+                        bit_operations.c \
+                        bitstream.c \
                         complex_dds.c \
                         complex_filters.c \
+                        complex_vector_float.c \
                         dds.c \
-                        ec_disable_tone.c \
+                        dtmf.c \
                         echo.c \
+                        fax.c \
                         fsk.c \
+                        g711.c \
                         g722_encode.c \
                         g722_decode.c \
                         g726.c \
+                        gsm0610_decode.c \
+                        gsm0610_encode.c \
+                        gsm0610_long_term.c \
+                        gsm0610_lpc.c \
+                        gsm0610_preprocess.c \
+                        gsm0610_rpe.c \
+                        gsm0610_short_term.c \
                         hdlc.c \
                         ima_adpcm.c \
                         logging.c \
+                        lpc10_analyse.c \
+                        lpc10_decode.c \
+                        lpc10_encode.c \
+                        lpc10_placev.c \
+                        lpc10_voicing.c \
                         modem_echo.c \
+                        modem_connect_tones.c \
                         noise.c \
                         oki_adpcm.c \
-                        oss.c \
                         playout.c \
                         plc.c \
                         power_meter.c \
                         queue.c \
                         schedule.c \
                         sig_tone.c \
+                        silence_gen.c \
                         super_tone_rx.c \
                         super_tone_tx.c \
                         t4.c \
                         t30.c \
                         t31.c \
                         t35.c \
+                        t38_core.c \
+                        t38_gateway.c \
+                        t38_terminal.c \
                         testcpuid.c \
                         time_scale.c \
                         tone_detect.c \
@@ -70,34 +98,44 @@ libspandsp_la_SOURCES = adsi.c \
                         v29tx.c \
                         v42.c \
                         v42bis.c \
-                        v8.c
+                        v8.c \
+                        vector_float.c \
+                        vector_int.c
+
 libspandsp_la_LDFLAGS = -version-info @SPANDSP_LT_CURRENT@:@SPANDSP_LT_REVISION@:@SPANDSP_LT_AGE@
 
 nobase_include_HEADERS = spandsp/adsi.h \
-                        spandsp/alaw_ulaw.h \
-                        spandsp/arctan2.h \
                         spandsp/async.h \
+                        spandsp/arctan2.h \
+                        spandsp/at_interpreter.h \
                         spandsp/awgn.h \
+                        spandsp/bell_r2_mf.h \
                         spandsp/bert.h \
                         spandsp/biquad.h \
+                        spandsp/bit_operations.h \
+                        spandsp/bitstream.h \
                         spandsp/complex.h \
                         spandsp/complex_filters.h \
+                        spandsp/complex_vector_float.h \
                         spandsp/dc_restore.h \
                         spandsp/dds.h \
-                        spandsp/ec_disable_tone.h \
+                        spandsp/dtmf.h \
                         spandsp/echo.h \
+                        spandsp/fax.h \
                         spandsp/fir.h \
                         spandsp/fsk.h \
                         spandsp/g168models.h \
+                        spandsp/g711.h \
                         spandsp/g722.h \
                         spandsp/g726.h \
+                        spandsp/gsm0610.h \
                         spandsp/hdlc.h \
                         spandsp/ima_adpcm.h \
                         spandsp/logging.h \
-                        spandsp/mmx.h \
+                        spandsp/lpc10.h \
                         spandsp/modem_echo.h \
+                        spandsp/modem_connect_tones.h \
                         spandsp/noise.h \
-                        spandsp/oss.h \
                         spandsp/oki_adpcm.h \
                         spandsp/playout.h \
                         spandsp/plc.h \
@@ -105,6 +143,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/queue.h \
                         spandsp/schedule.h \
                         spandsp/sig_tone.h \
+                        spandsp/silence_gen.h \
                         spandsp/super_tone_rx.h \
                         spandsp/super_tone_tx.h \
                         spandsp/t4.h \
@@ -112,6 +151,9 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/t30_fcf.h \
                         spandsp/t31.h \
                         spandsp/t35.h \
+                        spandsp/t38_core.h \
+                        spandsp/t38_gateway.h \
+                        spandsp/t38_terminal.h \
                         spandsp/telephony.h \
                         spandsp/time_scale.h \
                         spandsp/timing.h \
@@ -127,9 +169,23 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/v42.h \
                         spandsp/v42bis.h \
                         spandsp/v8.h \
-                        spandsp/vector.h \
+                        spandsp/vector_float.h \
+                        spandsp/vector_int.h \
                         spandsp.h
 
-noinst_HEADERS =        t4states.h \
-			faxfont.h
+noinst_HEADERS =        faxfont.h \
+                        gsm0610_local.h \
+                        lpc10_encdecs.h \
+                        t4states.h
 
+noinst_PROGRAMS =       at_dictionary_gen
+
+# We need to run at_dictionary_gen, so it generates the at_interpreter_dictionary.h file
+# used by several of the test programs.
+
+at_interpreter.$(OBJEXT): at_dictionary_gen$(EXEEXT) at_interpreter_dictionary.h
+
+at_interpreter.lo: at_dictionary_gen$(EXEEXT) at_interpreter_dictionary.h
+
+at_interpreter_dictionary.h: at_dictionary_gen$(EXEEXT)
+	./at_dictionary_gen$(EXEEXT) >at_interpreter_dictionary.h

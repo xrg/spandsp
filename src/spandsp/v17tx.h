@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.h,v 1.19 2005/12/29 09:54:24 steveu Exp $
+ * $Id: v17tx.h,v 1.26 2006/10/24 13:45:28 steveu Exp $
  */
 
 /*! \file */
@@ -58,27 +57,22 @@ complex pulses, each an integer number of samples long. These can be shaped,
 using a suitable complex filter, and multiplied by a complex carrier signal
 to produce the final QAM signal for transmission. 
 
-The sampling rate for our transmitter is defined by the channel - 8000 per
-second. This is not a multiple of the baud rate (i.e. 2400 baud). The baud
-interval is actually 10/3 sample periods. Generating at the lowest common
-multiple of the baud rate and channel sample rate (i.e. 24000 samples/second),
-and then decimating to 8000 samples/second, would give good results. However,
-this would require considerable computation. A shortcut is to use slightly
-shaped pulses, instead of simple square ones. We can achieve the effect of pulse
-transitions at the 1/2 and 2/3 sample points by adjusting the first sample of
-each new pulse. The adjustment is simple. We need the effect of being 60 degrees
-or 120 degrees through a sine wave cycle at the Shannon rate at the sample
-point. This simply means we need to step by 0.25 or 0.75 of the actual step size
-on the first sample of those pulses which should start at the 1/3 or 2/3 sample
-positions. The logic and computation needed for this is much less than the
-computation needed for oversampling at 24000 samples/second. 
-
 The pulse shaping filter is only vaguely defined by the V.17 spec. Some of the
 other ITU modem specs. fully define the filter, typically specifying a root
 raised cosine filter, with 50% excess bandwidth. This is a pity, since it
 increases the variability of the received signal. However, the receiver's
-adaptive equalizer will largely compensate for these differences. The current
-design uses a root raised cosine filter with 50% excess bandwidth. 
+adaptive equalizer will compensate for these differences. The current
+design uses a root raised cosine filter with 25% excess bandwidth. Greater
+excess bandwidth will not allow the tranmitted signal to meet the spectral
+requirements.
+
+The sampling rate for our transmitter is defined by the channel - 8000 per
+second. This is not a multiple of the baud rate (i.e. 2400 baud). The baud
+interval is actually 10/3 sample periods. Instead of using a symmetric
+FIR to pulse shape the signal, a polyphase filter is used. This consists of
+10 sets of coefficients, offering zero to 9/10ths of a baud phase shift as well
+as root raised cosine filtering. The appropriate coefficient set is chosen for
+each signal sample generated.
 
 The carrier is generated using the DDS method. Using two second order resonators,
 started in quadrature, might be more efficient, as it would have less impact on
@@ -87,7 +81,7 @@ suits the receiver better, so the same signal generator is also used for the
 transmitter. 
 */
 
-#define V17TX_FILTER_STEPS      27
+#define V17_TX_FILTER_STEPS     9
 
 /*!
     V.17 modem transmit side descriptor. This defines the working state for a
@@ -102,24 +96,23 @@ typedef struct
     /*! \brief A user specified opaque pointer passed to the callback function. */
     void *user_data;
 
+    /*! \brief The gain factor needed to achieve the specified output power. */
     float gain;
 
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
-    complex_t rrc_filter[2*V17TX_FILTER_STEPS];
+    complexf_t rrc_filter[2*V17_TX_FILTER_STEPS];
     /*! \brief Current offset into the RRC pulse shaping filter buffer. */
     int rrc_filter_step;
-    /*! \brief The current constellation position. */
-    complex_t current_point;
 
+    /*! \brief The current state of the differential encoder. */
     int diff;
+    /*! \brief The current state of the convolutional encoder. */
     int convolution;
 
     /*! \brief The register for the data scrambler. */
     unsigned int scramble_reg;
     /*! \brief TRUE if transmitting the training sequence. FALSE if transmitting user data. */
     int in_training;
-    /*! A counter used to track progress through the optional TEP tone burst */
-    int tep_step;
     /*! \brief TRUE if the short training sequence is to be used. */
     int short_train;
     /*! \brief A counter used to track progress through sending the training sequence. */
@@ -135,12 +128,10 @@ typedef struct
     int constellation_state;
     
     /*! \brief A pointer to the constellation currently in use. */
-    const complex_t *constellation;
+    const complexf_t *constellation;
     /*! \brief The current number of data bits per symbol. This does not include
                the redundant bit. */
     int bits_per_symbol;
-    /*! \brief An indicator to mark that we are tidying up to stop transmission. */
-    int shutdown;
     /*! \brief The get_bit function in use at any instant. */
     get_bit_func_t current_get_bit;
     /*! \brief Error and flow logging control */
@@ -197,7 +188,7 @@ void v17_tx_set_get_bit(v17_tx_state_t *s, get_bit_func_t get_bit, void *user_da
     \param len The number of samples to be generated.
     \return The number of samples actually generated.
 */
-int v17_tx(v17_tx_state_t *s, int16_t *amp, int len);
+int v17_tx(v17_tx_state_t *s, int16_t amp[], int len);
 
 #ifdef __cplusplus
 }

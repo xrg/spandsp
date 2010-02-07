@@ -17,9 +17,8 @@
  * compatible with the GPL licence used here.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -30,7 +29,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: playout.c,v 1.6 2005/08/31 19:27:52 steveu Exp $
+ * $Id: playout.c,v 1.10 2006/10/24 13:45:26 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -45,9 +44,6 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/playout.h"
-
-#define FALSE 0
-#define TRUE (!FALSE)
 
 static playout_frame_t *queue_get(playout_state_t *s, timestamp_t sender_stamp)
 {
@@ -110,7 +106,6 @@ playout_frame_t *playout_get_unconditional(playout_state_t *s)
 int playout_get(playout_state_t *s, playout_frame_t *frameout, timestamp_t now)
 {
     playout_frame_t *frame;
-    timestamp_t diff;
 
     /* Make the last_speech_sender_stamp the current expected one. */
     s->last_speech_sender_stamp += s->last_speech_sender_len;

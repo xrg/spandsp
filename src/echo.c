@@ -15,9 +15,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -28,7 +27,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo.c,v 1.10 2005/11/11 12:34:33 steveu Exp $
+ * $Id: echo.c,v 1.19 2006/10/24 13:45:25 steveu Exp $
  */
 
 /*! \file */
@@ -84,20 +83,24 @@
 #endif
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 
-#include "spandsp/alaw_ulaw.h"
+#include "spandsp/telephony.h"
+#include "spandsp/logging.h"
+#include "spandsp/bit_operations.h"
 #include "spandsp/echo.h"
-#include "spandsp/mmx.h"
 
 #if !defined(NULL)
 #define NULL (void *) 0
 #endif
+#if !defined(FALSE)
 #define FALSE 0
+#endif
+#if !defined(TRUE)
 #define TRUE (!FALSE)
+#endif
 
 #define MIN_TX_POWER_FOR_ADAPTION   64*64
 #define MIN_RX_POWER_FOR_ADAPTION   64*64
@@ -131,7 +134,7 @@ static int narrowband_detect(echo_can_state_t *ec)
     }
     scale = 0x1FFFFFFF/f_acf[0];
     for (k = 0;  k < alen;  k++)
-        acf[k] = f_acf[k]*scale;
+        acf[k] = (int32_t) (f_acf[k]*scale);
     score = 0;
     for (i = 0;  i < 9;  i++)
     {
@@ -150,7 +153,7 @@ static int narrowband_detect(echo_can_state_t *ec)
     return score;
 }
 
-static inline void lms_adapt(echo_can_state_t *ec, int factor)
+static __inline__ void lms_adapt(echo_can_state_t *ec, int factor)
 {
     int i;
 
@@ -212,12 +215,12 @@ static inline void lms_adapt(echo_can_state_t *ec, int factor)
     for (i = ec->taps - 1;  i >= offset1;  i--)
     {
         ec->fir_taps32[i] += (ec->fir_state.history[i - offset1]*factor);
-        ec->fir_taps16[ec->tap_set][i] = ec->fir_taps32[i] >> 15;
+        ec->fir_taps16[ec->tap_set][i] = (int16_t) (ec->fir_taps32[i] >> 15);
     }
     for (  ;  i >= 0;  i--)
     {
         ec->fir_taps32[i] += (ec->fir_state.history[i + offset2]*factor);
-        ec->fir_taps16[ec->tap_set][i] = ec->fir_taps32[i] >> 15;
+        ec->fir_taps16[ec->tap_set][i] = (int16_t) (ec->fir_taps32[i] >> 15);
     }
 #endif
 }
@@ -375,6 +378,7 @@ printf("echo is %d\n", echo_value);
     ec->rx_power[0] += ((rx*rx - ec->rx_power[0]) >> 3);
     ec->clean_rx_power += ((clean_rx*clean_rx - ec->clean_rx_power) >> 6);
 
+    score = 0;
     /* If there is very little being transmitted, any attempt to train is
        futile. We would either be training on the far end's noise or signal,
        the channel's own noise, or our noise. Either way, this is hardly good
@@ -537,7 +541,7 @@ printf("Narrowband score %4d %5d at %d\n", ec->narrowband_score, score, sample_n
     if (ec->curr_pos <= 0)
         ec->curr_pos = ec->taps;
     ec->curr_pos--;
-    return  clean_rx;
+    return (int16_t) clean_rx;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

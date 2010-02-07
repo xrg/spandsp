@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: arctan2.h,v 1.5 2005/11/28 13:43:34 steveu Exp $
+ * $Id: arctan2.h,v 1.7 2006/10/24 13:22:01 steveu Exp $
  */
 
 /*! \file */
@@ -58,9 +57,9 @@ static __inline__ int32_t arctan2(float y, float x)
 
     /* If we are in quadrant II or III, flip things around */
     if (x < 0.0)
-        angle = 3.0 - (x + abs_y)/(abs_y - x);
+        angle = 3.0f - (x + abs_y)/(abs_y - x);
     else
-        angle = 1.0 - (x - abs_y)/(abs_y + x);
+        angle = 1.0f - (x - abs_y)/(abs_y + x);
     angle *= 536870912.0;
 
     /* If we are in quadrant III or IV, negate to return an

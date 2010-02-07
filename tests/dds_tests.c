@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds_tests.c,v 1.10 2005/12/25 15:08:36 steveu Exp $
+ * $Id: dds_tests.c,v 1.17 2006/11/19 14:07:26 steveu Exp $
  */
 
 /*! \file */
@@ -45,7 +44,12 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <memory.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 #include <audiofile.h>
 #include <tiffio.h>
 
@@ -54,19 +58,26 @@
 #define OUTPUT_FILE_NAME            "dds.wav"
 #define OUTPUT_FILE_NAME_COMPLEX    "complex_dds.wav"
 
+#define SAMPLES_PER_CHUNK           8000
+
 int main(int argc, char *argv[])
 {
     int i;
     uint32_t phase;
     int32_t phase_inc;
     int outframes;
-    complex_t camp;
-    int16_t buf[80000];
+    complexf_t camp;
+    int16_t buf[2*SAMPLES_PER_CHUNK];
     AFfilehandle outhandle;
     AFfilesetup filesetup;
+    power_meter_t meter;
+    power_meter_t meter_i;
+    power_meter_t meter_q;
 
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
+    power_meter_init(&meter, 10);
+
+    printf("Non-complex DDS tests.\n");
+    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
     {
         fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
@@ -76,63 +87,104 @@ int main(int argc, char *argv[])
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
 
-    outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
 
     phase = 0;
-    phase_inc = dds_phase_step(123.456789);
-    for (i = 0;  i < 40000;  i++)
+
+    printf("Test with 123.456789Hz.\n");
+    phase_inc = dds_phase_rate(123.456789);
+    for (i = 0;  i < SAMPLES_PER_CHUNK;  i++)
+    {
         buf[i] = alaw_to_linear(linear_to_alaw(dds(&phase, phase_inc)));
+        power_meter_update(&meter, buf[i]);
+    }
     outframes = afWriteFrames(outhandle,
                               AF_DEFAULT_TRACK,
                               buf,
-                              40000);
-    if (outframes != 40000)
+                              SAMPLES_PER_CHUNK);
+    if (outframes != SAMPLES_PER_CHUNK)
     {
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
+    printf("Level is %fdBOv\n", power_meter_dbov(&meter));
+    if (fabs(power_meter_dbov(&meter) + 3.02) > 0.05)
+    {
+        printf("Test failed.\n");
+        exit(2);
+    }
 
-    phase_inc = dds_phase_step(12.3456789);
-    for (i = 0;  i < 40000;  i++)
+    printf("Test with 12.3456789Hz.\n");
+    phase_inc = dds_phase_rate(12.3456789);
+    for (i = 0;  i < SAMPLES_PER_CHUNK;  i++)
+    {
         buf[i] = alaw_to_linear(linear_to_alaw(dds(&phase, phase_inc)));
+        power_meter_update(&meter, buf[i]);
+    }
     outframes = afWriteFrames(outhandle,
                               AF_DEFAULT_TRACK,
                               buf,
-                              40000);
-    if (outframes != 40000)
+                              SAMPLES_PER_CHUNK);
+    if (outframes != SAMPLES_PER_CHUNK)
     {
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
+    printf("Level is %fdBOv\n", power_meter_dbov(&meter));
+    /* Use a wider tolerance for this very low frequency - the power meter will ripple */
+    if (fabs(power_meter_dbov(&meter) + 3.02) > 0.2)
+    {
+        printf("Test failed.\n");
+        exit(2);
+    }
 
-    phase_inc = dds_phase_step(2345.6789);
-    for (i = 0;  i < 40000;  i++)
+    printf("Test with 2345.6789Hz.\n");
+    phase_inc = dds_phase_rate(2345.6789);
+    for (i = 0;  i < SAMPLES_PER_CHUNK;  i++)
+    {
         buf[i] = alaw_to_linear(linear_to_alaw(dds(&phase, phase_inc)));
+        power_meter_update(&meter, buf[i]);
+    }
     outframes = afWriteFrames(outhandle,
                               AF_DEFAULT_TRACK,
                               buf,
-                              40000);
-    if (outframes != 40000)
+                              SAMPLES_PER_CHUNK);
+    if (outframes != SAMPLES_PER_CHUNK)
     {
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
+    printf("Level is %fdBOv\n", power_meter_dbov(&meter));
+    if (fabs(power_meter_dbov(&meter) + 3.02) > 0.05)
+    {
+        printf("Test failed.\n");
+        exit(2);
+    }
 
-    phase_inc = dds_phase_step(3456.789);
-    for (i = 0;  i < 40000;  i++)
+    printf("Test with 3456.789Hz.\n");
+    phase_inc = dds_phase_rate(3456.789);
+    for (i = 0;  i < SAMPLES_PER_CHUNK;  i++)
+    {
         buf[i] = alaw_to_linear(linear_to_alaw(dds(&phase, phase_inc)));
+        power_meter_update(&meter, buf[i]);
+    }
     outframes = afWriteFrames(outhandle,
                               AF_DEFAULT_TRACK,
                               buf,
-                              40000);
-    if (outframes != 40000)
+                              SAMPLES_PER_CHUNK);
+    if (outframes != SAMPLES_PER_CHUNK)
     {
         fprintf(stderr, "    Error writing wave file\n");
+        exit(2);
+    }
+    printf("Level is %fdBOv\n", power_meter_dbov(&meter));
+    if (fabs(power_meter_dbov(&meter) + 3.02) > 0.05)
+    {
+        printf("Test failed.\n");
         exit(2);
     }
 
@@ -143,8 +195,8 @@ int main(int argc, char *argv[])
     }
     afFreeFileSetup(filesetup);
 
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
+    printf("Complex DDS tests,\n");
+    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
     {
         fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
@@ -154,27 +206,40 @@ int main(int argc, char *argv[])
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
 
-    outhandle = afOpenFile(OUTPUT_FILE_NAME_COMPLEX, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile(OUTPUT_FILE_NAME_COMPLEX, "w", filesetup)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME_COMPLEX);
         exit(2);
     }
 
-    phase_inc = dds_phase_stepf(123.456789);
-    for (i = 0;  i < 40000;  i++)
+    power_meter_init(&meter_i, 7);
+    power_meter_init(&meter_q, 7);
+
+    phase = 0;
+    phase_inc = dds_phase_ratef(123.456789);
+    for (i = 0;  i < SAMPLES_PER_CHUNK;  i++)
     {
         camp = dds_complexf(&phase, phase_inc);
         buf[2*i] = camp.re*10000.0;
         buf[2*i + 1] = camp.im*10000.0;
+        power_meter_update(&meter_i, buf[2*i]);
+        power_meter_update(&meter_q, buf[2*i]);
     }
     outframes = afWriteFrames(outhandle,
                               AF_DEFAULT_TRACK,
                               buf,
-                              40000);
-    if (outframes != 40000)
+                              SAMPLES_PER_CHUNK);
+    if (outframes != SAMPLES_PER_CHUNK)
     {
         fprintf(stderr, "    Error writing wave file\n");
+        exit(2);
+    }
+    printf("Level is %fdBOv/%fdBOv\n", power_meter_dbov(&meter_i), power_meter_dbov(&meter_q));
+    if (fabs(power_meter_dbov(&meter_i) + 13.42) > 0.05
+        ||
+        fabs(power_meter_dbov(&meter_q) + 13.42) > 0.05)
+    {
+        printf("Test failed.\n");
         exit(2);
     }
 
@@ -185,6 +250,7 @@ int main(int argc, char *argv[])
     }
     afFreeFileSetup(filesetup);
 
+    printf("Tests passed.\n");
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

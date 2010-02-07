@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule.c,v 1.6 2005/12/29 12:46:20 steveu Exp $
+ * $Id: schedule.c,v 1.12 2006/10/24 13:45:26 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,15 +33,11 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <memory.h>
-#include <sys/time.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/schedule.h"
 
-#define FALSE 0
-#define TRUE (!FALSE)
-
-int sp_schedule_event(sp_sched_state_t *s, int ms, sp_sched_callback_func_t function, void *user_data)
+int span_schedule_event(span_sched_state_t *s, int ms, span_sched_callback_func_t function, void *user_data)
 {
     int i;
 
@@ -56,7 +51,7 @@ int sp_schedule_event(sp_sched_state_t *s, int ms, sp_sched_callback_func_t func
     if (i >= s->allocated)
     {
         s->allocated += 5;
-        s->sched = (sp_sched_t *) realloc(s->sched, sizeof(sp_sched_t)*s->allocated);
+        s->sched = (span_sched_t *) realloc(s->sched, sizeof(span_sched_t)*s->allocated);
     }
     /*endif*/
     if (i >= s->max_to_date)
@@ -69,12 +64,12 @@ int sp_schedule_event(sp_sched_state_t *s, int ms, sp_sched_callback_func_t func
 }
 /*- End of function --------------------------------------------------------*/
 
-uint64_t sp_schedule_next(sp_sched_state_t *s)
+uint64_t span_schedule_next(span_sched_state_t *s)
 {
     int i;
     uint64_t earliest;
 
-    earliest = ~0;
+    earliest = ~((uint64_t) 0);
     for (i = 0;  i < s->max_to_date;  i++)
     {
         if (s->sched[i].callback  &&  earliest > s->sched[i].when)
@@ -86,16 +81,16 @@ uint64_t sp_schedule_next(sp_sched_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-uint64_t sp_schedule_time(sp_sched_state_t *s)
+uint64_t span_schedule_time(span_sched_state_t *s)
 {
     return s->ticker;
 }
 /*- End of function --------------------------------------------------------*/
 
-void sp_schedule_update(sp_sched_state_t *s, int samples)
+void span_schedule_update(span_sched_state_t *s, int samples)
 {
     int i;
-    sp_sched_callback_func_t callback;
+    span_sched_callback_func_t callback;
     void *user_data;
 
     s->ticker += samples;
@@ -115,7 +110,7 @@ void sp_schedule_update(sp_sched_state_t *s, int samples)
 }
 /*- End of function --------------------------------------------------------*/
 
-void sp_schedule_del(sp_sched_state_t *s, int i)
+void span_schedule_del(span_sched_state_t *s, int i)
 {
     if (i >= s->max_to_date
         ||
@@ -131,14 +126,14 @@ void sp_schedule_del(sp_sched_state_t *s, int i)
 }
 /*- End of function --------------------------------------------------------*/
 
-sp_sched_state_t *sp_schedule_init(sp_sched_state_t *s)
+span_sched_state_t *span_schedule_init(span_sched_state_t *s)
 {
     memset(s, 0, sizeof(*s));
     return s;
 }
 /*- End of function --------------------------------------------------------*/
 
-int sp_schedule_release(sp_sched_state_t *s)
+int span_schedule_release(span_sched_state_t *s)
 {
     if (s->sched)
     {

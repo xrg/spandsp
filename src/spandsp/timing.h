@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: timing.h,v 1.3 2005/11/27 06:10:12 steveu Exp $
+ * $Id: timing.h,v 1.6 2006/10/24 13:45:28 steveu Exp $
  */
 
 #if !defined(_TIMING_H_)
@@ -34,7 +33,7 @@ extern "C" {
 #endif
 
 #if defined(__i386__)
-static inline uint64_t rdtscll(void)
+static __inline__ uint64_t rdtscll(void)
 {
     uint64_t now;
 
@@ -43,7 +42,7 @@ static inline uint64_t rdtscll(void)
 }
 /*- End of function --------------------------------------------------------*/
 #elif defined(__x86_64__)
-static inline uint64_t rdtscll(void)
+static __inline__ uint64_t rdtscll(void)
 {
     unsigned int __a;
     unsigned int __d;

@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,18 +22,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8_tests.c,v 1.8 2005/12/25 17:33:37 steveu Exp $
+ * $Id: v8_tests.c,v 1.18 2006/11/19 14:07:28 steveu Exp $
  */
 
 /*! \page v8_tests_page V.8 tests
 \section v8_tests_page_sec_1 What does it do?
 */
 
-#include <unistd.h>
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdio.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 #include <fcntl.h>
 #include <string.h>
 #include <audiofile.h>
@@ -49,36 +52,51 @@
 
 #define OUTPUT_FILE_NAME    "v8.wav"
 
-void handler(void *user_data, int result)
+int negotiations_ok = 0;
+
+static void handler(void *user_data, v8_result_t *result)
 {
-    v8_state_t *s;
+    const char *s;
     
-    s = (v8_state_t *) user_data;
+    s = (const char *) user_data;
     
-    v8_log_selected_modulation(s, result);
+    if (result == NULL)
+    {
+        printf("%s V.8 negotiation failed\n", s);
+        return;
+    }
+    printf("%s V.8 negotiation result:\n", s);
+    printf("  Call function '%s'\n", v8_call_function_to_str(result->call_function));
+    printf("  Negotiated modulation '%s'\n", v8_modulation_to_str(result->negotiated_modulation));
+    printf("  Protocol '%s'\n", v8_protocol_to_str(result->protocol));
+    printf("  PSTN access '%s'\n", v8_pstn_access_to_str(result->pstn_access));
+    printf("  PCM modem availability '%s'\n", v8_pcm_modem_availability_to_str(result->pcm_modem_availability));
+    if (result->call_function == V8_CALL_V_SERIES
+        &&
+        result->negotiated_modulation == V8_MOD_V90
+        &&
+        result->protocol == V8_PROTOCOL_LAPM_V42)
+    {
+        negotiations_ok++;
+    }
 }
 
 int main(int argc, char *argv[])
 {
     int i;
-    int j;
-    int pitch;
-    int16_t amp[160];
-    int16_t out_amp[2*160];
+    int16_t amp[SAMPLES_PER_CHUNK];
+    int16_t out_amp[2*SAMPLES_PER_CHUNK];
     v8_state_t v8_caller;
     v8_state_t v8_answerer;
-    int len;
-    int hits;
-    int frames;
     int outframes;
     int samples;
     int remnant;
-    float x;
+    int caller_available_modulations;
+    int answerer_available_modulations;
     AFfilehandle outhandle;
     AFfilesetup filesetup;
     
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
+    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
     {
         fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
@@ -87,19 +105,47 @@ int main(int argc, char *argv[])
     afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
-    outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
 
-    v8_init(&v8_caller, TRUE, 0xFFFFFFFF, handler, &v8_caller);
-    v8_init(&v8_answerer, FALSE, 0xFFFFFFFF, handler, &v8_answerer);
-    v8_caller.logging.level = SPAN_LOG_FLOW | SPAN_LOG_SHOW_TAG;
-    v8_caller.logging.tag = "caller";
-    v8_answerer.logging.level = SPAN_LOG_FLOW | SPAN_LOG_SHOW_TAG;
-    v8_answerer.logging.tag = "answerer";
+    caller_available_modulations = V8_MOD_V17
+                                 | V8_MOD_V21
+                                 | V8_MOD_V22
+                                 | V8_MOD_V23HALF
+                                 | V8_MOD_V23
+                                 | V8_MOD_V26BIS
+                                 | V8_MOD_V26TER
+                                 | V8_MOD_V27TER
+                                 | V8_MOD_V29
+                                 | V8_MOD_V32
+                                 | V8_MOD_V34HALF
+                                 | V8_MOD_V34
+                                 | V8_MOD_V90
+                                 | V8_MOD_V92;
+    answerer_available_modulations = V8_MOD_V17
+                                   | V8_MOD_V21
+                                   | V8_MOD_V22
+                                   | V8_MOD_V23HALF
+                                   | V8_MOD_V23
+                                   | V8_MOD_V26BIS
+                                   | V8_MOD_V26TER
+                                   | V8_MOD_V27TER
+                                   | V8_MOD_V29
+                                   | V8_MOD_V32
+                                   | V8_MOD_V34HALF
+                                   | V8_MOD_V34
+                                   | V8_MOD_V90
+                                   | V8_MOD_V92;
+
+    v8_init(&v8_caller, TRUE, caller_available_modulations, handler, (void *) "caller");
+    v8_init(&v8_answerer, FALSE, answerer_available_modulations, handler, (void *) "answerer");
+    span_log_set_level(&v8_caller.logging, SPAN_LOG_FLOW | SPAN_LOG_SHOW_TAG);
+    span_log_set_tag(&v8_caller.logging, "caller");
+    span_log_set_level(&v8_answerer.logging, SPAN_LOG_FLOW | SPAN_LOG_SHOW_TAG);
+    span_log_set_tag(&v8_answerer.logging, "answerer");
     for (i = 0;  i < 1000;  i++)
     {
         samples = v8_tx(&v8_caller, amp, SAMPLES_PER_CHUNK);
@@ -142,6 +188,14 @@ int main(int argc, char *argv[])
     
     v8_release(&v8_caller);
     v8_release(&v8_answerer);
+    
+    if (negotiations_ok != 2)
+    {
+        printf("Tests failed.\n");
+        exit(2);
+    }
+    
+    printf("Tests passed.\n");
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

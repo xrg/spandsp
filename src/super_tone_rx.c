@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.c,v 1.5 2005/08/31 19:27:52 steveu Exp $
+ * $Id: super_tone_rx.c,v 1.13 2006/11/19 14:07:25 steveu Exp $
  */
 
 /*! \file */
@@ -32,7 +31,6 @@
 #include "config.h"
 #endif
 
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -40,12 +38,16 @@
 #include <ctype.h>
 #include <time.h>
 #include <inttypes.h>
+#if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
+#include <math.h>
+#endif
 
 #include "spandsp/telephony.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
-
 #include "spandsp/super_tone_rx.h"
 
 #define THRESHOLD               8.0e7
@@ -71,7 +73,7 @@ static int add_super_tone_freq(super_tone_rx_descriptor_t *desc, int freq)
             /* Merge these two */
             desc->pitches[desc->used_frequencies][0] = freq;
             desc->pitches[desc->used_frequencies][1] = i;
-            make_goertzel_descriptor(&desc->desc[desc->pitches[i][1]], (freq + desc->pitches[i][0])/2, BINS);
+            make_goertzel_descriptor(&desc->desc[desc->pitches[i][1]], (float) (freq + desc->pitches[i][0])/2, BINS);
             desc->used_frequencies++;
             return desc->pitches[i][1];
         }
@@ -82,7 +84,7 @@ static int add_super_tone_freq(super_tone_rx_descriptor_t *desc, int freq)
     {
         desc->desc = (goertzel_descriptor_t *) realloc(desc->desc, (desc->monitored_frequencies + 5)*sizeof(goertzel_descriptor_t));
     }
-    make_goertzel_descriptor(&desc->desc[desc->monitored_frequencies++], freq, BINS);
+    make_goertzel_descriptor(&desc->desc[desc->monitored_frequencies++], (float) freq, BINS);
     desc->used_frequencies++;
     return desc->pitches[i][1];
 }
@@ -199,6 +201,14 @@ super_tone_rx_descriptor_t *super_tone_rx_make_descriptor(super_tone_rx_descript
 }
 /*- End of function --------------------------------------------------------*/
 
+int super_tone_rx_free_descriptor(super_tone_rx_descriptor_t *desc)
+{
+    if (desc)
+        free(desc);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
 void super_tone_rx_segment_callback(super_tone_rx_state_t *s,
                                     void (*callback)(void *data, int f1, int f2, int duration))
 {
@@ -208,8 +218,8 @@ void super_tone_rx_segment_callback(super_tone_rx_state_t *s,
 
 super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *s,
                                           super_tone_rx_descriptor_t *desc,
-                                          void (*callback)(void *data, int code),
-                                          void *data)
+                                          tone_report_func_t callback,
+                                          void *user_data)
 {
     int i;
 
@@ -232,7 +242,7 @@ super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *s,
     }
     s->segment_callback = NULL;
     s->tone_callback = callback;
-    s->callback_data = data;
+    s->callback_data = user_data;
     if (desc)
         s->desc = desc;
     s->detected_tone = -1;
@@ -246,7 +256,9 @@ super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *s,
 
 int super_tone_rx_free(super_tone_rx_state_t *s)
 {
-    free(s);
+    if (s)
+        free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 

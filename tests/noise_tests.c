@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: noise_tests.c,v 1.6 2005/12/25 15:08:36 steveu Exp $
+ * $Id: noise_tests.c,v 1.9 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \page noise_tests_page Noise generator tests
@@ -38,7 +37,12 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 #include <audiofile.h>
 #include <tiffio.h>
 
@@ -73,8 +77,7 @@ int main (int argc, char *argv[])
     AFfilehandle outhandle;
     AFfilesetup filesetup;
 
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
+    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
     {
         fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
@@ -83,25 +86,25 @@ int main (int argc, char *argv[])
     afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
-    outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
 
-    /* Generate AWGN at several RMS levels between -50dBm and 0dBm. Noise is
+    /* Generate AWGN at several RMS levels between -50dBOv and 0dBOv. Noise is
        generated for a large number of samples (1,000,000), and the RMS value
        of the noise is calculated along the way. If the resulting level is
        close to the requested RMS level, at least the scaling of the noise
        should be Ok. At high levels some clipping may distort the result a
        little. */
+    printf("Testing with quality 7 AWGN\n");
     for (level = -50;  level <= 0;  level += 5)
     {
         clip_high = 0;
         clip_low = 0;
         total = 0.0;
-        noise_init(&noise_source, seed, level, NOISE_CLASS_AWGN, 7);
+        noise_init_dbov(&noise_source, seed, (float) level, NOISE_CLASS_AWGN, 7);
         total_samples = 1000000;
         for (i = 0;  i < total_samples;  i++)
         {
@@ -113,12 +116,48 @@ int main (int argc, char *argv[])
             total += ((double) value)*((double) value);
         }
         printf ("RMS = %.3f (expected %d) %.2f%% error [clipped samples %d+%d]\n",
-                log10(sqrt(total/total_samples)/(32768.0*0.70711))*20.0 + 3.14,
+                log10(sqrt(total/total_samples)/32768.0)*20.0,
                 level,
-                100.0*(1.0 - sqrt(total/total_samples)/(pow(10.0, (level - 3.14)/20.0)*(32768.0*0.70711))),
+                100.0*(1.0 - sqrt(total/total_samples)/(pow(10.0, level/20.0)*32768.0)),
                 clip_low,
                 clip_high);
+        if (level < -5  &&  fabs(log10(sqrt(total/total_samples)/32768.0)*20.0 - level) > 0.2)
+        {
+            printf("Test failed\n");
+            exit(2);
+        }
     }
+
+    printf("Testing with quality 20 AWGN\n");
+    for (level = -50;  level <= 0;  level += 5)
+    {
+        clip_high = 0;
+        clip_low = 0;
+        total = 0.0;
+        noise_init_dbov(&noise_source, seed, (float) level, NOISE_CLASS_AWGN, 20);
+        total_samples = 1000000;
+        for (i = 0;  i < total_samples;  i++)
+        {
+            value = noise(&noise_source);
+            if (value == 32767)
+                clip_high++;
+            else if (value == -32768)
+                clip_low++;
+            total += ((double) value)*((double) value);
+        }
+        printf ("RMS = %.3f (expected %d) %.2f%% error [clipped samples %d+%d]\n",
+                log10(sqrt(total/total_samples)/32768.0)*20.0,
+                level,
+                100.0*(1.0 - sqrt(total/total_samples)/(pow(10.0, level/20.0)*32768.0)),
+                clip_low,
+                clip_high);
+        if (level < -5  &&  fabs(log10(sqrt(total/total_samples)/32768.0)*20.0 - level) > 0.2)
+        {
+            printf("Test failed\n");
+            exit(2);
+        }
+    }
+
     /* Now look at the statistical spread of the results, by collecting data in
        bins from a large number of samples. Use a fairly high noise level, but
        low enough to avoid significant clipping. Use the Gaussian model to
@@ -127,7 +166,7 @@ int main (int argc, char *argv[])
     clip_high = 0;
     clip_low = 0;
     level = -15;
-    noise_init(&noise_source, seed, level, NOISE_CLASS_AWGN, 7);
+    noise_init_dbov(&noise_source, seed, (float) level, NOISE_CLASS_AWGN, 7);
     total_samples = 10000000;
     for (i = 0;  i < total_samples;  i++)
     {
@@ -139,7 +178,7 @@ int main (int argc, char *argv[])
         bins[value + 32768]++;
     }
     /* Find the RMS power level to expect */
-    o = pow(10.0, (level - 3.14)/20.0)*(32768.0*0.70711);
+    o = pow(10.0, level/20.0)*(32768.0*0.70711);
     for (i = 0;  i < 65536 - 10;  i++)
     {
         x = i - 32768;
@@ -157,6 +196,7 @@ int main (int argc, char *argv[])
             printf("%6d %.7f %.7f\n", i - 32768, x, p);
     }
 
+    printf("Generating AWGN at -15dBOv to file\n");
     for (j = 0;  j < 50;  j++)
     {
         for (i = 0;  i < 1024;  i++)
@@ -178,12 +218,13 @@ int main (int argc, char *argv[])
        close to the requested RMS level, at least the scaling of the noise
        should be Ok. At high levels some clipping may distort the result a
        little. */
+    printf("Testing with quality 7 Hoth noise.\n");
     for (level = -50;  level <= 0;  level += 5)
     {
         clip_high = 0;
         clip_low = 0;
         total = 0.0;
-        noise_init(&noise_source, seed, level, NOISE_CLASS_HOTH, 7);
+        noise_init_dbov(&noise_source, seed, (float) level, NOISE_CLASS_HOTH, 7);
         total_samples = 1000000;
         for (i = 0;  i < total_samples;  i++)
         {
@@ -195,14 +236,21 @@ int main (int argc, char *argv[])
             total += ((double) value)*((double) value);
         }
         printf ("RMS = %.3f (expected %d) %.2f%% error [clipped samples %d+%d]\n",
-                log10(sqrt(total/total_samples)/(32768.0*0.70711))*20.0 + 3.14,
+                log10(sqrt(total/total_samples)/32768.0)*20.0,
                 level,
-                100.0*(1.0 - sqrt(total/total_samples)/(pow(10.0, (level - 3.14)/20.0)*(32768.0*0.70711))),
+                100.0*(1.0 - sqrt(total/total_samples)/(pow(10.0, level/20.0)*32768.0)),
                 clip_low,
                 clip_high);
+        if (level < -5  &&  fabs(log10(sqrt(total/total_samples)/32768.0)*20.0 - level) > 0.2)
+        {
+            printf("Test failed\n");
+            exit(2);
+        }
     }
+    
+    printf("Generating Hoth noise at -15dBOv to file\n");
     level = -15;
-    noise_init(&noise_source, seed, level, NOISE_CLASS_HOTH, 7);
+    noise_init_dbov(&noise_source, seed, (float) level, NOISE_CLASS_HOTH, 7);
     for (j = 0;  j < 50;  j++)
     {
         for (i = 0;  i < 1024;  i++)
@@ -217,12 +265,15 @@ int main (int argc, char *argv[])
             exit(2);
         }
     }
+
     if (afCloseFile(outhandle))
     {
         fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
     afFreeFileSetup(filesetup);
+    
+    printf("Tests passed.\n");
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

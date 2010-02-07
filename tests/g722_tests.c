@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g722_tests.c,v 1.10 2006/03/27 13:35:14 steveu Exp $
+ * $Id: g722_tests.c,v 1.17 2006/11/19 14:07:27 steveu Exp $
  */
 
 /*! \file */
@@ -53,9 +52,8 @@ any parameters.
 
 To perform a general audio quality test, g722_tests should be run with a parameter specifying
 the required bit rate for compression. The valid parameters are "-48", "-56", and "-64".
-The file pre_g722.wav will be compressed to the specified bit rate, decompressed, and the
-resulting audio stored in post_g722.wav. pre_g722.wav must be a valid wave file containing a single
-channel of 16 bit linear PCM data, at 16000 samples/second.
+The file ../localtests/short_wb_voice.wav will be compressed to the specified bit rate, decompressed,
+and the resulting audio stored in post_g722.wav.
 */
 
 #ifdef HAVE_CONFIG_H
@@ -69,7 +67,12 @@ channel of 16 bit linear PCM data, at 16000 samples/second.
 #include <inttypes.h>
 #include <memory.h>
 #include <stdlib.h>
+#if defined(HAVE_TGMATH_H)
+#include <tgmath.h>
+#endif
+#if defined(HAVE_MATH_H)
 #include <math.h>
+#endif
 #include <audiofile.h>
 #include <ctype.h>
 #include <tiffio.h>
@@ -84,7 +87,8 @@ channel of 16 bit linear PCM data, at 16000 samples/second.
 
 #define TESTDATA_DIR        "../itutests/g722/"
 
-#define IN_FILE_NAME        "pre_g722.wav"
+#define EIGHTK_IN_FILE_NAME "../localtests/short_nb_voice.wav"
+#define IN_FILE_NAME        "../localtests/short_wb_voice.wav"
 #define OUT_FILE_NAME       "post_g722.wav"
 
 #if 0
@@ -235,6 +239,8 @@ int main(int argc, char *argv[])
     int mode;
     int itutests;
     int bit_rate;
+    int eight_k_in;
+    int eight_k_out;
     float x;
     int16_t indata[BLOCK_LEN];
     int16_t outdata[BLOCK_LEN];
@@ -242,8 +248,10 @@ int main(int argc, char *argv[])
 
     i = 1;
     bit_rate = 64000;
+    eight_k_in = FALSE;
+    eight_k_out = FALSE;
     itutests = TRUE;
-    if (argc > i)
+    while (argc > i)
     {
         if (strcmp(argv[i], "-48") == 0)
         {
@@ -261,6 +269,30 @@ int main(int argc, char *argv[])
         {
             bit_rate = 64000;
             itutests = FALSE;
+            i++;
+        }
+        else if (strcmp(argv[i], "-8k8k") == 0)
+        {
+            eight_k_in = TRUE;
+            eight_k_out = TRUE;
+            i++;
+        }
+        else if (strcmp(argv[i], "-8k16k") == 0)
+        {
+            eight_k_in = TRUE;
+            eight_k_out = FALSE;
+            i++;
+        }
+        else if (strcmp(argv[i], "-16k8k") == 0)
+        {
+            eight_k_in = FALSE;
+            eight_k_out = TRUE;
+            i++;
+        }
+        else if (strcmp(argv[i], "-16k16k") == 0)
+        {
+            eight_k_in = FALSE;
+            eight_k_out = FALSE;
             i++;
         }
         else
@@ -386,33 +418,63 @@ int main(int argc, char *argv[])
     }
     else
     {
-        if ((inhandle = afOpenFile(IN_FILE_NAME, "r", NULL)) == AF_NULL_FILEHANDLE)
+        if (eight_k_in)
         {
-            fprintf(stderr, "    Cannot open wave file '%s'\n", IN_FILE_NAME);
-            exit(2);
+            if ((inhandle = afOpenFile(EIGHTK_IN_FILE_NAME, "r", NULL)) == AF_NULL_FILEHANDLE)
+            {
+                fprintf(stderr, "    Cannot open wave file '%s'\n", EIGHTK_IN_FILE_NAME);
+                exit(2);
+            }
+            if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
+            {
+                printf("    Unexpected frame size in wave file '%s'\n", EIGHTK_IN_FILE_NAME);
+                exit(2);
+            }
+            if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
+            {
+                printf("    Unexpected sample rate %f in wave file '%s'\n", x, EIGHTK_IN_FILE_NAME);
+                exit(2);
+            }
+            if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
+            {
+                printf("    Unexpected number of channels in wave file '%s'\n", EIGHTK_IN_FILE_NAME);
+                exit(2);
+            }
         }
-        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
+        else
         {
-            printf("    Unexpected frame size in wave file '%s'\n", IN_FILE_NAME);
-            exit(2);
+            if ((inhandle = afOpenFile(IN_FILE_NAME, "r", NULL)) == AF_NULL_FILEHANDLE)
+            {
+                fprintf(stderr, "    Cannot open wave file '%s'\n", IN_FILE_NAME);
+                exit(2);
+            }
+            if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
+            {
+                printf("    Unexpected frame size in wave file '%s'\n", IN_FILE_NAME);
+                exit(2);
+            }
+            if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) G722_SAMPLE_RATE)
+            {
+                printf("    Unexpected sample rate %f in wave file '%s'\n", x, IN_FILE_NAME);
+                exit(2);
+            }
+            if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
+            {
+                printf("    Unexpected number of channels in wave file '%s'\n", IN_FILE_NAME);
+                exit(2);
+            }
         }
-        if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != 16000.0)
-        {
-            printf("    Unexpected sample rate in wave file '%s'\n", IN_FILE_NAME);
-            exit(2);
-        }
-        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
-        {
-            printf("    Unexpected number of channels in wave file '%s'\n", IN_FILE_NAME);
-            exit(2);
-        }
+        
         if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
         {
             fprintf(stderr, "    Failed to create file setup\n");
             exit(2);
         }
         afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-        afInitRate(filesetup, AF_DEFAULT_TRACK, (float) G722_SAMPLE_RATE);
+        if (eight_k_out)
+            afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
+        else
+            afInitRate(filesetup, AF_DEFAULT_TRACK, (float) G722_SAMPLE_RATE);
         afInitFileFormat(filesetup, AF_FILE_WAVE);
         afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
         if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
@@ -420,8 +482,14 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
             exit(2);
         }
-        g722_encode_init(&enc_state, bit_rate, TRUE);
-        g722_decode_init(&dec_state, bit_rate, TRUE);
+        if (eight_k_in)
+            g722_encode_init(&enc_state, bit_rate, G722_PACKED | G722_SAMPLE_RATE_8000);
+        else
+            g722_encode_init(&enc_state, bit_rate, G722_PACKED);
+        if (eight_k_out)
+            g722_decode_init(&dec_state, bit_rate, G722_PACKED | G722_SAMPLE_RATE_8000);
+        else
+            g722_decode_init(&dec_state, bit_rate, G722_PACKED);
         for (;;)
         {
             samples = afReadFrames(inhandle,

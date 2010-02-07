@@ -10,9 +10,8 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.h,v 1.8 2005/12/25 17:33:37 steveu Exp $
+ * $Id: v8.h,v 1.13 2006/10/24 13:22:02 steveu Exp $
  */
  
 /*! \file */
@@ -44,7 +43,62 @@ being negotiating and training with their chosen modem standard.
 #if !defined(_V8_H_)
 #define _V8_H_
 
-typedef void (v8_result_handler_t)(void *user_data, int result);
+typedef struct v8_result_s v8_result_t;
+
+typedef void (v8_result_handler_t)(void *user_data, v8_result_t *result);
+
+enum
+{
+    V8_CALL_TBS = 0,
+    V8_CALL_H324,
+    V8_CALL_V18,
+    V8_CALL_T101,
+    V8_CALL_T30_TX,
+    V8_CALL_T30_RX,
+    V8_CALL_V_SERIES,
+    V8_CALL_FUNCTION_EXTENSION
+} v8_call_function_e;
+
+enum
+{
+    V8_MOD_V17          = (1 << 0),     /* V.17 half-duplex */
+    V8_MOD_V21          = (1 << 1),     /* V.21 duplex */
+    V8_MOD_V22          = (1 << 2),     /* V.22/V22.bis duplex */
+    V8_MOD_V23HALF      = (1 << 3),     /* V.23 half-duplex */
+    V8_MOD_V23          = (1 << 4),     /* V.23 duplex */
+    V8_MOD_V26BIS       = (1 << 5),     /* V.23 duplex */
+    V8_MOD_V26TER       = (1 << 6),     /* V.23 duplex */
+    V8_MOD_V27TER       = (1 << 7),     /* V.23 duplex */
+    V8_MOD_V29          = (1 << 8),     /* V.29 half-duplex */
+    V8_MOD_V32          = (1 << 9),     /* V.32/V32.bis duplex */
+    V8_MOD_V34HALF      = (1 << 10),    /* V.34 half-duplex */
+    V8_MOD_V34          = (1 << 11),    /* V.34 duplex */
+    V8_MOD_V90          = (1 << 12),    /* V.90 duplex */
+    V8_MOD_V92          = (1 << 13),    /* V.92 duplex */
+
+    V8_MOD_FAILED       = (1 << 15),    /* Indicates failure to negotiate */
+} v8_modulation_e;
+
+enum
+{
+    V8_PROTOCOL_NONE = 0,
+    V8_PROTOCOL_LAPM_V42 = 1,
+    V8_PROTOCOL_EXTENSION = 7
+} v8_protocol_e;
+
+enum
+{
+    V8_PSTN_ACCESS_CALL_DCE_CELLULAR = 0x20,
+    V8_PSTN_ACCESS_ANSWER_DCE_CELLULAR = 0x40,
+    V8_PSTN_ACCESS_DCE_ON_DIGTIAL = 0x80
+} v8_pstn_access_e;
+
+enum
+{
+    V8_PSTN_PCM_MODEM_V90_V92_ANALOGUE = 0x20,
+    V8_PSTN_PCM_MODEM_V90_V92_DIGITAL = 0x40,
+    V8_PSTN_PCM_MODEM_V91 = 0x80
+} v8_pcm_modem_availability_e;
 
 typedef struct
 {
@@ -58,8 +112,8 @@ typedef struct
     fsk_tx_state_t v21tx;
     fsk_rx_state_t v21rx;
     queue_t tx_queue;
-    echo_can_disable_tx_state_t v8_tx;
-    echo_can_disable_rx_state_t v8_rx;
+    modem_connect_tones_tx_state_t ec_dis_tx;
+    modem_connect_tones_rx_state_t ec_dis_rx;
 
     v8_result_handler_t *result_handler;
     void *result_handler_user_data;
@@ -67,8 +121,15 @@ typedef struct
     /*! \brief Modulation schemes available at this end. */
     int available_modulations;
     int common_modulations;
-    int selected_modulation;
+    int negotiated_modulation;
     int far_end_modulations;
+    
+    int call_function;
+    int protocol;
+    int pstn_access;
+    int nsf_seen;
+    int pcm_modem_availability;
+    int t66_seen;
 
     /* V8 data parsing */
     unsigned int bit_stream;
@@ -89,22 +150,17 @@ typedef struct
     logging_state_t logging;
 } v8_state_t;
 
-#define V8_MOD_V17          (1 << 0)    /* V.17 duplex */
-#define V8_MOD_V21          (1 << 1)    /* V.21 duplex */
-#define V8_MOD_V22          (1 << 2)    /* V.22/V22.bis duplex */
-#define V8_MOD_V23HALF      (1 << 3)    /* V.23 half-duplex */
-#define V8_MOD_V23          (1 << 4)    /* V.23 duplex */
-#define V8_MOD_V26BIS       (1 << 5)    /* V.23 duplex */
-#define V8_MOD_V26TER       (1 << 6)    /* V.23 duplex */
-#define V8_MOD_V27TER       (1 << 7)    /* V.23 duplex */
-#define V8_MOD_V29          (1 << 8)    /* V.29 half-duplex */
-#define V8_MOD_V32          (1 << 9)    /* V.32/V32.bis duplex */
-#define V8_MOD_V34HALF      (1 << 10)   /* V.34 half-duplex */
-#define V8_MOD_V34          (1 << 11)   /* V.34 duplex */
-#define V8_MOD_V90          (1 << 12)   /* V.90 duplex */
-#define V8_MOD_V92          (1 << 13)   /* V.92 duplex */
-
-#define V8_MOD_FAILED       (1 << 15)   /* Indicates failure to negotiate */
+struct v8_result_s
+{
+    int call_function;
+    int available_modulations;
+    int negotiated_modulation;
+    int protocol;
+    int pstn_access;
+    int nsf_seen;
+    int pcm_modem_availability;
+    int t66_seen;
+};
 
 #ifdef __cplusplus
 extern "C" {
@@ -154,11 +210,11 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int len);
     \param modulation_schemes The list of supported modulations. */
 void v8_log_supported_modulations(v8_state_t *s, int modulation_schemes);
 
-/*! Log the selected modulation.
-    \brief Log the selected modulation.
-    \param s The V.8 context.
-    \param modulation_scheme The selected modulation. */
-void v8_log_selected_modulation(v8_state_t *s, int modulation_scheme);
+const char *v8_call_function_to_str(int call_function);
+const char *v8_modulation_to_str(int modulation_scheme);
+const char *v8_protocol_to_str(int protocol);
+const char *v8_pstn_access_to_str(int pstn_access);
+const char *v8_pcm_modem_availability_to_str(int pcm_modem_availability);
 
 #ifdef __cplusplus
 }
