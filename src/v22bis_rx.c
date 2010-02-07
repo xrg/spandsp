@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.63 2009/04/26 09:50:27 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.66 2009/04/27 15:18:52 steveu Exp $
  */
 
 /*! \file */
@@ -47,11 +47,12 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
+#include "spandsp/complex.h"
 #include "spandsp/vector_float.h"
+#include "spandsp/complex_vector_float.h"
 #include "spandsp/async.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/arctan2.h"
-#include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/complex_filters.h"
 
@@ -195,31 +196,20 @@ SPAN_DECLARE(int) v22bis_rx_equalizer_state(v22bis_state_t *s, complexf_t **coef
 
 static void equalizer_reset(v22bis_state_t *s)
 {
-    int i;
-
     /* Start with an equalizer based on everything being perfect */
-    for (i = 0;  i < 2*V22BIS_EQUALIZER_LEN + 1;  i++)
-        s->rx.eq_coeff[i] = complex_setf(0.0f, 0.0f);
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    cvec_zeroi16(s->rx.eq_coeff, 2*V22BIS_EQUALIZER_LEN + 1);
+    s->rx.eq_coeff[V22BIS_EQUALIZER_LEN] = complex_seti16(3*FP_FACTOR, 0*FP_FACTOR);
+    cvec_zeroi16(s->rx.eq_buf, V22BIS_EQUALIZER_MASK + 1);
+    s->rx.eq_delta = 32768.0f*EQUALIZER_DELTA/(2*V22BIS_EQUALIZER_LEN + 1);
+#else
+    cvec_zerof(s->rx.eq_coeff, 2*V22BIS_EQUALIZER_LEN + 1);
     s->rx.eq_coeff[V22BIS_EQUALIZER_LEN] = complex_setf(3.0f, 0.0f);
-    for (i = 0;  i <= V22BIS_EQUALIZER_MASK;  i++)
-        s->rx.eq_buf[i] = complex_setf(0.0f, 0.0f);
-
-    s->rx.eq_coeff[V22BIS_EQUALIZER_LEN - 6].re = -0.02f;
-    s->rx.eq_coeff[V22BIS_EQUALIZER_LEN - 5].re =  0.035f;
-    s->rx.eq_coeff[V22BIS_EQUALIZER_LEN - 4].re =  0.08f;
-    s->rx.eq_coeff[V22BIS_EQUALIZER_LEN - 3].re = -0.30f;
-    s->rx.eq_coeff[V22BIS_EQUALIZER_LEN - 2].re = -0.37f;
-    s->rx.eq_coeff[V22BIS_EQUALIZER_LEN - 1].re =  0.09f;
-    s->rx.eq_coeff[V22BIS_EQUALIZER_LEN].re     =  3.19f;
-    s->rx.eq_coeff[V22BIS_EQUALIZER_LEN + 1].re =  0.09f;
-    s->rx.eq_coeff[V22BIS_EQUALIZER_LEN + 2].re = -0.37f;
-    s->rx.eq_coeff[V22BIS_EQUALIZER_LEN + 3].re = -0.30f;
-    s->rx.eq_coeff[V22BIS_EQUALIZER_LEN + 5].re =  0.035f;
-    s->rx.eq_coeff[V22BIS_EQUALIZER_LEN + 6].re = -0.02f;
-
+    cvec_zerof(s->rx.eq_buf, V22BIS_EQUALIZER_MASK + 1);
+    s->rx.eq_delta = EQUALIZER_DELTA/(2*V22BIS_EQUALIZER_LEN + 1);
+#endif
     s->rx.eq_put_step = 20 - 1;
     s->rx.eq_step = 0;
-    s->rx.eq_delta = EQUALIZER_DELTA/(2*V22BIS_EQUALIZER_LEN + 1);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -389,9 +379,6 @@ static void process_half_baud(v22bis_state_t *s, const complexf_t *sample)
     int nearest;
     int bitstream;
     int raw_bits;
-    int32_t angle1;
-    int32_t angle2;
-    int i;
 
     z.re = sample->re;
     z.im = sample->im;
@@ -504,15 +491,6 @@ static void process_half_baud(v22bis_state_t *s, const complexf_t *sample)
                 s->rx.training = V22BIS_RX_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
             /* Be pessimistic and see what the handshake brings */
             s->negotiated_bit_rate = 1200;
-            /* Kick the carrier phase to bring the symbols into line */
-            angle1 = arctan2(z.im, z.re);
-            angle2 = arctan2(v22bis_constellation[nearest].im, v22bis_constellation[nearest].re);
-            s->rx.carrier_phase += (angle2 - angle1);
-            /* Rotate what is in the equalizer buffer, for fast settling. */
-            p = (angle2 - angle1)*2.0f*3.14159f/(65536.0f*65536.0f);
-            zz = complex_setf(cosf(p), -sinf(p));
-            for (i = 0;  i < 2*V22BIS_EQUALIZER_LEN + 1;  i++)
-                s->rx.eq_buf[i] = complex_mulf(&s->rx.eq_buf[i], &zz);
             break;
         }
         /* Once we have pulled in the symbol timing in a coarse way, use finer
@@ -750,7 +728,7 @@ SPAN_DECLARE(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len)
             /* Look for power below the carrier off point */
             if (power < s->rx.carrier_off_power)
             {
-                v22bis_rx_restart(s);
+                v22bis_restart(s, s->bit_rate);
                 v22bis_report_status_change(s, SIG_STATUS_CARRIER_DOWN);
                 continue;
             }
@@ -868,9 +846,14 @@ int v22bis_rx_restart(v22bis_state_t *s)
     s->rx.gardner_integrate = 0;
     s->rx.gardner_step = 256;
     s->rx.baud_phase = 0;
+    s->rx.training_error = 0.0f;
+    s->rx.total_baud_timing_correction = 0;
     /* We want the carrier to pull in faster on the answerer side, as it has very little time to adapt. */
     s->rx.carrier_track_i = (s->caller)  ?  8000.0f  :  40000.0f;
     s->rx.carrier_track_p = 8000000.0f;
+
+    s->negotiated_bit_rate = 1200;
+
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
