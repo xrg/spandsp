@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.250 2008/07/21 13:22:03 steveu Exp $
+ * $Id: t30.c,v 1.252 2008/07/22 13:58:40 steveu Exp $
  */
 
 /*! \file */
@@ -170,9 +170,12 @@ enum
     T30_MODE_RECEIVE_DOC
 };
 
+/*! These are internal assessments of received image quality, used to determine whether we
+    continue, retrain, or abandon the call. */
 enum
 {
-    T30_COPY_QUALITY_GOOD = 0,
+    T30_COPY_QUALITY_PERFECT = 0,
+    T30_COPY_QUALITY_GOOD,
     T30_COPY_QUALITY_POOR,
     T30_COPY_QUALITY_BAD
 };
@@ -189,6 +192,8 @@ enum
     DISBIT8 = 0x80
 };
 
+/*! There are high level indications of what is happening at any instant, to guide the cleanup
+    process if the call is abandoned. */
 enum
 {
     OPERATION_IN_PROGRESS_NONE = 0,
@@ -350,21 +355,43 @@ static int rx_start_page(t30_state_t *s)
 static int copy_quality(t30_state_t *s)
 {
     t4_stats_t stats;
+    int quality;
 
+    t4_get_transfer_statistics(&(s->t4), &stats);
     /* There is no specification for judging copy quality. However, we need to classify
        it at three levels, to control what we do next: OK; tolerable, but retrain;
-       intolerable, so retrain. */
-    t4_get_transfer_statistics(&(s->t4), &stats);
+       intolerable. */
+    /* Based on the thresholds used in the TSB85 tests, we consider:
+            <5% bad rows is OK
+            <15% bad rows to be tolerable, but retrain
+            >15% bad rows to be intolerable
+     */
     span_log(&s->logging, SPAN_LOG_FLOW, "Page no = %d\n", stats.pages_transferred + 1);
     span_log(&s->logging, SPAN_LOG_FLOW, "Image size = %d x %d pixels\n", stats.width, stats.length);
     span_log(&s->logging, SPAN_LOG_FLOW, "Image resolution = %d/m x %d/m\n", stats.x_resolution, stats.y_resolution);
     span_log(&s->logging, SPAN_LOG_FLOW, "Bad rows = %d\n", stats.bad_rows);
     span_log(&s->logging, SPAN_LOG_FLOW, "Longest bad row run = %d\n", stats.longest_bad_row_run);
-    if (stats.bad_rows*50 < stats.length)
-        return T30_COPY_QUALITY_GOOD;
-    if (stats.bad_rows*20 < stats.length)
-        return T30_COPY_QUALITY_POOR;
-    return T30_COPY_QUALITY_BAD;
+    if (stats.bad_rows == 0)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "Page quality is perfect\n");
+        quality = T30_COPY_QUALITY_PERFECT;
+    }
+    else if (stats.bad_rows*20 < stats.length)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "Page quality is good\n");
+        quality = T30_COPY_QUALITY_GOOD;
+    }
+    else if (stats.bad_rows*20 < stats.length*3)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "Page quality is poor\n");
+        quality = T30_COPY_QUALITY_POOR;
+    }
+    else
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "Page quality is bad\n");
+        quality = T30_COPY_QUALITY_BAD;
+    }
+    return quality;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -2753,6 +2780,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
         queue_phase(s, T30_PHASE_D_TX);
         switch (copy_quality(s))
         {
+        case T30_COPY_QUALITY_PERFECT:
         case T30_COPY_QUALITY_GOOD:
             t4_rx_end_page(&(s->t4));
             rx_start_page(s);
@@ -2781,6 +2809,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
         s->next_rx_step = T30_PRI_MPS;
         switch (copy_quality(s))
         {
+        case T30_COPY_QUALITY_PERFECT:
         case T30_COPY_QUALITY_GOOD:
             t4_rx_end_page(&(s->t4));
             t4_rx_end(&(s->t4));
@@ -2808,6 +2837,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
         queue_phase(s, T30_PHASE_B_TX);
         switch (copy_quality(s))
         {
+        case T30_COPY_QUALITY_PERFECT:
         case T30_COPY_QUALITY_GOOD:
             t4_rx_end_page(&(s->t4));
             rx_start_page(s);
@@ -2836,6 +2866,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
         s->next_rx_step = T30_PRI_EOM;
         switch (copy_quality(s))
         {
+        case T30_COPY_QUALITY_PERFECT:
         case T30_COPY_QUALITY_GOOD:
             t4_rx_end_page(&(s->t4));
             t4_rx_end(&(s->t4));
@@ -2862,6 +2893,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
         queue_phase(s, T30_PHASE_D_TX);
         switch (copy_quality(s))
         {
+        case T30_COPY_QUALITY_PERFECT:
         case T30_COPY_QUALITY_GOOD:
             t4_rx_end_page(&(s->t4));
             t4_rx_end(&(s->t4));
@@ -2893,6 +2925,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
         s->next_rx_step = T30_PRI_EOP;
         switch (copy_quality(s))
         {
+        case T30_COPY_QUALITY_PERFECT:
         case T30_COPY_QUALITY_GOOD:
             t4_rx_end_page(&(s->t4));
             t4_rx_end(&(s->t4));
@@ -4429,6 +4462,31 @@ static void timer_t2_expired(t30_state_t *s)
     span_log(&s->logging, SPAN_LOG_FLOW, "T2 expired in phase %s, state %d\n", phase_names[s->phase], s->state);
     switch (s->state)
     {
+    case T30_STATE_III_Q_MCF:
+    case T30_STATE_III_Q_RTP:
+    case T30_STATE_III_Q_RTN:
+    case T30_STATE_F_POST_RCP_PPR:
+    case T30_STATE_F_POST_RCP_MCF:
+        switch (s->next_rx_step)
+        {
+        case T30_EOM:
+        case T30_PRI_EOM:
+            /* We didn't receive a response to our T30_MCF after T30_EOM, so we must be OK
+               to proceed to phase B, and pretty act like its the beginning of a call. */
+            span_log(&s->logging, SPAN_LOG_FLOW, "Returning to phase B after EOM\n");
+            set_phase(s, T30_PHASE_B_TX);
+            timer_t2_start(s);
+            s->dis_received = FALSE;
+            send_dis_or_dtc_sequence(s, TRUE);
+            return;
+        }
+        break;
+    case T30_STATE_F_TCF:
+        span_log(&s->logging, SPAN_LOG_FLOW, "No TCF data received\n");
+        set_phase(s, T30_PHASE_B_TX);
+        set_state(s, T30_STATE_F_FTT);
+        send_simple_frame(s, T30_FTT);
+        return;
     case T30_STATE_F_DOC_ECM:
     case T30_STATE_F_DOC_NON_ECM:
         /* While waiting for FAX page */
@@ -5086,6 +5144,7 @@ void t30_front_end_status(void *user_data, int status)
                 {
                 case T30_MPS:
                 case T30_PRI_MPS:
+                    /* We should now start to get another page */
                     if (s->error_correcting_mode)
                     {
                         set_state(s, T30_STATE_F_DOC_ECM);
@@ -5100,13 +5159,14 @@ void t30_front_end_status(void *user_data, int status)
                     break;
                 case T30_EOM:
                 case T30_PRI_EOM:
-                    /* TODO: */
-                    disconnect(s);
+                    /* See if we get something back, before moving to phase B. */
+                    timer_t2_start(s);
+                    set_phase(s, T30_PHASE_D_RX);
                     break;
                 case T30_EOP:
                 case T30_PRI_EOP:
                     /* Wait for a DCN. */
-                    set_phase(s, T30_PHASE_B_RX);
+                    set_phase(s, T30_PHASE_D_RX);
                     timer_t4_start(s);
                     break;
                 default:

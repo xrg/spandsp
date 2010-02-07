@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_decode.c,v 1.43 2008/05/30 17:23:12 steveu Exp $
+ * $Id: fax_decode.c,v 1.44 2008/07/22 13:48:16 steveu Exp $
  */
 
 /*! \page fax_decode_page FAX decoder
@@ -97,7 +97,7 @@ int fast_trained = FAX_NONE;
 uint8_t ecm_data[256][260];
 int16_t ecm_len[256];
 
-int line_encoding = T4_COMPRESSION_ITU_T4_2D;
+int line_encoding = T4_COMPRESSION_ITU_T4_1D;
 int x_resolution = T4_X_RESOLUTION_R8;
 int y_resolution = T4_Y_RESOLUTION_STANDARD;
 int image_width = 1728;

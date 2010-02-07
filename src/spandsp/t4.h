@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.51 2008/06/16 13:56:06 steveu Exp $
+ * $Id: t4.h,v 1.52 2008/07/22 13:48:15 steveu Exp $
  */
 
 /*! \file */
@@ -265,6 +265,8 @@ typedef struct
     uint32_t rx_bitstream;
     /*! \brief The number of bits currently in rx_bitstream. */
     int rx_bits;
+    /*! \brief The number of bits to be skipped before trying to match the next code word. */
+    int rx_skip_bits;
 
     /*! \brief This variable is set if we are treating the current row as a 2D encoded
                one. */
@@ -273,12 +275,10 @@ typedef struct
     int its_black;
     /*! \brief The current length of the current row. */
     int row_len;
-    /*! \brief This variable is used to record the fact we have seen at least one EOL
-               since we started decoding. We will not try to interpret the received
-               data as an image until we have seen the first EOL. */
-    int first_eol_seen;
     /*! \brief This variable is used to count the consecutive EOLS we have seen. If it
-               reaches six, this is the end of the image. */
+               reaches six, this is the end of the image. It is initially set to -1 for
+               1D and 2D decoding, as an indicator that we must wait for the first EOL,
+               before decodin any image data. */
     int consecutive_eols;
 
     /*! \brief Black and white run-lengths for the current row. */

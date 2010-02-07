@@ -24,7 +24,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.111 2008/07/02 14:48:26 steveu Exp $
+ * $Id: t4.c,v 1.112 2008/07/22 13:48:15 steveu Exp $
  */
 
 /*
@@ -778,8 +778,9 @@ int t4_rx_end_page(t4_state_t *s)
         TIFFWriteDirectory(s->tiff_file);
     }
     s->rx_bits = 0;
+    s->rx_skip_bits = 0;
     s->rx_bitstream = 0;
-    s->consecutive_eols = 0;
+    s->consecutive_eols = 5;
 
     s->image_size = 0;
     return 0;
@@ -788,7 +789,21 @@ int t4_rx_end_page(t4_state_t *s)
 
 static __inline__ void drop_rx_bits(t4_state_t *s, int bits)
 {
+    /* Only remove one bit right now. The rest need to be removed step by step,
+       checking for a misaligned EOL along the way. */
     s->row_bits += bits;
+    s->rx_skip_bits += (bits - 1);
+    s->rx_bits--;
+    s->rx_bitstream >>= 1;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ void force_drop_rx_bits(t4_state_t *s, int bits)
+{
+    /* This should only be called to drop the bits of an EOL, as that is the
+       only place where it is safe to drop them all at once. */
+    s->row_bits += bits;
+    s->rx_skip_bits = 0;
     s->rx_bits -= bits;
     s->rx_bitstream >>= bits;
 }
@@ -797,34 +812,53 @@ static __inline__ void drop_rx_bits(t4_state_t *s, int bits)
 static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
 {
     int bits;
-    int i;
 
     /* We decompress bit by bit, as the data stream is received. We need to
        scan continuously for EOLs, so we might as well work this way. */
     s->line_image_size += quantity;
     s->rx_bitstream |= (bit_string << s->rx_bits);
+    /* The longest item we need to scan for is 13 bits long (a 2D EOL), so we
+       need a minimum of 13 bits in the buffer to proceed with any bit stream
+       analysis. */
     if ((s->rx_bits += quantity) < 13)
         return FALSE;
-    if (!s->first_eol_seen)
+    if (s->consecutive_eols)
     {
-        /* Do not let anything through to the decoder, until an EOL arrives. For
-           T6 coding this condition should have been forced TRUE at the very start. */
-        while ((s->rx_bitstream & 0xFFF) != 0x800)
+        /* Check if the image has already terminated */
+        if (s->consecutive_eols >= 5)
+            return TRUE;
+        if (s->consecutive_eols < 0)
         {
-            s->rx_bitstream >>= 1;
-            if (--s->rx_bits < 13)
-                return FALSE;
+            /* We are waiting for the very first EOL (1D or 2D only). */
+            while ((s->rx_bitstream & 0xFFF) != 0x800)
+            {
+                s->rx_bitstream >>= 1;
+                if (--s->rx_bits < 13)
+                    return FALSE;
+            }
+            s->consecutive_eols = 0;
+            if (s->line_encoding == T4_COMPRESSION_ITU_T4_1D)
+            {
+                s->row_is_2d = FALSE;
+                force_drop_rx_bits(s, 12);
+            }
+            else
+            {
+                s->row_is_2d = !(s->rx_bitstream & 0x1000);
+                force_drop_rx_bits(s, 13);
+            }
+            /* We can proceed to processing the bit stream as an image now */
         }
-        i = (s->line_encoding == T4_COMPRESSION_ITU_T4_1D)  ?  12  :  13;
-        drop_rx_bits(s, i);
-        s->first_eol_seen = TRUE;
-        return FALSE;
     }
-    /* Check if the image has already terminated */
-    if (s->consecutive_eols >= 5)
-        return TRUE;
+
     while (s->rx_bits >= 13)
     {
+        /* We need to check for EOLs bit by bit through the whole stream. If
+           we just try looking between code words, we will miss an EOL when a bit
+           error has throw the code words completely out of step. The can mean
+           recovery takes many lines, and the image gets really messed up. */
+        /* Although EOLs are not inserted at the end of each row of a T.6 image,
+           they are still perfectly valid, and can terminate an image. */
         if ((s->rx_bitstream & 0x0FFF) == 0x0800)
         {
             STATE_TRACE("EOL\n");
@@ -844,17 +878,26 @@ static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
             }
             if (s->line_encoding == T4_COMPRESSION_ITU_T4_1D)
             {
-                drop_rx_bits(s, 12);
+                force_drop_rx_bits(s, 12);
             }
             else
             {
                 s->row_is_2d = !(s->rx_bitstream & 0x1000);
-                drop_rx_bits(s, 13);
+                force_drop_rx_bits(s, 13);
             }
             s->its_black = FALSE;
             s->black_white = 0;
             s->run_length = 0;
             s->row_len = 0;
+            continue;
+        }
+        if (s->rx_skip_bits)
+        {
+            /* We are clearing out the remaining bits of the last code word we
+               absorbed. */
+            s->rx_skip_bits--;
+            s->rx_bits--;
+            s->rx_bitstream >>= 1;
             continue;
         }
         if (s->row_is_2d  &&  s->black_white == 0)
@@ -1155,19 +1198,21 @@ int t4_rx_start_page(t4_state_t *s)
     memset(s->ref_runs, 0, run_space);
 
     s->rx_bits = 0;
+    s->rx_skip_bits = 0;
     s->rx_bitstream = 0;
     s->row_bits = 0;
     s->min_row_bits = INT_MAX;
     s->max_row_bits = 0;
 
     s->row_is_2d = (s->line_encoding == T4_COMPRESSION_ITU_T6);
-    s->first_eol_seen = (s->line_encoding == T4_COMPRESSION_ITU_T6);
+    /* We start at -1 EOLs for 1D and 2D decoding, as an indication we are waiting for the
+       first EOL. */
+    s->consecutive_eols = (s->line_encoding == T4_COMPRESSION_ITU_T6)  ?  0  :  -1;
 
     s->bad_rows = 0;
     s->longest_bad_row_run = 0;
     s->curr_bad_row_run = 0;
     s->image_length = 0;
-    s->consecutive_eols = 0;
     s->tx_bitstream = 0;
     s->tx_bits = 8;
     s->image_size = 0;

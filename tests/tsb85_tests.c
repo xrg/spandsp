@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tsb85_tests.c,v 1.5 2008/07/21 12:59:48 steveu Exp $
+ * $Id: tsb85_tests.c,v 1.6 2008/07/22 13:48:16 steveu Exp $
  */
 
 /*! \file */
@@ -339,6 +339,66 @@ static int string_test(void)
 /*- End of function --------------------------------------------------------*/
 #endif
 
+static void corrupt_image(uint8_t image[], int len, const char *bad_rows)
+{
+    int i;
+    int j;
+    int k;
+    uint32_t bits;
+    uint32_t bitsx;
+    int list[1000];
+    int x;
+    int row;
+    const char *s;
+
+    /* Form the list of rows to be hit */
+    x = 0;
+    s = bad_rows;
+    while (*s)
+    {
+        while (isspace(*s))
+            s++;
+        if (sscanf(s, "%d", &list[x]) < 1)
+            break;
+        x++;
+        while (isdigit(*s))
+            s++;
+        if (*s == ',')
+            s++;
+    }
+
+    /* Go through the image, and corrupt the first bit of every listed row */
+    bits = 0x7FF;
+    bitsx = 0x7FF;
+    row = 0;
+    for (i = 0;  i < len;  i++)
+    {
+        bits ^= (image[i] << 11);
+        bitsx ^= (image[i] << 11);
+        for (j = 0;  j < 8;  j++)
+        {
+            if ((bits & 0xFFF) == 0x800)
+            {
+                /* We are at an EOL. Is this row in the list of rows to be corrupted? */
+                row++;
+                for (k = 0;  k < x;  k++)
+                {
+                    if (list[k] == row)
+                    {
+                        /* Corrupt this row. TSB85 says to hit the first bit after the EOL */
+                        bitsx ^= 0x1000;
+                    }
+                }
+            }
+            bits >>= 1;
+            bitsx >>= 1;
+        }
+        image[i] = (bitsx >> 3) & 0xFF;
+    }
+    printf("%d rows found. %d corrupted\n", row, x);
+}
+/*- End of function --------------------------------------------------------*/
+
 static int next_step(faxtester_state_t *s)
 {
     int delay;
@@ -348,6 +408,7 @@ static int next_step(faxtester_state_t *s)
     xmlChar *modem;
     xmlChar *value;
     xmlChar *tag;
+    xmlChar *bad_rows;
     uint8_t buf[1000];
     uint8_t mask[1000];
     int i;
@@ -363,9 +424,10 @@ static int next_step(faxtester_state_t *s)
     {
         if (!s->final_delayed)
         {
-            /* Add a bit of waiting at the end, to ensure everything gets flushed through */
+            /* Add a bit of waiting at the end, to ensure everything gets flushed through,
+               any timers can expire, etc. */
             faxtester_set_rx_type(s, T30_MODEM_NONE, FALSE, FALSE);
-            faxtester_set_tx_type(s, T30_MODEM_PAUSE, 1000, FALSE);
+            faxtester_set_tx_type(s, T30_MODEM_PAUSE, 120000, FALSE);
             s->final_delayed = TRUE;
             return 1;
         }
@@ -385,6 +447,7 @@ static int next_step(faxtester_state_t *s)
     modem = xmlGetProp(s->cur, (const xmlChar *) "modem");
     value = xmlGetProp(s->cur, (const xmlChar *) "value");
     tag = xmlGetProp(s->cur, (const xmlChar *) "tag");
+    bad_rows = xmlGetProp(s->cur, (const xmlChar *) "bad_rows");
 
     s->cur = s->cur->next;
 
@@ -405,36 +468,6 @@ static int next_step(faxtester_state_t *s)
             faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
             i = string_to_msg(buf, mask, (const char *) value);
             bit_reverse(buf, buf, abs(i));
-        }
-        else if (strcasecmp((const char *) type, "DIS") == 0)
-        {
-            faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
-            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
-        }
-        else if (strcasecmp((const char *) type, "CFR") == 0)
-        {
-            faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
-            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
-        }
-        else if (strcasecmp((const char *) type, "FTT") == 0)
-        {
-            faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
-            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
-        }
-        else if (strcasecmp((const char *) type, "MPS") == 0)
-        {
-            faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
-            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
-        }
-        else if (strcasecmp((const char *) type, "EOM") == 0)
-        {
-            faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
-            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
-        }
-        else if (strcasecmp((const char *) type, "EOP") == 0)
-        {
-            faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
-            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
         }
         else
         {
@@ -532,8 +565,12 @@ static int next_step(faxtester_state_t *s)
         }
         else if (strcasecmp((const char *) type, "TCF") == 0)
         {
-            memset(image, 0, 900);
-            faxtester_set_image_buffer(s, image, 900);
+            if (value)
+                i = atoi(value);
+            else
+                i = 450;
+            memset(image, 0, i);
+            faxtester_set_image_buffer(s, image, i);
         }
         else if (strcasecmp((const char *) type, "MSG") == 0)
         {
@@ -565,6 +602,11 @@ static int next_step(faxtester_state_t *s)
                 exit(2);
             }
             len = t4_tx_get_chunk(&t4_state, image, sizeof(image));
+            if (bad_rows)
+            {
+                printf("We need to corrupt the image\n");
+                corrupt_image(image, len, bad_rows);
+            }
             t4_tx_end(&t4_state);
             faxtester_set_image_buffer(s, image, len);
         }
