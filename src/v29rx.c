@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.111 2007/11/30 12:20:35 steveu Exp $
+ * $Id: v29rx.c,v 1.112 2007/12/06 13:35:50 steveu Exp $
  */
 
 /*! \file */
@@ -667,6 +667,7 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
     int j;
     int step;
     int16_t x;
+    int32_t diff;
     complexf_t z;
     complexf_t zz;
     complexf_t sample;
@@ -687,12 +688,36 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
            We need to measure the power with the DC blocked, but not using
            a slow to respond DC blocker. Use the most elementary HPF. */
         x = amp[i] >> 1;
-        power = power_meter_update(&(s->power), x - s->last_sample);
+        diff = x - s->last_sample;
+        power = power_meter_update(&(s->power), diff);
+#if defined(IAXMODEM_STUFF)
+        /* Quick power drop fudge */
+        diff = abs(diff);
+        if (10*diff < s->high_sample)
+        {
+            if (++s->low_samples > 120)
+            {
+                power_meter_init(&(s->power), 4);
+                s->high_sample = 0;
+                s->low_samples = 0;
+            }
+        }
+        else
+        { 
+            s->low_samples = 0;
+            if (diff > s->high_sample)
+               s->high_sample = diff;
+        }
+#endif
         s->last_sample = x;
         if (s->signal_present)
         {
             /* Look for power below turn-off threshold to turn the carrier off */
+#if defined(IAXMODEM_STUFF)
+            if (s->carrier_drop_pending  ||  power < s->carrier_off_power)
+#else
             if (power < s->carrier_off_power)
+#endif
             {
                 if (--s->signal_present <= 0)
                 {
@@ -702,6 +727,11 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
                     s->put_bit(s->user_data, PUTBIT_CARRIER_DOWN);
                     continue;
                 }
+#if defined(IAXMODEM_STUFF)
+                /* Carrier has dropped, but the put_bit is
+                   pending the signal_present delay. */
+                s->carrier_drop_pending = TRUE;
+#endif
             }
         }
         else
@@ -710,6 +740,9 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
             if (power < s->carrier_on_power)
                 continue;
             s->signal_present = 1;
+#if defined(IAXMODEM_STUFF)
+            s->carrier_drop_pending = FALSE;
+#endif
             s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
         }
         if (s->training_stage == TRAINING_STAGE_PARKED)
@@ -826,6 +859,11 @@ int v29_rx_restart(v29_rx_state_t *s, int rate, int old_train)
     s->training_stage = TRAINING_STAGE_SYMBOL_ACQUISITION;
     s->training_count = 0;
     s->signal_present = 0;
+#if defined(IAXMODEM_STUFF)
+    s->high_sample = 0;
+    s->low_samples = 0;
+    s->carrier_drop_pending = FALSE;
+#endif
     s->old_train = old_train;
 
     s->carrier_phase = 0;

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.h,v 1.47 2007/11/30 12:20:36 steveu Exp $
+ * $Id: v29rx.h,v 1.48 2007/12/06 13:35:51 steveu Exp $
  */
 
 /*! \file */
@@ -171,7 +171,10 @@ typedef struct
     int16_t last_sample;
     /*! \brief >0 if a signal above the minimum is present. It may or may not be a V.29 signal. */
     int signal_present;
-
+    /*! \brief Whether or not a carrier drop was detected and the signal delivery is pending. */
+    int carrier_drop_pending;
+    int low_samples;
+    int16_t high_sample;
     /*! \brief TRUE if the previous trained values are to be reused. */
     int old_train;
 
@@ -221,7 +224,7 @@ typedef struct
     logging_state_t logging;
 } v29_rx_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -297,7 +300,7 @@ void v29_rx_signal_cutoff(v29_rx_state_t *s, float cutoff);
     \param user_data An opaque pointer passed to the handler routine. */
 void v29_rx_set_qam_report_handler(v29_rx_state_t *s, qam_report_handler_t *handler, void *user_data);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

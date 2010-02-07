@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.93 2007/11/30 12:20:34 steveu Exp $
+ * $Id: v17rx.c,v 1.95 2007/12/06 13:35:50 steveu Exp $
  */
 
 /*! \file */
@@ -88,7 +88,8 @@ enum
     TRAINING_STAGE_LOG_PHASE,
     TRAINING_STAGE_SHORT_WAIT_FOR_CDBA,
     TRAINING_STAGE_WAIT_FOR_CDBA,
-    TRAINING_STAGE_TRAIN_ON_CDBA,
+    TRAINING_STAGE_COARSE_TRAIN_ON_CDBA,
+    TRAINING_STAGE_FINE_TRAIN_ON_CDBA,
     TRAINING_STAGE_SHORT_TRAIN_ON_CDBA_AND_TEST,
     TRAINING_STAGE_TRAIN_ON_CDBA_AND_TEST,
     TRAINING_STAGE_BRIDGE,
@@ -554,7 +555,11 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
     case TRAINING_STAGE_SYMBOL_ACQUISITION:
         /* Allow time for the symbol synchronisation to settle the symbol timing. */
         target = &z;
+#if defined(IAXMODEM_STUFF)
+        if (++s->training_count >= 100)
+#else
         if (++s->training_count >= 50)
+#endif
         {
             /* Record the current phase angle */
             s->angles[0] =
@@ -687,7 +692,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
             descramble(s, 1);
             descramble(s, 1);
             s->training_count = 1;
-            s->training_stage = TRAINING_STAGE_TRAIN_ON_CDBA;
+            s->training_stage = TRAINING_STAGE_COARSE_TRAIN_ON_CDBA;
             break;
         }
         if (++s->training_count > V17_TRAINING_SEG_1_LEN)
@@ -701,18 +706,36 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
             s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
         }
         break;
-    case TRAINING_STAGE_TRAIN_ON_CDBA:
+    case TRAINING_STAGE_COARSE_TRAIN_ON_CDBA:
         /* Train on the scrambled CDBA section. */
         bit = descramble(s, 1);
         bit = (bit << 1) | descramble(s, 1);
         target = &cdba[bit];
         track_carrier(s, &z, target);
         tune_equalizer(s, &z, target);
-        if (s->training_count == V17_TRAINING_SEG_2_LEN - 2000)
+#if defined(IAXMODEM_STUFF)
+        zz = complex_subf(&z, target);
+        s->training_error = powerf(&zz);
+        if (++s->training_count == V17_TRAINING_SEG_2_LEN - 2000  ||  s->training_error < 1.0f  ||  s->training_error > 200.0f)
+#else
+        if (++s->training_count == V17_TRAINING_SEG_2_LEN - 2000)
+#endif
         {
+            /* Now the equaliser adaption should be getting somewhere, slow it down, or it will never
+               tune very well on a noisy signal. */
             s->eq_delta *= EQUALIZER_SLOW_ADAPT_RATIO;
             s->carrier_track_i = 1000.0f;
+            s->training_stage = TRAINING_STAGE_FINE_TRAIN_ON_CDBA;
         }
+        break;
+    case TRAINING_STAGE_FINE_TRAIN_ON_CDBA:
+        /* Train on the scrambled CDBA section. */
+        bit = descramble(s, 1);
+        bit = (bit << 1) | descramble(s, 1);
+        target = &cdba[bit];
+        /* By this point the training should be comming into focus. */
+        track_carrier(s, &z, target);
+        tune_equalizer(s, &z, target);
         if (++s->training_count >= V17_TRAINING_SEG_2_LEN - 48)
         {
             s->training_error = 0.0f;
@@ -725,15 +748,19 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
         /* Continue training on the scrambled CDBA section, but measure the quality of training too. */
         bit = descramble(s, 1);
         bit = (bit << 1) | descramble(s, 1);
-
-        //span_log(&s->logging, SPAN_LOG_FLOW, "%5d [%15.5f, %15.5f]     [%15.5f, %15.5f]\n", s->training_count, z.re, z.im, cdba[bit].re, cdba[bit].im);
         target = &cdba[bit];
-        track_carrier(s, &z, target);
-        tune_equalizer(s, &z, target);
-        /* Measure the training error */
-        zz = complex_subf(&z, &cdba[bit]);
-        s->training_error += powerf(&zz);
-        if (++s->training_count >= V17_TRAINING_SEG_2_LEN)
+        //span_log(&s->logging, SPAN_LOG_FLOW, "%5d [%15.5f, %15.5f]     [%15.5f, %15.5f]\n", s->training_count, z.re, z.im, cdba[bit].re, cdba[bit].im);
+        /* We ignore the last few symbols because it seems some modems do not end this
+           part properly, and it throws things off. */
+        if (++s->training_count < V17_TRAINING_SEG_2_LEN - 20)
+        {
+            track_carrier(s, &z, target);
+            tune_equalizer(s, &z, target);
+            /* Measure the training error */
+            zz = complex_subf(&z, &cdba[bit]);
+            s->training_error += powerf(&zz);
+        }
+        else if (s->training_count >= V17_TRAINING_SEG_2_LEN)
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "Long training error %f\n", s->training_error);
             if (s->training_error < 20.0f)
@@ -855,7 +882,11 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
         s->training_error += powerf(&zz);
         if (++s->training_count >= V17_TRAINING_SEG_4_LEN)
         {
+#if defined(IAXMODEM_STUFF)
+            if (s->training_error < 80.0f)
+#else
             if (s->training_error < 30.0f)
+#endif
             {
                 /* We are up and running */
                 span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded (constellation mismatch %f)\n", s->training_error);
@@ -898,6 +929,7 @@ void v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
     int j;
     int step;
     int16_t x;
+    int32_t diff;
     complexf_t z;
     complexf_t zz;
     complexf_t sample;
@@ -918,12 +950,36 @@ void v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
            We need to measure the power with the DC blocked, but not using
            a slow to respond DC blocker. Use the most elementary HPF. */
         x = amp[i] >> 1;
-        power = power_meter_update(&(s->power), x - s->last_sample);
+        diff = x - s->last_sample;
+        power = power_meter_update(&(s->power), diff);
+#if defined(IAXMODEM_STUFF)
+        /* Quick power drop fudge */
+        diff = abs(diff);
+        if (10*diff < s->high_sample)
+        {
+            if (++s->low_samples > 120)
+            {
+                power_meter_init(&(s->power), 4);
+                s->high_sample = 0;
+                s->low_samples = 0;
+            }
+        }
+        else
+        { 
+            s->low_samples = 0;
+            if (diff > s->high_sample)
+               s->high_sample = diff;
+        }
+#endif
         s->last_sample = x;
         if (s->signal_present)
         {
             /* Look for power below turnoff threshold to turn the carrier off */
+#if defined(IAXMODEM_STUFF)
+            if (s->carrier_drop_pending  ||  power < s->carrier_off_power)
+#else
             if (power < s->carrier_off_power)
+#endif
             {
                 if (--s->signal_present <= 0)
                 {
@@ -933,6 +989,11 @@ void v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
                     s->put_bit(s->user_data, PUTBIT_CARRIER_DOWN);
                     continue;
                 }
+#if defined(IAXMODEM_STUFF)
+                /* Carrier has dropped, but the put_bit is
+                   pending the signal_present delay. */
+                s->carrier_drop_pending = TRUE;
+#endif
             }
         }
         else
@@ -941,6 +1002,9 @@ void v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
             if (power < s->carrier_on_power)
                 continue;
             s->signal_present = 1;
+#if defined(IAXMODEM_STUFF)
+            s->carrier_drop_pending = FALSE;
+#endif
             s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
         }
         if (s->training_stage == TRAINING_STAGE_PARKED)
@@ -1067,6 +1131,11 @@ int v17_rx_restart(v17_rx_state_t *s, int rate, int short_train)
     s->training_count = 0;
     s->training_error = 0.0f;
     s->signal_present = 0;
+#if defined(IAXMODEM_STUFF)
+    s->high_sample = 0;
+    s->low_samples = 0;
+    s->carrier_drop_pending = FALSE;
+#endif
     if (short_train != 2)
         s->short_train = short_train;
     memset(s->start_angles, 0, sizeof(s->start_angles));

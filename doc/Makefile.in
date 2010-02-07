@@ -329,8 +329,13 @@ uninstall-am: uninstall-info-am
 	uninstall-info-am
 
 
-all:
+all: doxydocs t38_manual/index.html
+
+doxydocs:
 	doxygen libspandsp-doxygen
+
+t38_manual/index.html: t38_manual.xml
+	cd t38_manual ; xsltproc ../wrapper.xsl ../t38_manual.xml
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

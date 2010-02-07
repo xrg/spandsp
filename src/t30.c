@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.214 2007/11/30 12:20:34 steveu Exp $
+ * $Id: t30.c,v 1.215 2007/12/03 12:41:21 steveu Exp $
  */
 
 /*! \file */
@@ -2070,6 +2070,8 @@ static int process_rx_dcs(t30_state_t *s, const uint8_t *msg, int len)
     }
     if (!(s->iaf & T30_IAF_MODE_NO_TCF))
     {
+        s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
+        s->timer_is_t4 = FALSE;
         set_state(s, T30_STATE_F_TCF);
         set_phase(s, T30_PHASE_C_NON_ECM_RX);
     }
@@ -4314,8 +4316,6 @@ static void set_phase(t30_state_t *s, int phase)
                 s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_V21, FALSE, TRUE);
             break;
         case T30_PHASE_C_NON_ECM_RX:
-            s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
-            s->timer_is_t4 = FALSE;
             if (s->set_rx_type_handler)
                 s->set_rx_type_handler(s->set_rx_type_user_data, fallback_sequence[s->current_fallback].modem_type, s->short_train, FALSE);
             if (s->set_tx_type_handler)
@@ -4332,8 +4332,6 @@ static void set_phase(t30_state_t *s, int phase)
                 s->set_tx_type_handler(s->set_tx_type_user_data, fallback_sequence[s->current_fallback].modem_type, s->short_train, FALSE);
             break;
         case T30_PHASE_C_ECM_RX:
-            s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
-            s->timer_is_t4 = FALSE;
             if (s->set_rx_type_handler)
                 s->set_rx_type_handler(s->set_rx_type_user_data, fallback_sequence[s->current_fallback].modem_type, s->short_train, TRUE);
             if (s->set_tx_type_handler)
@@ -4416,6 +4414,7 @@ void t30_front_end_status(void *user_data, int status)
                 break;
             case 2:
                 s->step++;
+                /* Shut down HDLC transmission. */
                 if (s->send_hdlc_handler)
                     s->send_hdlc_handler(s->send_hdlc_user_data, NULL, 0);
                 break;        
@@ -4430,6 +4429,7 @@ void t30_front_end_status(void *user_data, int status)
         case T30_STATE_F_CFR:
             if (s->step == 0)
             {
+                /* Shut down HDLC transmission. */
                 if (s->send_hdlc_handler)
                     s->send_hdlc_handler(s->send_hdlc_user_data, NULL, 0);
                 s->step++;
@@ -4446,12 +4446,15 @@ void t30_front_end_status(void *user_data, int status)
                     set_state(s, T30_STATE_F_DOC_NON_ECM);
                     set_phase(s, T30_PHASE_C_NON_ECM_RX);
                 }
+                s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
+                s->timer_is_t4 = FALSE;
                 s->next_rx_step = T30_MPS;
             }
             break;
         case T30_STATE_F_FTT:
             if (s->step == 0)
             {
+                /* Shut down HDLC transmission. */
                 if (s->send_hdlc_handler)
                     s->send_hdlc_handler(s->send_hdlc_user_data, NULL, 0);
                 s->step++;
@@ -4459,8 +4462,8 @@ void t30_front_end_status(void *user_data, int status)
             else
             {
                 set_phase(s, T30_PHASE_B_RX);
-                s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T4);
-                s->timer_is_t4 = TRUE;
+                s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
+                s->timer_is_t4 = FALSE;
             }
             break;
         case T30_STATE_III_Q_MCF:
@@ -4470,6 +4473,7 @@ void t30_front_end_status(void *user_data, int status)
         case T30_STATE_F_POST_RCP_MCF:
             if (s->step == 0)
             {
+                /* Shut down HDLC transmission. */
                 if (s->send_hdlc_handler)
                     s->send_hdlc_handler(s->send_hdlc_user_data, NULL, 0);
                 s->step++;
@@ -4490,6 +4494,8 @@ void t30_front_end_status(void *user_data, int status)
                         set_state(s, T30_STATE_F_DOC_NON_ECM);
                         set_phase(s, T30_PHASE_C_NON_ECM_RX);
                     }
+                    s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
+                    s->timer_is_t4 = FALSE;
                     break;
                 case T30_EOM:
                 case T30_PRI_EOM:
@@ -4513,8 +4519,11 @@ void t30_front_end_status(void *user_data, int status)
         case T30_STATE_IV_PPS_RNR:
         case T30_STATE_IV_EOR_RNR:
         case T30_STATE_F_POST_RCP_RNR:
+        case T30_STATE_IV_EOR:
+        case T30_STATE_IV_CTC:
             if (s->step == 0)
             {
+                /* Shut down HDLC transmission. */
                 if (s->send_hdlc_handler)
                     s->send_hdlc_handler(s->send_hdlc_user_data, NULL, 0);
                 s->step++;
@@ -4540,6 +4549,7 @@ void t30_front_end_status(void *user_data, int status)
         case T30_STATE_C:
             if (s->step == 0)
             {
+                /* Shut down HDLC transmission. */
                 if (s->send_hdlc_handler)
                     s->send_hdlc_handler(s->send_hdlc_user_data, NULL, 0);
                 s->step++;
@@ -4569,6 +4579,7 @@ void t30_front_end_status(void *user_data, int status)
                 break;
             case 3:
                 s->step++;
+                /* Shut down HDLC transmission. */
                 if (s->send_hdlc_handler)
                     s->send_hdlc_handler(s->send_hdlc_user_data, NULL, 0);
                 break;        
@@ -4619,6 +4630,7 @@ void t30_front_end_status(void *user_data, int status)
             {
                 if (send_next_ecm_frame(s))
                 {
+                    /* Shut down HDLC transmission. */
                     if (s->send_hdlc_handler)
                         s->send_hdlc_handler(s->send_hdlc_user_data, NULL, 0);
                     s->step++;
@@ -4829,6 +4841,8 @@ static void timer_t2_expired(t30_state_t *s)
         /* While waiting for NSS, DCS or MCF */
         s->current_status = T30_ERR_T2EXPRX;
         break;
+    case T30_STATE_F_FTT:
+        break;
     }
     set_phase(s, T30_PHASE_B_TX);
     start_receiving_document(s);
@@ -4845,7 +4859,8 @@ static void timer_t3_expired(t30_state_t *s)
 
 static void timer_t4_expired(t30_state_t *s)
 {
-    /* There was no response (or only a corrupt response) to a command */
+    /* There was no response (or only a corrupt response) to a command,
+       within the T4 timeout period. */
     span_log(&s->logging, SPAN_LOG_FLOW, "T4 expired in phase %s, state %d\n", phase_names[s->phase], s->state);
     if (++s->retries > MAX_MESSAGE_TRIES)
     {
@@ -4869,6 +4884,13 @@ static void timer_t4_expired(t30_state_t *s)
         send_dcn(s);
         return;
     }
+    /* Of course, things might just be a little late, especially if there are T.38
+       links in the path. There is no point in simply timing out, and resending,
+       if we are currently receiving something from the far end - its a half-duplex
+       path, so the two transmissions will conflict. Our best strategy is to wait
+       until there is nothing being received, or give up after a long backstop timeout.
+       In the meantime, if we get a meaningful, if somewhat delayed, response, we
+       should accept it and carry on. */
     repeat_last_command(s);
 }
 /*- End of function --------------------------------------------------------*/

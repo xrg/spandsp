@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.85 2007/11/30 12:20:35 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.86 2007/12/06 13:35:50 steveu Exp $
  */
 
 /*! \file */
@@ -1780,6 +1780,7 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
     int j;
     int step;
     int16_t x;
+    int32_t diff;
     complexf_t z;
     complexf_t zz;
     complexf_t sample;
@@ -1801,13 +1802,37 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                We need to measure the power with the DC blocked, but not using
                a slow to respond DC blocker. Use the most elementary HPF. */
             x = amp[i] >> 1;
-            power = power_meter_update(&(s->power), x - s->last_sample);
+            diff = x - s->last_sample;
+            power = power_meter_update(&(s->power), diff);
+#if defined(IAXMODEM_STUFF)
+            /* Quick power drop fudge */
+            diff = abs(diff);
+            if (10*diff < s->high_sample)
+            {
+                if (++s->low_samples > 120)
+                {
+                    power_meter_init(&(s->power), 4);
+                    s->high_sample = 0;
+                    s->low_samples = 0;
+                }
+            }
+            else
+            { 
+                s->low_samples = 0;
+                if (diff > s->high_sample)
+                   s->high_sample = diff;
+            }
+#endif
             s->last_sample = x;
             //span_log(&s->logging, SPAN_LOG_FLOW, "Power = %f\n", power_meter_current_dbm0(&(s->power)));
             if (s->signal_present)
             {
                 /* Look for power below turnoff threshold to turn the carrier off */
+#if defined(IAXMODEM_STUFF)
+                if (s->carrier_drop_pending  ||  power < s->carrier_off_power)
+#else
                 if (power < s->carrier_off_power)
+#endif
                 {
                     if (--s->signal_present <= 0)
                     {
@@ -1817,6 +1842,11 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                         s->put_bit(s->user_data, PUTBIT_CARRIER_DOWN);
                         continue;
                     }
+#if defined(IAXMODEM_STUFF)
+                    /* Carrier has dropped, but the put_bit is
+                       pending the signal_present delay. */
+                    s->carrier_drop_pending = TRUE;
+#endif
                 }
             }
             else
@@ -1825,6 +1855,9 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                 if (power < s->carrier_on_power)
                     continue;
                 s->signal_present = 1;
+#if defined(IAXMODEM_STUFF)
+                s->carrier_drop_pending = FALSE;
+#endif
                 s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
             }
             /* Only spend effort processing this data if the modem is not
@@ -1894,13 +1927,37 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                We need to measure the power with the DC blocked, but not using
                a slow to respond DC blocker. Use the most elementary HPF. */
             x = amp[i] >> 1;
-            power = power_meter_update(&(s->power), x - s->last_sample);
+            diff = x - s->last_sample;
+            power = power_meter_update(&(s->power), diff);
+#if defined(IAXMODEM_STUFF)
+            /* Quick power drop fudge */
+            diff = abs(diff);
+            if (10*diff < s->high_sample)
+            {
+                if (++s->low_samples > 120)
+                {
+                    power_meter_init(&(s->power), 4);
+                    s->high_sample = 0;
+                    s->low_samples = 0;
+                }
+            }
+            else
+            { 
+                s->low_samples = 0;
+                if (diff > s->high_sample)
+                   s->high_sample = diff;
+            }
+#endif
             s->last_sample = x;
             //span_log(&s->logging, SPAN_LOG_FLOW, "Power = %f\n", power_meter_current_dbm0(&(s->power)));
             if (s->signal_present)
             {
                 /* Look for power below turnoff threshold to turn the carrier off */
+#if defined(IAXMODEM_STUFF)
+                if (s->carrier_drop_pending  ||  power < s->carrier_off_power)
+#else
                 if (power < s->carrier_off_power)
+#endif
                 {
                     if (--s->signal_present <= 0)
                     {
@@ -1910,6 +1967,11 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                         s->put_bit(s->user_data, PUTBIT_CARRIER_DOWN);
                         continue;
                     }
+#if defined(IAXMODEM_STUFF)
+                    /* Carrier has dropped, but the put_bit is
+                       pending the signal_present delay. */
+                    s->carrier_drop_pending = TRUE;
+#endif
                 }
             }
             else
@@ -1918,6 +1980,9 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                 if (power < s->carrier_on_power)
                     continue;
                 s->signal_present = 1;
+#if defined(IAXMODEM_STUFF)
+                s->carrier_drop_pending = FALSE;
+#endif
                 s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
             }
             /* Only spend effort processing this data if the modem is not
@@ -2006,6 +2071,11 @@ int v27ter_rx_restart(v27ter_rx_state_t *s, int rate, int old_train)
     s->training_count = 0;
     s->training_error = 0.0f;
     s->signal_present = 0;
+#if defined(IAXMODEM_STUFF)
+    s->high_sample = 0;
+    s->low_samples = 0;
+    s->carrier_drop_pending = FALSE;
+#endif
 
     s->carrier_phase = 0;
     s->carrier_track_i = 200000.0f;

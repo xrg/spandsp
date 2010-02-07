@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.96 2007/11/30 12:20:34 steveu Exp $
+ * $Id: t31.c,v 1.97 2007/12/06 13:35:50 steveu Exp $
  */
 
 /*! \file */
@@ -1011,7 +1011,7 @@ static void t31_v21_rx(t31_state_t *s)
     s->hdlc_tx_len = 0;
     s->dled = FALSE;
     fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &(s->hdlcrx));
-    fsk_rx_signal_cutoff(&(s->v21rx), -45.5);
+    fsk_rx_signal_cutoff(&(s->v21rx), -39.09);
     s->at_state.transmit = TRUE;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1947,7 +1947,7 @@ t31_state_t *t31_init(t31_state_t *s,
     silence_gen_init(&(s->silence_gen), 0);
     power_meter_init(&(s->rx_power), 4);
     s->last_sample = 0;
-    s->silence_threshold_power = power_meter_level_dbm0(-43);
+    s->silence_threshold_power = power_meter_level_dbm0(-36);
     s->at_state.rx_signal_present = FALSE;
     s->at_state.rx_trained = FALSE;
 
