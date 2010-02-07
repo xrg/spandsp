@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.19 2007/06/08 13:49:38 steveu Exp $
+ * $Id: t38_terminal.h,v 1.20 2007/10/18 15:08:06 steveu Exp $
  */
 
 /*! \file */
@@ -42,6 +42,9 @@
 typedef struct
 {
     t38_core_state_t t38;
+
+    /*! \brief Use (actually allow time for) talker echo protection when transmitting. */
+    int use_tep;    
 
     /*! \brief HDLC transmit buffer */
     uint8_t tx_buf[T38_MAX_HDLC_LEN];
@@ -105,7 +108,14 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples);
 
 void t38_terminal_set_config(t38_terminal_state_t *s, int without_pacing);
 
-/*! \brief Initialise a termination mode T.38 context.
+/*! Select whether the time for talker echo protection tone will be allowed for when sending.
+    \brief Select whether TEP time will be allowed for.
+    \param s The T.38 context.
+    \param use_tep TRUE if TEP should be allowed for.
+*/
+void t38_terminal_set_tep_mode(t38_terminal_state_t *s, int use_tep);
+
+    /*! \brief Initialise a termination mode T.38 context.
     \param s The T.38 context.
     \param calling_party TRUE if the context is for a calling party. FALSE if the
            context is for an answering party.

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.201 2007/10/14 15:45:04 steveu Exp $
+ * $Id: t30.c,v 1.203 2007/10/18 15:08:05 steveu Exp $
  */
 
 /*! \file */
@@ -203,7 +203,7 @@ c)       if the terminal is capable of detecting any condition which indicates t
 The recommended value of T0 is 60+-5s; however, when it is anticipated that a long call set-up
 time may be encountered, an alternative value of up to 120s may be used.
 NOTE - National regulations may require the use of other values for T0. */
-#define DEFAULT_TIMER_T0            60000
+#define DEFAULT_TIMER_T0                60000
 
 /* Time-out T1 defines the amount of time two terminals will continue to attempt to identify each
 other. T1 is 35+-5s, begins upon entering phase B, and is reset upon detecting a valid signal or
@@ -212,25 +212,25 @@ For operating methods 3 and 4 (see 3.1), the calling terminal starts time-out T1
 the V.21 modulation scheme.
 For operating method 4 bis a (see 3.1), the calling terminal starts time-out T1 upon starting
 transmission using the V.21 modulation scheme. */
-#define DEFAULT_TIMER_T1            35000
+#define DEFAULT_TIMER_T1                35000
 
 /* Time-out T2 makes use of the tight control between commands and responses to detect the loss of
 command/response synchronization. T2 is 6+-1s and begins when initiating a command search
 (e.g., the first entrance into the "command received" subroutine, reference flow diagram in 5.2).
 T2 is reset when an HDLC flag is received or when T2 times out. */
-#define DEFAULT_TIMER_T2            7000
+#define DEFAULT_TIMER_T2                7000
 
 /* Time-out T3 defines the amount of time a terminal will attempt to alert the local operator in
 response to a procedural interrupt. Failing to achieve operator intervention, the terminal will
 discontinue this attempt and shall issue other commands or responses. T3 is 10+-5s, begins on the
 first detection of a procedural interrupt command/response signal (i.e., PIN/PIP or PRI-Q) and is
 reset when T3 times out or when the operator initiates a line request. */
-#define DEFAULT_TIMER_T3            15000
+#define DEFAULT_TIMER_T3                15000
 
 /* NOTE - For manual FAX units, the value of timer T4 may be either 3.0s +-15% or 4.5s +-15%.
 If the value of 4.5s is used, then after detection of a valid response to the first DIS, it may
 be reduced to 3.0s +-15%. T4 = 3.0s +-15% for automatic units. */
-#define DEFAULT_TIMER_T4            3450
+#define DEFAULT_TIMER_T4                3450
 
 /* Time-out T5 is defined for the optional T.4 error correction mode. Time-out T5 defines the amount
 of time waiting for clearance of the busy condition of the receiving terminal. T5 is 60+-5s and
@@ -238,18 +238,19 @@ begins on the first detection of the RNR response. T5 is reset when T5 times out
 response is received or when the ERR or PIN response is received in the flow control process after
 transmitting the EOR command. If the timer T5 has expired, the DCN command is transmitted for
 call release. */
-#define DEFAULT_TIMER_T5            65000
+#define DEFAULT_TIMER_T5                65000
 
-#define DEFAULT_TIMER_T6            5000
+#define DEFAULT_TIMER_T6                5000
 
-#define DEFAULT_TIMER_T7            6000
+#define DEFAULT_TIMER_T7                6000
 
-#define DEFAULT_TIMER_T8            10000
+#define DEFAULT_TIMER_T8                10000
 
 /* Final time we allow for things to flush through the system, before we disconnect, in milliseconds.
    200ms should be fine for a PSTN call. For a T.38 call something longer is desirable. */
-#define FINAL_FLUSH_TIME            1000
+#define FINAL_FLUSH_TIME                1000
 
+/* Start points in the fallback table for different capabilities */
 #define T30_V17_FALLBACK_START          0
 #define T30_V29_FALLBACK_START          3
 #define T30_V27TER_FALLBACK_START       6
@@ -3864,15 +3865,19 @@ static void process_state_call_finished(t30_state_t *s, const uint8_t *msg, int 
 
 static void hdlc_accept_control_msg(t30_state_t *s, const uint8_t *msg, int len, int ok)
 {
-    int final_frame;
     char far_password[T30_MAX_IDENT_LEN];
     
-    final_frame = msg[1] & 0x10;
-    if (!final_frame)
+    if ((msg[1] & 0x10) == 0)
     {
-        /* Restart the command or response timer, T2 or T4 */
-        s->timer_t2_t4 = ms_to_samples((s->timer_is_t4)  ?  DEFAULT_TIMER_T4  :  DEFAULT_TIMER_T2);
-
+        /* This is not a final frame */
+        /* It seems we should not restart the command or response timer when exchanging HDLC image
+           data. If the modem looses sync in the middle of the image, we should just wait until
+           the carrier goes away before proceeding. */
+        if (s->phase != T30_PHASE_C_ECM_RX)
+        {
+            /* Restart the command or response timer, T2 or T4 */
+            s->timer_t2_t4 = ms_to_samples((s->timer_is_t4)  ?  DEFAULT_TIMER_T4  :  DEFAULT_TIMER_T2);
+        }
         /* The following handles all the message types we expect to get without
            a final frame tag. If we get one that T.30 says we should not expect
            in a particular context, its pretty harmless, so don't worry. */
@@ -4015,6 +4020,7 @@ static void hdlc_accept_control_msg(t30_state_t *s, const uint8_t *msg, int len,
     }
     else
     {
+        /* This is a final frame */
         /* Once we have any successful message from the far end, we
            cancel timer T1 */
         s->timer_t0_t1 = 0;
@@ -4751,7 +4757,7 @@ static void repeat_last_command(t30_state_t *s)
 
 static void timer_t0_expired(t30_state_t *s)
 {
-    span_log(&s->logging, SPAN_LOG_FLOW, "T0 timeout in state %d\n", s->state);
+    span_log(&s->logging, SPAN_LOG_FLOW, "T0 expired in state %d\n", s->state);
     s->current_status = T30_ERR_T0_EXPIRED;
     /* Just end the call */
     disconnect(s);
@@ -4760,7 +4766,7 @@ static void timer_t0_expired(t30_state_t *s)
 
 static void timer_t1_expired(t30_state_t *s)
 {
-    span_log(&s->logging, SPAN_LOG_FLOW, "T1 timeout in state %d\n", s->state);
+    span_log(&s->logging, SPAN_LOG_FLOW, "T1 expired in state %d\n", s->state);
     /* The initial connection establishment has timeout out. In other words, we
        have been unable to communicate successfully with a remote machine.
        It is time to abandon the call. */
@@ -4784,7 +4790,7 @@ static void timer_t1_expired(t30_state_t *s)
 
 static void timer_t2_expired(t30_state_t *s)
 {
-    span_log(&s->logging, SPAN_LOG_FLOW, "T2 timeout in phase %s, state %d\n", phase_names[s->phase], s->state);
+    span_log(&s->logging, SPAN_LOG_FLOW, "T2 expired in phase %s, state %d\n", phase_names[s->phase], s->state);
     switch (s->state)
     {
     case T30_STATE_F_DOC_ECM:
@@ -4824,7 +4830,7 @@ static void timer_t2_expired(t30_state_t *s)
 
 static void timer_t3_expired(t30_state_t *s)
 {
-    span_log(&s->logging, SPAN_LOG_FLOW, "T3 timeout in phase %s, state %d\n", phase_names[s->phase], s->state);
+    span_log(&s->logging, SPAN_LOG_FLOW, "T3 expired in phase %s, state %d\n", phase_names[s->phase], s->state);
     s->current_status = T30_ERR_T3_EXPIRED;
     disconnect(s);
 }
@@ -4833,7 +4839,7 @@ static void timer_t3_expired(t30_state_t *s)
 static void timer_t4_expired(t30_state_t *s)
 {
     /* There was no response (or only a corrupt response) to a command */
-    span_log(&s->logging, SPAN_LOG_FLOW, "T4 timeout in phase %s, state %d\n", phase_names[s->phase], s->state);
+    span_log(&s->logging, SPAN_LOG_FLOW, "T4 expired in phase %s, state %d\n", phase_names[s->phase], s->state);
     if (++s->retries > MAX_MESSAGE_TRIES)
     {
         switch (s->state)
@@ -4863,6 +4869,7 @@ static void timer_t4_expired(t30_state_t *s)
 static void timer_t5_expired(t30_state_t *s)
 {
     /* Give up waiting for the receiver to become ready in error correction mode */
+    span_log(&s->logging, SPAN_LOG_FLOW, "T5 expired in phase %s, state %d\n", phase_names[s->phase], s->state);
     s->current_status = T30_ERR_T5_EXPIRED;
     send_dcn(s);
 }

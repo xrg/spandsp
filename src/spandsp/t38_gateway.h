@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.28 2007/05/15 13:22:43 steveu Exp $
+ * $Id: t38_gateway.h,v 1.29 2007/10/18 15:08:06 steveu Exp $
  */
 
 /*! \file */
@@ -50,13 +50,15 @@ typedef struct
 {
     t38_core_state_t t38;
 
-    /*! TRUE if ECM FAX mode is allowed through the gateway. */
+    /*! \brief TRUE if ECM FAX mode is allowed through the gateway. */
     int ecm_allowed;
+    /*! \brief Use talker echo protection when transmitting. */
+    int use_tep;    
 
-    /*! If TRUE, transmit silence when there is nothing else to transmit. If FALSE return only
-        the actual generated audio. Note that this only affects untimed silences. Timed silences
-        (e.g. the 75ms silence between V.21 and a high speed modem) will alway be transmitted as
-        silent audio. */
+    /*! \brief If TRUE, transmit silence when there is nothing else to transmit. If FALSE return only
+               the actual generated audio. Note that this only affects untimed silences. Timed silences
+               (e.g. the 75ms silence between V.21 and a high speed modem) will alway be transmitted as
+               silent audio. */
     int transmit_on_idle;
 
     int supported_modems;
@@ -122,8 +124,6 @@ typedef struct
     int fast_modem;
     /*! \brief TRUE if between DCS and TCF */
     int tcf_in_progress;
-    /*! \brief Use talker echo protection when transmitting. */
-    int use_tep;    
     /*! \brief TRUE if a carrier is present. Otherwise FALSE. */
     int rx_signal_present;
     /*! \brief TRUE if a modem has trained correctly. */
@@ -245,11 +245,37 @@ int t38_gateway_tx(t38_gateway_state_t *s, int16_t amp[], int max_len);
 */
 void t38_gateway_set_ecm_capability(t38_gateway_state_t *s, int ecm_allowed);
 
+/*! Select whether silent audio will be sent when transmit is idle.
+    \brief Select whether silent audio will be sent when transmit is idle.
+    \param s The T.38 context.
+    \param transmit_on_idle TRUE if silent audio should be output when the FAX transmitter is
+           idle. FALSE to transmit zero length audio when the FAX transmitter is idle. The default
+           behaviour is FALSE.
+*/
 void t38_gateway_set_transmit_on_idle(t38_gateway_state_t *s, int transmit_on_idle);
 
+/*! Specify which modem types are supported by a T.30 context.
+    \brief Specify supported modems.
+    \param s The T.38 context.
+    \param supported_modems Bit field list of the supported modems.
+*/
 void t38_gateway_set_supported_modems(t38_gateway_state_t *s, int supported_modems);
 
+/*! Select whether NSC, NSF, and NSS should be suppressed. It selected, the contents of
+    these messages are forced to zero for all octets beyond the message type. This makes
+    them look like manufacturer specific messages, from a manufacturer which does not exist.
+    \brief Select whether NSC, NSF, and NSS should be suppressed.
+    \param s The T.38 context.
+    \param suppress_nsx TRUE if NSC, NSF, and NSS should be suppressed.
+*/
 void t38_gateway_set_nsx_suppression(t38_gateway_state_t *s, int suppress_nsx);
+
+/*! Select whether talker echo protection tone will be sent for the image modems.
+    \brief Select whether TEP will be sent for the image modems.
+    \param s The T.38 context.
+    \param use_tep TRUE if TEP should be sent.
+*/
+void t38_gateway_set_tep_mode(t38_gateway_state_t *s, int use_tep);
 
 #if defined(__cplusplus)
 }

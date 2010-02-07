@@ -22,8 +22,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: faxfont.h,v 1.3 2006/10/24 13:45:25 steveu Exp $
+ * $Id: faxfont.h,v 1.4 2007/10/18 15:08:05 steveu Exp $
  */
+
+#if !defined(_FAXFONT_H_)
+#define _FAXFONT_H_
 
 static const uint32_t header_font[256][16] =
 {
@@ -4636,3 +4639,6 @@ static const uint32_t header_font[256][16] =
         0x0,
     },
 };
+
+#endif
+/*- End of file ------------------------------------------------------------*/

@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.97 2007/10/14 15:20:12 steveu Exp $
+ * $Id: t4.c,v 1.98 2007/10/18 15:08:06 steveu Exp $
  */
 
 /*
@@ -138,6 +138,256 @@ typedef struct
 } t4_run_table_entry_t;
 
 #include "t4_states.h"
+
+static int set_tiff_directory_info(t4_state_t *s)
+{
+    time_t now;
+    struct tm *tm;
+    char buf[256 + 1];
+    uint16_t resunit;
+    float x_resolution;
+    float y_resolution;
+
+    /* Prepare the directory entry fully before writing the image, or libtiff complains */
+    TIFFSetField(s->tiff_file, TIFFTAG_COMPRESSION, s->output_compression);
+    if (s->output_compression == COMPRESSION_CCITT_T4)
+    {
+        TIFFSetField(s->tiff_file, TIFFTAG_T4OPTIONS, s->output_t4_options);
+        TIFFSetField(s->tiff_file, TIFFTAG_FAXMODE, FAXMODE_CLASSF);
+    }
+    TIFFSetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, s->image_width);
+    TIFFSetField(s->tiff_file, TIFFTAG_BITSPERSAMPLE, 1);
+    TIFFSetField(s->tiff_file, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+    TIFFSetField(s->tiff_file, TIFFTAG_SAMPLESPERPIXEL, 1);
+    if (s->output_compression == COMPRESSION_CCITT_T4
+        ||
+        s->output_compression == COMPRESSION_CCITT_T6)
+    {
+        TIFFSetField(s->tiff_file, TIFFTAG_ROWSPERSTRIP, -1L);
+    }
+    else
+    {
+        TIFFSetField(s->tiff_file,
+                     TIFFTAG_ROWSPERSTRIP,
+                     TIFFDefaultStripSize(s->tiff_file, 0));
+    }
+    TIFFSetField(s->tiff_file, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+    TIFFSetField(s->tiff_file, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISWHITE);
+    TIFFSetField(s->tiff_file, TIFFTAG_FILLORDER, FILLORDER_LSB2MSB);
+
+    x_resolution = s->x_resolution/100.0f;
+    y_resolution = s->y_resolution/100.0f;
+    /* Metric seems the sane thing to use in the 21st century, but a lot of lousy software
+       gets FAX resolutions wrong, and more get it wrong using metric than using inches. */
+#if 0
+    TIFFSetField(s->tiff_file, TIFFTAG_XRESOLUTION, x_resolution);
+    TIFFSetField(s->tiff_file, TIFFTAG_YRESOLUTION, y_resolution);
+    resunit = RESUNIT_CENTIMETER;
+    TIFFSetField(s->tiff_file, TIFFTAG_RESOLUTIONUNIT, resunit);
+#else
+    TIFFSetField(s->tiff_file, TIFFTAG_XRESOLUTION, floorf(x_resolution*CM_PER_INCH + 0.5f));
+    TIFFSetField(s->tiff_file, TIFFTAG_YRESOLUTION, floorf(y_resolution*CM_PER_INCH + 0.5f));
+    resunit = RESUNIT_INCH;
+    TIFFSetField(s->tiff_file, TIFFTAG_RESOLUTIONUNIT, resunit);
+#endif
+    /* TODO: add the version of spandsp */
+    TIFFSetField(s->tiff_file, TIFFTAG_SOFTWARE, "spandsp");
+    if (gethostname(buf, sizeof(buf)) == 0)
+        TIFFSetField(s->tiff_file, TIFFTAG_HOSTCOMPUTER, buf);
+
+#if defined(TIFFTAG_FAXDCS)
+    if (s->dcs)
+        TIFFSetField(s->tiff_file, TIFFTAG_FAXDCS, s->dcs);
+#endif
+    if (s->sub_address)
+        TIFFSetField(s->tiff_file, TIFFTAG_FAXSUBADDRESS, s->sub_address);
+    if (s->far_ident)
+        TIFFSetField(s->tiff_file, TIFFTAG_IMAGEDESCRIPTION, s->far_ident);
+    if (s->vendor)
+        TIFFSetField(s->tiff_file, TIFFTAG_MAKE, s->vendor);
+    if (s->model)
+        TIFFSetField(s->tiff_file, TIFFTAG_MODEL, s->model);
+
+    time(&now);
+    tm = localtime(&now);
+    sprintf(buf,
+            "%4d/%02d/%02d %02d:%02d:%02d",
+            tm->tm_year + 1900,
+            tm->tm_mon + 1,
+            tm->tm_mday,
+            tm->tm_hour,
+            tm->tm_min,
+            tm->tm_sec);
+    TIFFSetField(s->tiff_file, TIFFTAG_DATETIME, buf);
+    TIFFSetField(s->tiff_file, TIFFTAG_FAXRECVTIME, now - s->page_start_time);
+
+    TIFFSetField(s->tiff_file, TIFFTAG_IMAGELENGTH, s->image_length);
+    /* Set the total pages to 1. For any one page document we will get this
+       right. For multi-page documents we will need to come back and fill in
+       the right answer when we know it. */
+    TIFFSetField(s->tiff_file, TIFFTAG_PAGENUMBER, s->pages_transferred++, 1);
+    s->pages_in_file = s->pages_transferred;
+    if (s->output_compression == COMPRESSION_CCITT_T4)
+    {
+        if (s->bad_rows)
+        {
+            TIFFSetField(s->tiff_file, TIFFTAG_BADFAXLINES, s->bad_rows);
+            TIFFSetField(s->tiff_file, TIFFTAG_CLEANFAXDATA, CLEANFAXDATA_REGENERATED);
+            TIFFSetField(s->tiff_file, TIFFTAG_CONSECUTIVEBADFAXLINES, s->longest_bad_row_run);
+        }
+        else
+        {
+            TIFFSetField(s->tiff_file, TIFFTAG_CLEANFAXDATA, CLEANFAXDATA_CLEAN);
+        }
+    }
+    TIFFSetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, s->image_width);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int test_resolution(int res_unit, float actual, float expected)
+{
+    if (res_unit == RESUNIT_INCH)
+        actual *= 1.0f/CM_PER_INCH;
+    return (expected*0.95f <= actual  &&  actual <= expected*1.05f);
+}
+/*- End of function --------------------------------------------------------*/
+
+static int get_tiff_directory_info(t4_state_t *s)
+{
+    static const struct
+    {
+        float resolution;
+        int code;
+    } x_res_table[] =
+    {
+        { 102.0f/CM_PER_INCH, T4_X_RESOLUTION_R4},
+        { 204.0f/CM_PER_INCH, T4_X_RESOLUTION_R8},
+        { 300.0f/CM_PER_INCH, T4_X_RESOLUTION_300},
+        { 408.0f/CM_PER_INCH, T4_X_RESOLUTION_R16},
+        { 600.0f/CM_PER_INCH, T4_X_RESOLUTION_600},
+        { 800.0f/CM_PER_INCH, T4_X_RESOLUTION_800},
+        {1200.0f/CM_PER_INCH, T4_X_RESOLUTION_1200},
+        {             -1.00f, -1}
+    };
+    static const struct
+    {
+        float resolution;
+        int code;
+        int max_rows_to_next_1d_row;
+    } y_res_table[] =
+    {
+        {             38.50f, T4_Y_RESOLUTION_STANDARD, 2},
+        {             77.00f, T4_Y_RESOLUTION_FINE, 4},
+        { 300.0f/CM_PER_INCH, T4_Y_RESOLUTION_300, 6},
+        {            154.00f, T4_Y_RESOLUTION_SUPERFINE, 8},
+        { 600.0f/CM_PER_INCH, T4_Y_RESOLUTION_600, 12},
+        { 800.0f/CM_PER_INCH, T4_Y_RESOLUTION_800, 16},
+        {1200.0f/CM_PER_INCH, T4_Y_RESOLUTION_1200, 24},
+        {             -1.00f, -1, -1}
+    };
+    uint16_t res_unit;
+    uint32_t parm;
+    float x_resolution;
+    float y_resolution;
+    int i;
+
+    parm = 0;
+    TIFFGetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, &parm);
+    s->image_width = parm;
+    s->bytes_per_row = (s->image_width + 7)/8;
+    parm = 0;
+    TIFFGetField(s->tiff_file, TIFFTAG_IMAGELENGTH, &parm);
+    s->image_length = parm;
+    x_resolution = 0.0f;
+    TIFFGetField(s->tiff_file, TIFFTAG_XRESOLUTION, &x_resolution);
+    y_resolution = 0.0f;
+    TIFFGetField(s->tiff_file, TIFFTAG_YRESOLUTION, &y_resolution);
+    res_unit = RESUNIT_INCH;
+    TIFFGetField(s->tiff_file, TIFFTAG_RESOLUTIONUNIT, &res_unit);
+
+    /* Allow a little range for the X resolution in centimeters. The spec doesn't pin down the
+       precise value. The other value should be exact. */
+    /* Treat everything we can't match as R8. Most FAXes are this resolution anyway. */
+    s->x_resolution = T4_X_RESOLUTION_R8;
+    for (i = 0;  x_res_table[i].code > 0;  i++)
+    {
+        if (test_resolution(res_unit, x_resolution, x_res_table[i].resolution))
+        {
+            s->x_resolution = x_res_table[i].code;
+            break;
+        }
+    }
+
+    s->y_resolution = T4_Y_RESOLUTION_STANDARD;
+    s->max_rows_to_next_1d_row = 2;
+    for (i = 0;  y_res_table[i].code > 0;  i++)
+    {
+        if (test_resolution(res_unit, y_resolution, y_res_table[i].resolution))
+        {
+            s->y_resolution = y_res_table[i].code;
+            s->max_rows_to_next_1d_row = y_res_table[i].max_rows_to_next_1d_row;
+            break;
+        }
+    }
+
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int open_tiff_input_file(t4_state_t *s, const char *file)
+{
+    if ((s->tiff_file = TIFFOpen(file, "r")) == NULL)
+        return -1;
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int close_tiff_input_file(t4_state_t *s)
+{
+    TIFFClose(s->tiff_file);
+    s->tiff_file = NULL;
+    if (s->file)
+        free((char *) s->file);
+    s->file = NULL;
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int open_tiff_output_file(t4_state_t *s, const char *file)
+{
+    if ((s->tiff_file = TIFFOpen(file, "w")) == NULL)
+        return -1;
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int close_tiff_output_file(t4_state_t *s)
+{
+    int i;
+
+    /* Perform any operations needed to tidy up a written TIFF file before
+       closure. */
+    if (s->pages_transferred > 1)
+    {
+        /* We need to edit the TIFF directories. Until now we did not know
+           the total page count, so the TIFF file currently says one. Now we
+           need to set the correct total page count associated with each page. */
+        for (i = 0;  i < s->pages_transferred;  i++)
+        {
+            TIFFSetDirectory(s->tiff_file, (tdir_t) i);
+            TIFFSetField(s->tiff_file, TIFFTAG_PAGENUMBER, i, s->pages_transferred);
+            TIFFWriteDirectory(s->tiff_file);
+        }
+    }
+    TIFFClose(s->tiff_file);
+    s->tiff_file = NULL;
+    if (s->file)
+        free((char *) s->file);
+    s->file = NULL;
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
 
 #if defined(__i386__)  ||  defined(__x86_64__)  ||  defined(__ppc__)  ||   defined(__powerpc__)
 static __inline__ int run_length(unsigned int bits)
@@ -463,202 +713,6 @@ static int put_decoded_row(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int set_tiff_directory_info(t4_state_t *s)
-{
-    time_t now;
-    struct tm *tm;
-    char buf[256 + 1];
-    uint16_t resunit;
-    float x_resolution;
-    float y_resolution;
-
-    /* Prepare the directory entry fully before writing the image, or libtiff complains */
-    TIFFSetField(s->tiff_file, TIFFTAG_COMPRESSION, s->output_compression);
-    if (s->output_compression == COMPRESSION_CCITT_T4)
-    {
-        TIFFSetField(s->tiff_file, TIFFTAG_T4OPTIONS, s->output_t4_options);
-        TIFFSetField(s->tiff_file, TIFFTAG_FAXMODE, FAXMODE_CLASSF);
-    }
-    TIFFSetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, s->image_width);
-    TIFFSetField(s->tiff_file, TIFFTAG_BITSPERSAMPLE, 1);
-    TIFFSetField(s->tiff_file, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
-    TIFFSetField(s->tiff_file, TIFFTAG_SAMPLESPERPIXEL, 1);
-    if (s->output_compression == COMPRESSION_CCITT_T4
-        ||
-        s->output_compression == COMPRESSION_CCITT_T6)
-    {
-        TIFFSetField(s->tiff_file, TIFFTAG_ROWSPERSTRIP, -1L);
-    }
-    else
-    {
-        TIFFSetField(s->tiff_file,
-                     TIFFTAG_ROWSPERSTRIP,
-                     TIFFDefaultStripSize(s->tiff_file, 0));
-    }
-    TIFFSetField(s->tiff_file, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-    TIFFSetField(s->tiff_file, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISWHITE);
-    TIFFSetField(s->tiff_file, TIFFTAG_FILLORDER, FILLORDER_LSB2MSB);
-
-    x_resolution = s->x_resolution/100.0f;
-    y_resolution = s->y_resolution/100.0f;
-    /* Metric seems the sane thing to use in the 21st century, but a lot of lousy software
-       gets FAX resolutions wrong, and more get it wrong using metric than using inches. */
-#if 0
-    TIFFSetField(s->tiff_file, TIFFTAG_XRESOLUTION, x_resolution);
-    TIFFSetField(s->tiff_file, TIFFTAG_YRESOLUTION, y_resolution);
-    resunit = RESUNIT_CENTIMETER;
-    TIFFSetField(s->tiff_file, TIFFTAG_RESOLUTIONUNIT, resunit);
-#else
-    TIFFSetField(s->tiff_file, TIFFTAG_XRESOLUTION, floorf(x_resolution*CM_PER_INCH + 0.5f));
-    TIFFSetField(s->tiff_file, TIFFTAG_YRESOLUTION, floorf(y_resolution*CM_PER_INCH + 0.5f));
-    resunit = RESUNIT_INCH;
-    TIFFSetField(s->tiff_file, TIFFTAG_RESOLUTIONUNIT, resunit);
-#endif
-    /* TODO: add the version of spandsp */
-    TIFFSetField(s->tiff_file, TIFFTAG_SOFTWARE, "spandsp");
-    if (gethostname(buf, sizeof(buf)) == 0)
-        TIFFSetField(s->tiff_file, TIFFTAG_HOSTCOMPUTER, buf);
-
-#if defined(TIFFTAG_FAXDCS)
-    if (s->dcs)
-        TIFFSetField(s->tiff_file, TIFFTAG_FAXDCS, s->dcs);
-#endif
-    if (s->sub_address)
-        TIFFSetField(s->tiff_file, TIFFTAG_FAXSUBADDRESS, s->sub_address);
-    if (s->far_ident)
-        TIFFSetField(s->tiff_file, TIFFTAG_IMAGEDESCRIPTION, s->far_ident);
-    if (s->vendor)
-        TIFFSetField(s->tiff_file, TIFFTAG_MAKE, s->vendor);
-    if (s->model)
-        TIFFSetField(s->tiff_file, TIFFTAG_MODEL, s->model);
-
-    time(&now);
-    tm = localtime(&now);
-    sprintf(buf,
-            "%4d/%02d/%02d %02d:%02d:%02d",
-            tm->tm_year + 1900,
-            tm->tm_mon + 1,
-            tm->tm_mday,
-            tm->tm_hour,
-            tm->tm_min,
-            tm->tm_sec);
-    TIFFSetField(s->tiff_file, TIFFTAG_DATETIME, buf);
-    TIFFSetField(s->tiff_file, TIFFTAG_FAXRECVTIME, now - s->page_start_time);
-
-    TIFFSetField(s->tiff_file, TIFFTAG_IMAGELENGTH, s->image_length);
-    /* Set the total pages to 1. For any one page document we will get this
-       right. For multi-page documents we will need to come back and fill in
-       the right answer when we know it. */
-    TIFFSetField(s->tiff_file, TIFFTAG_PAGENUMBER, s->pages_transferred++, 1);
-    s->pages_in_file = s->pages_transferred;
-    if (s->output_compression == COMPRESSION_CCITT_T4)
-    {
-        if (s->bad_rows)
-        {
-            TIFFSetField(s->tiff_file, TIFFTAG_BADFAXLINES, s->bad_rows);
-            TIFFSetField(s->tiff_file, TIFFTAG_CLEANFAXDATA, CLEANFAXDATA_REGENERATED);
-            TIFFSetField(s->tiff_file, TIFFTAG_CONSECUTIVEBADFAXLINES, s->longest_bad_row_run);
-        }
-        else
-        {
-            TIFFSetField(s->tiff_file, TIFFTAG_CLEANFAXDATA, CLEANFAXDATA_CLEAN);
-        }
-    }
-    TIFFSetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, s->image_width);
-    return 0;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int test_resolution(int res_unit, float actual, float expected)
-{
-    if (res_unit == RESUNIT_INCH)
-        actual *= 1.0f/CM_PER_INCH;
-    return (expected*0.95f <= actual  &&  actual <= expected*1.05f);
-}
-/*- End of function --------------------------------------------------------*/
-
-static int get_tiff_directory_info(t4_state_t *s)
-{
-    static const struct
-    {
-        float resolution;
-        int code;
-    } x_res_table[] =
-    {
-        { 102.0f/CM_PER_INCH, T4_X_RESOLUTION_R4},
-        { 204.0f/CM_PER_INCH, T4_X_RESOLUTION_R8},
-        { 300.0f/CM_PER_INCH, T4_X_RESOLUTION_300},
-        { 408.0f/CM_PER_INCH, T4_X_RESOLUTION_R16},
-        { 600.0f/CM_PER_INCH, T4_X_RESOLUTION_600},
-        { 800.0f/CM_PER_INCH, T4_X_RESOLUTION_800},
-        {1200.0f/CM_PER_INCH, T4_X_RESOLUTION_1200},
-        {             -1.00f, -1}
-    };
-    static const struct
-    {
-        float resolution;
-        int code;
-        int max_rows_to_next_1d_row;
-    } y_res_table[] =
-    {
-        {             38.50f, T4_Y_RESOLUTION_STANDARD, 2},
-        {             77.00f, T4_Y_RESOLUTION_FINE, 4},
-        { 300.0f/CM_PER_INCH, T4_Y_RESOLUTION_300, 6},
-        {            154.00f, T4_Y_RESOLUTION_SUPERFINE, 8},
-        { 600.0f/CM_PER_INCH, T4_Y_RESOLUTION_600, 12},
-        { 800.0f/CM_PER_INCH, T4_Y_RESOLUTION_800, 16},
-        {1200.0f/CM_PER_INCH, T4_Y_RESOLUTION_1200, 24},
-        {             -1.00f, -1, -1}
-    };
-    uint16_t res_unit;
-    uint32_t parm;
-    float x_resolution;
-    float y_resolution;
-    int i;
-
-    parm = 0;
-    TIFFGetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, &parm);
-    s->image_width = parm;
-    s->bytes_per_row = (s->image_width + 7)/8;
-    parm = 0;
-    TIFFGetField(s->tiff_file, TIFFTAG_IMAGELENGTH, &parm);
-    s->image_length = parm;
-    x_resolution = 0.0f;
-    TIFFGetField(s->tiff_file, TIFFTAG_XRESOLUTION, &x_resolution);
-    y_resolution = 0.0f;
-    TIFFGetField(s->tiff_file, TIFFTAG_YRESOLUTION, &y_resolution);
-    res_unit = RESUNIT_INCH;
-    TIFFGetField(s->tiff_file, TIFFTAG_RESOLUTIONUNIT, &res_unit);
-
-    /* Allow a little range for the X resolution in centimeters. The spec doesn't pin down the
-       precise value. The other value should be exact. */
-    /* Treat everything we can't match as R8. Most FAXes are this resolution anyway. */
-    s->x_resolution = T4_X_RESOLUTION_R8;
-    for (i = 0;  x_res_table[i].code > 0;  i++)
-    {
-        if (test_resolution(res_unit, x_resolution, x_res_table[i].resolution))
-        {
-            s->x_resolution = x_res_table[i].code;
-            break;
-        }
-    }
-
-    s->y_resolution = T4_Y_RESOLUTION_STANDARD;
-    s->max_rows_to_next_1d_row = 2;
-    for (i = 0;  y_res_table[i].code > 0;  i++)
-    {
-        if (test_resolution(res_unit, y_resolution, y_res_table[i].resolution))
-        {
-            s->y_resolution = y_res_table[i].code;
-            s->max_rows_to_next_1d_row = y_res_table[i].max_rows_to_next_1d_row;
-            break;
-        }
-    }
-
-    return 0;
-}
-/*- End of function --------------------------------------------------------*/
-
 int t4_rx_end_page(t4_state_t *s)
 {
     int row;
@@ -696,18 +750,12 @@ int t4_rx_end_page(t4_state_t *s)
     }
     else
     {
+        /* Set up the TIFF directory info... */
         set_tiff_directory_info(s);
-
-        /* Write the image first.... */
-        for (row = 0;  row < s->image_length;  row++)
-        {
-            if (TIFFWriteScanline(s->tiff_file, s->image_buffer + row*s->bytes_per_row, row, 0) < 0)
-            {
-                span_log(&s->logging, SPAN_LOG_WARNING, "%s: Write error at row %d.\n", s->file, row);
-                break;
-            }
-        }
-        /* ....then the directory entry, and libtiff is happy. */
+        /* ..and then write the image... */
+        if (TIFFWriteEncodedStrip(s->tiff_file, 0, s->image_buffer, s->image_length*s->bytes_per_row) < 0)
+            span_log(&s->logging, SPAN_LOG_WARNING, "%s: Error writing TIFF strip.\n", s->file);
+        /* ...then the directory entry, and libtiff is happy. */
         TIFFWriteDirectory(s->tiff_file);
     }
     s->bits = 0;
@@ -1027,7 +1075,7 @@ int t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
 
     span_log(&s->logging, SPAN_LOG_FLOW, "Start rx document\n");
 
-    if ((s->tiff_file = TIFFOpen(file, "w")) == NULL)
+    if (open_tiff_output_file(s, file) < 0)
         return -1;
 
     /* Save the file name for logging reports. */
@@ -1150,28 +1198,8 @@ int t4_rx_delete(t4_state_t *s)
 
 int t4_rx_end(t4_state_t *s)
 {
-    int i;
-
     if (s->tiff_file)
-    {
-        if (s->pages_transferred > 1)
-        {
-            /* We need to edit the TIFF directories. Until now we did not know
-               the total page count, so the TIFF file currently says one. Now we
-               need to set the correct total page count associated with each page. */
-            for (i = 0;  i < s->pages_transferred;  i++)
-            {
-                TIFFSetDirectory(s->tiff_file, (tdir_t) i);
-                TIFFSetField(s->tiff_file, TIFFTAG_PAGENUMBER, i, s->pages_transferred);
-                TIFFWriteDirectory(s->tiff_file);
-            }
-        }
-        TIFFClose(s->tiff_file);
-        s->tiff_file = NULL;
-        if (s->file)
-            free((char *) s->file);
-        s->file = NULL;
-    }
+        close_tiff_output_file(s);
     free_buffers(s);
     return 0;
 }
@@ -1620,7 +1648,7 @@ int t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page)
 
     span_log(&s->logging, SPAN_LOG_FLOW, "Start tx document\n");
 
-    if ((s->tiff_file = TIFFOpen(file, "r")) == NULL)
+    if (open_tiff_input_file(s, file) < 0)
         return -1;
 
     s->file = strdup(file);
@@ -1697,6 +1725,7 @@ int t4_tx_start_page(t4_state_t *s)
 {
     int row;
     int i;
+    int repeats;
     int pattern;
     int row_bufptr;
     int parm;
@@ -1748,6 +1777,30 @@ int t4_tx_start_page(t4_state_t *s)
     {
         /* Modify the resulting image to include a header line, typical of hardware FAX machines */
         make_header(s, header);
+        switch (s->y_resolution)
+        {
+        case T4_Y_RESOLUTION_1200:
+            repeats = 12;
+            break;
+        case T4_Y_RESOLUTION_800:
+            repeats = 8;
+            break;
+        case T4_Y_RESOLUTION_600:
+            repeats = 6;
+            break;
+        case T4_Y_RESOLUTION_SUPERFINE:
+            repeats = 4;
+            break;
+        case T4_Y_RESOLUTION_300:
+            repeats = 3;
+            break;
+        case T4_Y_RESOLUTION_FINE:
+            repeats = 2;
+            break;
+        default:
+            repeats = 1;
+            break;
+        }
         for (row = 0;  row < 16;  row++)
         {
             t = header;
@@ -1760,30 +1813,16 @@ int t4_tx_start_page(t4_state_t *s)
             }
             for (  ;  row_bufptr < s->bytes_per_row;  )
                 s->row_buf[row_bufptr++] = 0;
-            switch (s->y_resolution)
+            for (i = 0;  i < repeats;  i++)
             {
-            case T4_Y_RESOLUTION_SUPERFINE:
                 if (t4_encode_row(s))
                     return -1;
-                if (t4_encode_row(s))
-                    return -1;
-                /* Fall through */
-            case T4_Y_RESOLUTION_FINE:
-                if (t4_encode_row(s))
-                    return -1;
-                /* Fall through */
-            default:
-                if (t4_encode_row(s))
-                    return -1;
-                break;
             }
         }
     }
-    s->image_length = 0;
-    TIFFGetField(s->tiff_file, TIFFTAG_IMAGELENGTH, &s->image_length);
     if (s->row_read_handler)
     {
-        for (row = 0;  row < s->image_length;  row++)
+        for (row = 0;  ;  row++)
         {
             if ((len = s->row_read_handler(s->row_read_user_data, s->row_buf, s->bytes_per_row)) < 0)
             {
@@ -1795,9 +1834,12 @@ int t4_tx_start_page(t4_state_t *s)
             if (t4_encode_row(s))
                 return -1;
         }
+        s->image_length = row;
     }
     else
     {
+        s->image_length = 0;
+        TIFFGetField(s->tiff_file, TIFFTAG_IMAGELENGTH, &s->image_length);
         for (row = 0;  row < s->image_length;  row++)
         {
             if (TIFFReadScanline(s->tiff_file, s->row_buf, row, 0) <= 0)
@@ -1926,13 +1968,7 @@ int t4_tx_delete(t4_state_t *s)
 int t4_tx_end(t4_state_t *s)
 {
     if (s->tiff_file)
-    {
-        TIFFClose(s->tiff_file);
-        s->tiff_file = NULL;
-        if (s->file)
-            free((char *) s->file);
-        s->file = NULL;
-    }
+        close_tiff_input_file(s);
     free_buffers(s);
     return 0;
 }
@@ -1986,6 +2022,9 @@ int t4_tx_get_pages_in_file(t4_state_t *s)
 {
     int max;
 
+    /* Each page *should* contain the total number of pages, but can this be
+       trusted? Some files say 0. Actually searching for the last page is
+       more reliable. */
     max = 0;
     while (TIFFSetDirectory(s->tiff_file, (tdir_t) max))
     	max++;

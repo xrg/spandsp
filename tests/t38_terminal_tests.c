@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_tests.c,v 1.42 2007/08/14 14:57:37 steveu Exp $
+ * $Id: t38_terminal_tests.c,v 1.43 2007/10/18 15:08:06 steveu Exp $
  */
 
 /*! \file */
@@ -223,6 +223,7 @@ int main(int argc, char *argv[])
     int seq_no;
     int use_ecm;
     int without_pacing;
+    int use_tep;
     int model_no;
     int speed_pattern_no;
     const char *input_file_name;
@@ -233,6 +234,7 @@ int main(int argc, char *argv[])
 
     t38_version = 1;
     without_pacing = FALSE;
+    use_tep = FALSE;
     input_file_name = INPUT_FILE_NAME;
     use_ecm = FALSE;
     simulate_incrementing_repeats = FALSE;
@@ -264,6 +266,9 @@ int main(int argc, char *argv[])
         case 's':
             speed_pattern_no = atoi(optarg);
             break;
+        case 't':
+            use_tep = TRUE;
+            break;
         case 'v':
             t38_version = atoi(optarg);
             break;
@@ -293,6 +298,7 @@ int main(int argc, char *argv[])
     }
     t38_set_t38_version(&t38_state_a.t38, t38_version);
     t38_terminal_set_config(&t38_state_a, without_pacing);
+    t38_terminal_set_tep_mode(&t38_state_a, use_tep);
     span_log_set_level(&t38_state_a.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t38_state_a.logging, "T.38-A");
     span_log_set_level(&t38_state_a.t38.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
@@ -301,6 +307,7 @@ int main(int argc, char *argv[])
     span_log_set_tag(&t38_state_a.t30_state.logging, "T.38-A");
 
     t30_set_local_ident(&t38_state_a.t30_state, "11111111");
+    t30_set_local_nsf(&t38_state_a.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
     t30_set_tx_file(&t38_state_a.t30_state, input_file_name, -1, -1);
     t30_set_phase_b_handler(&t38_state_a.t30_state, phase_b_handler, (void *) (intptr_t) 'A');
     t30_set_phase_d_handler(&t38_state_a.t30_state, phase_d_handler, (void *) (intptr_t) 'A');
@@ -316,6 +323,7 @@ int main(int argc, char *argv[])
     }
     t38_set_t38_version(&t38_state_b.t38, t38_version);
     t38_terminal_set_config(&t38_state_b, without_pacing);
+    t38_terminal_set_tep_mode(&t38_state_b, use_tep);
     span_log_set_level(&t38_state_b.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t38_state_b.logging, "T.38-B");
     span_log_set_level(&t38_state_b.t38.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
@@ -324,6 +332,7 @@ int main(int argc, char *argv[])
     span_log_set_tag(&t38_state_b.t30_state.logging, "T.38-B");
 
     t30_set_local_ident(&t38_state_b.t30_state, "22222222");
+    t30_set_local_nsf(&t38_state_b.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
     t30_set_rx_file(&t38_state_b.t30_state, OUTPUT_FILE_NAME, -1);
     t30_set_phase_b_handler(&t38_state_b.t30_state, phase_b_handler, (void *) (intptr_t) 'B');
     t30_set_phase_d_handler(&t38_state_b.t30_state, phase_d_handler, (void *) (intptr_t) 'B');

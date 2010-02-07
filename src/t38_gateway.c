@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.85 2007/08/25 05:17:37 steveu Exp $
+ * $Id: t38_gateway.c,v 1.86 2007/10/18 15:08:06 steveu Exp $
  */
 
 /*! \file */
@@ -1664,6 +1664,12 @@ void t38_gateway_set_nsx_suppression(t38_gateway_state_t *s, int suppress_nsx)
 }
 /*- End of function --------------------------------------------------------*/
 
+void t38_gateway_set_tep_mode(t38_gateway_state_t *s, int use_tep)
+{
+    s->use_tep = use_tep;
+}
+/*- End of function --------------------------------------------------------*/
+
 t38_gateway_state_t *t38_gateway_init(t38_gateway_state_t *s,
                                       t38_tx_packet_handler_t *tx_packet_handler,
                                       void *tx_packet_user_data)
@@ -1687,6 +1693,7 @@ t38_gateway_state_t *t38_gateway_init(t38_gateway_state_t *s,
     hdlc_tx_init(&s->hdlctx, FALSE, 2, TRUE, hdlc_underflow_handler, s);
     s->octets_per_data_packet = 1;
     s->rx_signal_present = FALSE;
+    s->suppress_nsx = TRUE;
     s->tx_handler = (span_tx_handler_t *) &(silence_gen);
     s->tx_user_data = &(s->silence_gen);
     t38_core_init(&s->t38,

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.44 2007/10/14 15:20:12 steveu Exp $
+ * $Id: t4_tests.c,v 1.45 2007/10/18 15:08:06 steveu Exp $
  */
 
 /*! \file */
@@ -152,7 +152,7 @@ static int row_read_handler(void *user_data, uint8_t buf[], size_t len)
 
     s = t4_test_patterns[row++];
     if (row >= 16)
-        row = 0;
+        return 0;
     memset(buf, 0, len);
     for (i = 0;  i < len;  i++)
     {
