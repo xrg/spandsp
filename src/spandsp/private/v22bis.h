@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.5 2009/04/22 12:57:40 steveu Exp $
+ * $Id: v22bis.h,v 1.6 2009/04/23 14:12:34 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_V22BIS_H_)
@@ -34,7 +34,7 @@
 */
 struct v22bis_state_s
 {
-    /*! \brief The bit rate of the modem. Valid values are 1200 and 2400. */
+    /*! \brief The maximum permitted bit rate of the modem. Valid values are 1200 and 2400. */
     int bit_rate;
     /*! \brief TRUE is this is the calling side modem. */
     int caller;
@@ -49,7 +49,9 @@ struct v22bis_state_s
     /*! \brief A user specified opaque pointer passed to the status function. */
     void *status_user_data;
 
-    /* RECEIVE SECTION */
+    int negotiated_bit_rate;
+
+    /* Receive section */
     struct
     {
         /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
@@ -132,13 +134,11 @@ struct v22bis_state_s
     
         int sixteen_way_decisions;
 
-        int detected_unscrambled_ones;
-        int detected_unscrambled_zeros;
-        int detected_2400bps_markers;
+        int pattern_repeats;
         int last_raw_bits;
     } rx;
 
-    /* TRANSMIT SECTION */
+    /* Transmit section */
     struct
     {
         /*! \brief The gain factor needed to achieve the specified output power. */
@@ -181,6 +181,22 @@ struct v22bis_state_s
     /*! \brief Error and flow logging control */
     logging_state_t logging;
 };
+
+#if defined(__cplusplus)
+extern "C"
+{
+#endif
+
+/*! Reinitialise an existing V.22bis modem receive context.
+    \brief Reinitialise an existing V.22bis modem receive context.
+    \param s The modem context.
+    \return 0 for OK, -1 for bad parameter */
+int v22bis_rx_restart(v22bis_state_t *s);
+
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

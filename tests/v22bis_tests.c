@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tests.c,v 1.58 2009/04/17 14:37:53 steveu Exp $
+ * $Id: v22bis_tests.c,v 1.59 2009/04/23 14:12:34 steveu Exp $
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
@@ -166,7 +166,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
         {
             qam_monitor_update_constel(s->qam_monitor, constel);
             qam_monitor_update_carrier_tracking(s->qam_monitor, v22bis_rx_carrier_frequency(s->v22bis));
-            qam_monitor_update_symbol_tracking(s->qam_monitor, v22bis_symbol_timing_correction(s->v22bis));
+            qam_monitor_update_symbol_tracking(s->qam_monitor, v22bis_rx_symbol_timing_correction(s->v22bis));
         }
 #endif
         fpower = (constel->re - target->re)*(constel->re - target->re)
@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
         v22bis_tx_power(endpoint[i].v22bis, signal_level);
         /* Move the carrier off a bit */
         endpoint[i].v22bis->tx.carrier_phase_rate = dds_phase_ratef((i == 0)  ?  1207.0f  :  2407.0f);
-        v22bis_set_qam_report_handler(endpoint[i].v22bis, qam_report, (void *) &endpoint[i]);
+        v22bis_rx_set_qam_report_handler(endpoint[i].v22bis, qam_report, (void *) &endpoint[i]);
         span_log_set_level(&endpoint[i].v22bis->logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
         span_log_set_tag(&endpoint[i].v22bis->logging, (i == 0)  ?  "caller"  :  "answerer");
         endpoint[i].smooth_power = 0.0f;
@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
             }
         }
 
-#if 0
+#if 1
         both_ways_line_model(model, 
                              model_amp[0],
                              amp[0],

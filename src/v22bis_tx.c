@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.58 2009/04/22 12:57:40 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.59 2009/04/23 14:12:34 steveu Exp $
  */
 
 /*! \file */
@@ -372,12 +372,9 @@ static complexf_t training_get(v22bis_state_t *s)
         break;
     case V22BIS_TX_TRAINING_STAGE_TIMED_S11:
         /* A timed period of scrambled ones at 1200bps. */
-        ++s->tx.training_count;
-        if ((s->caller  &&  s->bit_rate == 2400  &&  s->tx.training_count >= ms_to_symbols(600))
-            ||
-            s->tx.training_count >= ms_to_symbols(756))
+        if (++s->tx.training_count >= ms_to_symbols(756))
         {
-            if (s->bit_rate == 2400)
+            if (s->negotiated_bit_rate == 2400)
             {
                 span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting S1111 (C)\n");
                 s->tx.training_count = 0;
@@ -447,7 +444,7 @@ static complexf_t getbaud(v22bis_state_t *s)
     bits = get_scrambled_bit(s);
     bits = (bits << 1) | get_scrambled_bit(s);
     s->tx.constellation_state = (s->tx.constellation_state + phase_steps[bits]) & 3;
-    if (s->bit_rate == 1200)
+    if (s->negotiated_bit_rate == 1200)
     {
         bits = 0x01;
     }
@@ -530,9 +527,8 @@ SPAN_DECLARE(void) v22bis_tx_power(v22bis_state_t *s, float power)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int v22bis_tx_restart(v22bis_state_t *s, int bit_rate)
+static int v22bis_tx_restart(v22bis_state_t *s)
 {
-    s->bit_rate = bit_rate;
     cvec_zerof(s->tx.rrc_filter, sizeof(s->tx.rrc_filter)/sizeof(s->tx.rrc_filter[0]));
     s->tx.rrc_filter_step = 0;
     s->tx.scramble_reg = 0;
@@ -589,9 +585,26 @@ SPAN_DECLARE(int) v22bis_restart(v22bis_state_t *s, int bit_rate)
     default:
         return -1;
     }
-    if (v22bis_tx_restart(s, bit_rate))
+    s->bit_rate =
+    s->negotiated_bit_rate = bit_rate;
+    if (v22bis_tx_restart(s))
         return -1;
-    return v22bis_rx_restart(s, bit_rate);
+    return v22bis_rx_restart(s);
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) v22bis_request_retrain(v22bis_state_t *s, int bit_rate)
+{
+    switch (bit_rate)
+    {
+    case 2400:
+    case 1200:
+        break;
+    default:
+        return -1;
+    }
+    /* TODO: Implement retrain and bit rate change */
+    return -1;
 }
 /*- End of function --------------------------------------------------------*/
 
