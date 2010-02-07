@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g722_tests.c,v 1.18 2006/12/27 03:16:44 steveu Exp $
+ * $Id: g722_tests.c,v 1.19 2007/11/10 11:14:58 steveu Exp $
  */
 
 /*! \file */
@@ -61,21 +61,12 @@ and the resulting audio stored in post_g722.wav.
 #endif
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <inttypes.h>
+#include <unistd.h>
 #include <memory.h>
-#include <stdlib.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
-#include <audiofile.h>
 #include <ctype.h>
-#include <tiffio.h>
+#include <audiofile.h>
 
 #include "spandsp.h"
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc_tests.c,v 1.19 2007/08/14 16:19:32 steveu Exp $
+ * $Id: plc_tests.c,v 1.20 2007/11/10 11:14:58 steveu Exp $
  */
 
 /*! \page plc_tests_page Packet loss concealment tests
@@ -46,18 +46,10 @@ audio file, called post_plc.wav. This file contains 8000 sample/second
 #include "config.h"
 #endif
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <inttypes.h>
-#include <stdlib.h>
 #include <string.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
-#include <tiffio.h>
 
 #include <audiofile.h>
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.36 2007/10/24 13:32:07 steveu Exp $
+ * $Id: adsi_tests.c,v 1.37 2007/11/10 11:14:57 steveu Exp $
  */
 
 /*! \page adsi_tests_page ADSI tests
@@ -40,21 +40,13 @@ tests, these tests do not include line modelling.
 #include "config.h"
 #endif
 
-#include <inttypes.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
 #include <assert.h>
 #include <audiofile.h>
-#include <tiffio.h>
 
 #include "spandsp.h"
 

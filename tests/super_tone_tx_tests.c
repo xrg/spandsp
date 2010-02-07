@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx_tests.c,v 1.16 2006/12/01 18:00:48 steveu Exp $
+ * $Id: super_tone_tx_tests.c,v 1.17 2007/11/10 11:14:59 steveu Exp $
  */
 
 /*! \file */
@@ -36,20 +36,15 @@
 #endif
 
 #include <stdlib.h>
-#include <string.h>
-#include <strings.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <string.h>
+#include <strings.h>
 #include <ctype.h>
 #include <time.h>
 #include <inttypes.h>
 #include <sys/socket.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
+#include <audiofile.h>
 
 #if defined(HAVE_LIBXML_XMLMEMORY_H)
 #include <libxml/xmlmemory.h>
@@ -60,9 +55,6 @@
 #if defined(HAVE_LIBXML_XINCLUDE_H)
 #include <libxml/xinclude.h>
 #endif
-
-#include <audiofile.h>
-#include <tiffio.h>
 
 #include "spandsp.h"
 

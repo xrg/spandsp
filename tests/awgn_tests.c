@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn_tests.c,v 1.12 2006/11/19 14:07:26 steveu Exp $
+ * $Id: awgn_tests.c,v 1.13 2007/11/10 11:14:57 steveu Exp $
  */
 
 /*! \page awgn_tests_page AWGN tests
@@ -33,17 +33,9 @@
 #include "config.h"
 #endif
 
-#include <stdio.h>
-#include <inttypes.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
-#include <tiffio.h>
 
 #include "spandsp.h"
 

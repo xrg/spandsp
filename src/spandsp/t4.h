@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.43 2007/11/07 00:04:12 steveu Exp $
+ * $Id: t4.h,v 1.44 2007/11/10 05:28:02 steveu Exp $
  */
 
 /*! \file */
@@ -193,9 +193,9 @@ typedef struct
 
     /*! \brief The type of compression used between the FAX machines. */
     int line_encoding;
-    /*! \brief The minimum number of bits per scan row. This is a timing thing
+    /*! \brief The minimum number of encoded bits per row. This is a timing thing
                for hardware FAX machines. */
-    int min_scan_line_bits;
+    int min_row_bits;
     
     /*! \brief The compression type for output to the TIFF file. */
     int output_compression;
@@ -304,8 +304,6 @@ typedef struct
     /*! \brief Number of rows left that can be 2D encoded, before a 1D encoded row
                must be used. */
     int rows_to_next_1d_row;
-    /*! \brief The minimum number of encoded bits per row. */
-    int min_row_bits;
     /*! \brief The current number of bits in the current encoded row. */
     int row_bits;
 

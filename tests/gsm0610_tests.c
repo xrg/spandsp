@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: gsm0610_tests.c,v 1.7 2007/08/21 14:25:54 steveu Exp $
+ * $Id: gsm0610_tests.c,v 1.8 2007/11/10 11:14:58 steveu Exp $
  */
 
 /*! \file */
@@ -120,23 +120,13 @@ will be compressed to GSM 06.10 data, decompressed, and the resulting audio stor
 #include "config.h"
 #endif
 
-#include <inttypes.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
-#include <string.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
-#include <assert.h>
 #include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
 #include <ctype.h>
-#include <stdio.h>
 #include <audiofile.h>
-#include <tiffio.h>
 
 #include "spandsp.h"
 

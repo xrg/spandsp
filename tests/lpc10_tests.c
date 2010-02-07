@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: lpc10_tests.c,v 1.10 2006/11/20 13:58:57 steveu Exp $
+ * $Id: lpc10_tests.c,v 1.11 2007/11/10 11:14:58 steveu Exp $
  */
 
 /*! \file */
@@ -39,23 +39,14 @@ will be compressed to LPC10 data, decompressed, and the resulting audio stored i
 #include "config.h"
 #endif
 
-#include <inttypes.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
-#include <string.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
-#include <assert.h>
 #include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <assert.h>
 #include <ctype.h>
-#include <stdio.h>
 #include <audiofile.h>
-#include <tiffio.h>
 
 #include "spandsp.h"
 

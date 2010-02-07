@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g1050_tests.c,v 1.9 2007/04/05 16:32:08 steveu Exp $
+ * $Id: g1050_tests.c,v 1.10 2007/11/10 11:14:58 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,23 +33,15 @@
 #define ENABLE_GUI
 #endif
 
-#define _GNU_SOURCE
-
 #include <stdlib.h>
-#include <unistd.h>
-#include <inttypes.h>
-#include <string.h>
-#include <time.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <time.h>
 #include <audiofile.h>
-#include <tiffio.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
 #if defined(HAVE_MATH_H)
 #define GEN_CONST
-#include <math.h>
 #endif
 
 #include "spandsp.h"

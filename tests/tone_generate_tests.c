@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate_tests.c,v 1.13 2006/11/23 15:32:23 steveu Exp $
+ * $Id: tone_generate_tests.c,v 1.14 2007/11/10 11:14:59 steveu Exp $
  */
 
 /*! \page tone_generate_tests_page Tone generation tests
@@ -34,19 +34,11 @@
 #endif
 
 #include <stdlib.h>
-#include <inttypes.h>
-#include <string.h>
 #include <stdio.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
-#include <time.h>
 #include <fcntl.h>
+#include <string.h>
+#include <time.h>
 #include <audiofile.h>
-#include <tiffio.h>
 
 #include "spandsp.h"
 

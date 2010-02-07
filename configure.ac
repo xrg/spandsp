@@ -16,7 +16,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.37 2007/10/14 10:12:46 steveu Exp $
+# $Id: configure.ac,v 1.38 2007/11/10 11:14:56 steveu Exp $
 
 # @start 1
 
@@ -155,14 +155,15 @@ AC_HEADER_TIME
 
 # Check for header files.
 AC_CHECK_HEADERS([socket.h])
-AC_CHECK_HEADERS([inttypes.h])
+AC_CHECK_HEADERS([inttypes.h], [INSERT_INTTYPES_HEADER="#include <inttypes.h>"])
+AC_CHECK_HEADERS([stdint.h], [INSERT_STDINT_HEADER="#include <stdint.h>"])
 AC_CHECK_HEADERS([unistd.h])
 AC_CHECK_HEADERS([stdlib.h])
 AC_CHECK_HEADERS([string.h])
 AC_CHECK_HEADERS([strings.h])
 AC_CHECK_HEADERS([malloc.h])
-AC_CHECK_HEADERS([tgmath.h])
-AC_CHECK_HEADERS([math.h])
+AC_CHECK_HEADERS([tgmath.h], [INSERT_TGMATH_HEADER="#include <tgmath.h>"])
+AC_CHECK_HEADERS([math.h], [INSERT_MATH_HEADER="#include <math.h>"])
 AC_CHECK_HEADERS([float.h])
 AC_CHECK_HEADERS([fcntl.h])
 AC_CHECK_HEADERS([sys/time.h])
@@ -319,6 +320,10 @@ AC_SUBST(CC_FOR_BUILD)
 AC_SUBST(COMP_VENDOR_CFLAGS)
 AC_SUBST(TESTLIBS)
 AC_SUBST(SPANDSP_USE_FIXED_POINT)
+AC_SUBST(INSERT_INTTYPES_HEADER)
+AC_SUBST(INSERT_STDINT_HEADER)
+AC_SUBST(INSERT_TGMATH_HEADER)
+AC_SUBST(INSERT_MATH_HEADER)
 
 AC_CONFIG_FILES([Makefile
                  doc/Makefile

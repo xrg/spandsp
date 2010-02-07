@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_rx_tests.c,v 1.32 2007/09/01 09:16:57 steveu Exp $
+ * $Id: dtmf_rx_tests.c,v 1.33 2007/11/10 11:14:57 steveu Exp $
  */
 
 /*
@@ -88,21 +88,13 @@ they wish to give it away for free.
 #include "config.h"
 #endif
 
-#include <inttypes.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
 #include <stdio.h>
-#include <time.h>
 #include <fcntl.h>
+#include <unistd.h>
+#include <time.h>
 #include <audiofile.h>
-#include <tiffio.h>
 
 #include "spandsp.h"
 #include "spandsp-sim.h"

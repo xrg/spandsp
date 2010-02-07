@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: queue_tests.c,v 1.4 2007/10/24 13:32:07 steveu Exp $
+ * $Id: queue_tests.c,v 1.5 2007/11/10 11:14:58 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -36,18 +36,10 @@
 #endif
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
-#include <inttypes.h>
+#include <unistd.h>
 #include <string.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
 #include <assert.h>
-#include <tiffio.h>
 #include <pthread.h>
 #include <sched.h>
 
@@ -530,7 +522,7 @@ static void functional_stream_tests(void)
 static int monitored_queue_write_msg(const uint8_t buf[], int len)
 {
     int lenx;
-    
+
     lenx = queue_write_msg(queue, buf, len);
     if (lenx >= 0)
         total_in += lenx + sizeof(uint16_t);

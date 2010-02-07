@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone_tests.c,v 1.15 2006/11/19 14:07:27 steveu Exp $
+ * $Id: sig_tone_tests.c,v 1.16 2007/11/10 11:14:58 steveu Exp $
  */
 
 /*! \file */
@@ -41,16 +41,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <inttypes.h>
 #include <memory.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
 #include <audiofile.h>
-#include <tiffio.h>
 
 #include "spandsp.h"
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.208 2007/11/08 03:14:37 steveu Exp $
+ * $Id: t30.c,v 1.210 2007/11/10 11:14:57 steveu Exp $
  */
 
 /*! \file */
@@ -1034,7 +1034,7 @@ static int send_pps_frame(t30_state_t *s)
     
     frame[0] = 0xFF;
     frame[1] = 0x13;
-    frame[2] = T30_PPS;
+    frame[2] = (uint8_t) (T30_PPS | s->dis_received);
     frame[3] = (s->ecm_at_page_end)  ?  ((uint8_t) (s->next_tx_step | s->dis_received))  :  T30_NULL;
     frame[4] = (uint8_t) (s->ecm_page & 0xFF);
     frame[5] = (uint8_t) (s->ecm_block & 0xFF);
@@ -2084,8 +2084,6 @@ static int send_deferred_pps_response(t30_state_t *s)
         case T30_NULL:
             /* We can confirm this partial page. */
             t30_ecm_commit_partial_page(s);
-            set_state(s, T30_STATE_F_POST_RCP_MCF);
-            send_simple_frame(s, T30_MCF);
             break;
         default:
             /* We can confirm the whole page. */
@@ -2095,10 +2093,10 @@ static int send_deferred_pps_response(t30_state_t *s)
             if (s->phase_d_handler)
                 s->phase_d_handler(s, s->phase_d_user_data, s->last_pps_fcf2);
             rx_start_page(s);
-            set_state(s, T30_STATE_F_POST_RCP_MCF);
-            send_simple_frame(s, T30_MCF);
             break;
         }
+        set_state(s, T30_STATE_F_POST_RCP_MCF);
+        send_simple_frame(s, T30_MCF);
     }
     else
     {
@@ -2106,7 +2104,7 @@ static int send_deferred_pps_response(t30_state_t *s)
         set_state(s, T30_STATE_F_POST_RCP_PPR);
         s->ecm_frame_map[0] = 0xFF;
         s->ecm_frame_map[1] = 0x13;
-        s->ecm_frame_map[2] = T30_PPR;
+        s->ecm_frame_map[2] = (uint8_t) (T30_PPR | s->dis_received);
         send_frame(s, s->ecm_frame_map, 3 + 32);
     }
     return 0;
@@ -2224,7 +2222,7 @@ static void process_rx_ppr(t30_state_t *s, const uint8_t *msg, int len)
             set_state(s, T30_STATE_IV_EOR);
             frame[0] = 0xFF;
             frame[1] = 0x13;
-            frame[2] = T30_EOR;
+            frame[2] = (uint8_t) (T30_EOR | s->dis_received);
             frame[3] = (s->ecm_at_page_end)  ?  ((uint8_t) (s->next_tx_step | s->dis_received))  :  T30_NULL;
             span_log(&s->logging, SPAN_LOG_FLOW, "Sending EOR + %s\n", t30_frametype(frame[3]));
             send_frame(s, frame, 4);

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter_tests.c,v 1.10 2007/05/15 13:22:43 steveu Exp $
+ * $Id: at_interpreter_tests.c,v 1.11 2007/11/10 11:14:57 steveu Exp $
  */
 
 /*! \file */
@@ -36,23 +36,13 @@ These tests exercise all the commands which should be understood by the AT inter
 #include "config.h"
 #endif
 
-#define _GNU_SOURCE
-
-#include <inttypes.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <string.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
 #include <assert.h>
 #include <audiofile.h>
-#include <tiffio.h>
 
 #include "spandsp.h"
 

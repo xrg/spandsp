@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis_tests.c,v 1.18 2006/11/19 14:07:28 steveu Exp $
+ * $Id: v42bis_tests.c,v 1.19 2007/11/10 11:14:59 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -39,22 +39,14 @@ of this file should exactly match the original file.
 #include <config.h>
 #endif
 
-#include <stdio.h>
-#include <inttypes.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <ctype.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
 #include <assert.h>
-#include <tiffio.h>
 
 #include "spandsp.h"
 

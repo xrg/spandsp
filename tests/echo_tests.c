@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo_tests.c,v 1.28 2007/08/14 14:57:37 steveu Exp $
+ * $Id: echo_tests.c,v 1.29 2007/11/10 11:14:58 steveu Exp $
  */
 
 /*! \page echo_can_tests_page Line echo cancellation for voice tests
@@ -48,23 +48,13 @@ all the tests in G.168 are fully implemented at this time.
 #define ENABLE_GUI
 #endif
 
-#define _GNU_SOURCE
-
-#include <inttypes.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 #include <strings.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
 #include <assert.h>
 #include <audiofile.h>
-#include <tiffio.h>
 
 #define GEN_CONST
 #include <math.h>

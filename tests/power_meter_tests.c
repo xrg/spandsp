@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter_tests.c,v 1.16 2007/04/10 16:12:21 steveu Exp $
+ * $Id: power_meter_tests.c,v 1.17 2007/11/10 11:14:58 steveu Exp $
  */
 
 /*! \page power_meter_tests_page Power meter tests
@@ -39,17 +39,9 @@ Both tones and noise are used to check the meter's behaviour.
 #endif
 
 #include <stdlib.h>
-#include <inttypes.h>
 #include <stdio.h>
 #include <memory.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
 #include <time.h>
-#include <tiffio.h>
 
 #include "spandsp.h"
 

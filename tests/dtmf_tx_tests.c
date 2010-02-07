@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_tx_tests.c,v 1.12 2007/08/31 14:47:11 steveu Exp $
+ * $Id: dtmf_tx_tests.c,v 1.13 2007/11/10 11:14:58 steveu Exp $
  */
 
 /*! \file */
@@ -40,19 +40,11 @@
 #endif
 
 #include <stdlib.h>
-#include <inttypes.h>
 #include <string.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
 #include <stdio.h>
-#include <time.h>
 #include <fcntl.h>
+#include <time.h>
 #include <audiofile.h>
-#include <tiffio.h>
 
 #include "spandsp.h"
 

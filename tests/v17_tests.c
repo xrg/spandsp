@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17_tests.c,v 1.74 2007/09/02 11:02:52 steveu Exp $
+ * $Id: v17_tests.c,v 1.75 2007/11/10 11:14:59 steveu Exp $
  */
 
 /*! \page v17_tests_page V.17 modem tests
@@ -54,21 +54,12 @@ display of modem status is maintained.
 #define ENABLE_GUI
 #endif
 
-#include <inttypes.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <string.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
-#include <assert.h>
 #include <audiofile.h>
-#include <tiffio.h>
 
 #include "spandsp.h"
 #include "spandsp-sim.h"

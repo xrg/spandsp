@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.47 2007/10/27 01:59:01 steveu Exp $
+ * $Id: t4_tests.c,v 1.48 2007/11/10 11:14:59 steveu Exp $
  */
 
 /*! \file */
@@ -37,20 +37,11 @@ in ITU specifications T.4 and T.6.
 #include "config.h"
 #endif
 
-#include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <inttypes.h>
+#include <stdio.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <memory.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
-
-#include <tiffio.h>
 
 #include "spandsp.h"
 

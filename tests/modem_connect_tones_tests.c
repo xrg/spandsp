@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones_tests.c,v 1.11 2007/09/01 09:16:57 steveu Exp $
+ * $Id: modem_connect_tones_tests.c,v 1.12 2007/11/10 11:14:58 steveu Exp $
  */
 
 /*! \page modem_connect_tones_tests_page Modem connect tones tests
@@ -35,18 +35,10 @@ These tests...
 #endif
 
 #include <stdlib.h>
-#include <inttypes.h>
 #include <stdio.h>
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
 #include <fcntl.h>
 #include <string.h>
 #include <audiofile.h>
-#include <tiffio.h>
 
 #include "spandsp.h"
 

@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.99 2007/10/29 13:17:33 steveu Exp $
+ * $Id: t4.c,v 1.100 2007/11/10 05:28:02 steveu Exp $
  */
 
 /*
@@ -780,7 +780,8 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
         return FALSE;
     if (!s->first_eol_seen)
     {
-        /* Do not let anything through to the decoder, until an EOL arrives. */
+        /* Do not let anything through to the decoder, until an EOL arrives. For
+           T6 coding this condition should have been forced TRUE at the very start. */
         while ((s->bits_to_date & 0xFFF) != 0x800)
         {
             s->bits_to_date >>= 1;
@@ -1326,15 +1327,16 @@ static void t4_encode_eol(t4_state_t *s)
     unsigned int code;
     int length;
 
-    if (s->line_encoding == T4_COMPRESSION_ITU_T4_1D)
-    {
-        code = 0x800;
-        length = 12;
-    }
-    else
+    if (s->line_encoding == T4_COMPRESSION_ITU_T4_2D)
     {
         code = 0x0800 | ((!s->row_is_2d) << 12);
         length = 13;
+    }
+    else
+    {
+        /* T.4 1D EOL, or T.6 EOFB */
+        code = 0x800;
+        length = 12;
     }
     /* We may need to pad the row to a minimum length. */
     if (s->row_bits + length < s->min_row_bits)
@@ -1845,6 +1847,17 @@ int t4_tx_start_page(t4_state_t *s)
             s->row_bits = INT_MAX - 1000;
         }
     }
+    else
+    {
+        /* Attach an EOFB (end of facsimile block) to the end of the page */
+        /* Suppress row padding between these EOLs */
+        s->row_bits = INT_MAX - 1000;
+        t4_encode_eol(s);
+        /* Suppress row padding between these EOLs */
+        s->row_bits = INT_MAX - 1000;
+        t4_encode_eol(s);
+    }
+
     /* Force any partial byte in progress to flush */
     put_encoded_bits(s, 0, 7);
     s->bit_pos = 7;

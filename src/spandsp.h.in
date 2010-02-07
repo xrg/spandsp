@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spandsp.h.in,v 1.1 2007/08/13 14:11:44 steveu Exp $
+ * $Id: spandsp.h.in,v 1.2 2007/11/10 11:14:57 steveu Exp $
  */
 
 /*! \file */
@@ -33,10 +33,13 @@
 @SPANDSP_USE_FIXED_POINT@
 
 #include <stdlib.h>
-#include <inttypes.h>
+@INSERT_INTTYPES_HEADER@
+@INSERT_STDINT_HEADER@
 #include <string.h>
 #include <limits.h>
 #include <time.h>
+@INSERT_TGMATH_HEADER@
+@INSERT_MATH_HEADER@
 #include <tiffio.h>
 
 #include <spandsp/telephony.h>

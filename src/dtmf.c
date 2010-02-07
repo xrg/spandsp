@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.27 2007/10/24 13:32:06 steveu Exp $
+ * $Id: dtmf.c,v 1.28 2007/11/10 11:14:57 steveu Exp $
  */
  
 /*! \file dtmf.h */
@@ -51,11 +51,6 @@
 #include "spandsp/tone_generate.h"
 #include "spandsp/super_tone_rx.h"
 #include "spandsp/dtmf.h"
-
-#if !defined(M_PI)
-/* C99 systems may not define M_PI */
-#define M_PI 3.14159265358979323846264338327
-#endif
 
 //#define USE_3DNOW
 
