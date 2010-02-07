@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.134 2008/09/09 14:05:55 steveu Exp $
+ * $Id: v29rx.c,v 1.135 2008/09/09 16:13:12 steveu Exp $
  */
 
 /*! \file */
@@ -839,6 +839,7 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
     complexi16_t zz;
     complexi16_t sample;
     int32_t v;
+    float y;
 #else
     complexf_t z;
     complexf_t zz;
@@ -846,7 +847,6 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
     float v;
 #endif
     int32_t power;
-    float y;
 
     for (i = 0;  i < len;  i++)
     {
