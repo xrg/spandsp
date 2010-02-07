@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g722_tests.c,v 1.8 2006/01/18 00:39:07 steveu Exp $
+ * $Id: g722_tests.c,v 1.10 2006/03/27 13:35:14 steveu Exp $
  */
 
 /*! \file */
@@ -82,11 +82,12 @@ channel of 16 bit linear PCM data, at 16000 samples/second.
 
 #define MAX_TEST_VECTOR_LEN 40000
 
-#define TESTDATA_DIR    "../itutests/g722/"
+#define TESTDATA_DIR        "../itutests/g722/"
 
-#define IN_FILE_NAME    "pre_g722.wav"
-#define OUT_FILE_NAME   "post_g722.wav"
+#define IN_FILE_NAME        "pre_g722.wav"
+#define OUT_FILE_NAME       "post_g722.wav"
 
+#if 0
 static const char *itu_test_files[] =
 {
     TESTDATA_DIR "T1C1.XMT",        /* 69973 bytes */
@@ -109,6 +110,7 @@ static const char *itu_test_files[] =
     TESTDATA_DIR "T3L3.RC3",        /* 69973 bytes */
     TESTDATA_DIR "T3H3.RC0"         /* 69973 bytes */
 };
+#endif
 
 static const char *encode_test_files[] =
 {
@@ -146,7 +148,7 @@ uint16_t itu_ref_upper[MAX_TEST_VECTOR_LEN];
 uint8_t compressed[MAX_TEST_VECTOR_LEN];
 int16_t decompressed[MAX_TEST_VECTOR_LEN];
 
-int hex_get(char *s)
+static int hex_get(char *s)
 {
     int i;
     int value;
@@ -168,7 +170,7 @@ int hex_get(char *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int get_vector(FILE *file, uint16_t vec[])
+static int get_vector(FILE *file, uint16_t vec[])
 {
     char buf[132 + 1];
     char *s;
@@ -192,11 +194,10 @@ int get_vector(FILE *file, uint16_t vec[])
 }
 /*- End of function --------------------------------------------------------*/
 
-int get_test_vector(const char *file, uint16_t buf[], int max_len)
+static int get_test_vector(const char *file, uint16_t buf[], int max_len)
 {
     int octets;
     int i;
-    int sum;
     FILE *infile;
     
     if ((infile = fopen(file, "r")) == NULL)
@@ -229,10 +230,8 @@ int main(int argc, char *argv[])
     AFfilehandle inhandle;
     AFfilehandle outhandle;
     AFfilesetup filesetup;
-    int inframes;
     int outframes;
     int samples;
-    int value;
     int mode;
     int itutests;
     int bit_rate;
@@ -382,6 +381,8 @@ int main(int argc, char *argv[])
                 printf("Test passed\n");
             }
         }
+
+        printf("Tests passed.\n");
     }
     else
     {
@@ -452,6 +453,8 @@ int main(int argc, char *argv[])
             exit(2);
         }
         afFreeFileSetup(filesetup);
+
+        printf("'%s' transcoded to '%s' at %dbps.\n", IN_FILE_NAME, OUT_FILE_NAME, bit_rate);
     }
     return 0;
 }

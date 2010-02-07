@@ -49,7 +49,7 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.h,v 1.3 2006/01/11 07:44:30 steveu Exp $
+ * $Id: g726.h,v 1.6 2006/05/24 09:19:11 steveu Exp $
  */
 
 /*! \file */
@@ -66,21 +66,21 @@ It supports:
     - Tandem adjustment, for interworking with A-law and u-law.
     - Annex A support, for use in environments not using A-law or u-law.
 
-It passes the G.726 tests.
+It passes the ITU tests.
 
 \section g726_page_sec_2 How does it work?
 ???.
 */
 
-#define	G726_ENCODING_LINEAR    0   /* 16 bit signed linear */
-#define	G726_ENCODING_ULAW      1   /* u-law */
-#define	G726_ENCODING_ALAW      2   /* A-law */
+#define G726_ENCODING_LINEAR    0   /* 16 bit signed linear */
+#define G726_ENCODING_ULAW      1   /* u-law */
+#define G726_ENCODING_ALAW      2   /* A-law */
 
 struct g726_state_s;
 
-typedef int (*g726_decoder_func_t)(struct g726_state_s *s, int i);
+typedef int16_t (*g726_decoder_func_t)(struct g726_state_s *s, uint8_t code);
 
-typedef int (*g726_encoder_func_t)(struct g726_state_s *s, int i);
+typedef uint8_t (*g726_encoder_func_t)(struct g726_state_s *s, int16_t amp);
 
 /*
  * The following is the definition of the state structure
@@ -156,27 +156,27 @@ g726_state_t *g726_init(g726_state_t *s, int bit_rate, int ext_coding, int packe
     \return 0 for OK. */
 int g726_release(g726_state_t *s);
 
-/*! Decode a buffer of G.726 data to linear PCM, a-law or u-law.
+/*! Decode a buffer of G.726 ADPCM data to linear PCM, a-law or u-law.
     \param s The G.726 context.
     \param amp
     \param g726_data
     \param g726_bytes
     \return The number of samples returned. */
-int g726_adpcm_to_linear(g726_state_t *s,
-                         int16_t amp[],
-                         const uint8_t g726_data[],
-                         int g726_bytes);
+int g726_decode(g726_state_t *s,
+                int16_t amp[],
+                const uint8_t g726_data[],
+                int g726_bytes);
 
-/*! Encode a buffer of linear PCM data to G.726.
+/*! Encode a buffer of linear PCM data to G.726 ADPCM.
     \param s The G.726 context.
     \param g726_data
     \param amp
     \param samples
     \return The number of bytes of G.726 data produced. */
-int g726_linear_to_adpcm(g726_state_t *s,
-                         uint8_t g726_data[],
-                         const int16_t amp[],
-                         int samples);
+int g726_encode(g726_state_t *s,
+                uint8_t g726_data[],
+                const int16_t amp[],
+                int samples);
 
 #ifdef __cplusplus
 }

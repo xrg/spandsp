@@ -29,7 +29,7 @@
  * Computer Science, Speech Group
  * Chengxiang Lu and Alex Hauptmann
  *
- * $Id: g722_encode.c,v 1.9 2006/01/11 07:44:30 steveu Exp $
+ * $Id: g722_encode.c,v 1.11 2006/05/22 12:47:24 steveu Exp $
  */
 
 /*! \file */
@@ -210,14 +210,14 @@ int g722_encode(g722_encode_state_t *s, uint8_t g722_data[], const int16_t amp[]
     };
     static const int qm4[16] =
     {
-             0, -20456,	-12896,	 -8968,
-         -6288,	 -4240,	 -2584,	 -1200,
-         20456,	 12896,	  8968,	  6288,
-          4240,	  2584,	  1200,	     0
+             0, -20456, -12896, -8968,
+         -6288,  -4240,  -2584, -1200,
+         20456,  12896,   8968,  6288,
+          4240,   2584,   1200,     0
     };
     static const int qm2[4] =
     {
-        -7408,	-1616,	7408,	1616
+        -7408,  -1616,   7408,   1616
     };
     static const int qmf_coeffs[12] =
     {
@@ -367,14 +367,14 @@ int g722_encode(g722_encode_state_t *s, uint8_t g722_data[], const int16_t amp[]
             s->out_bits += s->bits_per_sample;
             if (s->out_bits >= 8)
             {
-                g722_data[g722_bytes++] = s->out_buffer & 0xFF;
+                g722_data[g722_bytes++] = (uint8_t) (s->out_buffer & 0xFF);
                 s->out_bits -= 8;
                 s->out_buffer >>= 8;
             }
         }
         else
         {
-            g722_data[g722_bytes++] = code;
+            g722_data[g722_bytes++] = (uint8_t) code;
         }
     }
     return g722_bytes;

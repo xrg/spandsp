@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g726_tests.c,v 1.5 2006/01/18 00:39:07 steveu Exp $
+ * $Id: g726_tests.c,v 1.9 2006/05/24 09:19:11 steveu Exp $
  */
 
 /*! \file */
@@ -47,10 +47,10 @@ The files, containing test vectors, which are supplied with the G.726 specificat
 copied to itutests/g726 so the files are arranged in the same directory heirarchy in which they
 are supplied. That is, you should have file names like
 
-    itutests/g726/DISK1/INPUT/NRM.M
-    itutests/g726/DISK1/INPUT/OVR.M
-    itutests/g726/DISK2/INPUT/NRM.A
-    itutests/g726/DISK2/INPUT/OVR.A
+    - itutests/g726/DISK1/INPUT/NRM.M
+    - itutests/g726/DISK1/INPUT/OVR.M
+    - itutests/g726/DISK2/INPUT/NRM.A
+    - itutests/g726/DISK2/INPUT/OVR.A
 
 in your spandsp source tree. The ITU tests can then be run by executing g726_tests without
 any parameters.
@@ -1000,36 +1000,7 @@ static test_set_t itu_test_sets[] =
     }
 };
 
-int pack_vector(uint8_t packed[], uint8_t unpacked[], int len, int bits_per_code)
-{
-    int new_len;
-    int code;
-    int i;
-    int out_buffer;
-    int out_bits;
-    int out_byte;
-
-    out_buffer = 0;
-    out_bits = 0;
-    for (new_len = 0, i = 0;  i < len;  i++)
-    {
-        code = unpacked[i];
-        /* Pack the code bits */
-        out_buffer |= (code << out_bits);
-        out_bits += bits_per_code;
-        if (out_bits >= 8)
-        {
-            out_byte = out_buffer & 0xFF;
-            out_bits -= 8;
-            out_buffer >>= 8;
-            packed[new_len++] = out_byte;
-        }
-    }
-    return new_len;
-}
-/*- End of function --------------------------------------------------------*/
-    
-int hex_get(char *s)
+static int hex_get(char *s)
 {
     int i;
     int value;
@@ -1051,7 +1022,7 @@ int hex_get(char *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int get_vector(FILE *file, uint8_t vec[])
+static int get_vector(FILE *file, uint8_t vec[])
 {
     char buf[132 + 1];
     char *s;
@@ -1073,7 +1044,7 @@ int get_vector(FILE *file, uint8_t vec[])
 }
 /*- End of function --------------------------------------------------------*/
 
-int get_test_vector(const char *file, uint8_t buf[], int max_len)
+static int get_test_vector(const char *file, uint8_t buf[], int max_len)
 {
     int octets;
     int i;
@@ -1108,23 +1079,11 @@ int main(int argc, char *argv[])
 {
     g726_state_t enc_state;
     g726_state_t dec_state;
-    int len;
-    int len_comp;
-    int len_comp_upper;
-    int len_data;
     int len2;
     int len3;
     int i;
-    int j;
-    int k;
-    int file;
     int test;
-    int midhandle;
-    int value;
-    int mode;
     int bits_per_code;
-    char buf[132 + 1];
-    char *s;
     int itutests;
     int bit_rate;
     int bad_samples;
@@ -1176,6 +1135,8 @@ int main(int argc, char *argv[])
         }
     }
 
+    len2 = 0;
+    conditioning_samples = 0;
     if (itutests)
     {
         for (test = 0;  itu_test_sets[test].rate;  test++)
@@ -1224,7 +1185,7 @@ int main(int argc, char *argv[])
                 samples = get_test_vector(itu_test_sets[test].pcm_file, xlaw + conditioning_samples, MAX_TEST_VECTOR_LEN);
                 memcpy(itudata, xlaw, samples + conditioning_samples);
                 printf("Test %d: Compressing %d samples at %dbps\n", test, samples, itu_test_sets[test].rate);
-                len2 = g726_linear_to_adpcm(&enc_state, adpcmdata, itudata, conditioning_samples + samples);
+                len2 = g726_encode(&enc_state, adpcmdata, itudata, conditioning_samples + samples);
             }
             /* Test the decode side */
             g726_init(&dec_state, itu_test_sets[test].rate, itu_test_sets[test].decompression_law, FALSE);
@@ -1266,7 +1227,7 @@ int main(int argc, char *argv[])
                 }
             }
             
-            len3 = g726_adpcm_to_linear(&dec_state, outdata, unpacked, conditioning_adpcm + adpcm);
+            len3 = g726_decode(&dec_state, outdata, unpacked, conditioning_adpcm + adpcm);
 
             /* Get the output reference data */
             samples = get_test_vector(itu_test_sets[test].output_file, xlaw, MAX_TEST_VECTOR_LEN);
@@ -1296,6 +1257,8 @@ int main(int argc, char *argv[])
                 exit(2);
             }
         }
+
+        printf("Tests passed.\n");
     }
     else
     {
@@ -1341,8 +1304,8 @@ int main(int argc, char *argv[])
             
         while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, 159)))
         {
-            adpcm = g726_linear_to_adpcm(&enc_state, adpcmdata, amp, frames);
-            frames = g726_adpcm_to_linear(&dec_state, amp, adpcmdata, adpcm);
+            adpcm = g726_encode(&enc_state, adpcmdata, amp, frames);
+            frames = g726_decode(&dec_state, amp, adpcmdata, adpcm);
             outframes = afWriteFrames(outhandle, AF_DEFAULT_TRACK, amp, frames);
         }
         if (afCloseFile(inhandle) != 0)
@@ -1356,6 +1319,7 @@ int main(int argc, char *argv[])
             exit(2);
         }
         afFreeFileSetup(filesetup);
+        printf("'%s' transcoded to '%s' at %dbps.\n", IN_FILE_NAME, OUT_FILE_NAME, bit_rate);
     }
     return 0;
 }

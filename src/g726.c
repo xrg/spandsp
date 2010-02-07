@@ -49,7 +49,7 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.c,v 1.3 2006/01/11 07:44:30 steveu Exp $
+ * $Id: g726.c,v 1.8 2006/05/22 12:47:24 steveu Exp $
  */
 
 /*! \file */
@@ -205,18 +205,17 @@ static int qtab_726_40[15] =
  * returns the integer product of the 14-bit integer "an" and
  * "floating point" representation (4-bit exponent, 6-bit mantessa) "srn".
  */
-static int fmult(int an, int srn)
+static int16_t fmult(int16_t an, int16_t srn)
 {
     int16_t anmag;
     int16_t anexp;
     int16_t anmant;
     int16_t wanexp;
-    int16_t wanmag;
     int16_t wanmant;
     int16_t retval;
 
     anmag = (an > 0)  ?  an  :  ((-an) & 0x1FFF);
-    anexp = top_bit(anmag) - 5;
+    anexp = (int16_t) (top_bit(anmag) - 5);
     anmant = (anmag == 0)  ?  32  :  (anexp >= 0)  ?  anmag >> anexp  :  anmag << -anexp;
     wanexp = anexp + ((srn >> 6) & 0xF) - 13;
 
@@ -230,7 +229,7 @@ static int fmult(int an, int srn)
 /*
  * Compute the estimated signal from the 6-zero predictor.
  */
-static __inline__ int predictor_zero(g726_state_t *s)
+static __inline__ int16_t predictor_zero(g726_state_t *s)
 {
     int i;
     int sezi;
@@ -239,14 +238,14 @@ static __inline__ int predictor_zero(g726_state_t *s)
     /* ACCUM */
     for (i = 1;  i < 6;  i++)
         sezi += fmult(s->b[i] >> 2, s->dq[i]);
-    return sezi;
+    return (int16_t) sezi;
 }
 /*- End of function --------------------------------------------------------*/
 
 /*
  * Computes the estimated signal from the 2-pole predictor.
  */
-static __inline__ int predictor_pole(g726_state_t *s)
+static __inline__ int16_t predictor_pole(g726_state_t *s)
 {
     return (fmult(s->a[1] >> 2, s->sr[1]) + fmult(s->a[0] >> 2, s->sr[0]));
 }
@@ -281,10 +280,10 @@ static int step_size(g726_state_t *s)
  * size scale factor division operation is done in the log base 2 domain
  * as a subtraction.
  */
-static int quantize(int d,                  /* Raw difference signal sample */
-                    int y,                  /* Step size multiplier */
-                    int table[],            /* quantization table */
-                    int quantizer_states)   /* table size of int16_t integers */
+static int16_t quantize(int d,                  /* Raw difference signal sample */
+                        int y,                  /* Step size multiplier */
+                        int table[],            /* quantization table */
+                        int quantizer_states)   /* table size of int16_t integers */
 {
     int16_t dqm;    /* Magnitude of 'd' */
     int16_t exp;    /* Integer part of base 2 log of 'd' */
@@ -299,8 +298,8 @@ static int quantize(int d,                  /* Raw difference signal sample */
      *
      * Compute base 2 log of 'd', and store in 'dl'.
      */
-    dqm = abs(d);
-    exp = top_bit(dqm >> 1) + 1;
+    dqm = (int16_t) abs(d);
+    exp = (int16_t) (top_bit(dqm >> 1) + 1);
     /* Fractional portion. */
     mant = ((dqm << 7) >> exp) & 0x7F;
     dl = (exp << 7) + mant;
@@ -310,7 +309,7 @@ static int quantize(int d,                  /* Raw difference signal sample */
      *
      * "Divide" by step size multiplier.
      */
-    dln = dl - (y >> 2);
+    dln = dl - (int16_t) (y >> 2);
 
     /*
      * QUAN
@@ -326,15 +325,15 @@ static int quantize(int d,                  /* Raw difference signal sample */
     if (d < 0)
     {
         /* Take 1's complement of i */
-        return ((size << 1) + 1 - i);
+        return (int16_t) ((size << 1) + 1 - i);
     }
     if (i == 0  &&  (quantizer_states & 1))
     {
         /* Zero is only valid if there are an even number of states, so
            take the 1's complement if the code is zero. */
-        return quantizer_states;
+        return (int16_t) quantizer_states;
     }
-    return i;
+    return (int16_t) i;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -343,16 +342,16 @@ static int quantize(int d,                  /* Raw difference signal sample */
  * codeword 'i' and quantization step size scale factor 'y'.
  * Multiplication is performed in log base 2 domain as addition.
  */
-static int reconstruct(int sign,    /* 0 for non-negative value */
-                       int dqln,    /* G.72x codeword */
-                       int y)       /* Step size multiplier */
+static int16_t reconstruct(int sign,    /* 0 for non-negative value */
+                           int dqln,    /* G.72x codeword */
+                           int y)       /* Step size multiplier */
 {
     int16_t dql;    /* Log of 'dq' magnitude */
     int16_t dex;    /* Integer part of log */
     int16_t dqt;
     int16_t dq;     /* Reconstructed difference signal sample */
 
-    dql = dqln + (y >> 2);  /* ADDA */
+    dql = (int16_t) (dqln + (y >> 2));  /* ADDA */
 
     if (dql < 0)
         return ((sign)  ?  -0x8000  :  0);
@@ -377,14 +376,10 @@ static void update(g726_state_t *s,
 {
     int16_t mag;
     int16_t exp;
-    int16_t mant;
     int16_t a2p;        /* LIMC */
     int16_t a1ul;       /* UPA1 */
-    int16_t ua2;
     int16_t pks1;       /* UPA2 */
-    int16_t uga2a;
     int16_t fa1;
-    int16_t uga2b;
     int16_t ylint;
     int16_t dqthr;
     int16_t ylfrac;
@@ -393,22 +388,23 @@ static void update(g726_state_t *s,
     int i;
     int tr;
 
+    a2p = 0;
     /* Needed in updating predictor poles */
     pk0 = (dqsez < 0)  ?  1  :  0;
 
     /* prediction difference magnitude */
-    mag = dq & 0x7FFF;
+    mag = (int16_t) (dq & 0x7FFF);
     /* TRANS */
-    ylint = s->yl >> 15;                /* exponent part of yl */
-    ylfrac = (s->yl >> 10) & 0x1F;      /* fractional part of yl */
+    ylint = (int16_t) (s->yl >> 15);            /* exponent part of yl */
+    ylfrac = (int16_t) ((s->yl >> 10) & 0x1F);  /* fractional part of yl */
     /* Limit threshold to 31 << 10 */
     thr = (ylint > 9)  ?  (31 << 10)  :  (32 + ylfrac) << ylint;
-    dqthr = (thr + (thr >> 1)) >> 1;    /* dqthr = 0.75 * thr */
-    if (!s->td)                         /* signal supposed voice */
+    dqthr = (thr + (thr >> 1)) >> 1;            /* dqthr = 0.75 * thr */
+    if (!s->td)                                 /* signal supposed voice */
         tr = FALSE;
-    else if (mag <= dqthr)              /* supposed data, but small mag */
-        tr = FALSE;                     /* treated as voice */
-    else                                /* signal is data (modem) */
+    else if (mag <= dqthr)                      /* supposed data, but small mag */
+        tr = FALSE;                             /* treated as voice */
+    else                                        /* signal is data (modem) */
         tr = TRUE;
 
     /*
@@ -417,7 +413,7 @@ static void update(g726_state_t *s,
 
     /* FUNCTW & FILTD & DELAY */
     /* update non-steady state step size multiplier */
-    s->yu = y + ((wi - y) >> 5);
+    s->yu = (int16_t) (y + ((wi - y) >> 5));
 
     /* LIMB */
     if (s->yu < 544)
@@ -526,7 +522,7 @@ static void update(g726_state_t *s,
     }
     else
     {
-        exp = top_bit(mag) + 1;
+        exp = (int16_t) (top_bit(mag) + 1);
         s->dq[0] = (dq >= 0)
                  ?  (exp << 6) + ((mag << 6) >> exp)
                  :  (exp << 6) + ((mag << 6) >> exp) - 0x400;
@@ -540,18 +536,18 @@ static void update(g726_state_t *s,
     }
     else if (sr > 0)
     {
-        exp = top_bit(sr) + 1;
-        s->sr[0] = (exp << 6) + ((sr << 6) >> exp);
+        exp = (int16_t) (top_bit(sr) + 1);
+        s->sr[0] = (int16_t) ((exp << 6) + ((sr << 6) >> exp));
     }
     else if (sr > -32768)
     {
-        mag = -sr;
-        exp = top_bit(mag) + 1;
+        mag = (int16_t) -sr;
+        exp = (int16_t) (top_bit(mag) + 1);
         s->sr[0] =  (exp << 6) + ((mag << 6) >> exp) - 0x400;
     }
     else
     {
-        s->sr[0] = 0xFC20;
+        s->sr[0] = (uint16_t) 0xFC20;
     }
 
     /* DELAY A */
@@ -568,9 +564,9 @@ static void update(g726_state_t *s,
 
     /* Adaptation speed control. */
     /* FILTA */
-    s->dms += (fi - s->dms) >> 5;
+    s->dms += ((int16_t) fi - s->dms) >> 5;
     /* FILTB */
-    s->dml += (((fi << 2) - s->dml) >> 7);
+    s->dml += (((int16_t) (fi << 2) - s->dml) >> 7);
 
     if (tr)
         s->ap = 256;
@@ -585,13 +581,13 @@ static void update(g726_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-static int tandem_adjust_alaw(int sr,   /* decoder output linear PCM sample */
-                              int se,   /* predictor estimate sample */
-                              int y,    /* quantizer step size */
-                              int i,    /* decoder input code */
-                              int sign,
-                              int qtab[],
-                              int quantizer_states)
+static int16_t tandem_adjust_alaw(int16_t sr,   /* decoder output linear PCM sample */
+                                  int se,       /* predictor estimate sample */
+                                  int y,        /* quantizer step size */
+                                  int i,        /* decoder input code */
+                                  int sign,
+                                  int qtab[],
+                                  int quantizer_states)
 {
     uint8_t sp; /* A-law compressed 8-bit code */
     int16_t dx; /* prediction error */
@@ -602,12 +598,12 @@ static int tandem_adjust_alaw(int sr,   /* decoder output linear PCM sample */
         sr = -1;
     sp = linear_to_alaw((sr >> 1) << 3);
     /* 16-bit prediction error */
-    dx = (alaw_to_linear(sp) >> 2) - se;
+    dx = (int16_t) ((alaw_to_linear(sp) >> 2) - se);
     id = quantize(dx, y, qtab, quantizer_states);
     if (id == i)
     {
         /* No adjustment of sp required */
-        return sp;
+        return (int16_t) sp;
     }
     /* sp adjustment needed */
     /* ADPCM codes : 8, 9, ... F, 0, 1, ... , 6, 7 */
@@ -628,17 +624,17 @@ static int tandem_adjust_alaw(int sr,   /* decoder output linear PCM sample */
         else
             sd = (sp == 0x55)  ?  0xD5  :  ((sp ^ 0x55) - 1) ^ 0x55;
     }
-    return sd;
+    return (int16_t) sd;
 }
 /*- End of function --------------------------------------------------------*/
 
-static int tandem_adjust_ulaw(int sr,   /* decoder output linear PCM sample */
-                              int se,   /* predictor estimate sample */
-                              int y,    /* quantizer step size */
-                              int i,    /* decoder input code */
-                              int sign,
-                              int qtab[],
-                              int quantizer_states)
+static int16_t tandem_adjust_ulaw(int16_t sr,   /* decoder output linear PCM sample */
+                                  int se,       /* predictor estimate sample */
+                                  int y,        /* quantizer step size */
+                                  int i,        /* decoder input code */
+                                  int sign,
+                                  int qtab[],
+                                  int quantizer_states)
 {
     uint8_t sp; /* u-law compressed 8-bit code */
     int16_t dx; /* prediction error */
@@ -649,12 +645,12 @@ static int tandem_adjust_ulaw(int sr,   /* decoder output linear PCM sample */
         sr = 0;
     sp = linear_to_ulaw(sr << 2);
     /* 16-bit prediction error */
-    dx = (ulaw_to_linear(sp) >> 2) - se;
+    dx = (int16_t) ((ulaw_to_linear(sp) >> 2) - se);
     id = quantize(dx, y, qtab, quantizer_states);
     if (id == i)
     {
         /* No adjustment of sp required. */
-        return sp;
+        return (int16_t) sp;
     }
     /* ADPCM codes : 8, 9, ... F, 0, 1, ... , 6, 7 */
     /* 2's complement to biased unsigned */
@@ -674,20 +670,20 @@ static int tandem_adjust_ulaw(int sr,   /* decoder output linear PCM sample */
         else
             sd = (sp == 0x7F)  ?  0xFE  :  sp + 1;
     }
-    return sd;
+    return (int16_t) sd;
 }
 /*- End of function --------------------------------------------------------*/
 
 /*
  * Encodes a linear PCM, A-law or u-law input sample and returns its 3-bit code.
  */
-static int g726_16_encoder(g726_state_t *s, int amp)
+static uint8_t g726_16_encoder(g726_state_t *s, int16_t amp)
 {
+    int y;
     int16_t sei;
     int16_t sezi;
     int16_t se;
     int16_t d;
-    int16_t y;
     int16_t sr;
     int16_t dqsez;
     int16_t dq;
@@ -710,7 +706,7 @@ static int g726_16_encoder(g726_state_t *s, int amp)
     dqsez = sr + (sezi >> 1) - se;
     
     update(s, y, g726_16_witab[i], g726_16_fitab[i], dq, sr, dqsez);
-    return i;
+    return (uint8_t) i;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -718,15 +714,15 @@ static int g726_16_encoder(g726_state_t *s, int amp)
  * Decodes a 2-bit CCITT G.726_16 ADPCM code and returns
  * the resulting 16-bit linear PCM, A-law or u-law sample value.
  */
-static int g726_16_decoder(g726_state_t *s, int code)
+static int16_t g726_16_decoder(g726_state_t *s, uint8_t code)
 {
     int16_t sezi;
     int16_t sei;
     int16_t se;
-    int16_t y;
     int16_t sr;
     int16_t dq;
     int16_t dqsez;
+    int y;
 
     /* Mask to get proper bits */
     code &= 0x03;
@@ -748,9 +744,9 @@ static int g726_16_decoder(g726_state_t *s, int code)
     switch (s->ext_coding)
     {
     case G726_ENCODING_ALAW:
-        return (tandem_adjust_alaw(sr, se, y, code, 2, qtab_726_16, 4));
+        return tandem_adjust_alaw(sr, se, y, code, 2, qtab_726_16, 4);
     case G726_ENCODING_ULAW:
-        return (tandem_adjust_ulaw(sr, se, y, code, 2, qtab_726_16, 4));
+        return tandem_adjust_ulaw(sr, se, y, code, 2, qtab_726_16, 4);
     }
     return (sr << 2);
 }
@@ -759,17 +755,17 @@ static int g726_16_decoder(g726_state_t *s, int code)
 /*
  * Encodes a linear PCM, A-law or u-law input sample and returns its 3-bit code.
  */
-static int g726_24_encoder(g726_state_t *s, int amp)
+static uint8_t g726_24_encoder(g726_state_t *s, int16_t amp)
 {
     int16_t sei;
     int16_t sezi;
     int16_t se;
     int16_t d;
-    int16_t y;
     int16_t sr;
     int16_t dqsez;
     int16_t dq;
     int16_t i;
+    int y;
     
     sezi = predictor_zero(s);
     sei = sezi + predictor_pole(s);
@@ -788,7 +784,7 @@ static int g726_24_encoder(g726_state_t *s, int amp)
     dqsez = sr + (sezi >> 1) - se;
     
     update(s, y, g726_24_witab[i], g726_24_fitab[i], dq, sr, dqsez);
-    return i;
+    return (uint8_t) i;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -796,15 +792,15 @@ static int g726_24_encoder(g726_state_t *s, int amp)
  * Decodes a 3-bit CCITT G.726_24 ADPCM code and returns
  * the resulting 16-bit linear PCM, A-law or u-law sample value.
  */
-static int g726_24_decoder(g726_state_t *s, int code)
+static int16_t g726_24_decoder(g726_state_t *s, uint8_t code)
 {
     int16_t sezi;
     int16_t sei;
     int16_t se;
-    int16_t y;
     int16_t sr;
     int16_t dq;
     int16_t dqsez;
+    int y;
 
     /* Mask to get proper bits */
     code &= 0x07;
@@ -826,9 +822,9 @@ static int g726_24_decoder(g726_state_t *s, int code)
     switch (s->ext_coding)
     {
     case G726_ENCODING_ALAW:
-        return (tandem_adjust_alaw(sr, se, y, code, 4, qtab_726_24, 7));
+        return tandem_adjust_alaw(sr, se, y, code, 4, qtab_726_24, 7);
     case G726_ENCODING_ULAW:
-        return (tandem_adjust_ulaw(sr, se, y, code, 4, qtab_726_24, 7));
+        return tandem_adjust_ulaw(sr, se, y, code, 4, qtab_726_24, 7);
     }
     return (sr << 2);
 }
@@ -837,17 +833,17 @@ static int g726_24_decoder(g726_state_t *s, int code)
 /*
  * Encodes a linear input sample and returns its 4-bit code.
  */
-static int g726_32_encoder(g726_state_t *s, int amp)
+static uint8_t g726_32_encoder(g726_state_t *s, int16_t amp)
 {
     int16_t sei;
     int16_t sezi;
     int16_t se;
     int16_t d;
     int16_t sr;
-    int16_t y;
     int16_t dqsez;
     int16_t dq;
     int16_t i;
+    int y;
     
     sezi = predictor_zero(s);
     sei = sezi + predictor_pole(s);
@@ -866,7 +862,7 @@ static int g726_32_encoder(g726_state_t *s, int amp)
     dqsez = sr + (sezi >> 1) - se;
 
     update(s, y, g726_32_witab[i], g726_32_fitab[i], dq, sr, dqsez);
-    return i;
+    return (uint8_t) i;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -874,15 +870,15 @@ static int g726_32_encoder(g726_state_t *s, int amp)
  * Decodes a 4-bit CCITT G.726_32 ADPCM code and returns
  * the resulting 16-bit linear PCM, A-law or u-law sample value.
  */
-static int g726_32_decoder(g726_state_t *s, int code)
+static int16_t g726_32_decoder(g726_state_t *s, uint8_t code)
 {
     int16_t sezi;
     int16_t sei;
     int16_t se;
-    int16_t y;
     int16_t sr;
     int16_t dq;
     int16_t dqsez;
+    int y;
 
     /* Mask to get proper bits */
     code &= 0x0F;
@@ -904,9 +900,9 @@ static int g726_32_decoder(g726_state_t *s, int code)
     switch (s->ext_coding)
     {
     case G726_ENCODING_ALAW:
-        return (tandem_adjust_alaw(sr, se, y, code, 8, qtab_726_32, 15));
+        return tandem_adjust_alaw(sr, se, y, code, 8, qtab_726_32, 15);
     case G726_ENCODING_ULAW:
-        return (tandem_adjust_ulaw(sr, se, y, code, 8, qtab_726_32, 15));
+        return tandem_adjust_ulaw(sr, se, y, code, 8, qtab_726_32, 15);
     }
     return (sr << 2);
 }
@@ -916,17 +912,17 @@ static int g726_32_decoder(g726_state_t *s, int code)
  * Encodes a 16-bit linear PCM, A-law or u-law input sample and retuens
  * the resulting 5-bit CCITT G.726 40Kbps code.
  */
-static int g726_40_encoder(g726_state_t *s, int amp)
+static uint8_t g726_40_encoder(g726_state_t *s, int16_t amp)
 {
     int16_t sei;
     int16_t sezi;
     int16_t se;
     int16_t d;
-    int16_t y;
     int16_t sr;
     int16_t dqsez;
     int16_t dq;
     int16_t i;
+    int y;
     
     sezi = predictor_zero(s);
     sei = sezi + predictor_pole(s);
@@ -945,7 +941,7 @@ static int g726_40_encoder(g726_state_t *s, int amp)
     dqsez = sr + (sezi >> 1) - se;
 
     update(s, y, g726_40_witab[i], g726_40_fitab[i], dq, sr, dqsez);
-    return i;
+    return (uint8_t) i;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -953,15 +949,15 @@ static int g726_40_encoder(g726_state_t *s, int amp)
  * Decodes a 5-bit CCITT G.726 40Kbps code and returns
  * the resulting 16-bit linear PCM, A-law or u-law sample value.
  */
-static int g726_40_decoder(g726_state_t *s, int code)
+static int16_t g726_40_decoder(g726_state_t *s, uint8_t code)
 {
     int16_t sezi;
     int16_t sei;
     int16_t se;
-    int16_t y;
     int16_t sr;
     int16_t dq;
     int16_t dqsez;
+    int y;
 
     /* Mask to get proper bits */
     code &= 0x1F;
@@ -983,9 +979,9 @@ static int g726_40_decoder(g726_state_t *s, int code)
     switch (s->ext_coding)
     {
     case G726_ENCODING_ALAW:
-        return (tandem_adjust_alaw(sr, se, y, code, 0x10, qtab_726_40, 31));
+        return tandem_adjust_alaw(sr, se, y, code, 0x10, qtab_726_40, 31);
     case G726_ENCODING_ULAW:
-        return (tandem_adjust_ulaw(sr, se, y, code, 0x10, qtab_726_40, 31));
+        return tandem_adjust_ulaw(sr, se, y, code, 0x10, qtab_726_40, 31);
     }
     return (sr << 2);
 }
@@ -1061,14 +1057,14 @@ int g726_release(g726_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int g726_adpcm_to_linear(g726_state_t *s,
-                         int16_t amp[],
-                         const uint8_t g726_data[],
-                         int g726_bytes)
+int g726_decode(g726_state_t *s,
+                int16_t amp[],
+                const uint8_t g726_data[],
+                int g726_bytes)
 {
     int i;
     int samples;
-    int code;
+    uint8_t code;
     int sl;
 
     for (samples = i = 0;  i < g726_bytes;  )
@@ -1078,11 +1074,19 @@ int g726_adpcm_to_linear(g726_state_t *s,
             /* Unpack the code bits */
             if (s->in_bits < s->bits_per_sample)
             {
+#if defined(G726_PACKS_LEFT)
                 s->in_buffer |= (g726_data[i++] << s->in_bits);
+#else
+                s->in_buffer = (s->in_buffer << 8) | g726_data[i++];
+#endif
                 s->in_bits += 8;
             }
-            code = s->in_buffer & ((1 << s->bits_per_sample) - 1);
+#if defined(G726_PACKS_LEFT)
+            code = (uint8_t) (s->in_buffer & ((1 << s->bits_per_sample) - 1));
             s->in_buffer >>= s->bits_per_sample;
+#else
+            code = (uint8_t) ((s->in_buffer >> (s->in_bits - s->bits_per_sample)) & ((1 << s->bits_per_sample) - 1));
+#endif
             s->in_bits -= s->bits_per_sample;
         }
         else
@@ -1091,23 +1095,23 @@ int g726_adpcm_to_linear(g726_state_t *s,
         }
         sl = s->dec_func(s, code);
         if (s->ext_coding != G726_ENCODING_LINEAR)
-            ((uint8_t *) amp)[samples++] = sl;
+            ((uint8_t *) amp)[samples++] = (uint8_t) sl;
         else
-            amp[samples++] = sl;
+            amp[samples++] = (int16_t) sl;
     }
     return samples;
 }
 /*- End of function --------------------------------------------------------*/
 
-int g726_linear_to_adpcm(g726_state_t *s,
-                         uint8_t g726_data[],
-                         const int16_t amp[],
-                         int samples)
+int g726_encode(g726_state_t *s,
+                uint8_t g726_data[],
+                const int16_t amp[],
+                int samples)
 {
     int i;
     int g726_bytes;
-    int code;
-    int sl;
+    int16_t sl;
+    uint8_t code;
 
     for (g726_bytes = i = 0;  i < samples;  i++)
     {
@@ -1128,18 +1132,26 @@ int g726_linear_to_adpcm(g726_state_t *s,
         if (s->packed)
         {
             /* Pack the code bits */
+#if defined(G726_PACKS_LEFT)
             s->out_buffer |= (code << s->out_bits);
+#else
+            s->out_buffer = (s->out_buffer << s->bits_per_sample) | code;
+#endif
             s->out_bits += s->bits_per_sample;
             if (s->out_bits >= 8)
             {
-                g726_data[g726_bytes++] = s->out_buffer & 0xFF;
-                s->out_bits -= 8;
+#if defined(G726_PACKS_LEFT)
+                g726_data[g726_bytes++] = (uint8_t) (s->out_buffer & 0xFF);
                 s->out_buffer >>= 8;
+#else
+                g726_data[g726_bytes++] = (uint8_t) ((s->out_buffer >> (s->out_bits - 8)) & 0xFF);
+#endif
+                s->out_bits -= 8;
             }
         }
         else
         {
-            g726_data[g726_bytes++] = code;
+            g726_data[g726_bytes++] = (uint8_t) code;
         }
     }
     return g726_bytes;

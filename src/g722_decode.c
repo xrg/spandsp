@@ -29,7 +29,7 @@
  * Computer Science, Speech Group
  * Chengxiang Lu and Alex Hauptmann
  *
- * $Id: g722_decode.c,v 1.9 2006/01/11 07:44:30 steveu Exp $
+ * $Id: g722_decode.c,v 1.12 2006/05/22 12:47:24 steveu Exp $
  */
 
 /*! \file */
@@ -247,6 +247,9 @@ int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[]
     int i;
     int j;
 
+    wd2 = 0;
+    ihigh = 0;
+    wd1 = 0;
     outlen = 0;
     for (j = 0;  j < len;  )
     {
@@ -294,7 +297,7 @@ int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[]
         /* Block 6L, LIMIT */
         if (rlow > 16383)
             rlow = 16383;
-	    else if (rlow < -16384)
+        else if (rlow < -16384)
             rlow = -16384;
 
         /* Block 2L, INVQAL */
@@ -349,8 +352,8 @@ int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[]
  
         if (s->itu_test_mode)
         {
-            amp[outlen++] = rlow << 1;
-            amp[outlen++] = rhigh << 1;
+            amp[outlen++] = (int16_t) (rlow << 1);
+            amp[outlen++] = (int16_t) (rhigh << 1);
         }
         else
         {
@@ -380,8 +383,8 @@ int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[]
                 xout1 += *xdp++ * qmf_coeffs[i];
                 xout2 += *xsp++ * qmf_coeffs[11 - i];
             }
-            amp[outlen++] = xout1 >> 12;
-            amp[outlen++] = xout2 >> 12;
+            amp[outlen++] = (int16_t) (xout1 >> 12);
+            amp[outlen++] = (int16_t) (xout2 >> 12);
         }
     }
     return outlen;
