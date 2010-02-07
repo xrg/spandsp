@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.59 2008/09/16 15:21:52 steveu Exp $
+# $Id: configure.ac,v 1.60 2008/10/01 04:49:53 steveu Exp $
 
 # @start 1
 
@@ -49,7 +49,7 @@ AC_CONFIG_HEADERS([src/config.h:config-h.in])
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 
 AC_CANONICAL_HOST
-AC_CANONICAL_BUILD
+#AC_CANONICAL_BUILD
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_GCC_TRADITIONAL
