@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.c,v 1.18 2007/08/07 11:47:19 steveu Exp $
+ * $Id: at_interpreter.c,v 1.19 2007/10/06 02:30:04 steveu Exp $
  */
 
 /*! \file */
@@ -786,7 +786,8 @@ static const char *at_cmd_D(at_state_t *s, const char *t)
                 break;
             case ',':
                 /* V.250 6.3.1.2 Pause */
-                /* TODO: */
+                /* Pass these through to the application to handle. */
+                *u++ = ch;
                 break;
             case 'T':
                 /* V.250 6.3.1.3 Tone dial */

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.39 2007/10/02 14:09:30 steveu Exp $
+ * $Id: t4.h,v 1.41 2007/10/13 14:10:20 steveu Exp $
  */
 
 /*! \file */
@@ -40,6 +40,9 @@ for FAX transmission.
 
 \section t4_page_sec_1 How does it work?
 */
+
+typedef int (*t4_row_read_handler_t)(void *user_data, uint8_t buf[], size_t len);
+typedef int (*t4_row_write_handler_t)(void *user_data, const uint8_t buf[], size_t len);
 
 typedef enum
 {
@@ -248,10 +251,12 @@ typedef struct
                reaches six, this is the end of the image. */
     int consecutive_eols;
 
-    /*! \brief Black and white run-lengths for the reference row. */
-    uint32_t *ref_runs;
     /*! \brief Black and white run-lengths for the current row. */
     uint32_t *cur_runs;
+    /*! \brief Black and white run-lengths for the reference row. */
+    uint32_t *ref_runs;
+    /*! \brief The number of runs currently in the reference row. */
+    int ref_steps;
     /*! \brief The current step into the reference row run-lengths buffer. */
     int b_cursor;
     /*! \brief The current step into the current row run-lengths buffer. */
@@ -284,8 +289,6 @@ typedef struct
     int bit_pos;
     int bit_ptr;
 
-    /*! \brief The reference pixel row for 2D encoding. */
-    uint8_t *ref_row_buf;
     /*! \brief The maximum contiguous rows that will be 2D encoded. */
     int max_rows_to_next_1d_row;
     /*! \brief Number of rows left that can be 2D encoded, before a 1D encoded row
@@ -295,6 +298,11 @@ typedef struct
     int min_row_bits;
     /*! \brief The current number of bits in the current encoded row. */
     int row_bits;
+
+    t4_row_read_handler_t row_read_handler;
+    void *row_read_user_data;
+    t4_row_write_handler_t row_write_handler;
+    void *row_write_user_data;
 
     /*! \brief Error and flow logging control */
     logging_state_t logging;
@@ -387,6 +395,8 @@ int t4_rx_delete(t4_state_t *s);
     \param s The T.4 context.
     \return 0 for success, otherwise -1. */
 int t4_rx_end(t4_state_t *s);
+
+int t4_rx_set_row_write_handler(t4_state_t *s, t4_row_write_handler_t handler, void *user_data);
 
 /*! \brief Set the encoding for the received data.
     \param s The T.4 context.
@@ -547,6 +557,8 @@ void t4_tx_set_local_ident(t4_state_t *s, const char *ident);
     \param s The T.4 context.
     \param info A string, of up to 50 bytes, which will form the info field. */
 void t4_tx_set_header_info(t4_state_t *s, const char *info);
+
+int t4_tx_set_row_read_handler(t4_state_t *s, t4_row_read_handler_t handler, void *user_data);
 
 /*! \brief Get the row-to-row (y) resolution of the current page.
     \param s The T.4 context.
