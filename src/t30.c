@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.241 2008/05/05 12:42:06 steveu Exp $
+ * $Id: t30.c,v 1.242 2008/05/06 15:05:15 steveu Exp $
  */
 
 /*! \file */
@@ -3679,7 +3679,6 @@ static void process_state_iv_pps_rnr(t30_state_t *s, const uint8_t *msg, int len
         }
         else
         {
-
             span_log(&s->logging, SPAN_LOG_FLOW, "Moving on to the next page\n");
             switch (s->next_tx_step)
             {
@@ -4276,6 +4275,7 @@ static void set_state(t30_state_t *s, int state)
 
 static void repeat_last_command(t30_state_t *s)
 {
+    s->step = 0;
     switch (s->state)
     {
     case T30_STATE_R:

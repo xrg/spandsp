@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_tests.c,v 1.68 2008/05/03 07:37:06 steveu Exp $
+ * $Id: t38_gateway_tests.c,v 1.69 2008/05/05 15:00:11 steveu Exp $
  */
 
 /*! \file */
@@ -121,9 +121,9 @@ static int phase_d_handler(t30_state_t *s, void *user_data, int result)
     printf("%c: Phase D: coding method %s\n", i, t4_encoding_to_str(t.encoding));
     printf("%c: Phase D: image size %d\n", i, t.image_size);
     if ((u = t30_get_tx_ident(s)))
-        printf("%d: Phase D: local ident '%s'\n", i, u);
+        printf("%c: Phase D: local ident '%s'\n", i, u);
     if ((u = t30_get_rx_ident(s)))
-        printf("%d: Phase D: remote ident '%s'\n", i, u);
+        printf("%c: Phase D: remote ident '%s'\n", i, u);
     printf("%c: Phase D: bits per row - min %d, max %d\n", i, s->t4.min_row_bits, s->t4.max_row_bits);
     return T30_ERR_OK;
 }
@@ -148,9 +148,9 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
     printf("%c: Phase E: coding method %s\n", i, t4_encoding_to_str(t.encoding));
     printf("%c: Phase E: image size %d bytes\n", i, t.image_size);
     if ((u = t30_get_tx_ident(s)))
-        printf("%d: Phase E: local ident '%s'\n", i, u);
+        printf("%c: Phase E: local ident '%s'\n", i, u);
     if ((u = t30_get_rx_ident(s)))
-        printf("%d: Phase E: remote ident '%s'\n", i, u);
+        printf("%c: Phase E: remote ident '%s'\n", i, u);
     succeeded[i - 'A'] = (result == T30_ERR_OK)  &&  (t.pages_transferred == 12);
     done[i - 'A'] = TRUE;
 }
