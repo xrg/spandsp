@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_dis_dtc_dcs_bits.h,v 1.1 2009/10/08 15:14:31 steveu Exp $
+ * $Id: t30_dis_dtc_dcs_bits.h,v 1.1.4.1 2009/12/19 09:47:57 steveu Exp $
  */
 
 /*! \file */
@@ -181,7 +181,7 @@
 #define T30_DIS_BIT_DUPLEX_CAPABLE                          67
 #define T30_DCS_BIT_DUPLEX_CAPABLE                          67
 
-#define T30_DIS_BIT_JPEG_CAPABLE                            68
+#define T30_DIS_BIT_T81_CAPABLE                             68
 #define T30_DCS_BIT_FULL_COLOUR_MODEX                       68
 
 #define T30_DIS_BIT_FULL_COLOUR_CAPABLE                     69
@@ -213,6 +213,12 @@
 
 #define T30_DIS_BIT_NORTH_AMERICAN_LEGAL_CAPABLE            77
 #define T30_DCS_BIT_NORTH_AMERICAN_LEGAL                    77
+
+#define T30_DIS_BIT_T85_CAPABLE                             78
+#define T30_DCS_BIT_T85_MODE                                78
+
+#define T30_DIS_BIT_T85_L0_CAPABLE                          79
+#define T30_DCS_BIT_T85_L0_MODE                             79
 
 /* In a DIS/DTC frame, setting bit 97 to "0" indicates that the called terminal does not have the
    capability to accept 300 pels/25.4 mm x 300 lines/25.4 mm or 400 pels/25.4 mm x 400 lines/25.4 mm
@@ -310,7 +316,7 @@
 #define T30_DIS_BIT_BLACK_AND_WHITE_MRC                     115
 
 #define T30_DIS_BIT_T45_CAPABLE                             116
-#define T30_DCS_BIT_T45                                     116
+#define T30_DCS_BIT_T45_MODE                                116
 
 /* This bit defines the available colour space, when bit 92, 93 or 94 is set to "1".
    Available colour space for all combinations of bits 92, 93, 94 and 119 are shown in the following table.
@@ -374,8 +380,8 @@
    transmission of multiple images, a post message signal PPS-MPS between pages, PPS-NULL between
    partial pages and PPS-EOP following the last page should be sent from the calling terminal to the
    called terminal. */
-#define T30_DIS_BIT_SYCC_JPEG_CAPABLE                       127
-#define T30_DCS_BIT_SYCC_JPEG_CODING                        127
+#define T30_DIS_BIT_SYCC_T81_CAPABLE                        127
+#define T30_DCS_BIT_SYCC_T81_MODE                           127
 
 #endif
 /*- End of file ------------------------------------------------------------*/

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.133 2009/12/01 14:28:12 steveu Exp $
+ * $Id: t38_terminal.c,v 1.129.4.2 2009/12/19 10:44:10 steveu Exp $
  */
 
 /*! \file */
@@ -63,7 +63,8 @@
 #include "spandsp/v27ter_rx.h"
 #include "spandsp/v17tx.h"
 #include "spandsp/v17rx.h"
-#include "spandsp/t4.h"
+#include "spandsp/t4_rx.h"
+#include "spandsp/t4_tx.h"
 #include "spandsp/t30_fcf.h"
 #include "spandsp/t35.h"
 #include "spandsp/t30.h"
@@ -73,7 +74,8 @@
 #include "spandsp/t38_terminal.h"
 
 #include "spandsp/private/logging.h"
-#include "spandsp/private/t4.h"
+#include "spandsp/private/t4_rx.h"
+#include "spandsp/private/t4_tx.h"
 #include "spandsp/private/t30.h"
 #include "spandsp/private/t38_core.h"
 #include "spandsp/private/t38_terminal.h"

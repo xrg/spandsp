@@ -1,11 +1,11 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * version.h - A tag file, so the exact installed revision can be assertained.
+ * private/t4_tx.h - definitions for T.4 FAX transmit processing
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
- * Copyright (C) 2007 Steve Underwood
+ * Copyright (C) 2003 Steve Underwood
  *
  * All rights reserved.
  *
@@ -22,17 +22,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: version.h.in,v 1.3.4.1 2009/12/19 09:47:56 steveu Exp $
+ * $Id: t4_tx.h,v 1.7.2.2 2009/12/19 09:47:57 steveu Exp $
  */
 
-#if !defined(_SPANDSP_VERSION_H_)
-#define _SPANDSP_VERSION_H_
-
-/* The date and time of the version are in UTC form. */
-
-#define SPANDSP_RELEASE_DATE            $SPANDSP_RELEASE_DATE
-#define SPANDSP_RELEASE_TIME            $SPANDSP_RELEASE_TIME
-#define SPANDSP_RELEASE_DATETIME_STRING "$SPANDSP_RELEASE_DATE $SPANDSP_RELEASE_TIME"
+#if !defined(_SPANDSP_PRIVATE_T4_TX_H_)
+#define _SPANDSP_PRIVATE_T4_TX_H_
 
 #endif
 /*- End of file ------------------------------------------------------------*/

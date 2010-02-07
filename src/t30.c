@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.305 2009/10/08 15:26:15 steveu Exp $
+ * $Id: t30.c,v 1.305.4.2 2009/12/19 10:44:10 steveu Exp $
  */
 
 /*! \file */
@@ -60,7 +60,8 @@
 #include "spandsp/v29tx.h"
 #include "spandsp/v27ter_rx.h"
 #include "spandsp/v27ter_tx.h"
-#include "spandsp/t4.h"
+#include "spandsp/t4_rx.h"
+#include "spandsp/t4_tx.h"
 #include "spandsp/t30_fcf.h"
 #include "spandsp/t35.h"
 #include "spandsp/t30.h"
@@ -68,7 +69,8 @@
 #include "spandsp/t30_logging.h"
 
 #include "spandsp/private/logging.h"
-#include "spandsp/private/t4.h"
+#include "spandsp/private/t4_rx.h"
+#include "spandsp/private/t4_tx.h"
 #include "spandsp/private/t30.h"
 #include "spandsp/private/t30_dis_dtc_dcs_bits.h"
 
@@ -216,108 +218,108 @@ enum
 /* All timers specified in milliseconds */
 
 /*! Time-out T0 defines the amount of time an automatic calling terminal waits for the called terminal
-to answer the call.
-T0 begins after the dialling of the number is completed and is reset:
-a) when T0 times out; or
-b) when timer T1 is started; or
-c) if the terminal is capable of detecting any condition which indicates that the call will not be
-   successful, when such a condition is detected.
-The recommended value of T0 is 60+-5s. However, when it is anticipated that a long call set-up
-time may be encountered, an alternative value of up to 120s may be used.
-NOTE - National regulations may require the use of other values for T0. */
+    to answer the call.
+    T0 begins after the dialling of the number is completed and is reset:
+    a) when T0 times out; or
+    b) when timer T1 is started; or
+    c) if the terminal is capable of detecting any condition which indicates that the call will not be
+       successful, when such a condition is detected.
+    The recommended value of T0 is 60+-5s. However, when it is anticipated that a long call set-up
+    time may be encountered, an alternative value of up to 120s may be used.
+    NOTE - National regulations may require the use of other values for T0. */
 #define DEFAULT_TIMER_T0                60000
 
 /*! Time-out T1 defines the amount of time two terminals will continue to attempt to identify each
-other. T1 is 35+-5s, begins upon entering phase B, and is reset upon detecting a valid signal or
-when T1 times out.
-For operating methods 3 and 4 (see 3.1), the calling terminal starts time-out T1 upon reception of
-the V.21 modulation scheme.
-For operating method 4 bis a (see 3.1), the calling terminal starts time-out T1 upon starting
-transmission using the V.21 modulation scheme.
-Annex A says T1 is also the timeout to be used for the receipt of the first HDLC frame after the
-start of high speed flags in ECM mode. This seems a strange reuse of the T1 name, so we distinguish
-it here by calling it T1A. */
+    other. T1 is 35+-5s, begins upon entering phase B, and is reset upon detecting a valid signal or
+    when T1 times out.
+    For operating methods 3 and 4 (see 3.1), the calling terminal starts time-out T1 upon reception of
+    the V.21 modulation scheme.
+    For operating method 4 bis a (see 3.1), the calling terminal starts time-out T1 upon starting
+    transmission using the V.21 modulation scheme.
+    Annex A says T1 is also the timeout to be used for the receipt of the first HDLC frame after the
+    start of high speed flags in ECM mode. This seems a strange reuse of the T1 name, so we distinguish
+    it here by calling it T1A. */
 #define DEFAULT_TIMER_T1                35000
 #define DEFAULT_TIMER_T1A               35000
 
 /*! Time-out T2 makes use of the tight control between commands and responses to detect the loss of
-command/response synchronization. T2 is 6+-1s, and begins when initiating a command search
-(e.g., the first entrance into the "command received" subroutine, reference flow diagram in section 5.2).
-T2 is reset when an HDLC flag is received or when T2 times out. */
+    command/response synchronization. T2 is 6+-1s, and begins when initiating a command search
+    (e.g., the first entrance into the "command received" subroutine, reference flow diagram in section 5.2).
+    T2 is reset when an HDLC flag is received or when T2 times out. */
 #define DEFAULT_TIMER_T2                7000
 
 /*! Once HDLC flags begin, T2 is reset, and a 3s timer begins. This timer is unnamed in T.30. Here we
-term it T2A. No tolerance is specified for this timer. T2A specifies the maximum time to wait for the
-end of a frame, after the initial flag has been seen. */
+    term it T2A. No tolerance is specified for this timer. T2A specifies the maximum time to wait for the
+    end of a frame, after the initial flag has been seen. */
 #define DEFAULT_TIMER_T2A               3000
 
 /*! If the HDLC carrier falls during reception, we need to apply a minimum time before continuing. If we
-   don't, there are circumstances where we could continue and reply before the incoming signals have
-   really finished. E.g. if a bad DCS is received in a DCS-TCF sequence, we need wait for the TCF
-   carrier to pass, before continuing. This timer is specified as 200ms, but no tolerance is specified.
-   It is unnamed in T.30. Here we term it T2B */
+    don't, there are circumstances where we could continue and reply before the incoming signals have
+    really finished. E.g. if a bad DCS is received in a DCS-TCF sequence, we need wait for the TCF
+    carrier to pass, before continuing. This timer is specified as 200ms, but no tolerance is specified.
+    It is unnamed in T.30. Here we term it T2B */
 #define DEFAULT_TIMER_T2B               200
 
 /*! Time-out T3 defines the amount of time a terminal will attempt to alert the local operator in
-response to a procedural interrupt. Failing to achieve operator intervention, the terminal will
-discontinue this attempt and shall issue other commands or responses. T3 is 10+-5s, begins on the
-first detection of a procedural interrupt command/response signal (i.e., PIN/PIP or PRI-Q) and is
-reset when T3 times out or when the operator initiates a line request. */
+    response to a procedural interrupt. Failing to achieve operator intervention, the terminal will
+    discontinue this attempt and shall issue other commands or responses. T3 is 10+-5s, begins on the
+    first detection of a procedural interrupt command/response signal (i.e., PIN/PIP or PRI-Q) and is
+    reset when T3 times out or when the operator initiates a line request. */
 #define DEFAULT_TIMER_T3                15000
 
 /*! Time-out T4 defines the amount of time a terminal will wait for flags to begin, when waiting for a
-response from a remote terminal. T2 is 3s +-15%, and begins when initiating a response search
-(e.g., the first entrance into the "response received" subroutine, reference flow diagram in section 5.2).
-T4 is reset when an HDLC flag is received or when T4 times out.
-NOTE - For manual FAX units, the value of timer T4 may be either 3.0s +-15% or 4.5s +-15%.
-If the value of 4.5s is used, then after detection of a valid response to the first DIS, it may
-be reduced to 3.0s +-15%. T4 = 3.0s +-15% for automatic units. */
+    response from a remote terminal. T2 is 3s +-15%, and begins when initiating a response search
+    (e.g., the first entrance into the "response received" subroutine, reference flow diagram in section 5.2).
+    T4 is reset when an HDLC flag is received or when T4 times out.
+    NOTE - For manual FAX units, the value of timer T4 may be either 3.0s +-15% or 4.5s +-15%.
+    If the value of 4.5s is used, then after detection of a valid response to the first DIS, it may
+    be reduced to 3.0s +-15%. T4 = 3.0s +-15% for automatic units. */
 #define DEFAULT_TIMER_T4                3450
 
 /*! Once HDLC flags begin, T4 is reset, and a 3s timer begins. This timer is unnamed in T.30. Here we
-term it T4A. No tolerance is specified for this timer. T4A specifies the maximum time to wait for the
-end of a frame, after the initial flag has been seen. Note that a different timer is used for the fast
-HDLC in ECM mode, to provide time for physical paper handling. */
+    term it T4A. No tolerance is specified for this timer. T4A specifies the maximum time to wait for the
+    end of a frame, after the initial flag has been seen. Note that a different timer is used for the fast
+    HDLC in ECM mode, to provide time for physical paper handling. */
 #define DEFAULT_TIMER_T4A               3000
 
 /*! If the HDLC carrier falls during reception, we need to apply a minimum time before continuing. if we
-   don't, there are circumstances where we could continue and reply before the incoming signals have
-   really finished. E.g. if a bad DCS is received in a DCS-TCF sequence, we need wait for the TCF
-   carrier to pass, before continuing. This timer is specified as 200ms, but no tolerance is specified.
-   It is unnamed in T.30. Here we term it T4B */
+    don't, there are circumstances where we could continue and reply before the incoming signals have
+    really finished. E.g. if a bad DCS is received in a DCS-TCF sequence, we need wait for the TCF
+    carrier to pass, before continuing. This timer is specified as 200ms, but no tolerance is specified.
+    It is unnamed in T.30. Here we term it T4B */
 #define DEFAULT_TIMER_T4B               200
 
 /*! Time-out T5 is defined for the optional T.4 error correction mode. Time-out T5 defines the amount
-of time waiting for clearance of the busy condition of the receiving terminal. T5 is 60+-5s and
-begins on the first detection of the RNR response. T5 is reset when T5 times out or the MCF or PIP
-response is received or when the ERR or PIN response is received in the flow control process after
-transmitting the EOR command. If the timer T5 has expired, the DCN command is transmitted for
-call release. */
+    of time waiting for clearance of the busy condition of the receiving terminal. T5 is 60+-5s and
+    begins on the first detection of the RNR response. T5 is reset when T5 times out or the MCF or PIP
+    response is received or when the ERR or PIN response is received in the flow control process after
+    transmitting the EOR command. If the timer T5 has expired, the DCN command is transmitted for
+    call release. */
 #define DEFAULT_TIMER_T5                65000
 
 /*! (Annex C - ISDN) Time-out T6 defines the amount of time two terminals will continue to attempt to
-identify each other. T6 is 5+-0.5s. The timeout begins upon entering Phase B, and is reset upon
-detecting a valid signal, or when T6 times out. */
+    identify each other. T6 is 5+-0.5s. The timeout begins upon entering Phase B, and is reset upon
+    detecting a valid signal, or when T6 times out. */
 #define DEFAULT_TIMER_T6                5000
 
 /*! (Annex C - ISDN) Time-out T7 is used to detect loss of command/response synchronization. T7 is 6+-1s.
-The timeout begins when initiating a command search (e.g., the first entrance into the "command received"
-subroutine - see flow diagram in C.5) and is reset upon detecting a valid signal or when T7 times out. */
+    The timeout begins when initiating a command search (e.g., the first entrance into the "command received"
+    subroutine - see flow diagram in C.5) and is reset upon detecting a valid signal or when T7 times out. */
 #define DEFAULT_TIMER_T7                7000
 
 /*! (Annex C - ISDN) Time-out T8 defines the amount of time waiting for clearance of the busy condition
-of the receiving terminal. T8 is 10+-1s. The timeout begins on the first detection of the combination
-of no outstanding corrections and the RNR response. T8 is reset when T8 times out or MCF response is
-received. If the timer T8 expires, a DCN command is transmitted for call release. */
+    of the receiving terminal. T8 is 10+-1s. The timeout begins on the first detection of the combination
+    of no outstanding corrections and the RNR response. T8 is reset when T8 times out or MCF response is
+    received. If the timer T8 expires, a DCN command is transmitted for call release. */
 #define DEFAULT_TIMER_T8                10000
 
 /*! Final time we allow for things to flush through the system, before we disconnect, in milliseconds.
-   200ms should be fine for a PSTN call. For a T.38 call something longer is desirable. */
+    200ms should be fine for a PSTN call. For a T.38 call something longer is desirable. */
 #define FINAL_FLUSH_TIME                1000
 
 /*! The number of PPRs received before CTC or EOR is sent in ECM mode. T.30 defines this as 4,
-   but it could be varied, and the Japanese spec, for example, does make this value a
-   variable. */
+    but it could be varied, and the Japanese spec, for example, does make this value a
+    variable. */
 #define PPR_LIMIT_BEFORE_CTC_OR_EOR     4
 
 /* HDLC message header byte values */
@@ -402,10 +404,10 @@ static int terminate_operation_in_progress(t30_state_t *s)
     switch (s->operation_in_progress)
     {
     case OPERATION_IN_PROGRESS_T4_TX:
-        t4_tx_release(&(s->t4));
+        t4_tx_release(&s->t4);
         break;
     case OPERATION_IN_PROGRESS_T4_RX:
-        t4_rx_release(&(s->t4));
+        t4_rx_release(&s->t4);
         break;
     }
     s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
@@ -415,7 +417,7 @@ static int terminate_operation_in_progress(t30_state_t *s)
 
 static int tx_start_page(t30_state_t *s)
 {
-    if (t4_tx_start_page(&(s->t4)))
+    if (t4_tx_start_page(&s->t4))
     {
         terminate_operation_in_progress(s);
         return -1;
@@ -430,7 +432,7 @@ static int tx_start_page(t30_state_t *s)
 static int tx_end_page(t30_state_t *s)
 {
     s->retries = 0;
-    if (t4_tx_end_page(&(s->t4)) == 0)
+    if (t4_tx_end_page(&s->t4) == 0)
     {
         s->tx_page_number++;
         s->ecm_block = 0;
@@ -454,7 +456,7 @@ static int rx_start_page(t30_state_t *s)
     t4_rx_set_x_resolution(&s->t4, s->x_resolution);
     t4_rx_set_y_resolution(&s->t4, s->y_resolution);
 
-    if (t4_rx_start_page(&(s->t4)))
+    if (t4_rx_start_page(&s->t4))
         return -1;
     /* Clear the buffer */
     for (i = 0;  i < 256;  i++)
@@ -469,7 +471,7 @@ static int rx_start_page(t30_state_t *s)
 
 static int rx_end_page(t30_state_t *s)
 {
-    if (t4_rx_end_page(&(s->t4)) == 0)
+    if (t4_rx_end_page(&s->t4) == 0)
     {
         s->rx_page_number++;
         s->ecm_block = 0;
@@ -620,7 +622,7 @@ static uint8_t check_next_tx_step(t30_state_t *s)
     int res;
     int more;
 
-    res = t4_tx_next_page_has_different_format(&(s->t4));
+    res = t4_tx_next_page_has_different_format(&s->t4);
     if (res == 0)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "More pages to come with the same format\n");
@@ -629,7 +631,7 @@ static uint8_t check_next_tx_step(t30_state_t *s)
     if (res > 0)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "More pages to come with a different format\n");
-        s->tx_start_page = t4_tx_get_current_page_in_file(&(s->t4)) + 1;
+        s->tx_start_page = t4_tx_get_current_page_in_file(&s->t4) + 1;
         return (s->local_interrupt_pending)  ?  T30_PRI_EOM  :  T30_EOM;
     }
     /* Call a user handler, if one is set, to check if another document is to be sent.
@@ -691,7 +693,7 @@ static int get_partial_ecm_page(t30_state_t *s)
     /* We filled the entire buffer */
     s->ecm_frames = 256;
     span_log(&s->logging, SPAN_LOG_FLOW, "Partial page buffer full (%d per frame)\n", s->octets_per_ecm_frame);
-    s->ecm_at_page_end = ((t4_tx_check_bit(&(s->t4)) & 2) != 0);
+    s->ecm_at_page_end = ((t4_tx_check_bit(&s->t4) & 2) != 0);
     return 256;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1824,10 +1826,10 @@ static void disconnect(t30_state_t *s)
     switch (s->operation_in_progress)
     {
     case OPERATION_IN_PROGRESS_T4_TX:
-        t4_tx_release(&(s->t4));
+        t4_tx_release(&s->t4);
         break;
     case OPERATION_IN_PROGRESS_T4_RX:
-        t4_rx_release(&(s->t4));
+        t4_rx_release(&s->t4);
         break;
     }
     s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
@@ -1922,7 +1924,7 @@ static int start_sending_document(t30_state_t *s)
        must be evaluated before the minimum scan row bits can be evaluated. */
     if ((min_row_bits = set_min_scan_time_code(s)) < 0)
     {
-        t4_tx_release(&(s->t4));
+        t4_tx_release(&s->t4);
         s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
         return -1;
     }
@@ -1931,7 +1933,7 @@ static int start_sending_document(t30_state_t *s)
 
     if (tx_start_page(s))
         return -1;
-    s->image_width = t4_tx_get_image_width(&(s->t4));
+    s->image_width = t4_tx_get_image_width(&s->t4);
     if (s->error_correcting_mode)
     {
         if (get_partial_ecm_page(s) == 0)
@@ -1943,7 +1945,7 @@ static int start_sending_document(t30_state_t *s)
 
 static int restart_sending_document(t30_state_t *s)
 {
-    t4_tx_restart_page(&(s->t4));
+    t4_tx_restart_page(&s->t4);
     s->retries = 0;
     s->ecm_block = 0;
     send_dcs_sequence(s, TRUE);
@@ -3065,14 +3067,14 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
         case T30_COPY_QUALITY_PERFECT:
         case T30_COPY_QUALITY_GOOD:
             rx_end_page(s);
-            t4_rx_release(&(s->t4));
+            t4_rx_release(&s->t4);
             s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
             s->in_message = FALSE;
             set_state(s, T30_STATE_III_Q_MCF);
             break;
         case T30_COPY_QUALITY_POOR:
             rx_end_page(s);
-            t4_rx_release(&(s->t4));
+            t4_rx_release(&s->t4);
             s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
             s->in_message = FALSE;
             set_state(s, T30_STATE_III_Q_RTP);
@@ -3123,14 +3125,14 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
         case T30_COPY_QUALITY_PERFECT:
         case T30_COPY_QUALITY_GOOD:
             rx_end_page(s);
-            t4_rx_release(&(s->t4));
+            t4_rx_release(&s->t4);
             s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
             s->in_message = FALSE;
             set_state(s, T30_STATE_III_Q_MCF);
             break;
         case T30_COPY_QUALITY_POOR:
             rx_end_page(s);
-            t4_rx_release(&(s->t4));
+            t4_rx_release(&s->t4);
             s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
             s->in_message = FALSE;
             set_state(s, T30_STATE_III_Q_RTP);
@@ -3150,7 +3152,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
         case T30_COPY_QUALITY_PERFECT:
         case T30_COPY_QUALITY_GOOD:
             rx_end_page(s);
-            t4_rx_release(&(s->t4));
+            t4_rx_release(&s->t4);
             s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
             s->in_message = FALSE;
             set_state(s, T30_STATE_III_Q_MCF);
@@ -3158,7 +3160,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
             break;
         case T30_COPY_QUALITY_POOR:
             rx_end_page(s);
-            t4_rx_release(&(s->t4));
+            t4_rx_release(&s->t4);
             s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
             s->in_message = FALSE;
             set_state(s, T30_STATE_III_Q_RTP);
@@ -3182,14 +3184,14 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
         case T30_COPY_QUALITY_PERFECT:
         case T30_COPY_QUALITY_GOOD:
             rx_end_page(s);
-            t4_rx_release(&(s->t4));
+            t4_rx_release(&s->t4);
             s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
             s->in_message = FALSE;
             set_state(s, T30_STATE_III_Q_MCF);
             break;
         case T30_COPY_QUALITY_POOR:
             rx_end_page(s);
-            t4_rx_release(&(s->t4));
+            t4_rx_release(&s->t4);
             s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
             s->in_message = FALSE;
             set_state(s, T30_STATE_III_Q_RTP);
@@ -3526,7 +3528,7 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
             tx_end_page(s);
             if (s->phase_d_handler)
                 s->phase_d_handler(s, s->phase_d_user_data, fcf);
-            t4_tx_release(&(s->t4));
+            t4_tx_release(&s->t4);
             s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
             if (span_log_test(&s->logging, SPAN_LOG_FLOW))
             {
@@ -3540,7 +3542,7 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
             tx_end_page(s);
             if (s->phase_d_handler)
                 s->phase_d_handler(s, s->phase_d_user_data, fcf);
-            t4_tx_release(&(s->t4));
+            t4_tx_release(&s->t4);
             s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
             send_dcn(s);
             if (span_log_test(&s->logging, SPAN_LOG_FLOW))
@@ -3585,7 +3587,7 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
             tx_end_page(s);
             if (s->phase_d_handler)
                 s->phase_d_handler(s, s->phase_d_user_data, fcf);
-            t4_tx_release(&(s->t4));
+            t4_tx_release(&s->t4);
             /* TODO: should go back to T, and resend */
             return_to_phase_b(s, TRUE);
             break;
@@ -3594,7 +3596,7 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
             tx_end_page(s);
             if (s->phase_d_handler)
                 s->phase_d_handler(s, s->phase_d_user_data, fcf);
-            t4_tx_release(&(s->t4));
+            t4_tx_release(&s->t4);
             send_dcn(s);
             break;
         }
@@ -3905,7 +3907,7 @@ static void process_state_iv_pps_null(t30_state_t *s, const uint8_t *msg, int le
                 tx_end_page(s);
                 if (s->phase_d_handler)
                     s->phase_d_handler(s, s->phase_d_user_data, fcf);
-                t4_tx_release(&(s->t4));
+                t4_tx_release(&s->t4);
                 s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
                 if (span_log_test(&s->logging, SPAN_LOG_FLOW))
                 {
@@ -3919,7 +3921,7 @@ static void process_state_iv_pps_null(t30_state_t *s, const uint8_t *msg, int le
                 tx_end_page(s);
                 if (s->phase_d_handler)
                     s->phase_d_handler(s, s->phase_d_user_data, fcf);
-                t4_tx_release(&(s->t4));
+                t4_tx_release(&s->t4);
                 s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
                 send_dcn(s);
                 if (span_log_test(&s->logging, SPAN_LOG_FLOW))
@@ -4009,7 +4011,7 @@ static void process_state_iv_pps_q(t30_state_t *s, const uint8_t *msg, int len)
                 tx_end_page(s);
                 if (s->phase_d_handler)
                     s->phase_d_handler(s, s->phase_d_user_data, fcf);
-                t4_tx_release(&(s->t4));
+                t4_tx_release(&s->t4);
                 s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
                 if (span_log_test(&s->logging, SPAN_LOG_FLOW))
                 {
@@ -4023,7 +4025,7 @@ static void process_state_iv_pps_q(t30_state_t *s, const uint8_t *msg, int len)
                 tx_end_page(s);
                 if (s->phase_d_handler)
                     s->phase_d_handler(s, s->phase_d_user_data, fcf);
-                t4_tx_release(&(s->t4));
+                t4_tx_release(&s->t4);
                 s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
                 send_dcn(s);
                 if (span_log_test(&s->logging, SPAN_LOG_FLOW))
@@ -4129,7 +4131,7 @@ static void process_state_iv_pps_rnr(t30_state_t *s, const uint8_t *msg, int len
                 tx_end_page(s);
                 if (s->phase_d_handler)
                     s->phase_d_handler(s, s->phase_d_user_data, fcf);
-                t4_tx_release(&(s->t4));
+                t4_tx_release(&s->t4);
                 s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
                 if (span_log_test(&s->logging, SPAN_LOG_FLOW))
                 {
@@ -4143,7 +4145,7 @@ static void process_state_iv_pps_rnr(t30_state_t *s, const uint8_t *msg, int len
                 tx_end_page(s);
                 if (s->phase_d_handler)
                     s->phase_d_handler(s, s->phase_d_user_data, fcf);
-                t4_tx_release(&(s->t4));
+                t4_tx_release(&s->t4);
                 s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
                 send_dcn(s);
                 if (span_log_test(&s->logging, SPAN_LOG_FLOW))
@@ -5405,7 +5407,7 @@ SPAN_DECLARE_NONSTD(int) t30_non_ecm_get_bit(void *user_data)
         break;
     case T30_STATE_I:
         /* Transferring real data. */
-        bit = t4_tx_get_bit(&(s->t4));
+        bit = t4_tx_get_bit(&s->t4);
         break;
     case T30_STATE_D_POST_TCF:
     case T30_STATE_II_Q:
@@ -5440,7 +5442,7 @@ SPAN_DECLARE(int) t30_non_ecm_get_byte(void *user_data)
         break;
     case T30_STATE_I:
         /* Transferring real data. */
-        byte = t4_tx_get_byte(&(s->t4));
+        byte = t4_tx_get_byte(&s->t4);
         break;
     case T30_STATE_D_POST_TCF:
     case T30_STATE_II_Q:
@@ -5823,9 +5825,8 @@ SPAN_DECLARE(void) t30_front_end_status(void *user_data, int status)
             }
             break;
         case T30_STATE_B:
-            /* We have now allowed time for the last message to flush
-               through the system, so it is safe to report the end of the
-               call. */
+            /* We have now allowed time for the last message to flush through
+               the system, so it is safe to report the end of the call. */
             if (s->phase_e_handler)
                 s->phase_e_handler(s, s->phase_e_user_data, s->current_status);
             set_state(s, T30_STATE_CALL_FINISHED);
@@ -5999,6 +6000,8 @@ SPAN_DECLARE(void) t30_front_end_status(void *user_data, int status)
 
 SPAN_DECLARE(void) t30_timer_update(t30_state_t *s, int samples)
 {
+    int previous;
+
     if (s->timer_t0_t1 > 0)
     {
         if ((s->timer_t0_t1 -= samples) <= 0)
@@ -6012,13 +6015,21 @@ SPAN_DECLARE(void) t30_timer_update(t30_state_t *s, int samples)
     if (s->timer_t3 > 0)
     {
         if ((s->timer_t3 -= samples) <= 0)
+        {
+            s->timer_t3 = 0;
             timer_t3_expired(s);
+        }
     }
     if (s->timer_t2_t4 > 0)
     {
         if ((s->timer_t2_t4 -= samples) <= 0)
         {
-            switch (s->timer_t2_t4_is)
+            previous = s->timer_t2_t4_is;
+            /* Don't allow the count to be left at a small negative number.
+               It looks cosmetically bad in the logs. */
+            s->timer_t2_t4 = 0;
+            s->timer_t2_t4_is = TIMER_IS_IDLE;
+            switch (previous)
             {
             case TIMER_IS_T1A:
                 timer_t1a_expired(s);
@@ -6047,7 +6058,10 @@ SPAN_DECLARE(void) t30_timer_update(t30_state_t *s, int samples)
     if (s->timer_t5 > 0)
     {
         if ((s->timer_t5 -= samples) <= 0)
+        {
+            s->timer_t5 = 0;
             timer_t5_expired(s);
+        }
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -6209,10 +6223,10 @@ SPAN_DECLARE(int) t30_release(t30_state_t *s)
     switch (s->operation_in_progress)
     {
     case OPERATION_IN_PROGRESS_T4_TX:
-        t4_tx_release(&(s->t4));
+        t4_tx_release(&s->t4);
         break;
     case OPERATION_IN_PROGRESS_T4_RX:
-        t4_rx_release(&(s->t4));
+        t4_rx_release(&s->t4);
         break;
     }
     s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;

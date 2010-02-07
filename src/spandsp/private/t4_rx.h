@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * private/t4.h - definitions for T.4 fax processing
+ * private/t4_rx.h - definitions for T.4 FAX receive processing
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -22,11 +22,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.4 2009/02/20 12:34:20 steveu Exp $
+ * $Id: t4_rx.h,v 1.6.2.5 2009/12/19 11:33:08 steveu Exp $
  */
 
-#if !defined(_SPANDSP_PRIVATE_T4_H_)
-#define _SPANDSP_PRIVATE_T4_H_
+#if !defined(_SPANDSP_PRIVATE_T4_RX_H_)
+#define _SPANDSP_PRIVATE_T4_RX_H_
 
 /*!
     TIFF specific state information to go with T.4 compression or decompression handling.
@@ -60,6 +60,73 @@ typedef struct
     const char *dcs;
 } t4_tiff_state_t;
 
+typedef struct t4_t6_encode_state_s t4_t6_encode_state_t;
+
+/*!
+    T.4 1D, T4 2D and T6 compressor state.
+*/
+struct t4_t6_encode_state_s
+{
+    /*! \brief The minimum number of encoded bits per row. This is a timing thing
+               for hardware FAX machines. */
+    int min_bits_per_row;
+
+    /*! \brief The text which will be used in FAX page header. No text results
+               in no header line. */
+    const char *header_info;
+
+    /*! \brief Callback function to read a row of pixels from the image source. */
+    t4_row_read_handler_t row_read_handler;
+    /*! \brief Opaque pointer passed to row_read_handler. */
+    void *row_read_user_data;
+};
+
+typedef struct t4_t6_decode_state_s t4_t6_decode_state_t;
+
+/*!
+    T.4 1D, T4 2D and T6 decompressor state.
+*/
+struct t4_t6_decode_state_s
+{
+    /*! \brief Callback function to write a row of pixels to the image destination. */
+    t4_row_write_handler_t row_write_handler;
+    /*! \brief Opaque pointer passed to row_write_handler. */
+    void *row_write_user_data;
+
+    /*! \brief Incoming bit buffer for decompression. */
+    uint32_t rx_bitstream;
+    /*! \brief The number of bits currently in rx_bitstream. */
+    int rx_bits;
+    /*! \brief The number of bits to be skipped before trying to match the next code word. */
+    int rx_skip_bits;
+
+    /*! \brief The reference or starting changing element on the coding line. At the
+               start of the coding line, a0 is set on an imaginary white changing element
+               situated just before the first element on the line. During the coding of
+               the coding line, the position of a0 is defined by the previous coding mode.
+               (See 4.2.1.3.2.). */
+    int a0;
+    /*! \brief The first changing element on the reference line to the right of a0 and of
+               opposite colour to a0. */
+    int b1;
+    /*! \brief The length of the in-progress run of black or white. */
+    int run_length;
+    /*! \brief 2D horizontal mode control. */
+    int black_white;
+
+    /*! \brief The current step into the current row run-lengths buffer. */
+    int a_cursor;
+    /*! \brief The current step into the reference row run-lengths buffer. */
+    int b_cursor;
+
+    /*! \brief The current number of consecutive bad rows. */
+    int curr_bad_row_run;
+    /*! \brief The longest run of consecutive bad rows seen in the current page. */
+    int longest_bad_row_run;
+    /*! \brief The total number of bad rows in the current page. */
+    int bad_rows;
+};
+
 /*!
     T.4 FAX compression/decompression descriptor. This defines the working state
     for a single instance of a T.4 FAX compression or decompression channel.
@@ -72,18 +139,6 @@ struct t4_state_s
 
     /*! \brief The type of compression used between the FAX machines. */
     int line_encoding;
-    /*! \brief The minimum number of encoded bits per row. This is a timing thing
-               for hardware FAX machines. */
-    int min_bits_per_row;
-    
-    /*! \brief Callback function to read a row of pixels from the image source. */
-    t4_row_read_handler_t row_read_handler;
-    /*! \brief Opaque pointer passed to row_read_handler. */
-    void *row_read_user_data;
-    /*! \brief Callback function to write a row of pixels to the image destination. */
-    t4_row_write_handler_t row_write_handler;
-    /*! \brief Opaque pointer passed to row_write_handler. */
-    void *row_write_user_data;
 
     /*! \brief The time at which handling of the current page began. */
     time_t page_start_time;
@@ -120,19 +175,6 @@ struct t4_state_s
     int image_length;
     /*! \brief Current pixel row number. */
     int row;
-    /*! \brief The current number of consecutive bad rows. */
-    int curr_bad_row_run;
-    /*! \brief The longest run of consecutive bad rows seen in the current page. */
-    int longest_bad_row_run;
-    /*! \brief The total number of bad rows in the current page. */
-    int bad_rows;
-
-    /*! \brief Incoming bit buffer for decompression. */
-    uint32_t rx_bitstream;
-    /*! \brief The number of bits currently in rx_bitstream. */
-    int rx_bits;
-    /*! \brief The number of bits to be skipped before trying to match the next code word. */
-    int rx_skip_bits;
 
     /*! \brief This variable is set if we are treating the current row as a 2D encoded
                one. */
@@ -153,24 +195,6 @@ struct t4_state_s
     uint32_t *ref_runs;
     /*! \brief The number of runs currently in the reference row. */
     int ref_steps;
-    /*! \brief The current step into the reference row run-lengths buffer. */
-    int b_cursor;
-    /*! \brief The current step into the current row run-lengths buffer. */
-    int a_cursor;
-
-    /*! \brief The reference or starting changing element on the coding line. At the
-               start of the coding line, a0 is set on an imaginary white changing element
-               situated just before the first element on the line. During the coding of
-               the coding line, the position of a0 is defined by the previous coding mode.
-               (See 4.2.1.3.2.). */
-    int a0;
-    /*! \brief The first changing element on the reference line to the right of a0 and of
-               opposite colour to a0. */
-    int b1;
-    /*! \brief The length of the in-progress run of black or white. */
-    int run_length;
-    /*! \brief 2D horizontal mode control. */
-    int black_white;
 
     /*! \brief Encoded data bits buffer. */
     uint32_t tx_bitstream;
@@ -202,15 +226,13 @@ struct t4_state_s
     /*! \brief The maximum bits in any row of the current page. For monitoring only. */
     int max_row_bits;
 
-    /*! \brief The text which will be used in FAX page header. No text results
-               in no header line. */
-    const char *header_info;
-
     /*! \brief Error and flow logging control */
     logging_state_t logging;
 
     /*! \brief All TIFF file specific state information for the T.4 context. */
     t4_tiff_state_t tiff;
+    t4_t6_decode_state_t t4_t6_rx;
+    t4_t6_encode_state_t t4_t6_tx;
 };
 
 #endif

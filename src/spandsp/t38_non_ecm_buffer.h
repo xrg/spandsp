@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_non_ecm_buffer.h,v 1.8 2009/12/15 14:59:56 steveu Exp $
+ * $Id: t38_non_ecm_buffer.h,v 1.7.4.1 2009/12/19 06:43:28 steveu Exp $
  */
 
 /*! \file */

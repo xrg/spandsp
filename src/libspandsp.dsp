@@ -297,7 +297,11 @@ SOURCE=.\swept_tone.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\t4.c
+SOURCE=.\t4_rx.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\t4_tx.c
 # End Source File
 # Begin Source File
 
@@ -607,7 +611,11 @@ SOURCE=.\spandsp/swept_tone.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\spandsp/t4.h
+SOURCE=.\spandsp/t4_rx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/t4_tx.h
 # End Source File
 # Begin Source File
 
@@ -879,7 +887,11 @@ SOURCE=.\spandsp/private/t38_terminal.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\spandsp/private/t4.h
+SOURCE=.\spandsp/private/t4_rx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/t4_tx.h
 # End Source File
 # Begin Source File
 

@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.171 2009/11/07 10:44:27 steveu Exp $
+ * $Id: t38_gateway.c,v 1.171.4.2 2009/12/19 10:44:10 steveu Exp $
  */
 
 /*! \file */
@@ -73,7 +73,8 @@
 #include "spandsp/v17rx.h"
 #include "spandsp/super_tone_rx.h"
 #include "spandsp/modem_connect_tones.h"
-#include "spandsp/t4.h"
+#include "spandsp/t4_rx.h"
+#include "spandsp/t4_tx.h"
 #include "spandsp/t30_fcf.h"
 #include "spandsp/t35.h"
 #include "spandsp/t30.h"
@@ -95,7 +96,8 @@
 #include "spandsp/private/modem_connect_tones.h"
 #include "spandsp/private/hdlc.h"
 #include "spandsp/private/fax_modems.h"
-#include "spandsp/private/t4.h"
+#include "spandsp/private/t4_rx.h"
+#include "spandsp/private/t4_tx.h"
 #include "spandsp/private/t30.h"
 #include "spandsp/private/t38_core.h"
 #include "spandsp/private/t38_non_ecm_buffer.h"
@@ -834,18 +836,27 @@ static void monitor_control_messages(t38_gateway_state_t *s,
         }
         /*endif*/
         s->core.ecm_mode = (len >= 7)  &&  (buf[6] & DISBIT3);
-        span_log(&s->logging, SPAN_LOG_FLOW, "Fast modem = %d/%d, ECM = %d, Min bits per row = %d\n", s->core.fast_rx_modem, s->core.fast_bit_rate, s->core.ecm_mode, s->core.min_row_bits);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Fast rx modem = %d/%d, ECM = %d, Min bits per row = %d\n", s->core.fast_rx_modem, s->core.fast_bit_rate, s->core.ecm_mode, s->core.min_row_bits);
         break;
     case T30_PPS:
     case T30_PPS | 1:
         switch (buf[3] & 0xFE)
         {
         case T30_EOP:
-        case T30_EOM:
-        case T30_EOS:
-        case T30_MPS:
         case T30_PRI_EOP:
+        case T30_EOM:
         case T30_PRI_EOM:
+        case T30_EOS:
+#if 0
+            /* If we are hitting one of these conditions, it will take another DCS/DTC to select
+               the fast modem again, so abandon our idea of it. */
+            s->core.fast_bit_rate = 0;
+            s->core.fast_rx_modem = T38_NONE;
+            s->core.image_data_mode = FALSE;
+            s->core.short_train = FALSE;
+#endif
+            /* Fall through */
+        case T30_MPS:
         case T30_PRI_MPS:
             s->core.count_page_on_mcf = TRUE;
             break;
@@ -853,18 +864,27 @@ static void monitor_control_messages(t38_gateway_state_t *s,
         /*endswitch*/
         break;
     case T30_EOP:
-    case T30_EOM:
-    case T30_EOS:
-    case T30_MPS:
-    case T30_PRI_EOP:
-    case T30_PRI_EOM:
-    case T30_PRI_MPS:
     case T30_EOP | 1:
-    case T30_EOM | 1:
-    case T30_EOS | 1:
-    case T30_MPS | 1:
+    case T30_PRI_EOP:
     case T30_PRI_EOP | 1:
+    case T30_EOM:
+    case T30_EOM | 1:
+    case T30_PRI_EOM:
     case T30_PRI_EOM | 1:
+    case T30_EOS:
+    case T30_EOS | 1:
+#if 0
+        /* If we are hitting one of these conditions, it will take another DCS/DTC to select
+           the fast modem again, so abandon our idea of t. */
+        s->core.fast_bit_rate = 0;
+        s->core.fast_rx_modem = T38_NONE;
+        s->core.image_data_mode = FALSE;
+        s->core.short_train = FALSE;
+#endif
+        /* Fall through */
+    case T30_MPS:
+    case T30_MPS | 1:
+    case T30_PRI_MPS:
     case T30_PRI_MPS | 1:
         s->core.count_page_on_mcf = TRUE;
         break;
@@ -2278,7 +2298,7 @@ SPAN_DECLARE(t38_gateway_state_t *) t38_gateway_init(t38_gateway_state_t *s,
     t38_gateway_set_nsx_suppression(s, (const uint8_t *) "\x00\x00\x00", 3, (const uint8_t *) "\x00\x00\x00", 3);
 
     s->core.to_t38.octets_per_data_packet = 1;
-    s->core.ecm_allowed = FALSE;
+    s->core.ecm_allowed = TRUE;
     t38_non_ecm_buffer_init(&s->core.non_ecm_to_modem, FALSE, 0);
     restart_rx_modem(s);
     s->core.timed_mode = TIMED_MODE_STARTUP;

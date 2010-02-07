@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.155 2009/11/05 12:55:23 steveu Exp $
+ * $Id: t31.c,v 1.155.4.1 2009/12/19 10:44:10 steveu Exp $
  */
 
 /*! \file */
@@ -74,7 +74,8 @@
 #include "spandsp/v17rx.h"
 #include "spandsp/super_tone_rx.h"
 #include "spandsp/modem_connect_tones.h"
-#include "spandsp/t4.h"
+#include "spandsp/t4_rx.h"
+#include "spandsp/t4_tx.h"
 #include "spandsp/t30.h"
 #include "spandsp/t30_logging.h"
 #include "spandsp/t38_core.h"
