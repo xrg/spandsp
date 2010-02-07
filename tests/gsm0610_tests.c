@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: gsm0610_tests.c,v 1.8 2007/11/10 11:14:58 steveu Exp $
+ * $Id: gsm0610_tests.c,v 1.11 2008/02/12 12:27:48 steveu Exp $
  */
 
 /*! \file */
@@ -40,8 +40,8 @@ The speech file should be recorded at 16 bits/sample, 8000 samples/second, and n
 
 \section gsm0610_tests_page_sec_2 How is it used?
 To perform the tests in the GSM 06.10 specification you need to obtain the test data files from the
-specification. These are copyright material, and so cannot be distributed with spandsp. They can,
-however, be freely downloaded from the ETSI web site.
+specification. These are copyright material, and so cannot be distributed with this test software.
+They can, however, be freely downloaded from the ETSI web site.
 
 The files, containing test vectors, which are supplied with the GSM 06.10 specification, should be
 copied to etsitests/gsm0610/unpacked so the files are arranged in the following directories.
@@ -314,7 +314,7 @@ static int perform_linear_test(int full, int disk, const char *name)
             fprintf(stderr, "    Cannot create encoder\n");
             exit(2);
         }
-        xxx = gsm0610_encode(gsm0610_enc_state, code_vector, in_vector, vector_len/BLOCK_LEN);
+        xxx = gsm0610_encode(gsm0610_enc_state, code_vector, in_vector, vector_len);
 
         printf("Check code vector of length %d\n", xxx);
         for (i = 0, mismatches = 0;  i < xxx;  i++)
@@ -339,7 +339,7 @@ static int perform_linear_test(int full, int disk, const char *name)
         fprintf(stderr, "    Cannot create decoder\n");
         exit(2);
     }
-    xxx = gsm0610_decode(gsm0610_dec_state, out_vector, decoder_code_vector, vector_len/BLOCK_LEN);
+    xxx = gsm0610_decode(gsm0610_dec_state, out_vector, decoder_code_vector, vector_len);
     printf("Check output vector of length %d\n", vector_len);
     for (i = 0, mismatches = 0;  i < vector_len;  i++)
     {
@@ -392,7 +392,7 @@ static int perform_law_test(int full, int law, const char *name)
             for (i = 0;  i < vector_len;  i++)
                 in_vector[i] = ulaw_to_linear(law_in_vector[i]);
         }
-        xxx = gsm0610_encode(gsm0610_enc_state, code_vector, in_vector, vector_len/BLOCK_LEN);
+        xxx = gsm0610_encode(gsm0610_enc_state, code_vector, in_vector, vector_len);
 
         printf("Check code vector of length %d\n", xxx);
         for (i = 0, mismatches = 0;  i < xxx;  i++)
@@ -417,7 +417,7 @@ static int perform_law_test(int full, int law, const char *name)
         fprintf(stderr, "    Cannot create decoder\n");
         exit(2);
     }
-    xxx = gsm0610_decode(gsm0610_dec_state, out_vector, decoder_code_vector, vector_len/BLOCK_LEN);
+    xxx = gsm0610_decode(gsm0610_dec_state, out_vector, decoder_code_vector, vector_len);
     if (law == 'a')
     {
         for (i = 0;  i < vector_len;  i++)
@@ -575,22 +575,22 @@ int main(int argc, char *argv[])
     {
         if ((inhandle = afOpenFile(IN_FILE_NAME, "r", 0)) == AF_NULL_FILEHANDLE)
         {
-            printf("    Cannot open wave file '%s'\n", IN_FILE_NAME);
+            fprintf(stderr, "    Cannot open wave file '%s'\n", IN_FILE_NAME);
             exit(2);
         }
         if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
         {
-            printf("    Unexpected frame size in wave file '%s'\n", IN_FILE_NAME);
+            fprintf(stderr, "    Unexpected frame size in wave file '%s'\n", IN_FILE_NAME);
             exit(2);
         }
         if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
         {
-            printf("    Unexpected sample rate in wave file '%s'\n", IN_FILE_NAME);
+            fprintf(stderr, "    Unexpected sample rate in wave file '%s'\n", IN_FILE_NAME);
             exit(2);
         }
         if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
         {
-            printf("    Unexpected number of channels in wave file '%s'\n", IN_FILE_NAME);
+            fprintf(stderr, "    Unexpected number of channels in wave file '%s'\n", IN_FILE_NAME);
             exit(2);
         }
         if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
@@ -603,8 +603,7 @@ int main(int argc, char *argv[])
         afInitFileFormat(filesetup, AF_FILE_WAVE);
         afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
     
-        outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
-        if (outhandle == AF_NULL_FILEHANDLE)
+        if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
             exit(2);
@@ -624,19 +623,19 @@ int main(int argc, char *argv[])
 
         while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, pre_amp, 2*BLOCK_LEN)))
         {
-            gsm0610_encode(gsm0610_enc_state, gsm0610_data, pre_amp, (packing == GSM0610_PACKING_WAV49)  ?  1  :  2);
-            gsm0610_decode(gsm0610_dec_state, post_amp, gsm0610_data, (packing == GSM0610_PACKING_WAV49)  ?  1  :  2);
+            gsm0610_encode(gsm0610_enc_state, gsm0610_data, pre_amp, (packing == GSM0610_PACKING_WAV49)  ?  BLOCK_LEN  :  2*BLOCK_LEN);
+            gsm0610_decode(gsm0610_dec_state, post_amp, gsm0610_data, (packing == GSM0610_PACKING_WAV49)  ?  33  :  65);
             outframes = afWriteFrames(outhandle, AF_DEFAULT_TRACK, post_amp, frames);
         }
     
         if (afCloseFile(inhandle) != 0)
         {
-            printf("    Cannot close wave file '%s'\n", IN_FILE_NAME);
+            fprintf(stderr, "    Cannot close wave file '%s'\n", IN_FILE_NAME);
             exit(2);
         }
         if (afCloseFile(outhandle) != 0)
         {
-            printf("    Cannot close wave file '%s'\n", OUT_FILE_NAME);
+            fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
             exit(2);
         }
         afFreeFileSetup(filesetup);

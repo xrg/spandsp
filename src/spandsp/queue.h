@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: queue.h,v 1.12 2007/11/30 12:20:35 steveu Exp $
+ * $Id: queue.h,v 1.13 2008/01/31 13:34:40 steveu Exp $
  */
 
 /*! \file */
@@ -42,15 +42,28 @@ to avoid conflicts between the multiple threads acting on one end of the queue.
 #if !defined(_SPANDSP_QUEUE_H_)
 #define _SPANDSP_QUEUE_H_
 
+/*! Flag bit to indicate queue reads are atomic operations. This must be set
+    if the queue is to be used with the message oriented functions. */
 #define QUEUE_READ_ATOMIC   0x0001
+/*! Flag bit to indicate queue writes are atomic operations. This must be set
+    if the queue is to be used with the message oriented functions. */
 #define QUEUE_WRITE_ATOMIC  0x0002
 
+/*!
+    Queue descriptor. This defines the working state for a single instance of
+    a byte stream or message oriented queue.
+*/
 typedef struct
 {
+    /*! \brief Flags indicating the mode of the queue. */
     int flags;
+    /*! \brief The length of the data buffer. */
     int len;
+    /*! \brief The buffer input pointer. */
     volatile int iptr;
+    /*! \brief The buffer output pointer. */
     volatile int optr;
+    /*! \brief The data buffer, sized at the time the structure is created. */
     uint8_t data[];
 } queue_state_t;
 

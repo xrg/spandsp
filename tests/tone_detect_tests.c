@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect_tests.c,v 1.4 2007/12/20 11:11:16 steveu Exp $
+ * $Id: tone_detect_tests.c,v 1.6 2008/02/11 13:29:38 steveu Exp $
  */
 
 /*! \page tone_detect_tests_page Tone detection tests
@@ -43,6 +43,7 @@
 #include "spandsp.h"
 
 #define DEC_SAMPLE_RATE     800
+#define DEC_RATIO           10
 #define BLOCK_LEN           56
 #define PG_WINDOW           56
 #define FREQ1               440.0f
@@ -71,8 +72,8 @@ static int periodogram_tests(void)
     awgn_state_t noise_source_re;
     awgn_state_t noise_source_im;
 
-    phase_rate1 = dds_phase_ratef(FREQ1 - 5.0f);
-    phase_rate2 = dds_phase_ratef(FREQ2);
+    phase_rate1 = DEC_RATIO*dds_phase_ratef(FREQ1 - 5.0f);
+    phase_rate2 = DEC_RATIO*dds_phase_ratef(FREQ2);
     phase_acc1 = 0;
     phase_acc2 = 0;
     len = periodogram_generate_coeffs(coeffs, FREQ1, DEC_SAMPLE_RATE, PG_WINDOW);
@@ -112,15 +113,15 @@ static int periodogram_tests(void)
                 continue;
 
             printf("Signal level = %.5f, freq error = %.5f\n", level, freq_error);
-            if (level < scale1 - 20.0f  ||  level > scale1 + 20.0f)
+            if (level < scale1*0.8f  ||  level > scale1*1.2f)
             {
-                printf("Test failed - %ddBm0 of noise, signal is %f\n", k, level);
-                //return -1;
+                printf("Test failed - %ddBm0 of noise, signal is %f (%f)\n", k, level, scale1);
+                return -1;
             }
-            if (freq_error < -10.0f  ||  freq_error > 0.0f)
+            if (freq_error < -10.0f  ||  freq_error > 10.0f)
             {
                 printf("Test failed - %ddBm0 of noise, %fHz error\n", k, freq_error);
-                //return -1;
+                return -1;
             }
         }
     }

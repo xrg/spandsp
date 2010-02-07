@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.40 2007/12/30 04:45:33 steveu Exp $
+ * $Id: t38_gateway.h,v 1.41 2008/03/05 13:38:24 steveu Exp $
  */
 
 /*! \file */
@@ -65,10 +65,13 @@ typedef struct
                silent audio. */
     int transmit_on_idle;
 
+    /*! \brief A bit mask of the currently supported modem types. */
     int supported_modems;
     
     int suppress_nsx;
 
+    /*! \brief The number of pages for which a confirm (MCF) message was returned. */
+    int pages_confirmed;
     /*! \brief HDLC message buffers. */
     uint8_t hdlc_buf[T38_TX_HDLC_BUFS][T38_MAX_HDLC_LEN];
     /*! \brief HDLC message lengths. */
@@ -232,6 +235,16 @@ typedef struct
     logging_state_t logging;
 } t38_gateway_state_t;
 
+typedef struct
+{
+    /*! \brief The current bit rate for image transfer. */
+    int bit_rate;
+    /*! \brief TRUE if error correcting mode is used. */
+    int error_correcting_mode;
+    /*! \brief The number of pages transferred so far. */
+    int pages_transferred;
+} t38_stats_t;
+
 #if defined(__cplusplus)
 extern "C"
 {
@@ -307,6 +320,12 @@ void t38_gateway_set_nsx_suppression(t38_gateway_state_t *s, int suppress_nsx);
     \param use_tep TRUE if TEP should be sent.
 */
 void t38_gateway_set_tep_mode(t38_gateway_state_t *s, int use_tep);
+
+/*! Get the current transfer statistics for the current T.38 session.
+    \brief Get the current transfer statistics.
+    \param s The T.38 context.
+    \param t A pointer to a buffer for the statistics. */
+void t38_gateway_get_transfer_statistics(t38_gateway_state_t *s, t38_stats_t *t);
 
 #if defined(__cplusplus)
 }

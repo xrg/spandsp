@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.63 2007/12/29 05:35:32 steveu Exp $
+ * $Id: fax.c,v 1.64 2008/02/11 12:39:10 steveu Exp $
  */
 
 /*! \file */
@@ -207,7 +207,7 @@ int fax_tx(fax_state_t *s, int16_t *amp, int max_len)
         {
             /* Allow for a change of tx handler within a block */
             if (set_next_tx_type(s)  &&  s->current_tx_type != T30_MODEM_NONE  &&  s->current_tx_type != T30_MODEM_DONE)
-                t30_front_end_status(&(s->t30_state), T30_FRONT_END_SEND_COMPLETE);
+                t30_front_end_status(&(s->t30_state), T30_FRONT_END_SEND_STEP_COMPLETE);
             if (!s->transmit)
             {
                 if (s->transmit_on_idle)

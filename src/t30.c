@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.224 2007/12/14 13:41:17 steveu Exp $
+ * $Id: t30.c,v 1.227 2008/02/20 13:01:45 steveu Exp $
  */
 
 /*! \file */
@@ -462,6 +462,8 @@ void t30_non_ecm_put_bit(void *user_data, int bit)
         /* Special conditions */
         switch (bit)
         {
+        case PUTBIT_TRAINING_IN_PROGRESS:
+            break;
         case PUTBIT_TRAINING_FAILED:
             span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier training failed in state %d\n", s->state);
             s->rx_trained = FALSE;
@@ -797,6 +799,7 @@ static int get_partial_ecm_page(t30_state_t *s)
     int len;
 
     s->ppr_count = 0;
+    s->ecm_progress = 0;
     /* Fill our partial page buffer with a partial page. Use the negotiated preferred frame size
        as the basis for the size of the frames produced. */
     /* We fill the buffer with complete HDLC frames, ready to send out. */
@@ -1563,21 +1566,17 @@ static void send_dcn(t30_state_t *s)
 
 static void send_dis_or_dtc_sequence(t30_state_t *s)
 {
+    set_dis_or_dtc(s);
     prune_dis_dtc(s);
     set_state(s, T30_STATE_R);
+    s->step = 0;
     if (send_nsf_frame(s))
-    {
-        s->step = 0;
         return;
-    }
+    s->step++;
     if (send_ident_frame(s, T30_CSI))
-    {
-        s->step = 1;
         return;
-    }
-    set_dis_or_dtc(s);
+    s->step++;
     send_frame(s, s->local_dis_dtc_frame, s->local_dis_dtc_len);
-    s->step = 2;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1586,23 +1585,17 @@ static void send_dcs_sequence(t30_state_t *s)
     /* Schedule training after the messages */
     prune_dcs(s);
     set_state(s, T30_STATE_D);
+    s->step = 0;
     if (send_pwd_frame(s))
-    {
-        s->step = 0;
         return;
-    }
+    s->step++;
     if (send_sub_frame(s))
-    {
-        s->step = 1;
         return;
-    }
+    s->step++;
     if (send_ident_frame(s, T30_TSI))
-    {
-        s->step = 2;
         return;
-    }
+    s->step++;
     send_frame(s, s->dcs_frame, s->dcs_len);
-    s->step = 3;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -2196,22 +2189,55 @@ static void process_rx_ppr(t30_state_t *s, const uint8_t *msg, int len)
     int i;
     int j;
     int frame_no;
-    int mask;
     uint8_t frame[4];
 
+    if (len != 3 + 32)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "Bad length for PPR bits - %d\n", len);
+        /* TODO: probably should send DCN */
+        return;
+    }
+    /* Check which frames are OK, and mark them as OK. */
+    for (i = 0;  i < 32;  i++)
+    {
+        for (j = 0;  j < 8;  j++)
+        {
+            frame_no = (i << 3) + j;
+            /* Tick off the frames they are not complaining about as OK */
+            if ((msg[i + 3] & (1 << j)) == 0)
+            {
+                if (s->ecm_len[frame_no] >= 0)
+                    s->ecm_progress++;
+                s->ecm_len[frame_no] = -1;
+            }
+            else
+            {
+                if (frame_no < s->ecm_frames)
+                    span_log(&s->logging, SPAN_LOG_FLOW, "Frame %d to be resent\n", frame_no);
+#if 0
+                /* Diagnostic: See if the other end is complaining about something we didn't even send this time. */
+                if (s->ecm_len[frame_no] < 0)
+                    span_log(&s->logging, SPAN_LOG_FLOW, "PPR contains complaint about frame %d, which was not sent\n", frame_no);
+#endif
+            }
+        }
+    }
     if (++s->ppr_count >= 4)
     {
         /* Continue to correct? */
-        /* TODO: Decide if we should continue */
         /* Continue only if we have been making progress */
-        if (1)
+        s->ppr_count = 0;
+        if (s->ecm_progress)
         {
+            s->ecm_progress = 0;
             set_state(s, T30_STATE_IV_CTC);
+            queue_phase(s, T30_PHASE_D_TX);
             send_simple_frame(s, T30_CTC);
         }
         else
         {
             set_state(s, T30_STATE_IV_EOR);
+            queue_phase(s, T30_PHASE_D_TX);
             frame[0] = 0xFF;
             frame[1] = 0x13;
             frame[2] = (uint8_t) (T30_EOR | s->dis_received);
@@ -2222,48 +2248,6 @@ static void process_rx_ppr(t30_state_t *s, const uint8_t *msg, int len)
     }
     else
     {
-        if (len != 3 + 32)
-        {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Bad length for PPR bits - %d\n", len);
-            /* TODO: probably should send DCN */
-            return;
-        }
-        /* Check which frames are OK, and mark them as OK. */
-        for (i = 0;  i < 32;  i++)
-        {
-            if (msg[i + 3] == 0)
-            {
-                /* A chunk of 8 frames is OK */
-                s->ecm_frame_map[i + 3] = 0;
-                for (j = 0;  j < 8;  j++)
-                    s->ecm_len[(i << 3) + j] = -1;
-            }
-            else
-            {
-                /* We need to sift through a chunk of 8 frames to find the good and bad */
-                mask = 1;
-                for (j = 0;  j < 8;  j++)
-                {
-                    frame_no = (i << 3) + j;
-                    /* Tick off the frames they are not complaining about as OK */
-                    if ((msg[i + 3] & mask) == 0)
-                    {
-                        s->ecm_len[frame_no] = -1;
-                    }
-                    else
-                    {
-                        if (frame_no < s->ecm_frames)
-                            span_log(&s->logging, SPAN_LOG_FLOW, "Frame %d to be resent\n", frame_no);
-#if 0
-                        /* Diagnostic: See if the other end is complaining about something we didn't even send this time. */
-                        if (s->ecm_len[frame_no] < 0)
-                            span_log(&s->logging, SPAN_LOG_FLOW, "PPR contains complaint about frame %d, which was not sent\n", frame_no);
-#endif
-                    }
-                    mask <<= 1;
-                }
-            }
-        }
         /* Initiate resending of the remainder of the frames. */
         set_state(s, T30_STATE_IV);
         queue_phase(s, T30_PHASE_C_ECM_TX);
@@ -2966,6 +2950,7 @@ static void process_state_f_doc_ecm(t30_state_t *s, const uint8_t *msg, int len)
         case T30_MPS:
         case T30_EOP:
             s->next_rx_step = fcf2;
+            queue_phase(s, T30_PHASE_D_TX);
             send_simple_frame(s, T30_ERR);
             break;
         default:
@@ -2977,9 +2962,10 @@ static void process_state_f_doc_ecm(t30_state_t *s, const uint8_t *msg, int len)
         process_rx_pps(s, msg, len);
         break;
     case T30_CTC:
-        send_simple_frame(s, T30_CTR);
         /* T.30 says we change back to long training here */
         s->short_train = FALSE;
+        queue_phase(s, T30_PHASE_D_TX);
+        send_simple_frame(s, T30_CTR);
         break;
     case T30_RR:
         break;
@@ -3782,6 +3768,10 @@ static void process_state_iv_ctc(t30_state_t *s, const uint8_t *msg, int len)
         /* Valid response to a CTC received */
         /* T.30 says we change back to long training here */
         s->short_train = FALSE;
+        /* Initiate resending of the remainder of the frames. */
+        set_state(s, T30_STATE_IV);
+        queue_phase(s, T30_PHASE_C_ECM_TX);
+        send_first_ecm_frame(s);
         break;
     case T30_CRP:
         repeat_last_command(s);
@@ -4160,6 +4150,8 @@ void t30_hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
         /* Special conditions */
         switch (len)
         {
+        case PUTBIT_TRAINING_IN_PROGRESS:
+            break;
         case PUTBIT_TRAINING_FAILED:
             span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier training failed in state %d\n", s->state);
             s->rx_trained = FALSE;
@@ -4392,7 +4384,6 @@ void t30_front_end_status(void *user_data, int status)
     switch (status)
     {
     case T30_FRONT_END_SEND_STEP_COMPLETE:
-    case T30_FRONT_END_SEND_COMPLETE:
         span_log(&s->logging, SPAN_LOG_FLOW, "Send complete in phase %s, state %d\n", phase_names[s->phase], s->state);
         /* We have finished sending our messages, so move on to the next operation. */
         switch (s->state)
@@ -4653,12 +4644,29 @@ void t30_front_end_status(void *user_data, int status)
                     set_state(s, T30_STATE_IV_PPS_Q);
             }
             break;
+        case T30_STATE_F_DOC_ECM:
+            /* This should be the end of a CTR being sent. */
+            if (s->step == 0)
+            {
+                /* Shut down HDLC transmission. */
+                if (s->send_hdlc_handler)
+                    s->send_hdlc_handler(s->send_hdlc_user_data, NULL, 0);
+                s->step++;
+            }
+            else
+            {
+                /* We have finished sending the CTR. Wait for image data again. */
+                set_phase(s, T30_PHASE_C_ECM_RX);
+                s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
+                s->timer_is_t4 = FALSE;
+            }
+            break;
         case T30_STATE_CALL_FINISHED:
             /* Just ignore anything that happens now. We might get here if a premature
                disconnect from the far end overlaps something. */
             break;
         default:
-            span_log(&s->logging, SPAN_LOG_FLOW, "Bad state in t30_front_end_status - %d\n", s->state);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Bad state for send complete in t30_front_end_status - %d\n", s->state);
             break;
         }
         break;
@@ -4958,7 +4966,7 @@ static void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, in
 
     if (msg == NULL)
         msg = text;
-    if (len > T30_MAX_IDENT_LEN)
+    if (len > T30_MAX_IDENT_LEN + 1)
     {
         unexpected_frame_length(s, pkt, len);
         msg[0] = '\0';
@@ -5691,6 +5699,7 @@ int t30_restart(t30_state_t *s)
     s->rx_trained = FALSE;
     s->current_status = T30_ERR_OK;
     s->ppr_count = 0;
+    s->ecm_progress = 0;
     s->receiver_not_ready_count = 0;
     s->far_dis_dtc_len = 0;
     memset(&s->far_dis_dtc_frame, 0, sizeof(s->far_dis_dtc_frame));
@@ -5814,7 +5823,7 @@ int t30_set_header_info(t30_state_t *s, const char *info)
         s->header_info[0] = '\0';
         return 0;
     }
-    if (strlen(info) >= T30_MAX_PAGE_HEADER_INFO)
+    if (strlen(info) > T30_MAX_PAGE_HEADER_INFO)
         return -1;
     strcpy(s->header_info, info);
     t4_tx_set_header_info(&(s->t4), s->header_info);

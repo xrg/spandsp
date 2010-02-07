@@ -397,7 +397,9 @@ noinst_HEADERS = faxfont.h \
                         v29rx_fixed_rrc.h \
                         v29rx_floating_rrc.h
 
-make_modem_filter_SOURCES = make_modem_filter.c filter_tools.c
+make_modem_filter_SOURCES = make_modem_filter.c \
+                            filter_tools.c
+
 DSP = libspandsp.dsp
 VCPROJ = libspandsp.vcproj
 WIN32SOURCES = $(libspandsp_la_SOURCES) msvc/gettimeofday.c

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.114 2008/01/09 13:23:35 steveu Exp $
+ * $Id: v29rx.c,v 1.115 2008/02/06 09:17:16 steveu Exp $
  */
 
 /*! \file */
@@ -557,6 +557,7 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
             bit = scrambled_training_bit(s);
             s->training_count = 1;
             s->training_stage = TRAINING_STAGE_TRAIN_ON_CDCD;
+            s->put_bit(s->user_data, PUTBIT_TRAINING_IN_PROGRESS);
             break;
         }
         if (++s->training_count > V29_TRAINING_SEG_2_LEN)

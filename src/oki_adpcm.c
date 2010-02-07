@@ -15,8 +15,9 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU General Public License version 2, or
+ * the Lesser GNU General Public License version 2.1, as published by
+ * the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -27,7 +28,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm.c,v 1.22 2006/11/28 16:59:56 steveu Exp $
+ * $Id: oki_adpcm.c,v 1.24 2008/03/03 15:29:40 steveu Exp $
  */
 
 /*! \file */
@@ -275,6 +276,9 @@ int oki_adpcm_decode(oki_adpcm_state_t *s,
     int samples;
     float z;
 
+#if (_MSC_VER >= 1400) 
+    __analysis_assume(s->phase >= 0  &&  s->phase <= 4);
+#endif
     samples = 0;
     if (s->bit_rate == 32000)
     {

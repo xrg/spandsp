@@ -10,8 +10,9 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU General Public License version 2, or
+ * the Lesser GNU General Public License version 2.1, as published by
+ * the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,7 +26,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_rpe.c,v 1.14 2007/08/20 15:22:22 steveu Exp $
+ * $Id: gsm0610_rpe.c,v 1.16 2008/03/03 15:29:40 steveu Exp $
  */
 
 /*! \file */
@@ -432,7 +433,9 @@ static void apcm_inverse_quantization(int16_t xMc[13],
        samples to obtain the xMp[0..12] array.  Table 4.6 is used to get
        the mantissa of xmaxc (FAC[0..7]).
     */
+#if 0
     assert(mant >= 0  &&  mant <= 7);
+#endif
 
     temp1 = gsm_FAC[mant];          /* See 4.2-15 for mant */
     temp2 = gsm_sub(6, exp);        /* See 4.2-15 for exp */

@@ -28693,6 +28693,15 @@ gnu)
         COMP_VENDOR_CFLAGS="-mmmx $COMP_VENDOR_CFLAGS"
     fi
     ;;
+sun)
+    COMP_VENDOR_CFLAGS="-xc99=all -mt -xCC -errwarn=%all -xvpara"
+    if test "$enable_sse" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-native -fast $COMP_VENDOR_CFLAGS"
+    fi
+    if test "$enable_mmx" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-native -fast $COMP_VENDOR_CFLAGS"
+    fi
+    ;;
 *)
     COMP_VENDOR_CFLAGS="-std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
     ;;
@@ -28797,7 +28806,7 @@ fi
 
 
 
-                                                                                          ac_config_files="$ac_config_files Makefile doc/Makefile itutests/Makefile itutests/fax/Makefile src/Makefile src/spandsp.h spandsp-sim/Makefile tests/Makefile spandsp.spec"
+                                                                                                              ac_config_files="$ac_config_files Makefile doc/Makefile etsitests/Makefile itutests/Makefile itutests/fax/Makefile localtests/Makefile src/Makefile src/spandsp.h spandsp-sim/Makefile tests/Makefile spandsp.spec"
 
 
 cat >confcache <<\_ACEOF
@@ -29400,8 +29409,10 @@ do
   # Handling of arguments.
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
   "doc/Makefile" ) CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
+  "etsitests/Makefile" ) CONFIG_FILES="$CONFIG_FILES etsitests/Makefile" ;;
   "itutests/Makefile" ) CONFIG_FILES="$CONFIG_FILES itutests/Makefile" ;;
   "itutests/fax/Makefile" ) CONFIG_FILES="$CONFIG_FILES itutests/fax/Makefile" ;;
+  "localtests/Makefile" ) CONFIG_FILES="$CONFIG_FILES localtests/Makefile" ;;
   "src/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
   "src/spandsp.h" ) CONFIG_FILES="$CONFIG_FILES src/spandsp.h" ;;
   "spandsp-sim/Makefile" ) CONFIG_FILES="$CONFIG_FILES spandsp-sim/Makefile" ;;

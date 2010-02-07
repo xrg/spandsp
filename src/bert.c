@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bert.c,v 1.23 2007/11/26 13:28:59 steveu Exp $
+ * $Id: bert.c,v 1.24 2008/02/06 09:17:15 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -187,6 +187,9 @@ void bert_put_bit(bert_state_t *s, int bit)
         /* Special conditions */
         switch (bit)
         {
+        case PUTBIT_TRAINING_IN_PROGRESS:
+            span_log(&s->logging, SPAN_LOG_FLOW, "Training in progress\n");
+            break;
         case PUTBIT_TRAINING_FAILED:
             span_log(&s->logging, SPAN_LOG_FLOW, "Training failed\n");
             break;

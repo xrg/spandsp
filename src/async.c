@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: async.c,v 1.7 2007/11/26 13:28:58 steveu Exp $
+ * $Id: async.c,v 1.8 2008/02/06 09:17:15 steveu Exp $
  */
 
 /*! \file */
@@ -82,6 +82,7 @@ void async_rx_put_bit(void *user_data, int bit)
         {
         case PUTBIT_CARRIER_UP:
         case PUTBIT_CARRIER_DOWN:
+        case PUTBIT_TRAINING_IN_PROGRESS:
         case PUTBIT_TRAINING_SUCCEEDED:
         case PUTBIT_TRAINING_FAILED:
         case PUTBIT_END_OF_DATA:

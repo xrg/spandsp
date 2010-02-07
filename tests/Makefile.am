@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.93 2007/12/21 18:40:11 steveu Exp $
+## $Id: Makefile.am,v 1.94 2008/01/31 13:34:40 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -202,8 +202,8 @@ noise_tests_LDADD = $(LIBDIR) -lspandsp
 oki_adpcm_tests_SOURCES = oki_adpcm_tests.c
 oki_adpcm_tests_LDADD = $(LIBDIR) -lspandsp
 
-playout_tests_SOURCES = playout_tests.c
-playout_tests_LDADD = $(LIBDIR) -lspandsp
+playout_tests_SOURCES = playout_tests.c media_monitor.cpp
+playout_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
 plc_tests_SOURCES = plc_tests.c
 plc_tests_LDADD = $(LIBDIR) -lspandsp

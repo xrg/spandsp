@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_tests.c,v 1.59 2007/12/20 10:56:11 steveu Exp $
+ * $Id: t38_gateway_tests.c,v 1.60 2008/03/05 13:38:24 steveu Exp $
  */
 
 /*! \file */
@@ -248,6 +248,7 @@ int main(int argc, char *argv[])
     double rx_when;
     int use_gui;
     int opt;
+    t38_stats_t stats;
 
     log_audio = FALSE;
     use_ecm = FALSE;
@@ -560,6 +561,16 @@ int main(int argc, char *argv[])
         if (++hist_ptr > 3)
             hist_ptr = 0;
     }
+    t38_gateway_get_transfer_statistics(&t38_state_a, &stats);
+    printf("A side exchanged %d pages at %dbps, in %s mode\n",
+           stats.pages_transferred,
+           stats.bit_rate,
+           (stats.error_correcting_mode)  ?  "ECM"  :  "non-ECM");
+    t38_gateway_get_transfer_statistics(&t38_state_a, &stats);
+    printf("B side exchanged %d pages at %dbps, in %s mode\n",
+           stats.pages_transferred,
+           stats.bit_rate,
+           (stats.error_correcting_mode)  ?  "ECM"  :  "non-ECM");
     fax_release(&fax_state_a);
     fax_release(&fax_state_b);
     if (log_audio)

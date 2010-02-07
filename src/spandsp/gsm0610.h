@@ -10,8 +10,9 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU General Public License version 2, or
+ * the Lesser GNU General Public License version 2.1, as published by
+ * the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -22,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: gsm0610.h,v 1.13 2007/12/13 11:31:32 steveu Exp $
+ * $Id: gsm0610.h,v 1.15 2008/02/12 12:27:48 steveu Exp $
  */
 
 #if !defined(_SPANDSP_GSM0610_H_)
@@ -127,17 +128,17 @@ int gsm0610_set_packing(gsm0610_state_t *s, int packing);
     \param s The GSM 06.10 context.
     \param code The GSM 06.10 data produced.
     \param amp The audio sample buffer.
-    \param quant The number of samples in the buffer.
+    \param len The number of samples in the buffer.
     \return The number of bytes of GSM 06.10 data produced. */
-int gsm0610_encode(gsm0610_state_t *s, uint8_t code[], const int16_t amp[], int quant);
+int gsm0610_encode(gsm0610_state_t *s, uint8_t code[], const int16_t amp[], int len);
 
 /*! Decode a buffer of GSM 06.10 data to linear PCM.
     \param s The GSM 06.10 context.
     \param amp The audio sample buffer.
     \param code The GSM 06.10 data.
-    \param quant The number of frames of GSM 06.10 data to be decoded.
+    \param len The number of bytes of GSM 06.10 data to be decoded.
     \return The number of samples returned. */
-int gsm0610_decode(gsm0610_state_t *s, int16_t amp[], const uint8_t code[], int quant);
+int gsm0610_decode(gsm0610_state_t *s, int16_t amp[], const uint8_t code[], int len);
 
 int gsm0610_pack_none(uint8_t c[], const gsm0610_frame_t *s);
 

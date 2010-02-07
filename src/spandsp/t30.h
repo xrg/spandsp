@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.91 2007/12/14 13:41:17 steveu Exp $
+ * $Id: t30.h,v 1.93 2008/02/20 13:01:45 steveu Exp $
  */
 
 /*! \file */
@@ -128,9 +128,9 @@ There are many other commonly encountered variations between machines, including
 */
 
 #define T30_MAX_DIS_DTC_DCS_LEN     22
-#define T30_MAX_IDENT_LEN           21
+#define T30_MAX_IDENT_LEN           20
 #define T30_MAX_LOCAL_NSF_LEN       100
-#define T30_MAX_PAGE_HEADER_INFO    51
+#define T30_MAX_PAGE_HEADER_INFO    50
 
 typedef struct t30_state_s t30_state_t;
 
@@ -281,7 +281,6 @@ enum
 enum
 {
     T30_FRONT_END_SEND_STEP_COMPLETE = 0,
-    T30_FRONT_END_SEND_COMPLETE,
     /*! The current receive has completed. This is only needed to report an
         unexpected end of the receive operation, as might happen with T.38
         dying. */
@@ -384,24 +383,24 @@ struct t30_state_s
                in the TIFF file. */
     char rx_dcs_string[T30_MAX_DIS_DTC_DCS_LEN*3 + 1];
     /*! \brief The local identifier string. */
-    char local_ident[T30_MAX_IDENT_LEN];
+    char local_ident[T30_MAX_IDENT_LEN + 1];
     /*! \brief The identifier string supplied by the remote FAX machine. */
-    char far_ident[T30_MAX_IDENT_LEN];
+    char far_ident[T30_MAX_IDENT_LEN + 1];
     /*! \brief The sub-address string to be sent to the remote FAX machine. */
-    char local_sub_address[T30_MAX_IDENT_LEN];
+    char local_sub_address[T30_MAX_IDENT_LEN + 1];
     /*! \brief The sub-address string supplied by the remote FAX machine. */
-    char far_sub_address[T30_MAX_IDENT_LEN];
+    char far_sub_address[T30_MAX_IDENT_LEN + 1];
     /*! \brief The selective polling sub-address supplied by the remote FAX machine. */
-    char sep_address[T30_MAX_IDENT_LEN];
+    char sep_address[T30_MAX_IDENT_LEN + 1];
     /*! \brief The polled sub-address supplied by the remote FAX machine. */
-    char psa_address[T30_MAX_IDENT_LEN];
+    char psa_address[T30_MAX_IDENT_LEN + 1];
     /*! \brief A password to be associated with the T.30 context. */
-    char local_password[T30_MAX_IDENT_LEN];
+    char local_password[T30_MAX_IDENT_LEN + 1];
     /*! \brief A password expected from the far end. */
-    char far_password[T30_MAX_IDENT_LEN];
+    char far_password[T30_MAX_IDENT_LEN + 1];
     /*! \brief The text which will be used in FAX page header. No text results
                in no header line. */
-    char header_info[T30_MAX_PAGE_HEADER_INFO];
+    char header_info[T30_MAX_PAGE_HEADER_INFO + 1];
     /*! \brief The country of origin of the remote machine, if known, else NULL. */
     const char *country;
     /*! \brief The vendor of the remote machine, if known, else NULL. */
@@ -608,9 +607,12 @@ struct t30_state_s
         a partial page received correctly, this will be one greater than the number of frames it
         contains. */
     int ecm_first_bad_frame;
+    /*! \brief A count of successfully received ECM frames, to assess progress as a basis for
+        deciding whether to continue error correction when PPRs keep repeating. */
+    int ecm_progress;
 
     /*! \brief A password received from the far end. */
-    char received_password[T30_MAX_IDENT_LEN];
+    char received_password[T30_MAX_IDENT_LEN + 1];
     /*! \brief TRUE if the far end requires that we send a password. */
     int password_required;
 

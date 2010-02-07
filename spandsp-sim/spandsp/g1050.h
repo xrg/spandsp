@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g1050.h,v 1.4 2007/12/21 18:40:11 steveu Exp $
+ * $Id: g1050.h,v 1.5 2008/02/12 12:27:48 steveu Exp $
  */
 
 /*! \file */
@@ -100,8 +100,11 @@ typedef struct
 /*! The model definition for the core network (backbone) segment */
 typedef struct
 {
-    /*! Basic delay of the backbone. */
-    double base_delay;
+    /*! Basic delay of the backbone for regional paths */
+    double base_regional_delay;
+    /*! Basic delay of the backbone for intercontinental paths */
+    double base_intercontinental_delay;
+    /*! Percentage packet loss of the backbone */
     /*! Percentage packet loss of the backbone. */
     double percentage_packet_loss;
     /*! Maximum jitter in the backbone. */

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.87 2008/01/09 13:23:35 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.88 2008/02/06 09:17:15 steveu Exp $
  */
 
 /*! \file */
@@ -509,6 +509,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
             descramble(s, 1);
             s->training_count = 1;
             s->training_stage = TRAINING_STAGE_TRAIN_ON_ABAB;
+            s->put_bit(s->user_data, PUTBIT_TRAINING_IN_PROGRESS);
         }
         else if (++s->training_count > V27TER_TRAINING_SEG_3_LEN)
         {

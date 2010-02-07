@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g1050.c,v 1.4 2007/12/21 18:40:11 steveu Exp $
+ * $Id: g1050.c,v 1.5 2008/02/12 12:27:48 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -299,7 +299,8 @@ g1050_model_t g1050_standard_models[9] =
             0.0         /*! Peak jitter */
         },
         {
-            0.0,        /*! Basic delay of the backbone, in seconds */
+            0.0,        /*! Basic delay of the regional backbone, in seconds */
+            0.0,        /*! Basic delay of the intercontinental backbone, in seconds */
             0.0,        /*! Percentage packet loss of the backbone */
             0.0,        /*! Maximum jitter of the backbone, in seconds */
             0.0,        /*! Interval between the backbone route flapping between two paths, in seconds */
@@ -337,7 +338,8 @@ g1050_model_t g1050_standard_models[9] =
             0.0         /*! Peak jitter */
         },
         {
-            0.004,      /*! Basic delay of the backbone, in seconds */
+            0.004,      /*! Basic delay of the regional backbone, in seconds */
+            0.016,      /*! Basic delay of the intercontinental backbone, in seconds */
             0.0,        /*! Percentage packet loss of the backbone */
             0.005,      /*! Maximum jitter of the backbone, in seconds */
             0.0,        /*! Interval between the backbone route flapping between two paths, in seconds */
@@ -375,7 +377,8 @@ g1050_model_t g1050_standard_models[9] =
             0.0         /*! Peak jitter */
         },
         {
-            0.008,      /*! Basic delay of the backbone, in seconds */
+            0.008,      /*! Basic delay of the regional backbone, in seconds */
+            0.032,      /*! Basic delay of the intercontinental backbone, in seconds */
             0.01,       /*! Percentage packet loss of the backbone */
             0.01,       /*! Maximum jitter of the backbone, in seconds */
             3600.0,     /*! Interval between the backbone route flapping between two paths, in seconds */
@@ -413,7 +416,8 @@ g1050_model_t g1050_standard_models[9] =
             0.0         /*! Peak jitter */
         },
         {
-            0.016,      /*! Basic delay of the backbone, in seconds */
+            0.016,      /*! Basic delay of the regional backbone, in seconds */
+            0.064,      /*! Basic delay of the intercontinental backbone, in seconds */
             0.02,       /*! Percentage packet loss of the backbone */
             0.016,      /*! Maximum jitter of the backbone, in seconds */
             1800.0,     /*! Interval between the backbone route flapping between two paths, in seconds */
@@ -451,7 +455,8 @@ g1050_model_t g1050_standard_models[9] =
             0.0         /*! Peak jitter */
         },
         {
-            0.032,      /*! Basic delay of the backbone, in seconds */
+            0.032,      /*! Basic delay of the regional backbone, in seconds */
+            0.128,      /*! Basic delay of the intercontinental backbone, in seconds */
             0.04,       /*! Percentage packet loss of the backbone */
             0.04,       /*! Maximum jitter of the backbone, in seconds */
             900.0,      /*! Interval between the backbone route flapping between two paths, in seconds */
@@ -489,7 +494,8 @@ g1050_model_t g1050_standard_models[9] =
             0.0         /*! Peak jitter */
         },
         {
-            0.064,      /*! Basic delay of the backbone, in seconds */
+            0.064,      /*! Basic delay of the regional backbone, in seconds */
+            0.196,      /*! Basic delay of the intercontinental backbone, in seconds */
             0.1,        /*! Percentage packet loss of the backbone */
             0.07,       /*! Maximum jitter of the backbone, in seconds */
             480.0,      /*! Interval between the backbone route flapping between two paths, in seconds */
@@ -527,7 +533,8 @@ g1050_model_t g1050_standard_models[9] =
             0.0         /*! Peak jitter */
         },
         {
-            0.128,      /*! Basic delay of the backbone, in seconds */
+            0.128,      /*! Basic delay of the regional backbone, in seconds */
+            0.256,      /*! Basic delay of the intercontinental backbone, in seconds */
             0.2,        /*! Percentage packet loss of the backbone */
             0.1,        /*! Maximum jitter of the backbone, in seconds */
             240.0,      /*! Interval between the backbone route flapping between two paths, in seconds */
@@ -565,7 +572,8 @@ g1050_model_t g1050_standard_models[9] =
             0.0         /*! Peak jitter */
         },
         {
-            0.256,      /*! Basic delay of the backbone, in seconds */
+            0.256,      /*! Basic delay of the regional backbone, in seconds */
+            0.512,      /*! Basic delay of the intercontinental backbone, in seconds */
             0.5,        /*! Percentage packet loss of the backbone */
             0.15,       /*! Maximum jitter of the backbone, in seconds */
             120.0,      /*! Interval between the backbone route flapping between two paths, in seconds */
@@ -603,7 +611,8 @@ g1050_model_t g1050_standard_models[9] =
             0.0         /*! Peak jitter */
         },
         {
-            0.512,      /*! Basic delay of the backbone, in seconds */
+            0.512,      /*! Basic delay of the regional backbone, in seconds */
+            0.768,      /*! Basic delay of the intercontinental backbone, in seconds */
             1.0,        /*! Percentage packet loss of the backbone */
             0.5,        /*! Maximum jitter of the backbone, in seconds */
             60.0,       /*! Interval between the backbone route flapping between two paths, in seconds */
@@ -721,7 +730,7 @@ static void g1050_core_init(g1050_core_state_t *s, g1050_core_model_t *parms, in
     s->link_failure_counter = s->link_failure_interval_ticks - 99 - floor(s->link_failure_interval_ticks*q1050_rand());
     s->link_recovery_counter = s->link_failure_duration_ticks;
     
-    s->base_delay = parms->base_delay;
+    s->base_delay = parms->base_regional_delay;
     s->max_jitter = parms->max_jitter;
     s->prob_packet_loss = parms->prob_packet_loss/100.0;
     s->prob_oos = parms->prob_oos/100.0;
@@ -1138,7 +1147,7 @@ void g1050_dump_parms(int model, int speed_pattern)
     printf("LOO %.6f%% %.6f%% %.6f%%\n", mo->loo[0]*sp->loo/100.0, mo->loo[1]*sp->loo/100.0, mo->loo[2]*sp->loo/100.0);
     printf("Side A LAN %dbps, %.3f%% occupancy, MTU %d, %s MA\n", sp->sidea_lan_bit_rate, mo->sidea_lan.percentage_occupancy, mo->sidea_lan.mtu, (sp->sidea_lan_multiple_access)  ?  ""  :  "no");
     printf("Side A access %dbps, %.3f%% occupancy, MTU %d, %s QoS\n", sp->sidea_access_link_bit_rate_ab, mo->sidea_access_link.percentage_occupancy, mo->sidea_access_link.mtu, (sp->sidea_access_link_qos_enabled)  ?  ""  :  "no");
-    printf("Core delay %.4fs, peak jitter %.4fs, prob loss %.4f%%, prob OOS %.4f%%\n", mo->core.base_delay, mo->core.max_jitter, mo->core.prob_packet_loss, mo->core.prob_oos);
+    printf("Core delay %.4fs (%.4fs), peak jitter %.4fs, prob loss %.4f%%, prob OOS %.4f%%\n", mo->core.base_regional_delay, mo->core.base_intercontinental_delay, mo->core.max_jitter, mo->core.prob_packet_loss, mo->core.prob_oos);
     printf("     Route flap interval %.4fs, delay change %.4fs\n", mo->core.route_flap_interval, mo->core.route_flap_delay);
     printf("     Link failure interval %.4fs, duration %.4fs\n", mo->core.link_failure_interval, mo->core.link_failure_duration);
     printf("Side B access %dbps, %.3f%% occupancy, MTU %d, %s QoS\n", sp->sideb_access_link_bit_rate_ba, mo->sideb_access_link.percentage_occupancy, mo->sideb_access_link.mtu, (sp->sideb_access_link_qos_enabled)  ?  ""  :  "no");

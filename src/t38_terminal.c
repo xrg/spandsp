@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.82 2007/12/14 13:41:17 steveu Exp $
+ * $Id: t38_terminal.c,v 1.83 2008/02/11 12:33:13 steveu Exp $
  */
 
 /*! \file */
@@ -523,7 +523,7 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
            seems like it can improve compatibility with quirky implementations. */
         t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, s->indicator_tx_count);
         s->timed_step = T38_TIMED_STEP_NONE;
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SEND_COMPLETE);
+        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SEND_STEP_COMPLETE);
         break;
     case T38_TIMED_STEP_HDLC_MODEM:
         /* Send HDLC preambling */
@@ -592,8 +592,13 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
             break;
         }
         t38_core_send_data(&s->t38, previous, T38_FIELD_HDLC_FCS_OK, NULL, 0, DATA_TX_COUNT);
-        if (s->tx_len)
-            s->timed_step = T38_TIMED_STEP_HDLC_MODEM_2;
+        if (s->tx_len == 0)
+        {
+            /* Now, how did we get here? We have finished a frame, but have no new frame to
+               send, and no end of transmission condition. */
+            span_log(&s->logging, SPAN_LOG_FLOW, "No new frame or end transmission condition.\n");
+        }
+        s->timed_step = T38_TIMED_STEP_HDLC_MODEM_2;
         s->next_tx_samples += ms_to_samples(s->ms_per_tx_chunk);
         break;
     case T38_TIMED_STEP_HDLC_MODEM_4:

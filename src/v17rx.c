@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.100 2008/01/09 15:17:14 steveu Exp $
+ * $Id: v17rx.c,v 1.101 2008/02/06 09:17:15 steveu Exp $
  */
 
 /*! \file */
@@ -693,6 +693,7 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
             descramble(s, 1);
             s->training_count = 1;
             s->training_stage = TRAINING_STAGE_COARSE_TRAIN_ON_CDBA;
+            s->put_bit(s->user_data, PUTBIT_TRAINING_IN_PROGRESS);
             break;
         }
         if (++s->training_count > V17_TRAINING_SEG_1_LEN)
@@ -844,6 +845,7 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
             {
                 s->training_count = 0;
                 s->training_stage = TRAINING_STAGE_TCM_WINDUP;
+                s->put_bit(s->user_data, PUTBIT_TRAINING_IN_PROGRESS);
             }
             else
             {

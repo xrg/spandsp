@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.c,v 1.55 2007/12/20 17:07:24 steveu Exp $
+ * $Id: hdlc.c,v 1.56 2008/02/06 09:17:15 steveu Exp $
  */
 
 /*! \file */
@@ -55,8 +55,9 @@ static void rx_special_condition(hdlc_rx_state_t *s, int condition)
         s->flags_seen = 0;
         s->framing_ok_announced = FALSE;
         /* Fall through */
-    case PUTBIT_CARRIER_DOWN:
+    case PUTBIT_TRAINING_IN_PROGRESS:
     case PUTBIT_TRAINING_FAILED:
+    case PUTBIT_CARRIER_DOWN:
     case PUTBIT_END_OF_DATA:
         s->frame_handler(s->user_data, NULL, condition, TRUE);
         break;

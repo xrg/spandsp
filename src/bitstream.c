@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bitstream.c,v 1.8 2007/08/20 15:22:21 steveu Exp $
+ * $Id: bitstream.c,v 1.9 2008/02/07 11:39:14 steveu Exp $
  */
 
 /*! \file */
@@ -37,7 +37,6 @@
 #include <assert.h>
 
 #include "spandsp/telephony.h"
-#include "spandsp/logging.h"
 #include "spandsp/bitstream.h"
 
 void bitstream_put(bitstream_state_t *s, uint8_t **c, unsigned int value, int bits)

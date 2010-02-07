@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.h,v 1.22 2007/12/14 13:41:17 steveu Exp $
+ * $Id: t38_core.h,v 1.23 2008/02/06 09:17:16 steveu Exp $
  */
 
 /*! \file */
@@ -278,17 +278,17 @@ extern "C"
 /*! \brief Convert the code for an indicator to a short text name.
     \param indicator The type of indicator.
     \return A pointer to a short text name for the indicator. */
-const char *t38_indicator(int indicator);
+const char *t38_indicator_to_str(int indicator);
 
 /*! \brief Convert the code for a type of data to a short text name.
     \param data_type The data type.
     \return A pointer to a short text name for the data type. */
-const char *t38_data_type(int data_type);
+const char *t38_data_type_to_str(int data_type);
 
 /*! \brief Convert the code for a type of data field to a short text name.
     \param field_type The field type.
     \return A pointer to a short text name for the field type. */
-const char *t38_field_type(int field_type);
+const char *t38_field_type_to_str(int field_type);
 
 /*! \brief Send an indicator packet
     \param s The T.38 context.

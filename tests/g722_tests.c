@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g722_tests.c,v 1.19 2007/11/10 11:14:58 steveu Exp $
+ * $Id: g722_tests.c,v 1.21 2008/02/08 16:29:11 steveu Exp $
  */
 
 /*! \file */
@@ -44,7 +44,7 @@ including the additional listening test.
 
 \section g722_tests_page_sec_2 How is it used?
 To perform the tests in the G.722 specification you need to obtain the test data files from the
-specification. These are copyright material, and so cannot be distributed with spandsp.
+specification. These are copyright material, and so cannot be distributed with this test software.
 
 The files, containing test vectors, which are supplied with the G.722 specification, should be
 copied to itutests/g722. The ITU tests can then be run by executing g722_tests without
@@ -418,17 +418,17 @@ int main(int argc, char *argv[])
             }
             if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
             {
-                printf("    Unexpected frame size in wave file '%s'\n", EIGHTK_IN_FILE_NAME);
+                fprintf(stderr, "    Unexpected frame size in wave file '%s'\n", EIGHTK_IN_FILE_NAME);
                 exit(2);
             }
             if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
             {
-                printf("    Unexpected sample rate %f in wave file '%s'\n", x, EIGHTK_IN_FILE_NAME);
+                fprintf(stderr, "    Unexpected sample rate %f in wave file '%s'\n", x, EIGHTK_IN_FILE_NAME);
                 exit(2);
             }
             if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
             {
-                printf("    Unexpected number of channels in wave file '%s'\n", EIGHTK_IN_FILE_NAME);
+                fprintf(stderr, "    Unexpected number of channels in wave file '%s'\n", EIGHTK_IN_FILE_NAME);
                 exit(2);
             }
         }
@@ -441,17 +441,17 @@ int main(int argc, char *argv[])
             }
             if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
             {
-                printf("    Unexpected frame size in wave file '%s'\n", IN_FILE_NAME);
+                fprintf(stderr, "    Unexpected frame size in wave file '%s'\n", IN_FILE_NAME);
                 exit(2);
             }
             if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) G722_SAMPLE_RATE)
             {
-                printf("    Unexpected sample rate %f in wave file '%s'\n", x, IN_FILE_NAME);
+                fprintf(stderr, "    Unexpected sample rate %f in wave file '%s'\n", x, IN_FILE_NAME);
                 exit(2);
             }
             if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
             {
-                printf("    Unexpected number of channels in wave file '%s'\n", IN_FILE_NAME);
+                fprintf(stderr, "    Unexpected number of channels in wave file '%s'\n", IN_FILE_NAME);
                 exit(2);
             }
         }

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect.c,v 1.39 2007/09/07 13:22:25 steveu Exp $
+ * $Id: tone_detect.c,v 1.40 2008/02/11 12:31:50 steveu Exp $
  */
  
 /*! \file tone_detect.h */
@@ -236,6 +236,9 @@ float periodogram_freq_error(const complexf_t *phase_offset, float scale, const 
 {
     complexf_t prediction;
 
+    /* Rotate the last result by the expected phasor offset to the current result. Then
+       find the difference between that predicted position, and the actual one. When
+       scaled by the current signal level, this gives us the frequency error. */
     prediction = complex_mulf(last_result, phase_offset);
     return scale*(result->im*prediction.re - result->re*prediction.im)/(result->re*result->re + result->im*result->im);
 }

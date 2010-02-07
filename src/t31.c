@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.102 2007/12/29 05:35:32 steveu Exp $
+ * $Id: t31.c,v 1.103 2008/02/06 09:17:15 steveu Exp $
  */
 
 /*! \file */
@@ -674,6 +674,8 @@ static void non_ecm_put_bit(void *user_data, int bit)
         /* Special conditions */
         switch (bit)
         {
+        case PUTBIT_TRAINING_IN_PROGRESS:
+            break;
         case PUTBIT_TRAINING_FAILED:
             s->at_state.rx_trained = FALSE;
             break;
@@ -803,6 +805,8 @@ static void hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
         /* Special conditions */
         switch (len)
         {
+        case PUTBIT_TRAINING_IN_PROGRESS:
+            break;
         case PUTBIT_TRAINING_FAILED:
             s->at_state.rx_trained = FALSE;
             break;

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: lpc10_tests.c,v 1.11 2007/11/10 11:14:58 steveu Exp $
+ * $Id: lpc10_tests.c,v 1.13 2008/02/09 14:35:01 steveu Exp $
  */
 
 /*! \file */
@@ -52,7 +52,7 @@ will be compressed to LPC10 data, decompressed, and the resulting audio stored i
 
 #define BLOCK_LEN       180
 
-#define BLOCKS_PER_READ 1
+#define BLOCKS_PER_READ 5
 
 #define IN_FILE_NAME            "../localtests/dam9.wav"
 #define REF_FILE_NAME           "../localtests/dam9_lpc55.wav"
@@ -90,6 +90,8 @@ int main(int argc, char *argv[])
     int compress_file;
     int decompress_file;
     int len;
+    int enc_len;
+    int dec_len;
 
     compress = FALSE;
     decompress = FALSE;
@@ -128,22 +130,22 @@ int main(int argc, char *argv[])
     {
         if ((inhandle = afOpenFile(in_file_name, "r", 0)) == AF_NULL_FILEHANDLE)
         {
-            printf("    Cannot open wave file '%s'\n", in_file_name);
+            fprintf(stderr, "    Cannot open wave file '%s'\n", in_file_name);
             exit(2);
         }
         if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
         {
-            printf("    Unexpected frame size in wave file '%s'\n", in_file_name);
+            fprintf(stderr, "    Unexpected frame size in wave file '%s'\n", in_file_name);
             exit(2);
         }
         if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
         {
-            printf("    Unexpected sample rate in wave file '%s'\n", in_file_name);
+            fprintf(stderr, "    Unexpected sample rate in wave file '%s'\n", in_file_name);
             exit(2);
         }
         if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
         {
-            printf("    Unexpected number of channels in wave file '%s'\n", in_file_name);
+            fprintf(stderr, "    Unexpected number of channels in wave file '%s'\n", in_file_name);
             exit(2);
         }
         if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
@@ -154,22 +156,22 @@ int main(int argc, char *argv[])
 
         if ((refhandle = afOpenFile(REF_FILE_NAME, "r", 0)) == AF_NULL_FILEHANDLE)
         {
-            printf("    Cannot open wave file '%s'\n", REF_FILE_NAME);
+            fprintf(stderr, "    Cannot open wave file '%s'\n", REF_FILE_NAME);
             exit(2);
         }
         if ((x = afGetFrameSize(refhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
         {
-            printf("    Unexpected frame size in wave file '%s'\n", REF_FILE_NAME);
+            fprintf(stderr, "    Unexpected frame size in wave file '%s'\n", REF_FILE_NAME);
             exit(2);
         }
         if ((x = afGetRate(refhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
         {
-            printf("    Unexpected sample rate in wave file '%s'\n", REF_FILE_NAME);
+            fprintf(stderr, "    Unexpected sample rate in wave file '%s'\n", REF_FILE_NAME);
             exit(2);
         }
         if ((x = afGetChannels(refhandle, AF_DEFAULT_TRACK)) != 1.0)
         {
-            printf("    Unexpected number of channels in wave file '%s'\n", REF_FILE_NAME);
+            fprintf(stderr, "    Unexpected number of channels in wave file '%s'\n", REF_FILE_NAME);
             exit(2);
         }
     }
@@ -239,11 +241,11 @@ int main(int argc, char *argv[])
                 &&
                 (frames = afReadFrames(refhandle, AF_DEFAULT_TRACK, ref_amp, BLOCKS_PER_READ*BLOCK_LEN)) == BLOCKS_PER_READ*BLOCK_LEN)
         {
-            lpc10_encode(lpc10_enc_state, lpc10_data, pre_amp, BLOCKS_PER_READ);
+            enc_len = lpc10_encode(lpc10_enc_state, lpc10_data, pre_amp, BLOCKS_PER_READ*BLOCK_LEN);
             if (compress)
-                write(compress_file, lpc10_data, BLOCKS_PER_READ*7);
-            lpc10_decode(lpc10_dec_state, post_amp, lpc10_data, BLOCKS_PER_READ);
-            for (i = 0;  i < BLOCK_LEN;  i++)
+                write(compress_file, lpc10_data, enc_len);
+            dec_len = lpc10_decode(lpc10_dec_state, post_amp, lpc10_data, enc_len);
+            for (i = 0;  i < dec_len;  i++)
             {
                 pre_energy += (double) pre_amp[i]*(double) pre_amp[i];
                 post_energy += (double) post_amp[i]*(double) post_amp[i];
@@ -259,25 +261,25 @@ int main(int argc, char *argv[])
             }
             block_no++;
             if (log_error)
-                outframes = afWriteFrames(outhandle, AF_DEFAULT_TRACK, log_amp, frames);
+                outframes = afWriteFrames(outhandle, AF_DEFAULT_TRACK, log_amp, dec_len);
             else
-                outframes = afWriteFrames(outhandle, AF_DEFAULT_TRACK, post_amp, frames);
+                outframes = afWriteFrames(outhandle, AF_DEFAULT_TRACK, post_amp, dec_len);
         }
         if (afCloseFile(inhandle) != 0)
         {
-            printf("    Cannot close wave file '%s'\n", in_file_name);
+            fprintf(stderr, "    Cannot close wave file '%s'\n", in_file_name);
             exit(2);
         }
         if (afCloseFile(refhandle) != 0)
         {
-            printf("    Cannot close wave file '%s'\n", REF_FILE_NAME);
+            fprintf(stderr, "    Cannot close wave file '%s'\n", REF_FILE_NAME);
             exit(2);
         }
     }
     
     if (afCloseFile(outhandle) != 0)
     {
-        printf("    Cannot close wave file '%s'\n", OUT_FILE_NAME);
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
     afFreeFileSetup(filesetup);

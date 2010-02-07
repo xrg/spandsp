@@ -10,8 +10,9 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU General Public License version 2, or
+ * the Lesser GNU General Public License version 2.1, as published by
+ * the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,7 +26,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_long_term.c,v 1.10 2007/08/20 15:22:22 steveu Exp $
+ * $Id: gsm0610_long_term.c,v 1.12 2008/03/03 15:29:40 steveu Exp $
  */
 
 /*! \file */
@@ -354,12 +355,14 @@ void gsm0610_long_term_predictor(gsm0610_state_t *s,
                                  int16_t *Nc,
                                  int16_t *bc)
 {
+#if 0
     assert(d);
     assert(dp);
     assert(e);
     assert(dpp);
     assert(Nc);
     assert(bc);
+#endif
 
     *bc = evaluate_ltp_parameters(d, dp, Nc);
     long_term_analysis_filtering(*bc, *Nc, dp, d, dpp, e);

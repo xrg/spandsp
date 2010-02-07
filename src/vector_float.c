@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector_float.c,v 1.5 2006/11/19 14:07:26 steveu Exp $
+ * $Id: vector_float.c,v 1.7 2008/03/03 15:29:40 steveu Exp $
  */
 
 /*! \file */
@@ -44,7 +44,6 @@
 #include <assert.h>
 
 #include "spandsp/telephony.h"
-#include "spandsp/logging.h"
 #include "spandsp/vector_float.h"
 
 void vec_copyf(float z[], const float x[], int n)
@@ -273,6 +272,35 @@ void vec_scalar_mull(long double z[], const long double x[], long double y, int 
 
     for (i = 0;  i < n;  i++)
         z[i] = x[i]*y;
+}
+/*- End of function --------------------------------------------------------*/
+#endif
+
+void vec_mulf(float z[], const float x[], const float y[], int n)
+{
+    int i;
+
+    for (i = 0;  i < n;  i++)
+        z[i] = x[i]*y[i];
+}
+/*- End of function --------------------------------------------------------*/
+
+void vec_mul(double z[], const double x[], const double y[], int n)
+{
+    int i;
+
+    for (i = 0;  i < n;  i++)
+        z[i] = x[i]*y[i];
+}
+/*- End of function --------------------------------------------------------*/
+
+#if defined(HAVE_LONG_DOUBLE)
+void vec_mull(long double z[], const long double x[], const long double y[], int n)
+{
+    int i;
+
+    for (i = 0;  i < n;  i++)
+        z[i] = x[i]*y[i];
 }
 /*- End of function --------------------------------------------------------*/
 #endif

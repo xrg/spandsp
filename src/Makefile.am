@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.84 2008/01/10 14:33:35 steveu Exp $
+## $Id: Makefile.am,v 1.86 2008/02/07 11:39:14 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -193,10 +193,11 @@ noinst_HEADERS =        faxfont.h \
                         v29rx_fixed_rrc.h \
                         v29rx_floating_rrc.h
 
-noinst_PROGRAMS =       at_dictionary_gen \
-                        make_modem_filter
+noinst_PROGRAMS = at_dictionary_gen \
+                  make_modem_filter
 
-make_modem_filter_SOURCES = make_modem_filter.c filter_tools.c
+make_modem_filter_SOURCES = make_modem_filter.c \
+                            filter_tools.c
 
 # We need to run at_dictionary_gen, so it generates the
 # at_interpreter_dictionary.h file

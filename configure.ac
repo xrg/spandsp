@@ -16,7 +16,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.38 2007/11/10 11:14:56 steveu Exp $
+# $Id: configure.ac,v 1.40 2008/02/20 13:01:45 steveu Exp $
 
 # @start 1
 
@@ -274,6 +274,15 @@ gnu)
         COMP_VENDOR_CFLAGS="-mmmx $COMP_VENDOR_CFLAGS"
     fi
     ;;
+sun)
+    COMP_VENDOR_CFLAGS="-xc99=all -mt -xCC -errwarn=%all -xvpara"
+    if test "$enable_sse" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-native -fast $COMP_VENDOR_CFLAGS"
+    fi
+    if test "$enable_mmx" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-native -fast $COMP_VENDOR_CFLAGS"
+    fi
+    ;;
 *)
     COMP_VENDOR_CFLAGS="-std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
     ;;
@@ -327,8 +336,10 @@ AC_SUBST(INSERT_MATH_HEADER)
 
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
+                 etsitests/Makefile
                  itutests/Makefile
                  itutests/fax/Makefile
+                 localtests/Makefile
                  src/Makefile
                  src/spandsp.h
                  spandsp-sim/Makefile

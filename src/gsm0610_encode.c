@@ -10,8 +10,9 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU General Public License version 2, or
+ * the Lesser GNU General Public License version 2.1, as published by
+ * the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,7 +26,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_encode.c,v 1.17 2007/11/26 13:28:59 steveu Exp $
+ * $Id: gsm0610_encode.c,v 1.20 2008/03/03 15:29:40 steveu Exp $
  */
 
 /*! \file */
@@ -155,6 +156,7 @@ int gsm0610_pack_none(uint8_t c[], const gsm0610_frame_t *s)
         for (k = 0;  k < 13;  k++)
             c[i++] = (uint8_t) s->xMc[j][k];
     }
+    /*endfor*/
     return 76;
 }
 /*- End of function --------------------------------------------------------*/
@@ -167,87 +169,89 @@ int gsm0610_pack_wav49(uint8_t c[], const gsm0610_frame_t *s)
 	sr = 0;
 	sr = (sr >> 6) | (s->LARc[0] << 10);
 	sr = (sr >> 6) | (s->LARc[1] << 10);
-	*c++ = sr >> 4;
+	*c++ = (uint8_t) (sr >> 4);
 	sr = (sr >> 5) | (s->LARc[2] << 11);
-	*c++ = sr >> 7;
+	*c++ = (uint8_t) (sr >> 7);
 	sr = (sr >> 5) | (s->LARc[3] << 11);
 	sr = (sr >> 4) | (s->LARc[4] << 12);
-	*c++ = sr >> 6;
+	*c++ = (uint8_t) (sr >> 6);
 	sr = (sr >> 4) | (s->LARc[5] << 12);
 	sr = (sr >> 3) | (s->LARc[6] << 13);
-	*c++ = sr >> 7;
+	*c++ = (uint8_t) (sr >> 7);
 	sr = (sr >> 3) | (s->LARc[7] << 13);
 
     for (i = 0;  i < 4;  i++)
     {
     	sr = (sr >> 7) | (s->Nc[i] << 9);
-    	*c++ = sr >> 5;
+    	*c++ = (uint8_t) (sr >> 5);
     	sr = (sr >> 2) | (s->bc[i] << 14);
     	sr = (sr >> 2) | (s->Mc[i] << 14);
     	sr = (sr >> 6) | (s->xmaxc[i] << 10);
-    	*c++ = sr >> 3;
+    	*c++ = (uint8_t) (sr >> 3);
     	sr = (sr >> 3) | (s->xMc[i][0] << 13);
-    	*c++ = sr >> 8;
+    	*c++ = (uint8_t) (sr >> 8);
     	sr = (sr >> 3) | (s->xMc[i][1] << 13);
     	sr = (sr >> 3) | (s->xMc[i][2] << 13);
         sr = (sr >> 3) | (s->xMc[i][3] << 13);
-        *c++ = sr >> 7;
+        *c++ = (uint8_t) (sr >> 7);
         sr = (sr >> 3) | (s->xMc[i][4] << 13);
         sr = (sr >> 3) | (s->xMc[i][5] << 13);
         sr = (sr >> 3) | (s->xMc[i][6] << 13);
-        *c++ = sr >> 6;
+        *c++ = (uint8_t) (sr >> 6);
         sr = (sr >> 3) | (s->xMc[i][7] << 13);
         sr = (sr >> 3) | (s->xMc[i][8] << 13);
-        *c++ = sr >> 8;
+        *c++ = (uint8_t) (sr >> 8);
         sr = (sr >> 3) | (s->xMc[i][9] << 13);
         sr = (sr >> 3) | (s->xMc[i][10] << 13);
         sr = (sr >> 3) | (s->xMc[i][11] << 13);
-        *c++ = sr >> 7;
+        *c++ = (uint8_t) (sr >> 7);
         sr = (sr >> 3) | (s->xMc[i][12] << 13);
     }
+    /*endfor*/
 
     s++;
     sr = (sr >> 6) | (s->LARc[0] << 10);
-    *c++ = sr >> 6;
+    *c++ = (uint8_t) (sr >> 6);
     sr = (sr >> 6) | (s->LARc[1] << 10);
-    *c++ = sr >> 8;
+    *c++ = (uint8_t) (sr >> 8);
     sr = (sr >> 5) | (s->LARc[2] << 11);
     sr = (sr >> 5) | (s->LARc[3] << 11);
-    *c++ = sr >> 6;
+    *c++ = (uint8_t) (sr >> 6);
     sr = (sr >> 4) | (s->LARc[4] << 12);
     sr = (sr >> 4) | (s->LARc[5] << 12);
-    *c++ = sr >> 6;
+    *c++ = (uint8_t) (sr >> 6);
     sr = (sr >> 3) | (s->LARc[6] << 13);
     sr = (sr >> 3) | (s->LARc[7] << 13);
-    *c++ = sr >> 8;
+    *c++ = (uint8_t) (sr >> 8);
 
     for (i = 0;  i < 4;  i++)
     {
         sr = (sr >> 7) | (s->Nc[i] << 9);
         sr = (sr >> 2) | (s->bc[i] << 14);
-        *c++ = sr >> 7;
+        *c++ = (uint8_t) (sr >> 7);
         sr = (sr >> 2) | (s->Mc[i] << 14);
         sr = (sr >> 6) | (s->xmaxc[i] << 10);
-        *c++ = sr >> 7;
+        *c++ = (uint8_t) (sr >> 7);
         sr = (sr >> 3) | (s->xMc[i][0] << 13);
         sr = (sr >> 3) | (s->xMc[i][1] << 13);
         sr = (sr >> 3) | (s->xMc[i][2] << 13);
-        *c++ = sr >> 6;
+        *c++ = (uint8_t) (sr >> 6);
         sr = (sr >> 3) | (s->xMc[i][3] << 13);
         sr = (sr >> 3) | (s->xMc[i][4] << 13);
-        *c++ = sr >> 8;
+        *c++ = (uint8_t) (sr >> 8);
         sr = (sr >> 3) | (s->xMc[i][5] << 13);
         sr = (sr >> 3) | (s->xMc[i][6] << 13);
         sr = (sr >> 3) | (s->xMc[i][7] << 13);
-        *c++ = sr >> 7;
+        *c++ = (uint8_t) (sr >> 7);
         sr = (sr >> 3) | (s->xMc[i][8] << 13);
         sr = (sr >> 3) | (s->xMc[i][9] << 13);
         sr = (sr >> 3) | (s->xMc[i][10] << 13);
-        *c++ = sr >> 6;
+        *c++ = (uint8_t) (sr >> 6);
         sr = (sr >> 3) | (s->xMc[i][11] << 13);
         sr = (sr >> 3) | (s->xMc[i][12] << 13);
-        *c++ = sr >> 8;
+        *c++ = (uint8_t) (sr >> 8);
     }
+    /*endfor*/
     return 65;
 }
 /*- End of function --------------------------------------------------------*/
@@ -256,79 +260,77 @@ int gsm0610_pack_voip(uint8_t c[33], const gsm0610_frame_t *s)
 {
     int i;
 
-    *c++ = ((GSM0610_MAGIC & 0xF) << 4)
-         | ((s->LARc[0] >> 2) & 0xF);
-    *c++ = ((s->LARc[0] & 0x3) << 6)
-         |  (s->LARc[1] & 0x3F);
-    *c++ = ((s->LARc[2] & 0x1F) << 3)
-         | ((s->LARc[3] >> 2) & 0x7);
-    *c++ = ((s->LARc[3] & 0x3) << 6)
-         | ((s->LARc[4] & 0xF) << 2)
-         | ((s->LARc[5] >> 2) & 0x3);
-    *c++ = ((s->LARc[5] & 0x3) << 6)
-         | ((s->LARc[6] & 0x7) << 3)
-         |  (s->LARc[7] & 0x7);
+    *c++ = (uint8_t) (((GSM0610_MAGIC & 0xF) << 4)
+                    | ((s->LARc[0] >> 2) & 0xF));
+    *c++ = (uint8_t) (((s->LARc[0] & 0x3) << 6)
+                    |  (s->LARc[1] & 0x3F));
+    *c++ = (uint8_t) (((s->LARc[2] & 0x1F) << 3)
+                    | ((s->LARc[3] >> 2) & 0x7));
+    *c++ = (uint8_t) (((s->LARc[3] & 0x3) << 6)
+                    | ((s->LARc[4] & 0xF) << 2)
+                    | ((s->LARc[5] >> 2) & 0x3));
+    *c++ = (uint8_t) (((s->LARc[5] & 0x3) << 6)
+                    | ((s->LARc[6] & 0x7) << 3)
+                    |  (s->LARc[7] & 0x7));
 
     for (i = 0;  i < 4;  i++)
     {
-        *c++ = ((s->Nc[i] & 0x7F) << 1)
-             | ((s->bc[i] >> 1) & 0x1);
-        *c++ = ((s->bc[i] & 0x1) << 7)
-             | ((s->Mc[i] & 0x3) << 5)
-             | ((s->xmaxc[i] >> 1) & 0x1F);
-        *c++ = ((s->xmaxc[i] & 0x1) << 7)
-             | ((s->xMc[i][0] & 0x7) << 4)
-             | ((s->xMc[i][1] & 0x7) << 1)
-             | ((s->xMc[i][2] >> 2) & 0x1);
-        *c++ = ((s->xMc[i][2] & 0x3) << 6)
-             | ((s->xMc[i][3] & 0x7) << 3)
-             |  (s->xMc[i][4] & 0x7);
-        *c++ = ((s->xMc[i][5] & 0x7) << 5)
-             | ((s->xMc[i][6] & 0x7) << 2)
-             | ((s->xMc[i][7] >> 1) & 0x3);
-        *c++ = ((s->xMc[i][7] & 0x1) << 7)
-             | ((s->xMc[i][8] & 0x7) << 4)
-             | ((s->xMc[i][9] & 0x7) << 1)
-             | ((s->xMc[i][10] >> 2) & 0x1);
-        *c++ = ((s->xMc[i][10] & 0x3) << 6)
-             | ((s->xMc[i][11] & 0x7) << 3)
-             |  (s->xMc[i][12] & 0x7);
+        *c++ = (uint8_t) (((s->Nc[i] & 0x7F) << 1)
+                        | ((s->bc[i] >> 1) & 0x1));
+        *c++ = (uint8_t) (((s->bc[i] & 0x1) << 7)
+                        | ((s->Mc[i] & 0x3) << 5)
+                        | ((s->xmaxc[i] >> 1) & 0x1F));
+        *c++ = (uint8_t) (((s->xmaxc[i] & 0x1) << 7)
+                        | ((s->xMc[i][0] & 0x7) << 4)
+                        | ((s->xMc[i][1] & 0x7) << 1)
+                        | ((s->xMc[i][2] >> 2) & 0x1));
+        *c++ = (uint8_t) (((s->xMc[i][2] & 0x3) << 6)
+                        | ((s->xMc[i][3] & 0x7) << 3)
+                        |  (s->xMc[i][4] & 0x7));
+        *c++ = (uint8_t) (((s->xMc[i][5] & 0x7) << 5)
+                        | ((s->xMc[i][6] & 0x7) << 2)
+                        | ((s->xMc[i][7] >> 1) & 0x3));
+        *c++ = (uint8_t) (((s->xMc[i][7] & 0x1) << 7)
+                        | ((s->xMc[i][8] & 0x7) << 4)
+                        | ((s->xMc[i][9] & 0x7) << 1)
+                        | ((s->xMc[i][10] >> 2) & 0x1));
+        *c++ = (uint8_t) (((s->xMc[i][10] & 0x3) << 6)
+                        | ((s->xMc[i][11] & 0x7) << 3)
+                        |  (s->xMc[i][12] & 0x7));
     }
+    /*endfor*/
     return 33;
 }
 /*- End of function --------------------------------------------------------*/
 
-int gsm0610_encode(gsm0610_state_t *s, uint8_t code[], const int16_t amp[], int quant)
+int gsm0610_encode(gsm0610_state_t *s, uint8_t code[], const int16_t amp[], int len)
 {
     gsm0610_frame_t frame[2];
-    uint8_t *c;
+    int bytes;
     int i;
 
-    c = code;
-    for (i = 0;  i < quant;  i++)
+    bytes = 0;
+    for (i = 0;  i < len;  i += GSM0610_FRAME_LEN)
     {
-        encode_a_frame(s, frame, amp);
+        encode_a_frame(s, frame, &amp[i]);
         switch (s->packing)
         {
-        case GSM0610_PACKING_NONE:
-            c += gsm0610_pack_none(c, frame);
-            amp += GSM0610_FRAME_LEN;
-            break;
         case GSM0610_PACKING_WAV49:
-            amp += GSM0610_FRAME_LEN;
-            encode_a_frame(s, frame + 1, amp);
-            amp += GSM0610_FRAME_LEN;
-            c += gsm0610_pack_wav49(c, frame);
+            i += GSM0610_FRAME_LEN;
+            encode_a_frame(s, frame + 1, &amp[i]);
+            bytes += gsm0610_pack_wav49(&code[bytes], frame);
             break;
         case GSM0610_PACKING_VOIP:
-            c += gsm0610_pack_voip(c, frame);
-            amp += GSM0610_FRAME_LEN;
+            bytes += gsm0610_pack_voip(&code[bytes], frame);
+            break;
+        default:
+            bytes += gsm0610_pack_none(&code[bytes], frame);
             break;
         }
         /*endswitch*/
     }
-    /*endwhile*/
-    return (int) (c - code);
+    /*endfor*/
+    return bytes;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

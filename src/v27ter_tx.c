@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.c,v 1.57 2008/01/10 14:06:21 steveu Exp $
+ * $Id: v27ter_tx.c,v 1.58 2008/03/05 13:38:24 steveu Exp $
  */
 
 /*! \file */
@@ -73,10 +73,6 @@
 #define V27TER_TRAINING_SEG_5           (V27TER_TRAINING_SEG_4 + 1074)
 #define V27TER_TRAINING_END             (V27TER_TRAINING_SEG_5 + 8)
 #define V27TER_TRAINING_SHUTDOWN_END    (V27TER_TRAINING_END + 32)
-
-#define PULSESHAPER_2400_GAIN           (19.972065748f/20.0f)
-
-#define PULSESHAPER_4800_GAIN           (4.9913162900f/5.0f)
 
 static int fake_get_bit(void *user_data)
 {
@@ -267,8 +263,8 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len)
             x = complex_seti(0, 0);
             for (i = 0;  i < V27TER_TX_FILTER_STEPS;  i++)
             {
-                x.re += (int32_t) pulseshaper_4800[4 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].re;
-                x.im += (int32_t) pulseshaper_4800[4 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].im;
+                x.re += (int32_t) pulseshaper_4800[PULSESHAPER_4800_COEFF_SETS - 1 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].re;
+                x.im += (int32_t) pulseshaper_4800[PULSESHAPER_4800_COEFF_SETS - 1 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].im;
             }
             /* Now create and modulate the carrier */
             x.re >>= 14;
@@ -281,8 +277,8 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len)
             x = complex_setf(0.0f, 0.0f);
             for (i = 0;  i < V27TER_TX_FILTER_STEPS;  i++)
             {
-                x.re += pulseshaper_4800[4 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].re;
-                x.im += pulseshaper_4800[4 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].im;
+                x.re += pulseshaper_4800[PULSESHAPER_4800_COEFF_SETS - 1 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].re;
+                x.im += pulseshaper_4800[PULSESHAPER_4800_COEFF_SETS - 1 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].im;
             }
             /* Now create and modulate the carrier */
             z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
@@ -308,8 +304,8 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len)
             x = complex_seti(0, 0);
             for (i = 0;  i < V27TER_TX_FILTER_STEPS;  i++)
             {
-                x.re += (int32_t) pulseshaper_2400[19 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].re;
-                x.im += (int32_t) pulseshaper_2400[19 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].im;
+                x.re += (int32_t) pulseshaper_2400[PULSESHAPER_2400_COEFF_SETS - 1 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].re;
+                x.im += (int32_t) pulseshaper_2400[PULSESHAPER_2400_COEFF_SETS - 1 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].im;
             }
             /* Now create and modulate the carrier */
             x.re >>= 14;
@@ -322,8 +318,8 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len)
             x = complex_setf(0.0f, 0.0f);
             for (i = 0;  i < V27TER_TX_FILTER_STEPS;  i++)
             {
-                x.re += pulseshaper_2400[19 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].re;
-                x.im += pulseshaper_2400[19 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].im;
+                x.re += pulseshaper_2400[PULSESHAPER_2400_COEFF_SETS - 1 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].re;
+                x.im += pulseshaper_2400[PULSESHAPER_2400_COEFF_SETS - 1 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].im;
             }
             /* Now create and modulate the carrier */
             z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);

@@ -3,7 +3,7 @@
  *
  * spandsp.h - The head guy amongst the headers
  *
- * Written by Steve Underwood <spandsp/steveu@coppice.org>
+ * Written by Steve Underwood <steveu@coppice.org>
  *
  * Copyright (C) 2003 Steve Underwood
  *
@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spandsp.h.in,v 1.3 2007/11/12 13:30:08 steveu Exp $
+ * $Id: spandsp.h.in,v 1.4 2008/02/07 08:50:22 steveu Exp $
  */
 
 /*! \file */

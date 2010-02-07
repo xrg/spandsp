@@ -183,7 +183,8 @@ noise_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_oki_adpcm_tests_OBJECTS = oki_adpcm_tests.$(OBJEXT)
 oki_adpcm_tests_OBJECTS = $(am_oki_adpcm_tests_OBJECTS)
 oki_adpcm_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_playout_tests_OBJECTS = playout_tests.$(OBJEXT)
+am_playout_tests_OBJECTS = playout_tests.$(OBJEXT) \
+	media_monitor.$(OBJEXT)
 playout_tests_OBJECTS = $(am_playout_tests_OBJECTS)
 playout_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_plc_tests_OBJECTS = plc_tests.$(OBJEXT)
@@ -579,8 +580,8 @@ noise_tests_SOURCES = noise_tests.c
 noise_tests_LDADD = $(LIBDIR) -lspandsp
 oki_adpcm_tests_SOURCES = oki_adpcm_tests.c
 oki_adpcm_tests_LDADD = $(LIBDIR) -lspandsp
-playout_tests_SOURCES = playout_tests.c
-playout_tests_LDADD = $(LIBDIR) -lspandsp
+playout_tests_SOURCES = playout_tests.c media_monitor.cpp
+playout_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 plc_tests_SOURCES = plc_tests.c
 plc_tests_LDADD = $(LIBDIR) -lspandsp
 power_meter_tests_SOURCES = power_meter_tests.c
@@ -784,7 +785,7 @@ oki_adpcm_tests$(EXEEXT): $(oki_adpcm_tests_OBJECTS) $(oki_adpcm_tests_DEPENDENC
 	$(LINK) $(oki_adpcm_tests_LDFLAGS) $(oki_adpcm_tests_OBJECTS) $(oki_adpcm_tests_LDADD) $(LIBS)
 playout_tests$(EXEEXT): $(playout_tests_OBJECTS) $(playout_tests_DEPENDENCIES) 
 	@rm -f playout_tests$(EXEEXT)
-	$(LINK) $(playout_tests_LDFLAGS) $(playout_tests_OBJECTS) $(playout_tests_LDADD) $(LIBS)
+	$(CXXLINK) $(playout_tests_LDFLAGS) $(playout_tests_OBJECTS) $(playout_tests_LDADD) $(LIBS)
 plc_tests$(EXEEXT): $(plc_tests_OBJECTS) $(plc_tests_DEPENDENCIES) 
 	@rm -f plc_tests$(EXEEXT)
 	$(LINK) $(plc_tests_LDFLAGS) $(plc_tests_OBJECTS) $(plc_tests_LDADD) $(LIBS)

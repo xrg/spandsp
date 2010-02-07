@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm_tests.c,v 1.24 2007/11/10 11:14:58 steveu Exp $
+ * $Id: oki_adpcm_tests.c,v 1.26 2008/03/05 13:40:31 steveu Exp $
  */
 
 /*! \file */
@@ -47,6 +47,7 @@ compression may be tested.
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <string.h>
 #include <time.h>
 #include <audiofile.h>
@@ -86,43 +87,50 @@ int main(int argc, char *argv[])
     int total_compressed_bytes;
     int total_post_samples;
     const char *in_file_name;
+    int log_encoded_data;
+    int opt;
 
     bit_rate = 32000;
     in_file_name = IN_FILE_NAME;
-    for (i = 1;  i < argc;  i++)
+    log_encoded_data = FALSE;
+    while ((opt = getopt(argc, argv, "2i:l")) != -1)
     {
-        if (strcmp(argv[i], "-2") == 0)
+        switch (opt)
         {
+        case '2':
             bit_rate = 24000;
-            continue;
+            break;
+        case 'i':
+            in_file_name = optarg;
+            break;
+        case 'l':
+            log_encoded_data = TRUE;
+            break;
+        default:
+            //usage();
+            exit(2);
+            break;
         }
-        if (strcmp(argv[i], "-i") == 0)
-        {
-            in_file_name = argv[++i];
-            continue;
-        }
-        fprintf(stderr, "Unknown parameter %s specified.\n", argv[i]);
-        exit(2);
     }
 
     if ((inhandle = afOpenFile(in_file_name, "r", 0)) == AF_NULL_FILEHANDLE)
     {
-        printf("    Cannot open wave file '%s'\n", in_file_name);
+        fprintf(stderr, "    Cannot open wave file '%s'\n", in_file_name);
         exit(2);
     }
     if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
     {
-        printf("    Unexpected frame size in wave file '%s'\n", in_file_name);
+        fprintf(stderr, "    Unexpected frame size in wave file '%s'\n", in_file_name);
         exit(2);
     }
     if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
     {
-        printf("    Unexpected sample rate in wave file '%s'\n", in_file_name);
+        fprintf(stderr, "    Unexpected sample rate in wave file '%s'\n", in_file_name);
         exit(2);
     }
     if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
     {
-        printf("    Unexpected number of channels in wave file '%s'\n", in_file_name);
+        fprintf(stderr, "    Unexpected number of channels in wave file '%s'\n", in_file_name);
         exit(2);
     }
     if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
@@ -168,8 +176,10 @@ int main(int argc, char *argv[])
     total_post_samples = 0;
     while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, pre_amp, 159)))
     {
-        total_pre_samples +=frames;
+        total_pre_samples += frames;
         oki_bytes = oki_adpcm_encode(oki_enc_state, oki_data, pre_amp, frames);
+        if (log_encoded_data)
+            write(1, oki_data, oki_bytes);
         total_compressed_bytes += oki_bytes;
         dec_frames = oki_adpcm_decode(oki_dec_state, post_amp, oki_data, oki_bytes);
         total_post_samples += dec_frames;
@@ -193,12 +203,12 @@ int main(int argc, char *argv[])
     }
     if (afCloseFile(inhandle) != 0)
     {
-        printf("    Cannot close wave file '%s'\n", in_file_name);
+        fprintf(stderr, "    Cannot close wave file '%s'\n", in_file_name);
         exit(2);
     }
     if (afCloseFile(outhandle) != 0)
     {
-        printf("    Cannot close wave file '%s'\n", OUT_FILE_NAME);
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
     afFreeFileSetup(filesetup);

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector_int.c,v 1.6 2007/08/21 14:25:54 steveu Exp $
+ * $Id: vector_int.c,v 1.7 2008/02/07 09:32:27 steveu Exp $
  */
 
 /*! \file */
@@ -44,7 +44,6 @@
 #include <assert.h>
 
 #include "spandsp/telephony.h"
-#include "spandsp/logging.h"
 #include "spandsp/vector_int.h"
 
 int32_t vec_dot_prodi16(const int16_t x[], const int16_t y[], int n)

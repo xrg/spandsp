@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector_float.h,v 1.7 2007/04/08 08:16:18 steveu Exp $
+ * $Id: vector_float.h,v 1.8 2008/03/03 15:29:40 steveu Exp $
  */
 
 #if !defined(_SPANDSP_VECTOR_FLOAT_H_)
@@ -95,6 +95,14 @@ void vec_scalar_mul(double z[], const double x[], double y, int n);
 
 #if defined(HAVE_LONG_DOUBLE)
 void vec_scalar_mull(long double z[], const long double x[], long double y, int n);
+#endif
+
+void vec_mulf(float z[], const float x[], const float y[], int n);
+
+void vec_mul(double z[], const double x[], const double y[], int n);
+
+#if defined(HAVE_LONG_DOUBLE)
+void vec_mull(long double z[], const long double x[], const long double y[], int n);
 #endif
 
 float vec_dot_prodf(const float x[], const float y[], int n);

@@ -10,8 +10,9 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU General Public License version 2, or
+ * the Lesser GNU General Public License version 2.1, as published by
+ * the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,7 +26,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_decode.c,v 1.14 2007/08/21 14:25:54 steveu Exp $
+ * $Id: gsm0610_decode.c,v 1.17 2008/02/20 13:05:36 steveu Exp $
  */
 
 /*! \file */
@@ -309,50 +310,44 @@ int gsm0610_unpack_voip(gsm0610_frame_t *s, const uint8_t c[33])
 }
 /*- End of function --------------------------------------------------------*/
 
-int gsm0610_decode(gsm0610_state_t *s, int16_t amp[], const uint8_t code[], int quant)
+int gsm0610_decode(gsm0610_state_t *s, int16_t amp[], const uint8_t code[], int len)
 {
     gsm0610_frame_t frame[2];
-    const uint8_t *c;
     int bytes;
+    int samples;
     int i;
 
-    c = code;
-    for (i = 0;  i < quant;  i++)
+    samples = 0;
+    for (i = 0;  i < len;  i += bytes)
     {
         switch (s->packing)
         {
         default:
         case GSM0610_PACKING_NONE:
-            if ((bytes = gsm0610_unpack_none(frame, c)) >= 0)
-            {
-                decode_a_frame(s, amp, frame);
-                amp += GSM0610_FRAME_LEN;
-            }
+            if ((bytes = gsm0610_unpack_none(frame, &code[i])) < 0)
+                return 0;
+            decode_a_frame(s, &amp[samples], frame);
+            samples += GSM0610_FRAME_LEN;
             break;
         case GSM0610_PACKING_WAV49:
-            if ((bytes = gsm0610_unpack_wav49(frame, c)) >= 0)
-            {
-                decode_a_frame(s, amp, frame);
-                amp += GSM0610_FRAME_LEN;
-                decode_a_frame(s, amp, frame + 1);
-                amp += GSM0610_FRAME_LEN;
-            }
+            if ((bytes = gsm0610_unpack_wav49(frame, &code[i])) < 0)
+                return 0;
+            decode_a_frame(s, &amp[samples], frame);
+            samples += GSM0610_FRAME_LEN;
+            decode_a_frame(s, &amp[samples], frame + 1);
+            samples += GSM0610_FRAME_LEN;
             break;
         case GSM0610_PACKING_VOIP:
-            if ((bytes = gsm0610_unpack_voip(frame, c)) >= 0)
-            {
-                decode_a_frame(s, amp, frame);
-                amp += GSM0610_FRAME_LEN;
-            }
+            if ((bytes = gsm0610_unpack_voip(frame, &code[i])) < 0)
+                return 0;
+            decode_a_frame(s, &amp[samples], frame);
+            samples += GSM0610_FRAME_LEN;
             break;
         }
         /*endswitch*/
-        if (bytes < 0)
-            return 0;
-        c += bytes;
     }
-    /*endwhile*/
-    return quant*GSM0610_FRAME_LEN;
+    /*endfor*/
+    return samples;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

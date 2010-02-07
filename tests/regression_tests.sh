@@ -1,6 +1,8 @@
 #!/bin/sh
 #
-# spandsp regression tests
+# SpanDSP - a series of DSP components for telephony
+#
+# regression_tests.sh
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2, as
@@ -15,7 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: regression_tests.sh,v 1.47 2007/12/22 12:37:22 steveu Exp $
+# $Id: regression_tests.sh,v 1.49 2008/02/11 13:29:38 steveu Exp $
 #
 
 ITUTESTS_TIF=../itutests/fax/itutests.tif
@@ -607,14 +609,15 @@ echo t4_tests completed OK
 #echo time_scale_tests completed OK
 echo time_scale_tests not enabled
 
-./tone_detect_tests >$STDOUT_DEST 2>$STDERR_DEST
-RETVAL=$?
-if [ $RETVAL != 0 ]
-then
-    echo tone_detect_tests failed!
-    exit $RETVAL
-fi
-echo tone_detect_tests completed OK
+#./tone_detect_tests >$STDOUT_DEST 2>$STDERR_DEST
+#RETVAL=$?
+#if [ $RETVAL != 0 ]
+#then
+#    echo tone_detect_tests failed!
+#    exit $RETVAL
+#fi
+#echo tone_detect_tests completed OK
+echo tone_detect_tests not enabled
 
 #./tone_generate_tests >$STDOUT_DEST 2>$STDERR_DEST
 #RETVAL=$?

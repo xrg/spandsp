@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.29 2007/09/23 12:45:15 steveu Exp $
+## $Id: Makefile.am,v 1.31 2008/02/29 13:38:08 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -27,9 +27,14 @@ nobase_data_DATA = spandsp/global-tones.xml spandsp/tones.dtd
 MAINTAINERCLEANFILES = Makefile.in
 
 EXTRA_DIST = DueDiligence \
+             README.testdata \
              spandsp.spec \
              wrapper.xsl \
              libspandsp.vcproj \
+             unpack_g722_data.sh \
+             unpack_g726_data.sh \
+             unpack_gsm0610_data.sh \
+             unpack_v56ter_data.sh \
              doc/libspandsp-doxygen \
              src/float_fudge.h \
              src/spandsp/version.h.in \
@@ -68,7 +73,7 @@ if COND_ITUTESTS
 endif
 SUBDIRS = src $(MAYBE_DOC) $(MAYBE_TESTS) $(MAYBE_ITUTESTS)
 
-DIST_SUBDIRS = src spandsp-sim doc tests itutests
+DIST_SUBDIRS = src spandsp-sim doc tests localtests etsitests itutests
 
 faq: faq.xml
 	cd faq ; xsltproc ../wrapper.xsl ../faq.xml

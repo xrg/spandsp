@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.109 2007/12/30 05:07:22 steveu Exp $
+ * $Id: t38_gateway.c,v 1.111 2008/03/05 13:38:23 steveu Exp $
  */
 
 /*! \file */
@@ -295,7 +295,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     s->hdlc_contents[s->hdlc_out] = 0;
     if (++s->hdlc_out >= T38_TX_HDLC_BUFS)
         s->hdlc_out = 0;
-    span_log(&s->logging, SPAN_LOG_FLOW, "Changing to %s\n", t38_indicator(indicator));
+    span_log(&s->logging, SPAN_LOG_FLOW, "Changing to %s\n", t38_indicator_to_str(indicator));
     if (s->image_data_mode  &&  s->ecm_mode)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "HDLC mode\n");
@@ -749,6 +749,9 @@ static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int l
         if (from_modem)
             s->tcf_mode_predictable_modem_start = 2;
         break;
+    case T30_MCF:
+        s->pages_confirmed++;
+        break;
     default:
         break;
     }
@@ -855,8 +858,8 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
              SPAN_LOG_FLOW,
              "Queued change - (%d) %s -> %s\n",
              silence_gen_remainder(&(s->silence_gen)),
-             t38_indicator(t->current_rx_indicator),
-             t38_indicator(indicator));
+             t38_indicator_to_str(t->current_rx_indicator),
+             t38_indicator_to_str(indicator));
     s->current_rx_field_class = T38_FIELD_CLASS_NONE;
     /* We need to set this here, since we might have been called as a fake
        indication when the real one was missing */
@@ -1235,6 +1238,13 @@ static void non_ecm_put_bit(void *user_data, int bit)
         /* Special conditions */
         switch (bit)
         {
+        case PUTBIT_TRAINING_IN_PROGRESS:
+            span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier training in progress\n");
+            if (s->tcf_mode_predictable_modem_start)
+                s->tcf_mode_predictable_modem_start = 0;
+            else
+                announce_training(s);
+            break;
         case PUTBIT_TRAINING_FAILED:
             span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier training failed\n");
             break;
@@ -1243,10 +1253,6 @@ static void non_ecm_put_bit(void *user_data, int bit)
             span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier trained\n");
             s->rx_signal_present = TRUE;
             s->rx_trained = TRUE;
-            if (s->tcf_mode_predictable_modem_start)
-                s->tcf_mode_predictable_modem_start = 0;
-            else
-                announce_training(s);
             s->rx_data_ptr = 0;
             break;
         case PUTBIT_CARRIER_UP:
@@ -1430,6 +1436,10 @@ static void hdlc_rx_special_condition(hdlc_rx_state_t *t, int condition)
     s = (t38_gateway_state_t *) t->user_data;
     switch (condition)
     {
+    case PUTBIT_TRAINING_IN_PROGRESS:
+        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier training in progress\n");
+        announce_training(s);
+        break;
     case PUTBIT_TRAINING_FAILED:
         span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier training failed\n");
         break;
@@ -1438,7 +1448,6 @@ static void hdlc_rx_special_condition(hdlc_rx_state_t *t, int condition)
         span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier trained\n");
         s->rx_signal_present = TRUE;
         s->rx_trained = TRUE;
-        announce_training(s);
         /* Behave like HDLC preamble has been announced. */
         t->framing_ok_announced = TRUE;
         s->rx_data_ptr = 0;
@@ -1750,6 +1759,15 @@ int t38_gateway_tx(t38_gateway_state_t *s, int16_t amp[], int max_len)
     }
 #endif
     return len;
+}
+/*- End of function --------------------------------------------------------*/
+
+void t38_gateway_get_transfer_statistics(t38_gateway_state_t *s, t38_stats_t *t)
+{
+    memset(t, 0, sizeof(*t));
+    t->bit_rate = s->fast_bit_rate;
+    t->error_correcting_mode = s->ecm_mode;
+    t->pages_transferred = s->pages_confirmed;
 }
 /*- End of function --------------------------------------------------------*/
 
