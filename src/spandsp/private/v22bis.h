@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.7 2009/04/24 22:35:25 steveu Exp $
+ * $Id: v22bis.h,v 1.9 2009/04/26 09:50:28 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_V22BIS_H_)
@@ -38,12 +38,14 @@ struct v22bis_state_s
     int bit_rate;
     /*! \brief TRUE is this is the calling side modem. */
     int caller;
-    /*! \brief The callback function used to put each bit received. */
-    put_bit_func_t put_bit;
     /*! \brief The callback function used to get the next bit to be transmitted. */
     get_bit_func_t get_bit;
-    /*! \brief A user specified opaque pointer passed to the callback routines. */
-    void *user_data;
+    /*! \brief A user specified opaque pointer passed to the get_bit callback routine. */
+    void *get_bit_user_data;
+    /*! \brief The callback function used to put each bit received. */
+    put_bit_func_t put_bit;
+    /*! \brief A user specified opaque pointer passed to the put_bit callback routine. */
+    void *put_bit_user_data;
     /*! \brief The callback function used to report modem status changes. */
     modem_rx_status_func_t status_handler;
     /*! \brief A user specified opaque pointer passed to the status function. */
@@ -86,8 +88,6 @@ struct v22bis_state_s
         /*! \brief The integral part of the carrier tracking filter. */
         float carrier_track_i;
         
-        int scrambled_ones_to_date;
-
         /*! \brief A callback function which may be enabled to report every symbol's
                    constellation position. */
         qam_report_handler_t qam_report;

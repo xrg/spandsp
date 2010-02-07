@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.60 2009/04/24 22:35:25 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.61 2009/04/25 10:18:50 steveu Exp $
  */
 
 /*! \file */
@@ -309,7 +309,7 @@ static __inline__ int get_scrambled_bit(v22bis_state_t *s)
 {
     int bit;
 
-    if ((bit = s->tx.current_get_bit(s->user_data)) == SIG_STATUS_END_OF_DATA)
+    if ((bit = s->tx.current_get_bit(s->get_bit_user_data)) == SIG_STATUS_END_OF_DATA)
     {
         /* Fill out this symbol with ones, and prepare to send
            the rest of the shutdown sequence. */
@@ -554,14 +554,14 @@ static int v22bis_tx_restart(v22bis_state_t *s)
 SPAN_DECLARE(void) v22bis_set_get_bit(v22bis_state_t *s, get_bit_func_t get_bit, void *user_data)
 {
     s->get_bit = get_bit;
-    s->user_data = user_data;
+    s->get_bit_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
 SPAN_DECLARE(void) v22bis_set_put_bit(v22bis_state_t *s, put_bit_func_t put_bit, void *user_data)
 {
     s->put_bit = put_bit;
-    s->user_data = user_data;
+    s->put_bit_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -588,8 +588,8 @@ SPAN_DECLARE(int) v22bis_restart(v22bis_state_t *s, int bit_rate)
     default:
         return -1;
     }
-    s->bit_rate =
-    s->negotiated_bit_rate = bit_rate;
+    s->bit_rate = bit_rate;
+    s->negotiated_bit_rate = 1200;
     if (v22bis_tx_restart(s))
         return -1;
     return v22bis_rx_restart(s);
@@ -611,13 +611,20 @@ SPAN_DECLARE(int) v22bis_request_retrain(v22bis_state_t *s, int bit_rate)
 }
 /*- End of function --------------------------------------------------------*/
 
+SPAN_DECLARE(int) v22bis_current_bit_rate(v22bis_state_t *s)
+{
+    return s->negotiated_bit_rate;
+}
+/*- End of function --------------------------------------------------------*/
+
 SPAN_DECLARE(v22bis_state_t *) v22bis_init(v22bis_state_t *s,
                                            int bit_rate,
                                            int guard,
                                            int caller,
                                            get_bit_func_t get_bit,
+                                           void *get_bit_user_data,
                                            put_bit_func_t put_bit,
-                                           void *user_data)
+                                           void *put_bit_user_data)
 {
     switch (bit_rate)
     {
@@ -639,8 +646,9 @@ SPAN_DECLARE(v22bis_state_t *) v22bis_init(v22bis_state_t *s,
     s->caller = caller;
 
     s->get_bit = get_bit;
+    s->get_bit_user_data = get_bit_user_data;
     s->put_bit = put_bit;
-    s->user_data = user_data;
+    s->put_bit_user_data = put_bit_user_data;
 
     if (s->caller)
     {

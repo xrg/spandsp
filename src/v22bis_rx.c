@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.60 2009/04/24 22:35:25 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.63 2009/04/26 09:50:27 steveu Exp $
  */
 
 /*! \file */
@@ -182,11 +182,11 @@ void v22bis_report_status_change(v22bis_state_t *s, int status)
     if (s->status_handler)
         s->status_handler(s->status_user_data, status);
     else if (s->put_bit)
-        s->put_bit(s->user_data, status);
+        s->put_bit(s->put_bit_user_data, status);
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v22bis_equalizer_state(v22bis_state_t *s, complexf_t **coeffs)
+SPAN_DECLARE(int) v22bis_rx_equalizer_state(v22bis_state_t *s, complexf_t **coeffs)
 {
     *coeffs = s->rx.eq_coeff;
     return 2*V22BIS_EQUALIZER_LEN + 1;
@@ -313,7 +313,7 @@ static __inline__ void put_bit(v22bis_state_t *s, int bit)
 
     /* Descramble the bit */
     out_bit = descramble(s, bit);
-    s->put_bit(s->user_data, out_bit);
+    s->put_bit(s->put_bit_user_data, out_bit);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -326,7 +326,7 @@ static void decode_baud(v22bis_state_t *s, int nearest)
     /* The first two bits are the quadrant */
     put_bit(s, raw_bits >> 1);
     put_bit(s, raw_bits);
-    if (s->negotiated_bit_rate == 2400)
+    if (s->rx.sixteen_way_decisions)
     {
         /* The other two bits are the position within the quadrant */
         put_bit(s, nearest >> 1);
@@ -345,7 +345,7 @@ static int decode_baudx(v22bis_state_t *s, int nearest)
     /* The first two bits are the quadrant */
     out_bits = descramble(s, raw_bits >> 1);
     out_bits = (out_bits << 1) | descramble(s, raw_bits);
-    if (s->negotiated_bit_rate == 2400)
+    if (s->rx.sixteen_way_decisions)
     {
         /* The other two bits are the position within the quadrant */
         out_bits = (out_bits << 1) | descramble(s, nearest >> 1);
@@ -475,6 +475,7 @@ static void process_half_baud(v22bis_state_t *s, const complexf_t *sample)
         zz = complex_mulf(&z, &zz);
         nearest = (find_quadrant(&zz) << 2) | 0x01;
     }
+    raw_bits = 0;
 
     switch (s->rx.training)
     {
@@ -584,7 +585,6 @@ static void process_half_baud(v22bis_state_t *s, const complexf_t *sample)
         tune_equalizer(s, &z, target);
         raw_bits = phase_steps[((nearest >> 2) - (s->rx.constellation_state >> 2)) & 3];
         bitstream = decode_baudx(s, nearest);
-        s->rx.scrambled_ones_to_date += ones[bitstream];
         s->rx.training_count++;
 //span_log(&s->logging, SPAN_LOG_FLOW, "S11 0x%02x 0x%02x 0x%X %d %d %d %d %d\n", raw_bits, nearest, bitstream, s->rx.scrambled_ones_to_date, 0, 0, 0, s->rx.training_count);
         if (s->negotiated_bit_rate == 1200)
@@ -601,14 +601,17 @@ static void process_half_baud(v22bis_state_t *s, const complexf_t *sample)
                     /* We should get a full run of 00 11 (about 60 bauds) at the calling modem, but only about 20
                        at the answering modem, as the first 40 are TED settling time. */
                     span_log(&s->logging, SPAN_LOG_FLOW, "+++ S1 detected at %d\n", s->rx.pattern_repeats);
-                    if (!s->caller)
+                    if (s->bit_rate == 2400)
                     {
-                        /* Accept establishment at 2400bps */
-                        span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting U0011 (S1) (Answerer)\n");
-                        s->tx.training = V22BIS_TX_TRAINING_STAGE_U0011;
-                        s->tx.training_count = 0;
+                        if (!s->caller)
+                        {
+                            /* Accept establishment at 2400bps */
+                            span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting U0011 (S1) (Answerer)\n");
+                            s->tx.training = V22BIS_TX_TRAINING_STAGE_U0011;
+                            s->tx.training_count = 0;
+                        }
+                        s->negotiated_bit_rate = 2400;
                     }
-                    s->negotiated_bit_rate = 2400;
                 }
                 s->rx.pattern_repeats = 0;
             }
@@ -667,7 +670,6 @@ static void process_half_baud(v22bis_state_t *s, const complexf_t *sample)
         track_carrier(s, &z, target);
         tune_equalizer(s, &z, target);
         bitstream = decode_baudx(s, nearest);
-        s->rx.scrambled_ones_to_date += ones[bitstream];
         if (++s->rx.training_count > ms_to_symbols(270 + 765))
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "+++ Rx normal operation (1200)\n");
@@ -867,10 +869,7 @@ int v22bis_rx_restart(v22bis_state_t *s)
     s->rx.gardner_step = 256;
     s->rx.baud_phase = 0;
     /* We want the carrier to pull in faster on the answerer side, as it has very little time to adapt. */
-    if (s->caller)
-        s->rx.carrier_track_i = 8000.0f;
-    else
-        s->rx.carrier_track_i = 40000.0f;
+    s->rx.carrier_track_i = (s->caller)  ?  8000.0f  :  40000.0f;
     s->rx.carrier_track_p = 8000000.0f;
     return 0;
 }
