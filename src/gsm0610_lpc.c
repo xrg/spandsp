@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_lpc.c,v 1.28 2009/02/03 16:28:39 steveu Exp $
+ * $Id: gsm0610_lpc.c,v 1.29 2009/02/05 15:57:27 steveu Exp $
  */
 
 /*! \file */
@@ -135,7 +135,7 @@ static int16_t gsm_div(int16_t num, int16_t denom)
 /*- End of function --------------------------------------------------------*/
 
 #if defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX)
-void gsm0610_vec_vsraw(const int16_t *p, int n, int bits)
+static void gsm0610_vec_vsraw(const int16_t *p, int n, int bits)
 {
     static const int64_t ones = 0x0001000100010001LL;
 
