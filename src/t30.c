@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.269 2008/10/13 13:14:00 steveu Exp $
+ * $Id: t30.c,v 1.270 2008/11/08 16:51:35 steveu Exp $
  */
 
 /*! \file */
@@ -4875,17 +4875,16 @@ static void t30_non_ecm_rx_status(void *user_data, int status)
     int was_trained;
 
     s = (t30_state_t *) user_data;
+    span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM signal status is %s (%d) in state %d\n", signal_status_to_str(status), status, s->state);
     switch (status)
     {
     case SIG_STATUS_TRAINING_IN_PROGRESS:
         break;
     case SIG_STATUS_TRAINING_FAILED:
-        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier training failed in state %d\n", s->state);
         s->rx_trained = FALSE;
         break;
     case SIG_STATUS_TRAINING_SUCCEEDED:
         /* The modem is now trained */
-        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier trained in state %d\n", s->state);
         /* In case we are in trainability test mode... */
         s->tcf_test_bits = 0;
         s->tcf_current_zeros = 0;
@@ -4895,10 +4894,8 @@ static void t30_non_ecm_rx_status(void *user_data, int status)
         s->timer_t2_t4 = 0;
         break;
     case SIG_STATUS_CARRIER_UP:
-        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier up in state %d\n", s->state);
         break;
     case SIG_STATUS_CARRIER_DOWN:
-        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier down in state %d\n", s->state);
         was_trained = s->rx_trained;
         s->rx_signal_present = FALSE;
         s->rx_trained = FALSE;
@@ -5202,22 +5199,20 @@ static void t30_hdlc_rx_status(void *user_data, int status)
     t30_state_t *s;
 
     s = (t30_state_t *) user_data;
+    span_log(&s->logging, SPAN_LOG_FLOW, "HDLC signal status is %s (%d) in state %d\n", signal_status_to_str(status), status, s->state);
     switch (status)
     {
     case SIG_STATUS_TRAINING_IN_PROGRESS:
         break;
     case SIG_STATUS_TRAINING_FAILED:
-        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier training failed in state %d\n", s->state);
         s->rx_trained = FALSE;
         break;
     case SIG_STATUS_TRAINING_SUCCEEDED:
         /* The modem is now trained */
-        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier trained in state %d\n", s->state);
         s->rx_signal_present = TRUE;
         s->rx_trained = TRUE;
         break;
     case SIG_STATUS_CARRIER_UP:
-        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier up in state %d\n", s->state);
         s->rx_signal_present = TRUE;
         switch (s->timer_t2_t4_is)
         {
@@ -5232,7 +5227,6 @@ static void t30_hdlc_rx_status(void *user_data, int status)
         }
         break;
     case SIG_STATUS_CARRIER_DOWN:
-        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier down in state %d\n", s->state);
         s->rx_signal_present = FALSE;
         s->rx_trained = FALSE;
         /* If a phase change has been queued to occur after the receive signal drops,
@@ -5261,7 +5255,6 @@ static void t30_hdlc_rx_status(void *user_data, int status)
         }
         break;
     case SIG_STATUS_FRAMING_OK:
-        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC framing OK in state %d\n", s->state);
         if (!s->far_end_detected  &&  s->timer_t0_t1 > 0)
         {
             s->timer_t0_t1 = ms_to_samples(DEFAULT_TIMER_T1);

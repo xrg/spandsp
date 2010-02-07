@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.144 2008/10/13 13:14:00 steveu Exp $
+ * $Id: t38_gateway.c,v 1.145 2008/11/08 16:51:36 steveu Exp $
  */
 
 /*! \file */
@@ -138,6 +138,15 @@ enum
 {
     FLAG_INDICATOR = 0x100,
     FLAG_DATA = 0x200
+};
+
+enum
+{
+    TCF_MODE_PREDICTABLE_MODEM_START_OFF = 0,
+    TCF_MODE_PREDICTABLE_MODEM_START_FAST_MODEM_ANNOUNCED,
+    TCF_MODE_PREDICTABLE_MODEM_START_FAST_MODEM_SEEN,
+    TCF_MODE_PREDICTABLE_MODEM_START_PAST_V21_MODEM,
+    TCF_MODE_PREDICTABLE_MODEM_START_BEGIN
 };
 
 #define MAX_NSX_SUPPRESSION             10
@@ -412,7 +421,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     }
     else
     {
-        span_log(&s->logging, SPAN_LOG_FLOW, "non-ECM mode\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM mode\n");
         get_bit_func = t38_non_ecm_buffer_get_bit;
         get_bit_user_data = (void *) &s->core.non_ecm_to_modem;
     }
@@ -763,7 +772,7 @@ static void monitor_control_messages(t38_gateway_state_t *s, int from_modem, uin
     if (len < 3)
         return;
     /*endif*/
-    s->core.tcf_mode_predictable_modem_start = 0;
+    s->core.tcf_mode_predictable_modem_start = TCF_MODE_PREDICTABLE_MODEM_START_OFF;
     switch (buf[2])
     {
     case T30_CFR:
@@ -820,7 +829,7 @@ static void monitor_control_messages(t38_gateway_state_t *s, int from_modem, uin
         s->core.image_data_mode = FALSE;
         s->core.short_train = FALSE;
         if (from_modem)
-            s->core.tcf_mode_predictable_modem_start = 2;
+            s->core.tcf_mode_predictable_modem_start = TCF_MODE_PREDICTABLE_MODEM_START_BEGIN;
         /*endif*/
         break;
     case T30_PPS:
@@ -1499,31 +1508,36 @@ static void non_ecm_rx_status(void *user_data, int status)
     t38_gateway_state_t *s;
 
     s = (t38_gateway_state_t *) user_data;
+    span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM signal status is %s (%d)\n", signal_status_to_str(status), status);
     switch (status)
     {
     case SIG_STATUS_TRAINING_IN_PROGRESS:
-        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier training in progress\n");
-        if (s->core.tcf_mode_predictable_modem_start)
-            s->core.tcf_mode_predictable_modem_start = 0;
-        else
+        if (s->core.tcf_mode_predictable_modem_start == TCF_MODE_PREDICTABLE_MODEM_START_OFF)
+        {
             announce_training(s);
+        }
+        else
+        {
+            if (s->core.tcf_mode_predictable_modem_start == TCF_MODE_PREDICTABLE_MODEM_START_PAST_V21_MODEM)
+                s->core.tcf_mode_predictable_modem_start = TCF_MODE_PREDICTABLE_MODEM_START_FAST_MODEM_SEEN;
+            else
+                s->core.samples_to_timeout = ms_to_samples(500);
+            set_fast_packetisation(s);
+        }
         break;
     case SIG_STATUS_TRAINING_FAILED:
-        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier training failed\n");
         break;
     case SIG_STATUS_TRAINING_SUCCEEDED:
         /* The modem is now trained */
-        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier trained\n");
         s->audio.modems.rx_signal_present = TRUE;
         s->audio.modems.rx_trained = TRUE;
+        s->core.tcf_mode_predictable_modem_start = TCF_MODE_PREDICTABLE_MODEM_START_OFF;
+        s->core.samples_to_timeout = 0;
         to_t38_buffer_init(&s->core.to_t38);
         break;
     case SIG_STATUS_CARRIER_UP:
-        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier up\n");
         break;
     case SIG_STATUS_CARRIER_DOWN:
-        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier down\n");
-        s->core.tcf_mode_predictable_modem_start = 0;
         switch (s->t38x.current_tx_data_type)
         {
         case T38_DATA_V17_7200:
@@ -1534,8 +1548,13 @@ static void non_ecm_rx_status(void *user_data, int status)
         case T38_DATA_V27TER_4800:
         case T38_DATA_V29_7200:
         case T38_DATA_V29_9600:
-            non_ecm_push_residue(s);
-            t38_core_send_indicator(&s->t38x.t38, T38_IND_NO_SIGNAL, s->t38x.t38.indicator_tx_count);
+            if (s->core.tcf_mode_predictable_modem_start != TCF_MODE_PREDICTABLE_MODEM_START_FAST_MODEM_ANNOUNCED)
+            {
+                /* TODO: If the carrier really did fall for good during the 500ms TEP blocking timeout, we
+                         won't declare the no-signal condition. */
+                non_ecm_push_residue(s);
+                t38_core_send_indicator(&s->t38x.t38, T38_IND_NO_SIGNAL, s->t38x.t38.indicator_tx_count);
+            }
             restart_rx_modem(s);
             break;
         }
@@ -1666,7 +1685,7 @@ static void hdlc_rx_status(hdlc_rx_state_t *t, int status)
     t38_gateway_state_t *s;
 
     s = (t38_gateway_state_t *) t->user_data;
-    span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier status is %s (%d)\n", signal_status_to_str(status), status);
+    span_log(&s->logging, SPAN_LOG_FLOW, "HDLC signal status is %s (%d)\n", signal_status_to_str(status), status);
     switch (status)
     {
     case SIG_STATUS_TRAINING_IN_PROGRESS:
@@ -1699,14 +1718,15 @@ static void hdlc_rx_status(hdlc_rx_state_t *t, int status)
             t->framing_ok_announced = FALSE;
         }
         restart_rx_modem(s);
-        if (s->core.tcf_mode_predictable_modem_start == 2)
+        if (s->core.tcf_mode_predictable_modem_start == TCF_MODE_PREDICTABLE_MODEM_START_BEGIN)
         {
             /* If we are doing TCF, we need to announce the fast carrier training very
                quickly, to ensure it starts 75+-20ms after the HDLC carrier ends. Waiting until
                it trains will be too late. We need to announce the fast modem a fixed time after
-               the end of the V.21 carrier, in anticipation of its arrival. */
+               the end of the V.21 carrier, in anticipation of its arrival. If we announce it,
+               and it doesn't arrive, we will worry about that later. */
             s->core.samples_to_timeout = ms_to_samples(75);
-            s->core.tcf_mode_predictable_modem_start = 1;
+            s->core.tcf_mode_predictable_modem_start = TCF_MODE_PREDICTABLE_MODEM_START_PAST_V21_MODEM;
         }
         break;
     default:
@@ -1988,9 +2008,25 @@ int t38_gateway_rx(t38_gateway_state_t *s, int16_t amp[], int len)
     {
         if ((s->core.samples_to_timeout -= len) <= 0)
         {
-            if (s->core.tcf_mode_predictable_modem_start == 1)
+            switch (s->core.tcf_mode_predictable_modem_start)
+            {
+            case TCF_MODE_PREDICTABLE_MODEM_START_PAST_V21_MODEM:
+                /* Timed announcement of training, 75ms after the DCS carrier fell. */
+                s->core.tcf_mode_predictable_modem_start = TCF_MODE_PREDICTABLE_MODEM_START_FAST_MODEM_ANNOUNCED;
                 announce_training(s);
-            /*endif*/
+                break;
+            case TCF_MODE_PREDICTABLE_MODEM_START_FAST_MODEM_SEEN:
+                /* Timed announcement of training, 75ms after the DCS carrier fell. */
+                /* Use a timeout to ride over TEP, if it is present */
+                s->core.samples_to_timeout = ms_to_samples(500);
+                announce_training(s);
+                break;
+            case TCF_MODE_PREDICTABLE_MODEM_START_FAST_MODEM_ANNOUNCED:
+                s->core.tcf_mode_predictable_modem_start = TCF_MODE_PREDICTABLE_MODEM_START_OFF;
+                span_log(&s->logging, SPAN_LOG_FLOW, "TEP jamming expired\n");
+                break;
+            }
+            /*endswitch*/
         }
         /*endif*/
     }

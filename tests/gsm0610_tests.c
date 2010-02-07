@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: gsm0610_tests.c,v 1.19 2008/08/29 09:28:13 steveu Exp $
+ * $Id: gsm0610_tests.c,v 1.20 2008/11/08 16:45:04 steveu Exp $
  */
 
 /*! \file */
@@ -521,6 +521,7 @@ int main(int argc, char *argv[])
     AFfilehandle outhandle;
     int frames;
     int outframes;
+    int bytes;
     int16_t pre_amp[HIST_LEN];
     int16_t post_amp[HIST_LEN];
     uint8_t gsm0610_data[HIST_LEN];
@@ -597,8 +598,8 @@ int main(int argc, char *argv[])
 
         while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, pre_amp, 2*BLOCK_LEN)))
         {
-            gsm0610_encode(gsm0610_enc_state, gsm0610_data, pre_amp, (packing == GSM0610_PACKING_WAV49)  ?  BLOCK_LEN  :  2*BLOCK_LEN);
-            gsm0610_decode(gsm0610_dec_state, post_amp, gsm0610_data, (packing == GSM0610_PACKING_WAV49)  ?  33  :  65);
+            bytes = gsm0610_encode(gsm0610_enc_state, gsm0610_data, pre_amp, frames);
+            gsm0610_decode(gsm0610_dec_state, post_amp, gsm0610_data, bytes);
             outframes = afWriteFrames(outhandle, AF_DEFAULT_TRACK, post_amp, frames);
         }
     
