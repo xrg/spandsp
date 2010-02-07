@@ -1,3 +1,4 @@
+#define IAXMODEM_STUFF
 /*
  * SpanDSP - a series of DSP components for telephony
  *
@@ -22,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.142 2009/04/19 13:45:35 steveu Exp $
+ * $Id: v17rx.c,v 1.145 2009/04/20 16:36:36 steveu Exp $
  */
 
 /*! \file */
@@ -129,13 +130,13 @@ enum
 #define SYNC_CROSS_CORR_COEFF_B         ((int)(FP_FACTOR* 0.700036f))   /* alpha*sin(high_edge) */
 #define SYNC_CROSS_CORR_COEFF_C         ((int)(FP_FACTOR*-0.449451f))   /* -alpha*sin(low_edge) */
 #else
-#define SYNC_LOW_BAND_EDGE_COEFF_0       1.764193f    /* 2*alpha*cos(low_edge) */
-#define SYNC_LOW_BAND_EDGE_COEFF_1      -0.980100f    /* -alpha^2 */
-#define SYNC_HIGH_BAND_EDGE_COEFF_0     -1.400072f    /* 2*alpha*cos(high_edge) */
-#define SYNC_HIGH_BAND_EDGE_COEFF_1     -0.980100f    /* -alpha^2 */
-#define SYNC_CROSS_CORR_COEFF_A         -0.932131f    /* -alpha^2*sin(freq_diff) */
-#define SYNC_CROSS_CORR_COEFF_B          0.700036f    /* alpha*sin(high_edge) */
-#define SYNC_CROSS_CORR_COEFF_C         -0.449451f    /* -alpha*sin(low_edge) */
+#define SYNC_LOW_BAND_EDGE_COEFF_0       1.764193f                      /* 2*alpha*cos(low_edge) */
+#define SYNC_LOW_BAND_EDGE_COEFF_1      -0.980100f                      /* -alpha^2 */
+#define SYNC_HIGH_BAND_EDGE_COEFF_0     -1.400072f                      /* 2*alpha*cos(high_edge) */
+#define SYNC_HIGH_BAND_EDGE_COEFF_1     -0.980100f                      /* -alpha^2 */
+#define SYNC_CROSS_CORR_COEFF_A         -0.932131f                      /* -alpha^2*sin(freq_diff) */
+#define SYNC_CROSS_CORR_COEFF_B          0.700036f                      /* alpha*sin(high_edge) */
+#define SYNC_CROSS_CORR_COEFF_C         -0.449451f                      /* -alpha*sin(low_edge) */
 #endif
 
 #if defined(SPANDSP_USE_FIXED_POINTx)
@@ -528,11 +529,40 @@ static int decode_baud(v17_rx_state_t *s, complexf_t *z)
 static __inline__ void symbol_sync(v17_rx_state_t *s)
 {
     int i;
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    int32_t v;
+    int32_t p;
+#else
     float v;
     float p;
+#endif
 
     /* This routine adapts the position of the half baud samples entering the equalizer. */
 
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    /* TODO: The scalings used here need more thorough evaluation, to see if overflows are possible. */
+    /* Cross correlate */
+    v = (((s->symbol_sync_low[1] >> 5)*(s->symbol_sync_high[1] >> 4)) >> 15)*SYNC_CROSS_CORR_COEFF_A
+      + (((s->symbol_sync_low[0] >> 5)*(s->symbol_sync_high[1] >> 4)) >> 15)*SYNC_CROSS_CORR_COEFF_B
+      + (((s->symbol_sync_low[1] >> 5)*(s->symbol_sync_high[0] >> 4)) >> 15)*SYNC_CROSS_CORR_COEFF_C;
+    /* Filter away any DC component */
+    p = v - s->symbol_sync_dc_filter[1];
+    s->symbol_sync_dc_filter[1] = s->symbol_sync_dc_filter[0];
+    s->symbol_sync_dc_filter[0] = v;
+    /* A little integration will now filter away much of the noise */
+    s->baud_phase -= p;
+    if (abs(s->baud_phase) > 100*FP_FACTOR)
+    {
+        if (s->baud_phase > 0)
+            i = (s->baud_phase > 1000*FP_FACTOR)  ?  5  :  1;
+        else
+            i = (s->baud_phase < -1000*FP_FACTOR)  ?  -5  :  -1;
+
+        //printf("v = %10.5f %5d - %f %f %d %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
+        s->eq_put_step += i;
+        s->total_baud_timing_correction += i;
+    }
+#else
     /* Cross correlate */
     v = s->symbol_sync_low[1]*s->symbol_sync_high[1]*SYNC_CROSS_CORR_COEFF_A
       + s->symbol_sync_low[0]*s->symbol_sync_high[1]*SYNC_CROSS_CORR_COEFF_B
@@ -556,6 +586,7 @@ static __inline__ void symbol_sync(v17_rx_state_t *s)
         s->eq_put_step += i;
         s->total_baud_timing_correction += i;
     }
+#endif
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -613,14 +644,7 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
     case TRAINING_STAGE_SYMBOL_ACQUISITION:
         /* Allow time for the symbol synchronisation to settle the symbol timing. */
         target = &zero;
-#if 1 //defined(IAXMODEM_STUFF)
         if (++s->training_count >= 100)
-#else
-        ++s->training_count;
-        if ((!s->short_train  &&  s->training_count >= 50)
-            ||
-            (s->short_train  &&  s->training_count >= 100))
-#endif
         {
             /* Record the current phase angle */
             s->angles[0] =
@@ -1013,7 +1037,7 @@ SPAN_DECLARE(int) v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
            We need to measure the power with the DC blocked, but not using
            a slow to respond DC blocker. Use the most elementary HPF. */
         x = amp[i] >> 1;
-        /* There could be oveflow here, but it isn't a problem in practice */
+        /* There could be overflow here, but it isn't a problem in practice */
         diff = x - s->last_sample;
         power = power_meter_update(&(s->power), diff);
 #if defined(IAXMODEM_STUFF)

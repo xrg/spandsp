@@ -1,3 +1,4 @@
+#define IAXMODEM_STUFF
 /*
  * SpanDSP - a series of DSP components for telephony
  *
@@ -22,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.122 2009/04/17 14:37:52 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.125 2009/04/20 16:36:36 steveu Exp $
  */
 
 /*! \file */
@@ -640,6 +641,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
             s->training_bc ^= descramble(s, 1);
             descramble(s, 1);
             descramble(s, 1);
+            s->constellation_state = abab_pos[s->training_bc];
             s->training_count = 1;
             s->training_stage = TRAINING_STAGE_TRAIN_ON_ABAB;
             report_status_change(s, SIG_STATUS_TRAINING_IN_PROGRESS);
@@ -782,7 +784,7 @@ SPAN_DECLARE(int) v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                We need to measure the power with the DC blocked, but not using
                a slow to respond DC blocker. Use the most elementary HPF. */
             x = amp[i] >> 1;
-            /* There could be oveflow here, but it isn't a problem in practice */
+            /* There could be overflow here, but it isn't a problem in practice */
             diff = x - s->last_sample;
             power = power_meter_update(&(s->power), diff);
 #if defined(IAXMODEM_STUFF)
@@ -904,7 +906,7 @@ SPAN_DECLARE(int) v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                We need to measure the power with the DC blocked, but not using
                a slow to respond DC blocker. Use the most elementary HPF. */
             x = amp[i] >> 1;
-            /* There could be oveflow here, but it isn't a problem in practice */
+            /* There could be overflow here, but it isn't a problem in practice */
             diff = x - s->last_sample;
             power = power_meter_update(&(s->power), diff);
 #if defined(IAXMODEM_STUFF)

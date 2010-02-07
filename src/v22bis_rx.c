@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.55 2009/04/17 14:37:52 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.56 2009/04/20 12:26:38 steveu Exp $
  */
 
 /*! \file */
@@ -494,17 +494,13 @@ static void process_half_baud(v22bis_state_t *s, const complexf_t *sample)
                but since we might be off in the opposite direction from the source, the total
                error could be higher. */
             s->rx.gardner_step = 4;
+            s->rx.detected_unscrambled_zeros = 0;
+            s->rx.detected_unscrambled_ones = 0;
+            s->rx.detected_2400bps_markers = 0;
             if (s->caller)
-            {
                 s->rx.training = V22BIS_RX_TRAINING_STAGE_UNSCRAMBLED_ONES;
-                s->rx.detected_unscrambled_zeros = 0;
-                s->rx.detected_unscrambled_ones = 0;
-                s->rx.detected_2400bps_markers = 0;
-            }
             else
-            {
                 s->rx.training = V22BIS_RX_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
-            }
             break;
         }
         /* Once we have pulled in the symbol timing in a coarse way, use finer
@@ -534,7 +530,9 @@ static void process_half_baud(v22bis_state_t *s, const complexf_t *sample)
 span_log(&s->logging, SPAN_LOG_FLOW, "TWIDDLING THUMBS - %d %d\n", s->rx.training_count, s->rx.detected_2400bps_markers);
         if (++s->rx.training_count == ms_to_symbols(155 + 456))
         {
-            if (s->rx.detected_unscrambled_ones >= 250  ||  s->rx.detected_unscrambled_zeros >= 250)
+            if (s->rx.detected_unscrambled_ones >= ms_to_symbols(456)
+                ||
+                s->rx.detected_unscrambled_zeros >= ms_to_symbols(456))
             {
                 if (s->bit_rate == 2400)
                 {
@@ -552,8 +550,6 @@ span_log(&s->logging, SPAN_LOG_FLOW, "TWIDDLING THUMBS - %d %d\n", s->rx.trainin
                 }
             }
 span_log(&s->logging, SPAN_LOG_FLOW, "unscrambled ones = %d, unscrambled zeros = %d, 2400 markers = %d\n", s->rx.detected_unscrambled_ones, s->rx.detected_unscrambled_zeros, s->rx.detected_2400bps_markers);
-            /* We should only bother looking for the 2400bps marker if we are allowed to use
-               2400bps */
             s->rx.training_count = 0;
             s->rx.training = V22BIS_RX_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
             s->rx.detected_unscrambled_zeros = 0;

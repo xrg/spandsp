@@ -1,3 +1,4 @@
+#define IAXMODEM_STUFF
 /*
  * SpanDSP - a series of DSP components for telephony
  *
@@ -22,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.160 2009/04/17 14:37:52 steveu Exp $
+ * $Id: v29rx.c,v 1.163 2009/04/20 16:36:36 steveu Exp $
  */
 
 /*! \file */
@@ -501,7 +502,7 @@ static __inline__ void symbol_sync(v29_rx_state_t *s)
     s->symbol_sync_dc_filter[0] = v;
     /* A little integration will now filter away much of the noise */
     s->baud_phase -= p;
-    if (abs(s->baud_phase) > 100*FP_FACTOR)
+    if (abs(s->baud_phase) > 30*FP_FACTOR)
     {
         if (s->baud_phase > 0)
             i = (s->baud_phase > 1000*FP_FACTOR)  ?  5  :  1;
@@ -683,6 +684,8 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
             s->carrier_phase += angle;
             /* We have just seen the first bit of the scrambled sequence, so skip it. */
             bit = scrambled_training_bit(s);
+            s->constellation_state = cdcd_pos[s->training_cd + bit];
+            target = &v29_9600_constellation[s->constellation_state];
             s->training_count = 1;
             s->training_stage = TRAINING_STAGE_TRAIN_ON_CDCD;
             report_status_change(s, SIG_STATUS_TRAINING_IN_PROGRESS);
@@ -867,7 +870,7 @@ SPAN_DECLARE(int) v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
            We need to measure the power with the DC blocked, but not using
            a slow to respond DC blocker. Use the most elementary HPF. */
         x = amp[i] >> 1;
-        /* There could be oveflow here, but it isn't a problem in practice */
+        /* There could be overflow here, but it isn't a problem in practice */
         diff = x - s->last_sample;
         power = power_meter_update(&(s->power), diff);
 #if defined(IAXMODEM_STUFF)

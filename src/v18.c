@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v18.c,v 1.5 2009/04/12 09:12:10 steveu Exp $
+ * $Id: v18.c,v 1.6 2009/04/20 16:36:36 steveu Exp $
  */
  
 /*! \file */
@@ -34,6 +34,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <memory.h>
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
