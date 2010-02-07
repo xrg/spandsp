@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.101 2007/11/26 13:58:06 steveu Exp $
+ * $Id: t4.c,v 1.102 2007/11/26 17:35:51 steveu Exp $
  */
 
 /*
@@ -292,6 +292,10 @@ static int get_tiff_directory_info(t4_state_t *s)
     float y_resolution;
     int i;
 
+    parm = 0;
+    TIFFGetField(s->tiff_file, TIFFTAG_BITSPERSAMPLE, &parm);
+    if (parm != 1)
+        return -1;
     parm = 0;
     TIFFGetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, &parm);
     s->image_width = parm;
@@ -1602,12 +1606,15 @@ t4_state_t *t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop
 
     if (open_tiff_input_file(s, file) < 0)
         return NULL;
-
     s->file = strdup(file);
     s->start_page = (start_page >= 0)  ?  start_page  :  0;
     s->stop_page = (stop_page >= 0)  ?  stop_page : INT_MAX;
 
-    get_tiff_directory_info(s);
+    if (get_tiff_directory_info(s))
+    {
+        close_tiff_input_file(s);
+        return NULL;
+    }
 
     s->rows_to_next_1d_row = s->max_rows_to_next_1d_row - 1;
 
@@ -1620,11 +1627,13 @@ t4_state_t *t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop
     if ((s->ref_runs = (uint32_t *) malloc(run_space)) == NULL)
     {
         free_buffers(s);
+        close_tiff_input_file(s);
         return NULL;
     }
     if ((s->row_buf = malloc(s->bytes_per_row)) == NULL)
     {
         free_buffers(s);
+        close_tiff_input_file(s);
         return NULL;
     }
     s->ref_runs[0] =

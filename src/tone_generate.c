@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.c,v 1.37 2007/11/18 08:57:14 steveu Exp $
+ * $Id: tone_generate.c,v 1.38 2007/11/26 17:35:51 steveu Exp $
  */
 
 /*! \file */
@@ -91,10 +91,12 @@ void make_tone_gen_descriptor(tone_gen_descriptor_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-void tone_gen_init(tone_gen_state_t *s, tone_gen_descriptor_t *t)
+tone_gen_state_t *tone_gen_init(tone_gen_state_t *s, tone_gen_descriptor_t *t)
 {
     int i;
 
+    if (s == NULL)
+        return NULL;
     for (i = 0;  i < 4;  i++)
     {
         s->tone[i] = t->tone[i];
@@ -107,6 +109,7 @@ void tone_gen_init(tone_gen_state_t *s, tone_gen_descriptor_t *t)
 
     s->current_section = 0;
     s->current_position = 0;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
