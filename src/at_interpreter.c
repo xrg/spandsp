@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.c,v 1.33 2009/01/05 13:48:31 steveu Exp $
+ * $Id: at_interpreter.c,v 1.34 2009/01/16 15:13:16 steveu Exp $
  */
 
 /*! \file */
@@ -183,6 +183,7 @@ void at_put_response_code(at_state_t *s, int code)
 {
     uint8_t buf[20];
 
+    span_log(&s->logging, SPAN_LOG_FLOW, "Sending AT response code %s\n", at_response_codes[code]);
     switch (s->p.result_code_format)
     {
     case ASCII_RESULT_CODES:
@@ -242,7 +243,7 @@ void at_call_event(at_state_t *s, int event)
         }
         break;
     case AT_CALL_EVENT_CONNECTED:
-        span_log(&s->logging, SPAN_LOG_FLOW, "Dial call - connected. fclass=%d\n", s->fclass_mode);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Dial call - connected. FCLASS=%d\n", s->fclass_mode);
         at_modem_control(s, AT_MODEM_CONTROL_RNG, (void *) 0);
         if (s->fclass_mode == 0)
         {
@@ -5302,6 +5303,8 @@ at_state_t *at_init(at_state_t *s,
             return NULL;
     }
     memset(s, '\0', sizeof(*s));
+    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
+    span_log_set_protocol(&s->logging, "AT");
     s->modem_control_handler = modem_control_handler;
     s->modem_control_user_data = modem_control_user_data;
     s->at_tx_handler = at_tx_handler;

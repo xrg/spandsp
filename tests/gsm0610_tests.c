@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: gsm0610_tests.c,v 1.22 2008/11/30 10:17:31 steveu Exp $
+ * $Id: gsm0610_tests.c,v 1.23 2009/01/12 17:20:59 steveu Exp $
  */
 
 /*! \file */
@@ -528,26 +528,26 @@ int main(int argc, char *argv[])
     uint8_t gsm0610_data[HIST_LEN];
     gsm0610_state_t *gsm0610_enc_state;
     gsm0610_state_t *gsm0610_dec_state;
+    int opt;
     int etsitests;
     int packing;
-    int i;
 
     etsitests = TRUE;
     packing = GSM0610_PACKING_NONE;
-    for (i = 1;  i < argc;  i++)
+    while ((opt = getopt(argc, argv, "lp:")) != -1)
     {
-        if (strcmp(argv[i], "-l") == 0)
+        switch (opt)
         {
+        case 'l':
             etsitests = FALSE;
-            continue;
+            break;
+        case 'p':
+            packing = atoi(optarg);
+            break;
+        default:
+            //usage();
+            exit(2);
         }
-        if (strcmp(argv[i], "-p") == 0)
-        {
-            packing = atoi(argv[++i]);
-            continue;
-        }
-        fprintf(stderr, "Unknown parameter %s specified.\n", argv[i]);
-        exit(2);
     }
 
     if (etsitests)

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.114 2009/01/09 16:56:07 steveu Exp $
+ * $Id: t38_terminal.c,v 1.115 2009/01/16 15:13:16 steveu Exp $
  */
 
 /*! \file */
@@ -1002,7 +1002,8 @@ static int t38_terminal_t38_fe_init(t38_terminal_state_t *t,
 
     s->rx_signal_present = FALSE;
     s->timed_step = T38_TIMED_STEP_NONE;
-    s->iaf = T30_IAF_MODE_T37 | T30_IAF_MODE_T38;
+    //s->iaf = T30_IAF_MODE_T37 | T30_IAF_MODE_T38;
+    s->iaf = T30_IAF_MODE_T38;
 
     s->current_tx_data_type = T38_DATA_NONE;
     s->next_tx_samples = 0;

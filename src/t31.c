@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.133 2009/01/09 16:56:07 steveu Exp $
+ * $Id: t31.c,v 1.134 2009/01/16 15:13:16 steveu Exp $
  */
 
 /*! \file */
@@ -62,6 +62,7 @@
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
 #include "spandsp/async.h"
+#include "spandsp/crc.h"
 #include "spandsp/hdlc.h"
 #include "spandsp/silence_gen.h"
 #include "spandsp/fsk.h"
@@ -175,6 +176,8 @@ static int cng_rx(void *user_data, const int16_t amp[], int len);
 static void non_ecm_put_bit(void *user_data, int bit);
 static void non_ecm_put_chunk(void *user_data, const uint8_t buf[], int len);
 static int non_ecm_get_chunk(void *user_data, uint8_t buf[], int len);
+static void non_ecm_rx_status(void *user_data, int status);
+static void hdlc_rx_status(void *user_data, int status);
 
 static __inline__ void t31_set_at_rx_mode(t31_state_t *s, int new_mode)
 {
@@ -220,6 +223,9 @@ static void front_end_status(t31_state_t *s, int status)
             restart_modem(s, T31_SILENCE_TX);
             break;
         }
+        break;
+    case T30_FRONT_END_RECEIVE_COMPLETE:
+        break;
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -307,7 +313,7 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
             &&
             (fe->current_rx_type == T30_MODEM_V21  ||  fe->current_rx_type == T30_MODEM_CNG))
         {
-            hdlc_accept_frame(s, NULL, SIG_STATUS_CARRIER_DOWN, TRUE);
+            hdlc_rx_status(s, SIG_STATUS_CARRIER_DOWN);
         }
         fe->timeout_rx_samples = 0;
         front_end_status(s, T30_FRONT_END_SIGNAL_ABSENT);
@@ -431,6 +437,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         if (t->current_rx_data_type != data_type  ||  t->current_rx_field_type != field_type)
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC OK (%s)\n", (fe->hdlc_rx.len >= 3)  ?  t30_frametype(fe->hdlc_rx.buf[2])  :  "???", (fe->rx_data_missing)  ?  "missing octets"  :  "clean");
+            crc_itu16_append(fe->hdlc_rx.buf, fe->hdlc_rx.len);
             hdlc_accept_frame(s, fe->hdlc_rx.buf, fe->hdlc_rx.len, !fe->rx_data_missing);
         }
         fe->hdlc_rx.len = 0;
@@ -469,8 +476,9 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         if (t->current_rx_data_type != data_type  ||  t->current_rx_field_type != field_type)
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC OK, sig end (%s)\n", (fe->hdlc_rx.len >= 3)  ?  t30_frametype(fe->hdlc_rx.buf[2])  :  "???", (fe->rx_data_missing)  ?  "missing octets"  :  "clean");
+            crc_itu16_append(fe->hdlc_rx.buf, fe->hdlc_rx.len);
             hdlc_accept_frame(s, fe->hdlc_rx.buf, fe->hdlc_rx.len, !fe->rx_data_missing);
-            hdlc_accept_frame(s, NULL, SIG_STATUS_CARRIER_DOWN, TRUE);
+            hdlc_rx_status(s, SIG_STATUS_CARRIER_DOWN);
         }
         fe->hdlc_rx.len = 0;
         fe->rx_data_missing = FALSE;
@@ -490,7 +498,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC bad, sig end (%s)\n", (fe->hdlc_rx.len >= 3)  ?  t30_frametype(fe->hdlc_rx.buf[2])  :  "???", (fe->rx_data_missing)  ?  "missing octets"  :  "clean");
             hdlc_accept_frame(s, fe->hdlc_rx.buf, fe->hdlc_rx.len, FALSE);
-            hdlc_accept_frame(s, NULL, SIG_STATUS_CARRIER_DOWN, TRUE);
+            hdlc_rx_status(s, SIG_STATUS_CARRIER_DOWN);
         }
         fe->hdlc_rx.len = 0;
         fe->rx_data_missing = FALSE;
@@ -517,13 +525,13 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             fe->hdlc_rx.len = 0;
             fe->rx_data_missing = FALSE;
             fe->timeout_rx_samples = 0;
-            front_end_status(s, T30_FRONT_END_RECEIVE_COMPLETE);
+            hdlc_rx_status(s, SIG_STATUS_CARRIER_DOWN);
         }
         break;
     case T38_FIELD_T4_NON_ECM_DATA:
         if (!s->at_state.rx_signal_present)
         {
-            non_ecm_put_bit(s, SIG_STATUS_TRAINING_SUCCEEDED);
+            non_ecm_rx_status(s, SIG_STATUS_TRAINING_SUCCEEDED);
             s->at_state.rx_signal_present = TRUE;
         }
         if (len > 0)
@@ -543,7 +551,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             {
                 if (!s->at_state.rx_signal_present)
                 {
-                    non_ecm_put_bit(s, SIG_STATUS_TRAINING_SUCCEEDED);
+                    non_ecm_rx_status(s, SIG_STATUS_TRAINING_SUCCEEDED);
                     s->at_state.rx_signal_present = TRUE;
                 }
                 bit_reverse(buf2, buf, len);
@@ -553,7 +561,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
                            they should send non-ECM signal end. It is possible they also do the opposite.
                            We need to tolerate this, so we use the generic receive complete
                            indication, rather than the specific non-ECM carrier down. */
-            front_end_status(s, T30_FRONT_END_RECEIVE_COMPLETE);
+            non_ecm_rx_status(s, SIG_STATUS_CARRIER_DOWN);
         }
         s->at_state.rx_signal_present = FALSE;
         fe->timeout_rx_samples = 0;
@@ -726,7 +734,8 @@ int t31_t38_send_timeout(t31_state_t *s, int samples)
            contain data. Hopefully, following the current spec will not cause compatibility
            issues. */
         len = non_ecm_get_chunk(s, buf, fe->octets_per_data_packet);
-        bit_reverse(buf, buf, len);
+        if (len > 0)
+            bit_reverse(buf, buf, len);
         if (len < fe->octets_per_data_packet)
         {
             /* That's the end of the image data. Do a little padding now */
@@ -778,6 +787,7 @@ int t31_t38_send_timeout(t31_state_t *s, int samples)
     case T38_TIMED_STEP_HDLC_MODEM_2:
         /* Send HDLC preambling */
         t38_core_send_indicator(&fe->t38, fe->next_tx_indicator, fe->t38.indicator_tx_count);
+        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
         fe->next_tx_samples += ms_to_samples(startup_time[fe->next_tx_indicator].training + startup_time[fe->next_tx_indicator].flags);
         if (s->audio.modems.use_tep)
             fe->next_tx_samples += ms_to_samples(startup_time[fe->next_tx_indicator].tep);
@@ -785,6 +795,12 @@ int t31_t38_send_timeout(t31_state_t *s, int samples)
         break;
     case T38_TIMED_STEP_HDLC_MODEM_3:
         /* Send a chunk of HDLC data */
+        if (s->hdlc_tx.len == 0)
+        {
+            /* We don't have a frame ready yet, so wait a little */
+            fe->next_tx_samples += ms_to_samples(MS_PER_TX_CHUNK);
+            break;
+        }
         i = s->hdlc_tx.len - s->hdlc_tx.ptr;
         if (fe->octets_per_data_packet >= i)
         {
@@ -801,21 +817,22 @@ int t31_t38_send_timeout(t31_state_t *s, int samples)
                 previous = fe->current_tx_data_type;
                 s->hdlc_tx.ptr = 0;
                 s->hdlc_tx.len = 0;
-                front_end_status(s, T30_FRONT_END_SEND_STEP_COMPLETE);
-                /* The above step should have got the next HDLC step ready - either another frame, or an instruction to stop transmission. */
-                if (s->hdlc_tx.len < 0)
+                if (s->hdlc_tx.final)
                 {
                     data_fields[1].field_type = T38_FIELD_HDLC_FCS_OK_SIG_END;
                     fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_5;
                     /* We add a bit of extra time here, as with some implementations
                        the carrier falling too abruptly causes data loss. */
                     fe->next_tx_samples += (bits_to_samples(s, i*8 + fe->hdlc_tx.extra_bits) + ms_to_samples(100));
+                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
+                    t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
                 }
                 else
                 {
                     data_fields[1].field_type = T38_FIELD_HDLC_FCS_OK;
                     fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_3;
                     fe->next_tx_samples += bits_to_samples(s, i*8 + fe->hdlc_tx.extra_bits);
+                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
                 }
                 data_fields[1].field = NULL;
                 data_fields[1].field_len = 0;
@@ -838,36 +855,36 @@ int t31_t38_send_timeout(t31_state_t *s, int samples)
         previous = fe->current_tx_data_type;
         s->hdlc_tx.ptr = 0;
         s->hdlc_tx.len = 0;
-        front_end_status(s, T30_FRONT_END_SEND_STEP_COMPLETE);
-        /* The above step should have got the next HDLC step ready - either another frame, or an instruction to stop transmission. */
-        if (s->hdlc_tx.len < 0)
+        if (s->hdlc_tx.final)
         {
             /* End of transmission */
-            t38_core_send_data(&fe->t38, previous, T38_FIELD_HDLC_FCS_OK_SIG_END, NULL, 0, fe->t38.data_end_tx_count);
+            s->hdlc_tx.len = 0;
+            s->hdlc_tx.final = FALSE;
+            //t38_core_send_data(&fe->t38, previous, T38_FIELD_HDLC_FCS_OK_SIG_END, NULL, 0, fe->t38.data_end_tx_count);
+            t38_core_send_data(&fe->t38, previous, T38_FIELD_HDLC_FCS_OK, NULL, 0, fe->t38.data_tx_count);
             fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_5;
             /* We add a bit of extra time here, as with some implementations
                the carrier falling too abruptly causes data loss. */
             fe->next_tx_samples += (bits_to_samples(s, fe->hdlc_tx.extra_bits) + ms_to_samples(100));
             break;
         }
-        if (s->hdlc_tx.len == 0)
-        {
-            /* Now, how did we get here? We have finished a frame, but have no new frame to
-               send, and no end of transmission condition. */
-            span_log(&s->logging, SPAN_LOG_FLOW, "No new frame or end transmission condition.\n");
-        }
         /* Finish the current frame off, and prepare for the next one. */
         t38_core_send_data(&fe->t38, previous, T38_FIELD_HDLC_FCS_OK, NULL, 0, fe->t38.data_tx_count);
         fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_3;
+        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
         /* We should now wait enough time for everything to clear through an analogue modem at the far end. */
         fe->next_tx_samples += bits_to_samples(s, fe->hdlc_tx.extra_bits);
+        if (s->hdlc_tx.len == 0)
+            span_log(&s->logging, SPAN_LOG_FLOW, "No new frame or end transmission condition.\n");
         break;
     case T38_TIMED_STEP_HDLC_MODEM_5:
         /* Note that some boxes do not like us sending a T38_FIELD_HDLC_SIG_END at this point.
            A T38_IND_NO_SIGNAL should always be OK. */
+        t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_HDLC_SIG_END, NULL, 0, fe->t38.data_end_tx_count);
         t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
         fe->timed_step = T38_TIMED_STEP_NONE;
-        front_end_status(s, T30_FRONT_END_SEND_STEP_COMPLETE);
+        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
+        t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
         break;
     case T38_TIMED_STEP_CED:
         /* It seems common practice to start with a no signal indicator, though
@@ -1077,7 +1094,7 @@ static int non_ecm_get_bit(void *user_data)
             {
                 /* See if the buffer is approaching empty. It might be time to
                    release flow control. */
-                if (s->tx.out_bytes > 1024)
+                if (s->tx.out_bytes > T31_TX_BUF_LOW_TIDE)
                 {
                     s->tx.holding = FALSE;
                     /* Tell the application to release further data */
@@ -1128,7 +1145,7 @@ static int non_ecm_get_chunk(void *user_data, uint8_t buf[], int len)
             if (s->tx.holding)
             {
                 /* See if the buffer is approaching empty. It might be time to release flow control. */
-                if (s->tx.out_bytes > 1024)
+                if (s->tx.out_bytes > T31_TX_BUF_LOW_TIDE)
                 {
                     s->tx.holding = FALSE;
                     /* Tell the application to release further data */
@@ -1144,7 +1161,8 @@ static int non_ecm_get_chunk(void *user_data, uint8_t buf[], int len)
                 s->tx.final = FALSE;
                 /* This will put the modem into its shutdown sequence. When
                    it has finally shut down, an OK response will be sent. */
-                return SIG_STATUS_END_OF_DATA;
+                //return SIG_STATUS_END_OF_DATA;
+                return i;
             }
             /* Fill with 0xFF bytes at the start of transmission, or 0x00 if we are in
                the middle of transmission. This follows T.31 and T.30 practice. */
@@ -1461,6 +1479,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
             s->t38_fe.current_tx_data_type = T38_DATA_V21;
             use_hdlc = TRUE;
             s->t38_fe.timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
+            set_octets_per_data_packet(s, 300);
         }
         else
         {
@@ -1510,6 +1529,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
                 s->t38_fe.current_tx_data_type = T38_DATA_V17_14400;
                 break;
             }
+            set_octets_per_data_packet(s, s->bit_rate);
             s->t38_fe.timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
         }
         else
@@ -1548,6 +1568,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
                 s->t38_fe.current_tx_data_type = T38_DATA_V27TER_4800;
                 break;
             }
+            set_octets_per_data_packet(s, s->bit_rate);
             s->t38_fe.timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
         }
         else
@@ -1586,6 +1607,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
                 s->t38_fe.current_tx_data_type = T38_DATA_V29_9600;
                 break;
             }
+            set_octets_per_data_packet(s, s->bit_rate);
             s->t38_fe.timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
         }
         else
@@ -1614,6 +1636,9 @@ static int restart_modem(t31_state_t *s, int new_modem)
         if (s->t38_mode)
         {
             t38_core_send_indicator(&s->t38_fe.t38, T38_IND_NO_SIGNAL, INDICATOR_TX_COUNT);
+            s->t38_fe.next_tx_samples = s->t38_fe.samples + ms_to_samples(700);
+            s->t38_fe.timed_step = T38_TIMED_STEP_PAUSE;
+            s->t38_fe.current_tx_data_type = T38_DATA_NONE;
         }
         else
         {
@@ -1673,12 +1698,16 @@ static __inline__ void dle_unstuff_hdlc(t31_state_t *s, const char *stuffed, int
             s->dled = FALSE;
             if (stuffed[i] == ETX)
             {
-                if (s->t38_mode)
-                    send_hdlc(s, s->hdlc_tx.buf, s->hdlc_tx.len);
-                else
-                    hdlc_tx_frame(&(s->audio.modems.hdlc_tx), s->hdlc_tx.buf, s->hdlc_tx.len);
                 s->hdlc_tx.final = (s->hdlc_tx.buf[1] & 0x10);
-                s->hdlc_tx.len = 0;
+                if (s->t38_mode)
+                {
+                    send_hdlc(s, s->hdlc_tx.buf, s->hdlc_tx.len);
+                }
+                else
+                {
+                    hdlc_tx_frame(&(s->audio.modems.hdlc_tx), s->hdlc_tx.buf, s->hdlc_tx.len);
+                    s->hdlc_tx.len = 0;
+                }
             }
             else if (stuffed[i] == SUB)
             {
@@ -1733,7 +1762,7 @@ static __inline__ void dle_unstuff(t31_state_t *s, const char *stuffed, int len)
     if (!s->tx.holding)
     {
         /* See if the buffer is approaching full. We might need to apply flow control. */
-        if (s->tx.in_bytes > T31_TX_BUF_LEN - 1024)
+        if (s->tx.in_bytes > T31_TX_BUF_HIGH_TIDE)
         {
             s->tx.holding = TRUE;
             /* Tell the application to hold further data */
@@ -1764,7 +1793,10 @@ static int process_class1_cmd(at_state_t *t, void *user_data, int direction, int
         {
             /* Send a specified period of silence, to space transmissions. */
             restart_modem(s, T31_SILENCE_TX);
-            silence_gen_alter(&(s->audio.modems.silence_gen), ms_to_samples(val*10));
+            if (s->t38_mode)
+                s->t38_fe.next_tx_samples = s->t38_fe.samples + ms_to_samples(val*10);
+            else
+                silence_gen_alter(&(s->audio.modems.silence_gen), ms_to_samples(val*10));
             s->at_state.transmit = TRUE;
         }
         else
@@ -1773,7 +1805,15 @@ static int process_class1_cmd(at_state_t *t, void *user_data, int direction, int
             queue_flush(s->rx_queue);
             s->silence_awaited = ms_to_samples(val*10);
             t31_set_at_rx_mode(s, AT_MODE_DELIVERY);
-            restart_modem(s, T31_SILENCE_RX);
+            if (s->t38_mode)
+            {
+                at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
+                t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+            }
+            else
+            {
+                restart_modem(s, T31_SILENCE_RX);
+            }
         }
         immediate_response = FALSE;
         span_log(&s->logging, SPAN_LOG_FLOW, "Silence %dms\n", val*10);
@@ -1799,7 +1839,8 @@ static int process_class1_cmd(at_state_t *t, void *user_data, int direction, int
         if (new_transmit)
         {
             t31_set_at_rx_mode(s, AT_MODE_HDLC);
-            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
+            if (!s->t38_mode)
+                at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
         }
         else
         {
@@ -2241,40 +2282,7 @@ int t31_tx(t31_state_t *s, int16_t amp[], int max_len)
             /* Allow for one change of tx handler within a block */
             set_next_tx_type(s);
             if ((len += s->audio.modems.tx_handler(s->audio.modems.tx_user_data, amp + len, max_len - len)) < max_len)
-            {
-                switch (s->modem)
-                {
-                case T31_SILENCE_TX:
-                    s->modem = T31_NONE;
-                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
-                    if (s->at_state.do_hangup)
-                    {
-                        at_modem_control(&s->at_state, AT_MODEM_CONTROL_HANGUP, NULL);
-                        t31_set_at_rx_mode(s, AT_MODE_ONHOOK_COMMAND);
-                        s->at_state.do_hangup = FALSE;
-                    }
-                    else
-                    {
-                        t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
-                    }
-                    break;
-                case T31_CED_TONE:
-                    /* Go directly to V.21/HDLC transmit. */
-                    s->modem = T31_NONE;
-                    restart_modem(s, T31_V21_TX);
-                    t31_set_at_rx_mode(s, AT_MODE_HDLC);
-                    break;
-                case T31_V21_TX:
-                case T31_V17_TX:
-                case T31_V27TER_TX:
-                case T31_V29_TX:
-                    s->modem = T31_NONE;
-                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
-                    t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
-                    restart_modem(s, T31_SILENCE_TX);
-                    break;
-                }
-            }
+                front_end_status(s, T30_FRONT_END_SEND_STEP_COMPLETE);
         }
     }
     if (s->audio.modems.transmit_on_idle)
@@ -2359,13 +2367,27 @@ static int t31_t38_fe_init(t31_state_t *t,
     s->t38.fastest_image_data_rate = 14400;
 
     s->timed_step = T38_TIMED_STEP_NONE;
-    s->iaf = T30_IAF_MODE_T37 | T30_IAF_MODE_T38;
+    //s->iaf = T30_IAF_MODE_T37 | T30_IAF_MODE_T38;
+    s->iaf = T30_IAF_MODE_T38;
 
     s->current_tx_data_type = T38_DATA_NONE;
     s->next_tx_samples = 0;
     s->chunking_modes = T38_CHUNKING_ALLOW_TEP_TIME;
 
     t->hdlc_tx.ptr = 0;
+
+    hdlc_tx_init(&s->hdlc_tx_term,
+                 FALSE,
+                 1,
+                 FALSE,
+                 NULL,
+                 NULL);
+    hdlc_rx_init(&s->hdlc_tx_term,
+                 FALSE,
+                 TRUE,
+                 2,
+                 NULL,
+                 NULL);
 
     return 0;
 }

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector_int.c,v 1.20 2009/01/05 13:48:32 steveu Exp $
+ * $Id: vector_int.c,v 1.22 2009/01/16 18:01:57 steveu Exp $
  */
 
 /*! \file */
@@ -76,7 +76,106 @@ int32_t vec_dot_prodi16(const int16_t x[], const int16_t y[], int n)
 {
     int32_t z;
 
-#if defined(__GNUC__)  &&  defined(__i386__) //defined(SPANDSP_USE_MMX)
+#if defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX)
+#if defined(__x86_64__)
+    __asm__ __volatile__(
+        " emms;\n"
+        " pxor %%mm0,%%mm0;\n"
+        " leaq -32(%%rsi,%%rax,2),%%rdx;\n"     /* rdx = top - 32 */
+
+        " cmpq %%rdx,%%rsi;\n"
+        " ja 1f;\n"
+
+        /* Work in blocks of 16 int16_t's until we are near the end */
+        " .p2align 2;\n"
+        "2:\n"
+        " movq (%%rdi),%%mm1;\n"
+        " movq (%%rsi),%%mm2;\n"
+        " pmaddwd %%mm2,%%mm1;\n"
+        " paddd %%mm1,%%mm0;\n"
+        " movq 8(%%rdi),%%mm1;\n"
+        " movq 8(%%rsi),%%mm2;\n"
+        " pmaddwd %%mm2,%%mm1;\n"
+        " paddd %%mm1,%%mm0;\n"
+        " movq 16(%%rdi),%%mm1;\n"
+        " movq 16(%%rsi),%%mm2;\n"
+        " pmaddwd %%mm2,%%mm1;\n"
+        " paddd %%mm1,%%mm0;\n"
+        " movq 24(%%rdi),%%mm1;\n"
+        " movq 24(%%rsi),%%mm2;\n"
+        " pmaddwd %%mm2,%%mm1;\n"
+        " paddd %%mm1,%%mm0;\n"
+
+        " addq $32,%%rsi;\n"
+        " addq $32,%%rdi;\n"
+        " cmpq %%rdx,%%rsi;\n"
+        " jbe 2b;\n"
+
+        " .p2align 2;\n"
+        "1:\n"
+        " addq $24,%%rdx;\n"                  /* Now edx = top - 8 */
+        " cmpq %%rdx,%%rsi;\n"
+        " ja 3f;\n"
+
+        /* Work in blocks of 4 int16_t's until we are near the end */
+        " .p2align 2;\n"
+        "4:\n"
+        " movq (%%rdi),%%mm1;\n"
+        " movq (%%rsi),%%mm2;\n"
+        " pmaddwd %%mm2,%%mm1;\n"
+        " paddd %%mm1,%%mm0;\n"
+
+        " addq $8,%%rsi;\n"
+        " addq $8,%%rdi;\n"
+        " cmpq %%rdx,%%rsi;"
+        " jbe 4b;\n"
+
+        " .p2align 2;\n"
+        "3:\n"
+        " addq $4,%%rdx;\n"                  /* Now edx = top - 4 */
+        " cmpq %%rdx,%%rsi;\n"
+        " ja 5f;\n"
+
+        /* Work in a block of 2 int16_t's */
+        " movd (%%rdi),%%mm1;\n"
+        " movd (%%rsi),%%mm2;\n"
+        " pmaddwd %%mm2,%%mm1;\n"
+        " paddd %%mm1,%%mm0;\n"
+
+        " addq $4,%%rsi;\n"
+        " addq $4,%%rdi;\n"
+
+        " .p2align 2;\n"
+        "5:\n"
+        " addq $2,%%rdx;\n"                  /* Now edx = top - 2 */
+        " cmpq %%rdx,%%rsi;\n"
+        " ja 6f;\n"
+
+        /* Deal with the very last int16_t, when n is odd */
+        " movswl (%%rdi),%%eax;\n"
+        " andl $65535,%%eax;\n"
+        " movd %%eax,%%mm1;\n"
+        " movswl (%%rsi),%%eax;\n"
+        " andl $65535,%%eax;\n"
+        " movd %%eax,%%mm2;\n"
+        " pmaddwd %%mm2,%%mm1;\n"
+        " paddd %%mm1,%%mm0;\n"
+
+        " .p2align 2;\n"
+        "6:\n"
+        /* Merge the pieces of the answer */
+        " movq %%mm0,%%mm1;\n"
+        " punpckhdq %%mm0,%%mm1;\n"
+        " paddd %%mm1,%%mm0;\n"
+        /* Et voila, eax has the final result */
+        " movd %%mm0,%%eax;\n"
+
+        " emms;\n"
+        : "=a" (z)
+        : "S" (x), "D" (y), "a" (n)
+        : "cc"
+    );
+#else
     __asm__ __volatile__(
         " emms;\n"
         " pxor %%mm0,%%mm0;\n"
@@ -174,6 +273,7 @@ int32_t vec_dot_prodi16(const int16_t x[], const int16_t y[], int n)
         : "S" (x), "D" (y), "a" (n)
         : "cc"
     );
+#endif
 #else
     int i;
 
@@ -222,9 +322,9 @@ int32_t vec_min_maxi16(const int16_t x[], int n, int16_t out[])
     __asm__ __volatile__(
         " emms;\n"
         " pushq %%rdx;\n"
-        " leal -8(%%rsi,%%eax,2),%%edx;\n"
+        " leaq -8(%%rsi,%%rax,2),%%rdx;\n"
 
-        " cmpl %%rdx,%%rsi;\n"
+        " cmpq %%rdx,%%rsi;\n"
         " jbe 2f;\n"
         " movd %[lower],%%mm0;\n"
         " movd %[upper],%%mm1;\n"
@@ -234,11 +334,10 @@ int32_t vec_min_maxi16(const int16_t x[], int n, int16_t out[])
         "2:\n"
         " movq (%%rsi),%%mm0;\n"   /* mm0 will be max's */
         " movq %%mm0,%%mm1;\n"     /* mm1 will be min's */
-        " addl $8,%%rsi;\n"
-        " cmpl %%edx,%%rsi;\n"
+        " addq $8,%%rsi;\n"
+        " cmpq %%rdx,%%rsi;\n"
         " ja 4f;\n"
 
-        " .p2align 2;\n"
         "3:\n"
         " movq (%%rsi),%%mm2;\n"
 
@@ -257,8 +356,8 @@ int32_t vec_min_maxi16(const int16_t x[], int n, int16_t out[])
         " por %%mm3,%%mm2;\n"
         " movq %%mm2,%%mm1;\n"     /* now mm1 is updated min's */
 
-        " addl $8,%%rsi;\n"
-        " cmpl %%rdx,%%rsi;\n"
+        " addq $8,%%rsi;\n"
+        " cmpq %%rdx,%%rsi;\n"
         " jbe 3b;\n"
 
         " .p2align 2;\n"
@@ -284,8 +383,8 @@ int32_t vec_min_maxi16(const int16_t x[], int n, int16_t out[])
 
         " .p2align 2;\n"
         "1:\n"
-        " addl $4,%%rdx;\n"        /* now dx = top-4 */
-        " cmpl %%rdx,%%rsi;\n"
+        " addq $4,%%rdx;\n"        /* now dx = top-4 */
+        " cmpq %%rdx,%%rsi;\n"
         " ja 5f;\n"
         /* Here, there are >= 2 words of input remaining */
         " movd (%%rsi),%%mm2;\n"
@@ -305,7 +404,7 @@ int32_t vec_min_maxi16(const int16_t x[], int n, int16_t out[])
         " por %%mm3,%%mm2;\n"
         " movq %%mm2,%%mm1;\n"     /* now mm1 is updated min's */
 
-        " addl $4,%%rsi;\n"
+        " addq $4,%%rsi;\n"
 
         " .p2align 2;\n"
         "5:\n"
@@ -328,8 +427,8 @@ int32_t vec_min_maxi16(const int16_t x[], int n, int16_t out[])
         " por %%mm3,%%mm2;\n"
         " movd %%mm2,%%eax;\n"     /* ax is min so far */
         
-        " addl $2,%%rdx;\n"        /* now dx = top-2 */
-        " cmpl %%rdx,%%rsi;\n"
+        " addq $2,%%rdx;\n"        /* now dx = top-2 */
+        " cmpq %%rdx,%%rsi;\n"
         " ja 6f;\n"
 
         /* Here, there is one word of input left */
@@ -349,7 +448,7 @@ int32_t vec_min_maxi16(const int16_t x[], int n, int16_t out[])
         " movswl %%ax,%%eax;\n"
 
         " popq %%rdx;\n"            /* ptr to output max,min vals */
-        " andl %%rdx,%%rdx;\n"
+        " andq %%rdx,%%rdx;\n"
         " jz 7f;\n"
         " movw %%cx,(%%rdx);\n"    /* max */
         " movw %%ax,2(%%rdx);\n"   /* min */

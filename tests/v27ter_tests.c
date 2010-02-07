@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tests.c,v 1.98 2008/12/06 12:36:29 steveu Exp $
+ * $Id: v27ter_tests.c,v 1.99 2009/01/12 17:20:59 steveu Exp $
  */
 
 /*! \page v27ter_tests_page V.27ter modem tests
@@ -255,11 +255,19 @@ int main(int argc, char *argv[])
     signal_level = -13;
     bits_per_test = 50000;
     log_audio = FALSE;
-    while ((opt = getopt(argc, argv, "b:c:d:glm:n:r:s:t")) != -1)
+    while ((opt = getopt(argc, argv, "b:B:c:d:glm:n:r:s:t")) != -1)
     {
         switch (opt)
         {
         case 'b':
+            test_bps = atoi(optarg);
+            if (test_bps != 4800  &&  test_bps != 2400)
+            {
+                fprintf(stderr, "Invalid bit rate specified\n");
+                exit(2);
+            }
+            break;
+        case 'B':
             bits_per_test = atoi(optarg);
             break;
         case 'c':
@@ -300,21 +308,6 @@ int main(int argc, char *argv[])
             break;
         }
     }
-    argc -= optind;
-    argv += optind;
-    if (argc > 0)
-    {
-        if (strcmp(argv[0], "4800") == 0)
-            test_bps = 4800;
-        else if (strcmp(argv[0], "2400") == 0)
-            test_bps = 2400;
-        else
-        {
-            fprintf(stderr, "Invalid bit rate\n");
-            exit(2);
-        }
-    }
-
     inhandle = NULL;
     outhandle = NULL;
 

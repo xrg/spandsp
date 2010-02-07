@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31_tests.c,v 1.66 2009/01/09 16:09:06 steveu Exp $
+ * $Id: t31_tests.c,v 1.68 2009/01/16 15:13:16 steveu Exp $
  */
 
 /*! \file */
@@ -206,8 +206,8 @@ static int phase_b_handler(t30_state_t *s, void *user_data, int result)
 {
     int i;
     
-    i = (intptr_t) user_data;
-    printf("Phase B handler on channel %d - (0x%X) %s\n", i, result, t30_frametype(result));
+    i = (int) (intptr_t) user_data;
+    printf("%c: Phase B handler on channel %d - (0x%X) %s\n", i, i, result, t30_frametype(result));
     return T30_ERR_OK;
 }
 /*- End of function --------------------------------------------------------*/
@@ -231,9 +231,9 @@ static int phase_d_handler(t30_state_t *s, void *user_data, int result)
     printf("%c: Phase D: coding method %s\n", i, t4_encoding_to_str(t.encoding));
     printf("%c: Phase D: image size %d\n", i, t.image_size);
     if ((u = t30_get_tx_ident(s)))
-        printf("%d: Phase D: local ident '%s'\n", i, u);
+        printf("%c: Phase D: local ident '%s'\n", i, u);
     if ((u = t30_get_rx_ident(s)))
-        printf("%d: Phase D: remote ident '%s'\n", i, u);
+        printf("%c: Phase D: remote ident '%s'\n", i, u);
 #if defined(WITH_SPANDSP_INTERNALS)
     printf("%c: Phase D: bits per row - min %d, max %d\n", i, s->t4.min_row_bits, s->t4.max_row_bits);
 #endif
@@ -445,7 +445,11 @@ static int t38_tests(int use_gui, int test_sending, int model_no, int speed_patt
     span_log_set_level(&t38_core->logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t38_core->logging, "T.31");
 
+    span_log_set_level(&t31_state->at_state.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
+    span_log_set_tag(&t31_state->at_state.logging, "T.31");
+
     t31_set_mode(t31_state, TRUE);
+    t38_set_t38_version(t38_core, t38_version);
 
     if (test_sending)
     {
@@ -480,10 +484,10 @@ static int t38_tests(int use_gui, int test_sending, int model_no, int speed_patt
 
     t30_set_tx_ident(t30, "11111111");
     t30_set_supported_modems(t30, T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
-    t30_set_tx_nsf(t30, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
-    t30_set_phase_b_handler(t30, phase_b_handler, (void *) 0);
-    t30_set_phase_d_handler(t30, phase_d_handler, (void *) 0);
-    t30_set_phase_e_handler(t30, phase_e_handler, (void *) 0);
+    //t30_set_tx_nsf(t30, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
+    t30_set_phase_b_handler(t30, phase_b_handler, (void *) 'A');
+    t30_set_phase_d_handler(t30, phase_d_handler, (void *) 'A');
+    t30_set_phase_e_handler(t30, phase_e_handler, (void *) 'A');
 
     logging = t38_terminal_get_logging_state(t38_state);
     span_log_set_level(logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
@@ -520,7 +524,8 @@ static int t38_tests(int use_gui, int test_sending, int model_no, int speed_patt
         t38_core = t31_get_t38_core_state(t31_state);
         logging = t38_core_get_logging_state(t38_core);
         span_log_bump_samples(logging, SAMPLES_PER_CHUNK);
- 
+        span_log_bump_samples(&t31_state->at_state.logging, SAMPLES_PER_CHUNK);
+
         t38_terminal_send_timeout(t38_state, SAMPLES_PER_CHUNK);
         t31_t38_send_timeout(t31_state, SAMPLES_PER_CHUNK);
 
@@ -564,7 +569,6 @@ static int t38_tests(int use_gui, int test_sending, int model_no, int speed_patt
             if (--fast_blocks == 0)
                 fast_send = FALSE;
         }
-        t38_terminal_send_timeout(t38_state, SAMPLES_PER_CHUNK);
         if (countdown)
         {
             if (answered)
@@ -675,9 +679,9 @@ static int t30_tests(int log_audio, int test_sending)
     
     t30_set_tx_ident(t30, "11111111");
     t30_set_supported_modems(t30, T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
-    t30_set_phase_b_handler(t30, phase_b_handler, (void *) 0);
-    t30_set_phase_d_handler(t30, phase_d_handler, (void *) 0);
-    t30_set_phase_e_handler(t30, phase_e_handler, (void *) 0);
+    t30_set_phase_b_handler(t30, phase_b_handler, (void *) 'A');
+    t30_set_phase_d_handler(t30, phase_d_handler, (void *) 'A');
+    t30_set_phase_e_handler(t30, phase_e_handler, (void *) 'A');
     memset(t30_amp, 0, sizeof(t30_amp));
     
     logging = t30_get_logging_state(t30);

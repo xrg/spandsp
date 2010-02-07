@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.5 2009/01/07 12:50:53 steveu Exp $
+ * $Id: t31.h,v 1.6 2009/01/16 15:13:16 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_T31_H_)
@@ -81,6 +81,13 @@ typedef struct
     /*! \brief The number of octets to send in each image packet (non-ECM or ECM) at the current
                rate and the current specified packet interval. */
     int octets_per_data_packet;
+
+    /*! \brief An HDLC context used when sending HDLC messages to the terminal port
+               (ECM mode support). */
+    hdlc_tx_state_t hdlc_tx_term;
+    /*! \brief An HDLC context used when receiving HDLC messages from the terminal port.
+               (ECM mode support). */
+    hdlc_rx_state_t hdlc_rx_term;
 
     struct
     {

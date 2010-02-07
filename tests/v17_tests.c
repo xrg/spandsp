@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17_tests.c,v 1.97 2008/12/31 13:39:24 steveu Exp $
+ * $Id: v17_tests.c,v 1.98 2009/01/12 17:20:59 steveu Exp $
  */
 
 /*! \page v17_tests_page V.17 modem tests
@@ -255,11 +255,19 @@ int main(int argc, char *argv[])
     signal_level = -13;
     bits_per_test = 50000;
     log_audio = FALSE;
-    while ((opt = getopt(argc, argv, "b:c:d:glm:n:r:s:t")) != -1)
+    while ((opt = getopt(argc, argv, "b:B:c:d:glm:n:r:s:t")) != -1)
     {
         switch (opt)
         {
         case 'b':
+            test_bps = atoi(optarg);
+            if (test_bps != 14400  &&  test_bps != 12000  &&  test_bps != 9600  &&  test_bps != 7200)
+            {
+                fprintf(stderr, "Invalid bit rate specified\n");
+                exit(2);
+            }
+            break;
+        case 'B':
             bits_per_test = atoi(optarg);
             break;
         case 'c':
@@ -298,24 +306,6 @@ int main(int argc, char *argv[])
             //usage();
             exit(2);
             break;
-        }
-    }
-    argc -= optind;
-    argv += optind;
-    if (argc > 0)
-    {
-        if (strcmp(argv[0], "14400") == 0)
-            test_bps = 14400;
-        else if (strcmp(argv[0], "12000") == 0)
-            test_bps = 12000;
-        else if (strcmp(argv[0], "9600") == 0)
-            test_bps = 9600;
-        else if (strcmp(argv[0], "7200") == 0)
-            test_bps = 7200;
-        else
-        {
-            fprintf(stderr, "Invalid bit rate\n");
-            exit(2);
         }
     }
     inhandle = NULL;
