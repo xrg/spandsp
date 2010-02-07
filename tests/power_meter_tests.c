@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter_tests.c,v 1.14 2006/11/19 14:07:27 steveu Exp $
+ * $Id: power_meter_tests.c,v 1.15 2006/11/24 12:34:55 steveu Exp $
  */
 
 /*! \page power_meter_tests_page Power meter tests
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
         level = power_meter_update(&meter, amp[i]);
         //printf("%12d %fdBm0 %fdBov\n", level, power_meter_dbm0(&meter), power_meter_dbov(&meter));
     }
-    printf("Level: expected %d/%d, got %d\n", power_meter_level_dbov(-10.0f), power_meter_level_dbm0(-10.0f + DBM0_MAX_POWER), level);
+    printf("Level: expected %" PRId32 "/%" PRId32 ", got %" PRId32 "\n", power_meter_level_dbov(-10.0f), power_meter_level_dbm0(-10.0f + DBM0_MAX_POWER), level);
     printf("Power: expected %fdBm0, got %fdBm0\n", -10.0f + DBM0_MAX_POWER, power_meter_dbm0(&meter));
     printf("Power: expected %fdBOv, got %fdBOv\n", -10.0f, power_meter_dbov(&meter));
     if (level < power_meter_level_dbov(-10.0f)*0.99f
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
         level = power_meter_update(&meter, amp[i]);
         //printf("%12d %fdBm0 %fdBov\n", level, power_meter_dbm0(&meter), power_meter_dbov(&meter));
     }
-    printf("Level: expected %d/%d, got %d\n", power_meter_level_dbov(-10.0f), power_meter_level_dbm0(-10.0f + DBM0_MAX_POWER), level);
+    printf("Level: expected %" PRId32 "/%" PRId32 ", got %" PRId32 "\n", power_meter_level_dbov(-10.0f), power_meter_level_dbm0(-10.0f + DBM0_MAX_POWER), level);
     printf("Power: expected %fdBm0, got %fdBm0\n", -10.0f + DBM0_MAX_POWER, power_meter_dbm0(&meter));
     printf("Power: expected %fdBOv, got %fdBOv\n", -10.0f, power_meter_dbov(&meter));
     if (level < power_meter_level_dbov(-10.0f)*0.95f
@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
         level = power_meter_update(&meter, amp[i]);
         //printf("%12d %fdBm0 %fdBov\n", level, power_meter_dbm0(&meter), power_meter_dbov(&meter));
     }
-    printf("Level: expected %d/%d, got %d\n", power_meter_level_dbov(-10.0f), power_meter_level_dbm0(-10.0f + DBM0_MAX_POWER), level);
+    printf("Level: expected %" PRId32 "/%" PRId32 ", got %" PRId32 "\n", power_meter_level_dbov(-10.0f), power_meter_level_dbm0(-10.0f + DBM0_MAX_POWER), level);
     printf("Power: expected %fdBm0, got %fdBm0\n", -10.0f + DBM0_MAX_POWER, power_meter_dbm0(&meter));
     printf("Power: expected %fdBOv, got %fdBOv\n", -10.0f, power_meter_dbov(&meter));
     if (level < power_meter_level_dbov(-10.0f)*0.95f

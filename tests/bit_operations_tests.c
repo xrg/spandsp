@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bit_operations_tests.c,v 1.7 2006/11/19 14:07:26 steveu Exp $
+ * $Id: bit_operations_tests.c,v 1.8 2006/11/24 12:34:55 steveu Exp $
  */
 
 /*! \page bit_operations_tests_page Bit operations tests
@@ -191,14 +191,14 @@ int main(int argc, char *argv[])
         bx = top_bit(x);
         if (ax != bx)
         {
-            printf("Test failed: top bit mismatch 0x%X -> %d %d\n", x, ax, bx);
+            printf("Test failed: top bit mismatch 0x%" PRIx32 " -> %u %u\n", x, ax, bx);
             exit(2);
         }
         ax = bottom_bit_dumb(x);
         bx = bottom_bit(x);
         if (ax != bx)
         {
-            printf("Test failed: bottom bit mismatch 0x%X -> %d %d\n", x, ax, bx);
+            printf("Test failed: bottom bit mismatch 0x%" PRIx32 " -> %u %u\n", x, ax, bx);
             exit(2);
         }
         x = rand();
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
         bx32 = bit_reverse_4bytes(x);
         if (ax32 != bx32)
         {
-            printf("Test failed: bit reverse 4 bytes - %x %x %x\n", x, ax32, bx32);
+            printf("Test failed: bit reverse 4 bytes - %" PRIx32 " %" PRIx32 " %" PRIx32 "\n", x, ax32, bx32);
             exit(2);
         }
     }
@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
         bx32 = bit_reverse32(i);
         if (ax32 != bx32)
         {
-            printf("Test failed: bit reverse 32 - %x %x %x\n", i, ax32, bx32);
+            printf("Test failed: bit reverse 32 - %d %" PRIx32 " %" PRIx32 "\n", i, ax32, bx32);
             exit(2);
         }
     }
@@ -261,13 +261,13 @@ int main(int argc, char *argv[])
         ax32 = most_significant_one32(1 << i);
         if (ax32 != (1 << i))
         {
-            printf("Test failed: most significant one 32 - %x %x %x\n", i, ax32, (1 << i));
+            printf("Test failed: most significant one 32 - %x %" PRIx32 " %x\n", i, ax32, (1 << i));
             exit(2);
         }
         ax32 = least_significant_one32(1 << i);
         if (ax32 != (1 << i))
         {
-            printf("Test failed: least significant one 32 - %x %x %x\n", i, ax32, (1 << i));
+            printf("Test failed: least significant one 32 - %x %" PRIx32 " %x\n", i, ax32, (1 << i));
             exit(2);
         }
     }

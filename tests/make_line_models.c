@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: make_line_models.c,v 1.18 2006/11/19 14:07:27 steveu Exp $
+ * $Id: make_line_models.c,v 1.19 2006/11/23 15:48:09 steveu Exp $
  */
 
 /*! \page make_line_models_page Telephony line model construction
@@ -41,6 +41,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#if defined(HAVE_FFTW3_H)
+#include <fftw3.h>
+#else
+#include <fftw.h>
+#endif
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
@@ -48,11 +53,6 @@
 #include <math.h>
 #endif
 #include <tiffio.h>
-#if defined(HAVE_FFTW3_H)
-#include <fftw3.h>
-#else
-#include <fftw.h>
-#endif
 
 #include "spandsp.h"
 

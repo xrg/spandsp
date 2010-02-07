@@ -24,8 +24,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g168_tests.c,v 1.9 2006/11/19 14:07:27 steveu Exp $
+ * $Id: g168_tests.c,v 1.10 2006/11/23 15:48:09 steveu Exp $
  */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <inttypes.h>
 #include <stdlib.h>

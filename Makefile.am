@@ -13,15 +13,9 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.16 2006/10/24 13:21:57 steveu Exp $
+## $Id: Makefile.am,v 1.17 2006/11/26 13:13:29 steveu Exp $
 
-if COND_MMX
-    EX_CFLAGS = -mmmx -O3
-endif
-if COND_SSE
-    EX_CFLAGS = -msse -O3
-endif
-AM_CFLAGS = $(EX_CFLAGS) -std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes
+AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
 noinst_SCRIPTS = spandsp.spec
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.33 2006/11/19 14:07:27 steveu Exp $
+ * $Id: t4_tests.c,v 1.34 2006/11/23 15:48:09 steveu Exp $
  */
 
 /*! \file */
@@ -32,6 +32,10 @@
 These tests exercise the image compression and decompression methods defined
 in ITU specifications T.4 and T.6.
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -13,7 +13,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.16 2006/11/20 13:58:57 steveu Exp $
+# $Id: configure.ac,v 1.17 2006/11/26 13:13:30 steveu Exp $
 
 # @start 1
 
@@ -23,7 +23,7 @@ AC_DEFUN([AX_COMPILER_VENDOR],
 [
 AC_CACHE_CHECK([for _AC_LANG compiler vendor], ax_cv_[]_AC_LANG_ABBREV[]_compiler_vendor,
  [ax_cv_[]_AC_LANG_ABBREV[]_compiler_vendor=unknown
-  # note: don't check for gcc first since some other compilers define __GNUC__
+  # note: don't check for GCC first, since some other compilers define __GNUC__
   for ventest in intel:__ICC,__ECC,__INTEL_COMPILER ibm:__xlc__,__xlC__,__IBMC__,__IBMCPP__ gnu:__GNUC__ sun:__SUNPRO_C,__SUNPRO_CC hp:__HP_cc,__HP_aCC dec:__DECC,__DECCXX,__DECC_VER,__DECCXX_VER borland:__BORLANDC__,__TURBOC__ comeau:__COMO__ cray:_CRAYC kai:__KCC lcc:__LCC__ metrowerks:__MWERKS__ sgi:__sgi,sgi microsoft:_MSC_VER watcom:__WATCOMC__ portland:__PGI; do
     vencpp="defined("`echo $ventest | cut -d: -f2 | sed 's/,/) || defined(/g'`")"
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[
@@ -76,7 +76,7 @@ AC_TYPE_SIGNAL
 AC_ARG_ENABLE(doc,     [  --enable-doc      Build the documentation])
 AC_ARG_ENABLE(tests,   [  --enable-tests    Build the test programs])
 AC_ARG_ENABLE(itutests,[  --enable-itutests Build TIFF test files for some ITU test images])
-AC_ARG_ENABLE(sse,     [  --enable-mmx      Enable MMX support])
+AC_ARG_ENABLE(mmx,     [  --enable-mmx      Enable MMX support])
 AC_ARG_ENABLE(sse,     [  --enable-sse      Enable SSE support])
 
 AC_FUNC_ERROR_AT_LINE
@@ -120,7 +120,6 @@ AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_HEADERS([sys/select.h])
 AC_CHECK_HEADERS([sys/ioctl.h])
 AC_CHECK_HEADERS([sys/fcntl.h])
-AC_CHECK_HEADERS([sys/soundcard.h])
 AC_CHECK_HEADERS([audiofile.h])
 AC_CHECK_HEADERS([fftw.h])
 AC_CHECK_HEADERS([fftw3.h])
@@ -193,6 +192,21 @@ if test -n "$enable_tests" ; then
     AC_CHECK_LIB([unicall], [uc_start], TESTLIBS="$TESTLIBS -lunicall",, -ltiff -ldl)
 fi
 
+case "${ax_cv_c_compiler_vendor}" in
+   gnu)
+        COMP_VENDOR_CFLAGS="-O2 -g -std=gnu99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
+        if test "$enable_sse" = "yes" ; then
+            COMP_VENDOR_CFLAGS="-msse $COMP_VENDOR_CFLAGS"
+        fi
+        if test "$enable_mmx" = "yes" ; then
+            COMP_VENDOR_CFLAGS="-mmmx $COMP_VENDOR_CFLAGS"
+        fi
+        ;;
+    *)
+        COMP_VENDOR_CFLAGS="-O2 -g -std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
+        ;;
+esac
+
 AM_CONDITIONAL([COND_DOC], [test "$enable_doc" = yes])
 AM_CONDITIONAL([COND_TESTS], [test "$enable_tests" = yes])
 AM_CONDITIONAL([COND_ITUTESTS], [test "$enable_itutests" = yes])
@@ -200,6 +214,7 @@ AM_CONDITIONAL([COND_MMX], [test "$enable_mmx" = yes])
 AM_CONDITIONAL([COND_SSE], [test "$enable_sse" = yes])
 
 AC_SUBST(TESTLIBS, $TESTLIBS)
+AC_SUBST(COMP_VENDOR_CFLAGS, $COMP_VENDOR_CFLAGS)
 
 AC_CONFIG_FILES([Makefile
                  doc/Makefile

@@ -22,12 +22,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8_tests.c,v 1.18 2006/11/19 14:07:28 steveu Exp $
+ * $Id: v8_tests.c,v 1.19 2006/11/23 15:48:09 steveu Exp $
  */
 
 /*! \page v8_tests_page V.8 tests
 \section v8_tests_page_sec_1 What does it do?
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <inttypes.h>

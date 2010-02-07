@@ -49,7 +49,7 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES =
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
@@ -114,6 +114,7 @@ AWK = @AWK@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
+COMP_VENDOR_CFLAGS = @COMP_VENDOR_CFLAGS@
 COND_DOC_FALSE = @COND_DOC_FALSE@
 COND_DOC_TRUE = @COND_DOC_TRUE@
 COND_ITUTESTS_FALSE = @COND_ITUTESTS_FALSE@
@@ -212,9 +213,7 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-@COND_MMX_TRUE@EX_CFLAGS = -mmmx -O3
-@COND_SSE_TRUE@EX_CFLAGS = -msse -O3
-AM_CFLAGS = $(EX_CFLAGS) -std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes
+AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 MAINTAINERCLEANFILES = Makefile.in
 INCLUDES = -I$(top_builddir)
 lib_LTLIBRARIES = libspandsp.la

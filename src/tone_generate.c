@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.c,v 1.27 2006/11/19 14:07:25 steveu Exp $
+ * $Id: tone_generate.c,v 1.30 2006/11/24 12:34:55 steveu Exp $
  */
 
 /*! \file */
@@ -34,6 +34,7 @@
 
 #include <inttypes.h>
 #include <string.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 #include <fcntl.h>
@@ -73,10 +74,11 @@ void make_tone_gen_descriptor(tone_gen_descriptor_t *s,
         s->phase_rate[0] = dds_phase_ratef((float) f1);
         s->gain[0] = dds_scaling_dbm0f((float) l1);
     }
-    if (f2 >= 1)
+    s->modulate = (f2 < 0);
+    if (f2)
     {
-        s->phase_rate[1] = dds_phase_ratef((float) f2);
-        s->gain[1] = dds_scaling_dbm0f((float) l2);
+        s->phase_rate[1] = dds_phase_ratef((float) abs(f2));
+        s->gain[1] = (s->modulate)  ?  (float) l2/100.0f  :  dds_scaling_dbm0f((float) l2);
     }
 
     s->duration[0] = d1*8;
@@ -111,7 +113,8 @@ void tone_gen_init(tone_gen_state_t *s, tone_gen_descriptor_t *t)
     s->gain[0] = t->gain[0];
     s->phase_rate[1] = t->phase_rate[1];
     s->gain[1] = t->gain[1];
-    
+    s->modulate = t->modulate;
+
     for (i = 0;  i < 4;  i++)
         s->duration[i] = t->duration[i];
     s->repeat = t->repeat;
@@ -129,6 +132,7 @@ int tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples)
     int samples;
     int limit;
     float xamp;
+    float yamp;
 
     if (s->current_section < 0)
         return  0;
@@ -152,9 +156,15 @@ int tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples)
             {
                 xamp = 0.0;
                 if (s->phase_rate[0])
-                    xamp += dds_modf(&(s->phase[0]), s->phase_rate[0], s->gain[0], 0);
+                    xamp = dds_modf(&(s->phase[0]), s->phase_rate[0], s->gain[0], 0);
                 if (s->phase_rate[1])
-                    xamp += dds_modf(&(s->phase[1]), s->phase_rate[1], s->gain[1], 0);
+                {
+                    yamp = dds_modf(&(s->phase[1]), s->phase_rate[1], s->gain[1], 0);
+                    if (s->modulate)
+                        xamp *= (1.0 + yamp);
+                    else
+                        xamp += yamp;
+                }
                 /* Saturation of the answer is the right thing at this point.
                    However, we are normally generating well controlled tones,
                    that cannot clip. So, the overhead of doing saturation is
@@ -167,16 +177,13 @@ int tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples)
             s->current_position = 0;
             if (++s->current_section > 3  ||  s->duration[s->current_section] == 0)
             {
-                if (s->repeat)
-                {
-                    s->current_section = 0;
-                }
-                else
+                if (!s->repeat)
                 {
                     /* Force a quick exit */
                     s->current_section = -1;
                     break;
                 }
+                s->current_section = 0;
             }
         }
     }

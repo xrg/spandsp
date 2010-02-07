@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.h,v 1.13 2006/10/24 13:22:02 steveu Exp $
+ * $Id: v8.h,v 1.14 2006/11/22 13:46:06 steveu Exp $
  */
  
 /*! \file */
@@ -47,7 +47,7 @@ typedef struct v8_result_s v8_result_t;
 
 typedef void (v8_result_handler_t)(void *user_data, v8_result_t *result);
 
-enum
+enum v8_call_function_e
 {
     V8_CALL_TBS = 0,
     V8_CALL_H324,
@@ -57,9 +57,9 @@ enum
     V8_CALL_T30_RX,
     V8_CALL_V_SERIES,
     V8_CALL_FUNCTION_EXTENSION
-} v8_call_function_e;
+};
 
-enum
+enum v8_modulation_e
 {
     V8_MOD_V17          = (1 << 0),     /* V.17 half-duplex */
     V8_MOD_V21          = (1 << 1),     /* V.21 duplex */
@@ -77,28 +77,28 @@ enum
     V8_MOD_V92          = (1 << 13),    /* V.92 duplex */
 
     V8_MOD_FAILED       = (1 << 15),    /* Indicates failure to negotiate */
-} v8_modulation_e;
+};
 
-enum
+enum v8_protocol_e
 {
     V8_PROTOCOL_NONE = 0,
     V8_PROTOCOL_LAPM_V42 = 1,
     V8_PROTOCOL_EXTENSION = 7
-} v8_protocol_e;
+};
 
-enum
+enum v8_pstn_access_e
 {
     V8_PSTN_ACCESS_CALL_DCE_CELLULAR = 0x20,
     V8_PSTN_ACCESS_ANSWER_DCE_CELLULAR = 0x40,
     V8_PSTN_ACCESS_DCE_ON_DIGTIAL = 0x80
-} v8_pstn_access_e;
+};
 
-enum
+enum v8_pcm_modem_availability_e
 {
     V8_PSTN_PCM_MODEM_V90_V92_ANALOGUE = 0x20,
     V8_PSTN_PCM_MODEM_V90_V92_DIGITAL = 0x40,
     V8_PSTN_PCM_MODEM_V91 = 0x80
-} v8_pcm_modem_availability_e;
+};
 
 typedef struct
 {

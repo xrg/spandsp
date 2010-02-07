@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: playout_tests.c,v 1.14 2006/11/19 14:07:27 steveu Exp $
+ * $Id: playout_tests.c,v 1.16 2006/11/24 12:34:55 steveu Exp $
  */
 
 /*! \page playout_tests_page Playout (jitter buffering) tests
@@ -30,6 +30,10 @@
 These tests simulate timing jitter and packet loss in an audio stream, and see
 how well the playout module copes.
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -109,7 +113,7 @@ static void dynamic_buffer_tests(void)
     for (i = 0;  i < BLOCK_LEN;  i++)
         fill[i] = 32767;
 
-	if ((s = playout_new(2*BLOCK_LEN, 15*BLOCK_LEN)) == NULL)
+    if ((s = playout_new(2*BLOCK_LEN, 15*BLOCK_LEN)) == NULL)
         return;
     plc_init(&plc);
     time_scale_init(&ts, 1.0);
@@ -239,11 +243,11 @@ printf("len = %d\n", len);
     }
     afFreeFileSetup(filesetup);
 
-    printf("%10d %10d %10d\n", s->state_just_in_time, s->state_late, playout_current_length(s));
+    printf("%10" PRId32 " %10" PRId32 " %10d\n", s->state_just_in_time, s->state_late, playout_current_length(s));
 
     /* Clear everything from the queue */
     while ((p = playout_get_unconditional(s)))
-		/*free(p->data)*/;
+        /*free(p->data)*/;
     /* Now free the context itself */
     playout_free(s);
 }
@@ -343,7 +347,7 @@ static void static_buffer_tests(void)
     }
     /* Clear everything from the queue */
     while ((p = playout_get_unconditional(s)))
-		/*free(p->data)*/;
+        /*free(p->data)*/;
     /* Now free the context itself */
     playout_free(s);
 }

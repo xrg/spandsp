@@ -22,12 +22,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate_tests.c,v 1.12 2006/11/19 14:07:27 steveu Exp $
+ * $Id: tone_generate_tests.c,v 1.13 2006/11/23 15:32:23 steveu Exp $
  */
 
 /*! \page tone_generate_tests_page Tone generation tests
 \section tone_generate_tests_page_sec_1 What does it do?
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <inttypes.h>
@@ -107,6 +111,54 @@ int main(int argc, char *argv[])
                              -10,
                              440,
                              -15,
+                             100,
+                             200,
+                             300,
+                             400,
+                             TRUE);
+    tone_gen_init(&tone_state, &tone_desc);
+
+    for (i = 0;  i < 1000;  i++)
+    {
+        len = tone_gen(&tone_state, amp, 160);
+        printf("Generated %d samples\n", len);
+        if (len <= 0)
+            break;
+        outframes = afWriteFrames(outhandle,
+                                  AF_DEFAULT_TRACK,
+                                  amp,
+                                  len);
+    }
+    
+    make_tone_gen_descriptor(&tone_desc,
+                             400,
+                             -10,
+                             450,
+                             -10,
+                             100,
+                             200,
+                             300,
+                             400,
+                             TRUE);
+    tone_gen_init(&tone_state, &tone_desc);
+
+    for (i = 0;  i < 1000;  i++)
+    {
+        len = tone_gen(&tone_state, amp, 160);
+        printf("Generated %d samples\n", len);
+        if (len <= 0)
+            break;
+        outframes = afWriteFrames(outhandle,
+                                  AF_DEFAULT_TRACK,
+                                  amp,
+                                  len);
+    }
+    
+    make_tone_gen_descriptor(&tone_desc,
+                             425,
+                             -10,
+                             -50,
+                             100,
                              100,
                              200,
                              300,

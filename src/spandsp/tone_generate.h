@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.h,v 1.21 2006/10/24 13:45:28 steveu Exp $
+ * $Id: tone_generate.h,v 1.24 2006/11/24 12:34:55 steveu Exp $
  */
 
 /*! \file */
@@ -53,6 +53,7 @@ typedef struct
 {
     int32_t phase_rate[2];
     float gain[2];
+    int modulate;
     
     int duration[4];
 
@@ -67,6 +68,7 @@ typedef struct
 {
     int32_t phase_rate[2];
     float gain[2];
+    int modulate;
 
     uint32_t phase[2];
 
@@ -80,15 +82,24 @@ typedef struct
 
 typedef struct
 {
-    int         f1;         /* First freq */
-    int         f2;         /* Second freq */
-    int8_t      level1;     /* Level of the first freq (dB) */
-    int8_t      level2;     /* Level of the second freq (dB) */
-    uint16_t    on_time1;   /* Tone on time (ms) */
-    uint16_t    off_time1;  /* Minimum post tone silence (ms) */
-    uint16_t    on_time2;   /* Tone on time (ms) */
-    uint16_t    off_time2;  /* Minimum post tone silence (ms) */
-    int8_t      repeat;     /* True if cyclic tone, false for one shot. */
+    /*! First freq */
+    int         f1;
+    /*! Second freq. 0 for none. Negative for an AM modulation tone. */
+    int         f2;
+    /*! Level of the first freq (dBm0) */
+    int8_t      level1;
+    /*! Level of the second freq (dBm0), or % modulation for AM */
+    int8_t      level2;
+    /*! Tone on time (ms) */
+    uint16_t    on_time1;
+    /*! Minimum post tone silence (ms) */
+    uint16_t    off_time1;
+    /*! Tone on time (ms) */
+    uint16_t    on_time2;
+    /*! Minimum post tone silence (ms) */
+    uint16_t    off_time2;
+    /*! TRUE if cyclic tone, FALSE for one shot. */
+    int8_t      repeat;
 } cadenced_tone_t;
 
 #ifdef __cplusplus
@@ -96,6 +107,21 @@ extern "C" {
 #endif
 
 void make_tone_descriptor(tone_gen_descriptor_t *desc, cadenced_tone_t *tone);
+
+/*! Create a tone generator descriptor
+    \brief Create a tone generator descriptor
+    \param s The descriptor
+    \param f1 The first frequency, in Hz
+    \param l1 The level of the first frequency, in dBm0
+    \param f2 0 for no second frequency, a positive number for the second frequency,
+           in Hz, or a negative number for an AM modulation frequency, in Hz
+    \param l2 The level of the second frequency, in dBm0, or the percentage modulation depth
+           for an AM modulated tone.
+    \param d1 x
+    \param d2 x
+    \param d3 x
+    \param d4 x
+    \param repeat x */
 void make_tone_gen_descriptor(tone_gen_descriptor_t *s,
                               int f1,
                               int l1,
@@ -108,6 +134,7 @@ void make_tone_gen_descriptor(tone_gen_descriptor_t *s,
                               int repeat);
 
 void tone_gen_init(tone_gen_state_t *s, tone_gen_descriptor_t *t);
+
 int tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples);
 
 #ifdef __cplusplus
