@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.157 2009/02/16 09:57:22 steveu Exp $
+ * $Id: t38_gateway.c,v 1.158 2009/03/23 14:17:42 steveu Exp $
  */
 
 /*! \file */
@@ -195,17 +195,17 @@ static int v17_v21_rx(void *user_data, const int16_t amp[], int len)
     t = (t38_gateway_state_t *) user_data;
     s = &t->audio.modems;
     v17_rx(&s->v17_rx, amp, len);
-    fsk_rx(&s->v21_rx, amp, len);
-    if (s->rx_signal_present)
+    if (s->rx_trained)
     {
-        if (s->rx_trained)
-        {
-            /* The fast modem has trained, so we no longer need to run the slow
-               one in parallel. */
-            span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&s->v17_rx));
-            set_rx_handler(t, (span_rx_handler_t *) &v17_rx, &s->v17_rx);
-        }
-        else
+        /* The fast modem has trained, so we no longer need to run the slow
+           one in parallel. */
+        span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&s->v17_rx));
+        set_rx_handler(t, (span_rx_handler_t *) &v17_rx, &s->v17_rx);
+    }
+    else
+    {
+        fsk_rx(&s->v21_rx, amp, len);
+        if (s->rx_signal_present)
         {
             span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&s->v21_rx));
             set_rx_handler(t, (span_rx_handler_t *) &fsk_rx, &s->v21_rx);
@@ -225,17 +225,17 @@ static int v27ter_v21_rx(void *user_data, const int16_t amp[], int len)
     t = (t38_gateway_state_t *) user_data;
     s = &t->audio.modems;
     v27ter_rx(&s->v27ter_rx, amp, len);
-    fsk_rx(&s->v21_rx, amp, len);
-    if (s->rx_signal_present)
+    if (s->rx_trained)
     {
-        if (s->rx_trained)
-        {
-            /* The fast modem has trained, so we no longer need to run the slow
-               one in parallel. */
-            span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.27ter (%.2fdBm0)\n", v27ter_rx_signal_power(&s->v27ter_rx));
-            set_rx_handler(t, (span_rx_handler_t *) &v27ter_rx, &s->v27ter_rx);
-        }
-        else
+        /* The fast modem has trained, so we no longer need to run the slow
+           one in parallel. */
+        span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.27ter (%.2fdBm0)\n", v27ter_rx_signal_power(&s->v27ter_rx));
+        set_rx_handler(t, (span_rx_handler_t *) &v27ter_rx, &s->v27ter_rx);
+    }
+    else
+    {
+        fsk_rx(&s->v21_rx, amp, len);
+        if (s->rx_signal_present)
         {
             span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&s->v21_rx));
             set_rx_handler(t, (span_rx_handler_t *) &fsk_rx, &s->v21_rx);
@@ -255,17 +255,17 @@ static int v29_v21_rx(void *user_data, const int16_t amp[], int len)
     t = (t38_gateway_state_t *) user_data;
     s = &t->audio.modems;
     v29_rx(&s->v29_rx, amp, len);
-    fsk_rx(&s->v21_rx, amp, len);
-    if (s->rx_signal_present)
+    if (s->rx_trained)
     {
-        if (s->rx_trained)
-        {
-            /* The fast modem has trained, so we no longer need to run the slow
-               one in parallel. */
-            span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&s->v29_rx));
-            set_rx_handler(t, (span_rx_handler_t *) &v29_rx, &s->v29_rx);
-        }
-        else
+        /* The fast modem has trained, so we no longer need to run the slow
+           one in parallel. */
+        span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&s->v29_rx));
+        set_rx_handler(t, (span_rx_handler_t *) &v29_rx, &s->v29_rx);
+    }
+    else
+    {
+        fsk_rx(&s->v21_rx, amp, len);
+        if (s->rx_signal_present)
         {
             span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&s->v21_rx));
             set_rx_handler(t, (span_rx_handler_t *) &fsk_rx, &s->v21_rx);

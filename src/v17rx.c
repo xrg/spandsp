@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.135 2009/03/19 13:06:11 steveu Exp $
+ * $Id: v17rx.c,v 1.136 2009/03/23 14:17:42 steveu Exp $
  */
 
 /*! \file */
@@ -1129,8 +1129,12 @@ SPAN_DECLARE(int) v17_rx_fillin(v17_rx_state_t *s, int len)
 #else
         dds_advancef(&s->carrier_phase, s->carrier_phase_rate);
 #endif
+        /* Advance the symbol phase the appropriate amount */
+        s->eq_put_step -= RX_PULSESHAPER_COEFF_SETS;
+        if (s->eq_put_step <= 0)
+            s->eq_put_step += RX_PULSESHAPER_COEFF_SETS*10/(3*2);
+        /* TODO: Should we rotate any buffers */
     }
-    /* TODO: Advance the symbol phase the appropriate amount */
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

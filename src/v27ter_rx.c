@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.119 2009/03/19 13:06:11 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.120 2009/03/23 14:17:42 steveu Exp $
  */
 
 /*! \file */
@@ -1027,8 +1027,19 @@ SPAN_DECLARE(int) v27ter_rx_fillin(v27ter_rx_state_t *s, int len)
 #else
         dds_advancef(&s->carrier_phase, s->carrier_phase_rate);
 #endif
+        /* Advance the symbol phase the appropriate amount */
+        if (s->bit_rate == 4800)
+        {
+            if ((s->eq_put_step -= RX_PULSESHAPER_4800_COEFF_SETS) <= 0)
+                s->eq_put_step += RX_PULSESHAPER_4800_COEFF_SETS*5/2;
+        }
+        else
+        {
+            if ((s->eq_put_step -= RX_PULSESHAPER_2400_COEFF_SETS) <= 0)
+                s->eq_put_step += RX_PULSESHAPER_2400_COEFF_SETS*20/(3*2);
+        }
+        /* TODO: Should we rotate any buffers */
     }
-    /* TODO: Advance the symbol phase the appropriate amount */
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
