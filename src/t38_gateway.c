@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.96 2007/10/28 15:16:48 steveu Exp $
+ * $Id: t38_gateway.c,v 1.97 2007/10/29 13:17:33 steveu Exp $
  */
 
 /*! \file */
@@ -478,19 +478,19 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     }
     if (s->non_ecm_in_octets)
     {
-        span_log(&s->logging, SPAN_LOG_WARNING, "%d incoming non-ECM octets, %d rows\n", s->non_ecm_in_octets, s->non_ecm_in_rows);
+        span_log(&s->logging, SPAN_LOG_FLOW, "%d incoming non-ECM octets, %d rows\n", s->non_ecm_in_octets, s->non_ecm_in_rows);
         s->non_ecm_in_octets = 0;
     }
     if (s->non_ecm_out_octets)
     {
-        span_log(&s->logging, SPAN_LOG_WARNING, "%d outgoing non-ECM octets, %d rows\n", s->non_ecm_out_octets, s->non_ecm_out_rows);
+        span_log(&s->logging, SPAN_LOG_FLOW, "%d outgoing non-ECM octets, %d rows\n", s->non_ecm_out_octets, s->non_ecm_out_rows);
         s->non_ecm_out_octets = 0;
     }
     s->non_ecm_in_rows = 0;
     s->non_ecm_out_rows = 0;
     if (s->non_ecm_flow_control_fill_octets)
     {
-        span_log(&s->logging, SPAN_LOG_WARNING, "Non-ECM flow control generated %d octets\n", s->non_ecm_flow_control_fill_octets);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM flow control generated %d octets\n", s->non_ecm_flow_control_fill_octets);
         s->non_ecm_flow_control_fill_octets = 0;
     }
     s->non_ecm_bit_no = 0;
@@ -1221,14 +1221,16 @@ static void non_ecm_put_bit(void *user_data, int bit)
         return;
     }
     bit &= 1;
-#if 0    
     if (s->t38.fill_bit_removal)
     {
         /* Drop any extra zero bits when we already have enough for an EOL symbol. */
-        if ((s->non_ecm_rx_bit_stream & 0x7FFF) == 0  &&  bit == 0)
+        /* The snag here is that if we just look for 11 bits, a line ending with
+           a code that has trailing bits will cause problems. The longest run of
+           trailing zeros for any code is 3, so we need to look for at least 14 zeros
+           if we don't want to actually analyse the compressed data in depth. */
+        if ((s->non_ecm_rx_bit_stream & 0x3FFF) == 0  &&  bit == 0)
             return;
     }
-#endif
     s->non_ecm_rx_bit_stream = (s->non_ecm_rx_bit_stream << 1) | bit;
     if (++s->non_ecm_bit_no >= 8)
     {

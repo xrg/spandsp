@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.98 2007/10/18 15:08:06 steveu Exp $
+ * $Id: t4.c,v 1.99 2007/10/29 13:17:33 steveu Exp $
  */
 
 /*
@@ -630,18 +630,18 @@ static int put_decoded_row(t4_state_t *s)
         for (x = 0, fudge = 0;  x < s->a_cursor;  x++, fudge ^= 0xFF)
         {
             i = s->cur_runs[x];
-            if (i >= s->bit)
+            if (i >= s->data_bits)
             {
-                s->data = (s->data << s->bit) | (msbmask[s->bit] & fudge);
-                for (i += (8 - s->bit);  i >= 8;  i -= 8)
+                s->data = (s->data << s->data_bits) | (msbmask[s->data_bits] & fudge);
+                for (i += (8 - s->data_bits);  i >= 8;  i -= 8)
                 {
-                    s->bit = 8;
+                    s->data_bits = 8;
                     s->image_buffer[s->image_size++] = (uint8_t) s->data;
                     s->data = fudge;
                 }
             }
             s->data = (s->data << i) | (msbmask[i] & fudge);
-            s->bit -= i;
+            s->data_bits -= i;
         }
         s->image_length++;
     }
@@ -1158,7 +1158,7 @@ int t4_rx_start_page(t4_state_t *s)
     s->image_length = 0;
     s->consecutive_eols = 0;
     s->data = 0;
-    s->bit = 8;
+    s->data_bits = 8;
     s->image_size = 0;
     s->last_row_starts_at = 0;
 
@@ -1259,45 +1259,27 @@ void t4_rx_set_model(t4_state_t *s, const char *model)
 }
 /*- End of function --------------------------------------------------------*/
 
-static __inline__ int flush_bits_to_image_buffer(t4_state_t *s)
+static __inline__ int put_encoded_bits(t4_state_t *s, uint32_t bits, int length)
 {
     uint8_t *t;
 
-    s->bit = 8;
-    if (s->image_size >= s->image_buffer_size)
+    /* We might be called with a large length value, to spew out a mass of zero bits for
+       minimum row length padding. */
+    s->data |= (bits << s->data_bits);
+    s->data_bits += length;
+    s->row_bits += length;
+    if ((s->image_size + (s->data_bits + 7)/8) >= s->image_buffer_size)
     {
         if ((t = realloc(s->image_buffer, s->image_buffer_size + 100*s->bytes_per_row)) == NULL)
             return -1;
-        s->image_buffer_size += 100*s->bytes_per_row;
         s->image_buffer = t;
+        s->image_buffer_size += 100*s->bytes_per_row;
     }
-    s->image_buffer[s->image_size++] = (uint8_t) s->data;
-    s->data = 0;
-    return 0;
-}
-/*- End of function --------------------------------------------------------*/
-
-static __inline__ int put_encoded_bits(t4_state_t *s, int bits, int length)
-{
-    static const int msbmask[9] =
+    while (s->data_bits >= 8)
     {
-        0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff
-    };
-
-    s->row_bits += length;
-    while (length > s->bit)
-    {
-        length -= s->bit;
-        s->data |= (bits >> length);
-        if (flush_bits_to_image_buffer(s))
-            return -1;
-    }
-    s->bit -= length;
-    s->data |= ((bits & msbmask[length]) << s->bit);
-    if (s->bit == 0)
-    {
-        if (flush_bits_to_image_buffer(s))
-            return -1;
+        s->image_buffer[s->image_size++] = (uint8_t) (s->data & 0xFF);
+        s->data >>= 8;
+        s->data_bits -= 8;
     }
     return 0;
 }
@@ -1309,7 +1291,7 @@ static __inline__ int put_encoded_bits(t4_state_t *s, int bits, int length)
  * appropriate table that holds the make-up and
  * terminating codes is supplied.
  */
-static __inline__ int put_span(t4_state_t *s, int32_t span, const t4_run_table_entry_t *tab)
+static __inline__ int put_1d_span(t4_state_t *s, int32_t span, const t4_run_table_entry_t *tab)
 {
     const t4_run_table_entry_t *te;
 
@@ -1346,12 +1328,12 @@ static void t4_encode_eol(t4_state_t *s)
 
     if (s->line_encoding == T4_COMPRESSION_ITU_T4_1D)
     {
-        code = 0x001;
+        code = 0x800;
         length = 12;
     }
     else
     {
-        code = 0x0002 | (!s->row_is_2d);
+        code = 0x0800 | ((!s->row_is_2d) << 12);
         length = 13;
     }
     /* We may need to pad the row to a minimum length. */
@@ -1369,15 +1351,15 @@ static void t4_encode_2d_row(t4_state_t *s)
 {
     static const t4_run_table_entry_t codes[] =
     {
-        { 7, 0x03, 0 },         /* VR3          0000 011 */
-        { 6, 0x03, 0 },         /* VR2          0000 11 */
-        { 3, 0x03, 0 },         /* VR1          011 */
+        { 7, 0x60, 0 },         /* VR3          0000 011 */
+        { 6, 0x30, 0 },         /* VR2          0000 11 */
+        { 3, 0x06, 0 },         /* VR1          011 */
         { 1, 0x01, 0 },         /* V0           1 */
         { 3, 0x02, 0 },         /* VL1          010 */
-        { 6, 0x02, 0 },         /* VL2          0000 10 */
-        { 7, 0x02, 0 },         /* VL3          0000 010 */
-        { 3, 0x01, 0 },         /* horizontal   001 */
-        { 4, 0x01, 0 }          /* pass         0001 */
+        { 6, 0x10, 0 },         /* VL2          0000 10 */
+        { 7, 0x20, 0 },         /* VL3          0000 010 */
+        { 3, 0x04, 0 },         /* horizontal   001 */
+        { 4, 0x08, 0 }          /* pass         0001 */
     };
 
     /* The reference or starting changing element on the coding line. At the start of the coding
@@ -1487,13 +1469,13 @@ static void t4_encode_2d_row(t4_state_t *s)
                 put_encoded_bits(s, codes[7].code, codes[7].length);
                 if (a0 + a1 == 0  ||  pixel_is_black(s->row_buf, a0) == 0)
                 {
-                    put_span(s, a1 - a0, t4_white_codes);
-                    put_span(s, a2 - a1, t4_black_codes);
+                    put_1d_span(s, a1 - a0, t4_white_codes);
+                    put_1d_span(s, a2 - a1, t4_black_codes);
                 }
                 else
                 {
-                    put_span(s, a1 - a0, t4_black_codes);
-                    put_span(s, a2 - a1, t4_white_codes);
+                    put_1d_span(s, a1 - a0, t4_black_codes);
+                    put_1d_span(s, a2 - a1, t4_white_codes);
                 }
                 a0 = a2;
                 a_cursor += 2;
@@ -1562,9 +1544,9 @@ static void t4_encode_1d_row(t4_state_t *s)
     /* Do our work in the reference row buffer, and it is already in place if
        we need a reference row for a following 2D encoded row. */
     s->ref_steps = row_to_run_lengths(s->ref_runs, s->row_buf, s->image_width);
-    put_span(s, s->ref_runs[0], t4_white_codes);
+    put_1d_span(s, s->ref_runs[0], t4_white_codes);
     for (i = 1;  i < s->ref_steps;  i++)
-        put_span(s, s->ref_runs[i] - s->ref_runs[i - 1], (i & 1)  ?  t4_black_codes  :  t4_white_codes);
+        put_1d_span(s, s->ref_runs[i] - s->ref_runs[i - 1], (i & 1)  ?  t4_black_codes  :  t4_white_codes);
     /* Stretch the row a little, so when we step by 2 we are guaranteed to
        hit an entry showing the row length */
     s->ref_runs[s->ref_steps] =
@@ -1744,7 +1726,8 @@ int t4_tx_start_page(t4_state_t *s)
     if (!TIFFSetDirectory(s->tiff_file, (tdir_t) s->pages_transferred))
         return -1;
     s->image_size = 0;
-    s->bit = 8;
+    s->data = 0;
+    s->data_bits = 0;
     s->row_is_2d = (s->line_encoding == T4_COMPRESSION_ITU_T6);
     s->rows_to_next_1d_row = s->max_rows_to_next_1d_row - 1;
 
@@ -1862,6 +1845,7 @@ int t4_tx_start_page(t4_state_t *s)
             s->row_bits = INT_MAX - 1000;
         }
     }
+    /* Force any partial byte in progress to flush */
     put_encoded_bits(s, 0, 7);
     s->bit_pos = 7;
     s->bit_ptr = 0;
@@ -1914,7 +1898,7 @@ int t4_tx_get_bit(t4_state_t *s)
 
     if (s->bit_ptr >= s->image_size)
         return PUTBIT_END_OF_DATA;
-    bit = (s->image_buffer[s->bit_ptr] >> s->bit_pos) & 1;
+    bit = (s->image_buffer[s->bit_ptr] >> (7 - s->bit_pos)) & 1;
     if (--s->bit_pos < 0)
     {
         s->bit_pos = 7;
@@ -1928,7 +1912,7 @@ int t4_tx_get_byte(t4_state_t *s)
 {
     if (s->bit_ptr >= s->image_size)
         return 0x100;
-    return bit_reverse8(s->image_buffer[s->bit_ptr++]);
+    return s->image_buffer[s->bit_ptr++];
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1938,7 +1922,7 @@ int t4_tx_get_chunk(t4_state_t *s, uint8_t buf[], int max_len)
         return 0;
     if (s->bit_ptr + max_len > s->image_size)
         max_len = s->image_size - s->bit_ptr;
-    bit_reverse(buf, &s->image_buffer[s->bit_ptr], max_len);
+    memcpy(buf, &s->image_buffer[s->bit_ptr], max_len);
     s->bit_ptr += max_len;
     return max_len;
 }

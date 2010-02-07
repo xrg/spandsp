@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.41 2007/10/13 14:10:20 steveu Exp $
+ * $Id: t4.h,v 1.42 2007/10/29 13:17:33 steveu Exp $
  */
 
 /*! \file */
@@ -277,7 +277,7 @@ typedef struct
     int black_white;
 
     uint32_t data;
-    int bit;
+    int data_bits;
 
     /*! \brief A pointer into the image buffer indicating where the last row begins */
     int last_row_starts_at;
