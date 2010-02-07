@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tests.c,v 1.97 2008/11/30 10:17:31 steveu Exp $
+ * $Id: v27ter_tests.c,v 1.98 2008/12/06 12:36:29 steveu Exp $
  */
 
 /*! \page v27ter_tests_page V.27ter modem tests
@@ -99,39 +99,12 @@ static void reporter(void *user_data, int reason, bert_results_t *results)
 {
     switch (reason)
     {
-    case BERT_REPORT_SYNCED:
-        printf("BERT report synced\n");
-        break;
-    case BERT_REPORT_UNSYNCED:
-        printf("BERT report unsync'ed\n");
-        break;
     case BERT_REPORT_REGULAR:
         printf("BERT report regular - %d bits, %d bad bits, %d resyncs\n", results->total_bits, results->bad_bits, results->resyncs);
         memcpy(&latest_results, results, sizeof(latest_results));
         break;
-    case BERT_REPORT_GT_10_2:
-        printf("BERT report > 1 in 10^2\n");
-        break;
-    case BERT_REPORT_LT_10_2:
-        printf("BERT report < 1 in 10^2\n");
-        break;
-    case BERT_REPORT_LT_10_3:
-        printf("BERT report < 1 in 10^3\n");
-        break;
-    case BERT_REPORT_LT_10_4:
-        printf("BERT report < 1 in 10^4\n");
-        break;
-    case BERT_REPORT_LT_10_5:
-        printf("BERT report < 1 in 10^5\n");
-        break;
-    case BERT_REPORT_LT_10_6:
-        printf("BERT report < 1 in 10^6\n");
-        break;
-    case BERT_REPORT_LT_10_7:
-        printf("BERT report < 1 in 10^7\n");
-        break;
     default:
-        printf("BERT report reason %d\n", reason);
+        printf("BERT report %s\n", bert_event_to_str(reason));
         break;
     }
 }

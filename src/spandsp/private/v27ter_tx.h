@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.h,v 1.1 2008/10/13 13:14:01 steveu Exp $
+ * $Id: v27ter_tx.h,v 1.2 2008/12/06 14:35:04 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_V27TER_TX_H_)
@@ -90,10 +90,6 @@ struct v27ter_tx_state_s
     /*! \brief Error and flow logging control */
     logging_state_t logging;
 };
-
-#if defined(__cplusplus)
-}
-#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/
