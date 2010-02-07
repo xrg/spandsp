@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.39 2008/07/02 14:48:25 steveu Exp $
+## $Id: Makefile.am,v 1.40 2008/07/15 14:28:20 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -52,6 +52,7 @@ EXTRA_DIST = autogen.sh \
              src/msvc/vc8proj.foot \
              spandsp/global-tones.xml \
              spandsp/tones.dtd \
+             spandsp/tsb85.xml \
              debian/changelog \
              debian/compat \
              debian/control \

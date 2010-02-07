@@ -237,6 +237,7 @@ EXTRA_DIST = autogen.sh \
              src/msvc/vc8proj.foot \
              spandsp/global-tones.xml \
              spandsp/tones.dtd \
+             spandsp/tsb85.xml \
              debian/changelog \
              debian/compat \
              debian/control \

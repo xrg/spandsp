@@ -1,0 +1,5459 @@
+<?xml version="1.0"?>
+<fax-tests>
+<messages>
+    <!-- TCF = 2700 bytes at 14400, 2250 at 12000, 1800 at 9600, 1350 at 7200, 900 at 4800 or 450 at 2400 -->
+    <!-- Bad TCF == 10101010.... -->
+    <!-- slow HDLC preamble == 37 flag bytes -->
+    <!-- slow HDLC inter-frame flag sequence == 1 flag byte -->
+    <!-- slow HDLC end flag sequence == 5 flag bytes -->
+    <!-- synchronisation sequence == 250ms of zeros. = 450 bytes at 14400, 375 at 12000, 300 at 9600, 225 at 7200, 150 at 4800 or 75 at 2400 -->
+    <!-- fast HDLC inter-frame flag sequence == 1 flag byte -->
+    <!-- fast HDLC end flag sequence == 10 flag bytes -->
+    <message type="CSI" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
+    <message type="TSI" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
+    <message type="CIG" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
+    <message type="PWD" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
+    <message type="SUB" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
+    <message type="SEP" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
+    <message type="NSF" fif="B5 FF FF"/>
+    <message type="NSF" fif="B5 FF FF"/>
+    <message type="NSF" fif="B5 FF FF"/>
+</messages>
+<test-group name="Annex A - Receive test procedures">
+    <test name="MRGN01">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED">
+            <check name="MRGN01M01" desc="receipt of CED"/>
+            <check name="MRGN01M02" desc="CED is 2.6s to 4s"/>
+        </step>
+        <step dir="R" type="NSF/CSI/DIS">
+            <check name="MRGN01M03" desc="receipt of DIS"/>
+            <check name="MRGN01M04" desc="CED to DIS silence is 55ms to 95ms"/>
+            <check name="MRGN01M05" desc="preamble is 850ms to 1150ms"/>
+            <check name="MRGN01M06" desc="CSI received"/>
+            <check name="MRGN01M07" desc="NSF and CSI framing"/>
+            <check name="MRGN01M08" desc="CSI FIF content"/>
+            <check name="MRGN01M09" desc="DIS framing"/>
+            <check name="MRGN01M10" desc="DIS FIF content"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR">
+            <check name="MRGN01M11" desc="Respond CFR to DCS TCF"/>
+            <check name="MRGN01M12" desc="CFR preamble"/>
+            <check name="MRGN01M13" desc="CFR framing"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF">
+            <check name="MRGN01M14" desc="Respond MCF to MPS"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF">
+            <check name="MRGN01M15" desc="MCF preamble"/>
+            <check name="MRGN01M16" desc="MCF framing"/>
+            <check name="MRGN01M17" desc="Respond MCF to EOP"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN">
+            <check name="MRGN01M18" desc="Disconnect after receiving DCN"/>
+        </step>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN02">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-DIAG01">
+            <check name="MRGN02M01" desc="decoding of all A4 one dimensional encoding codes"/>
+        </step>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-DIAGO2">
+            <check name="MRGN02M01" desc="decoding of all A4 one dimensional encoding codes"/>
+        </step>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN03">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-DURATION1">
+            <check name="MRGN02M01" desc="Accept 4.9s long scan line"/>
+        </step>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-DURATION2">
+            <check name="MRGN02M02" desc="Reject 5.1s long scan line"/>
+        </step>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="6000"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="6000"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="6000"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN04">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-ERROR" bad_rows="
+ 79,  85, 105, 111, 133, 137, 157, 163, 183, 189, 209, 215, 235, 248, 261, 267,
+287, 293, 313"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF or RTP">
+            <check name="MRGN02M01" desc="Accept 4.9% of scan lines in error"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-ERROR" bad_rows="
+ 79,  85, 105, 111, 133, 137, 157, 163, 183, 189, 209, 215, 235, 248, 261, 267,
+287, 293, 313,  73,  76,  88,  91,  94,  99, 102, 117, 120, 125, 128, 143, 146,
+151, 154, 169, 172, 177, 180, 195, 198, 203, 206, 221, 224, 229, 232, 247, 250,
+255, 258, 273, 276, 281, 284, 299, 302, 307, 310, 319, 325, 328"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="RTN">
+            <check name="MRGN02M01" desc="Reject 15.1% of scan lines in error"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN05">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-IMPRESS"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF">
+            <check name="MRGN05M01" desc="Check IMPRESS picture orientation"/>
+            <check name="MRGN05M02" desc="Check IMPRESS area 9 - horizontal intensity"/>
+            <check name="MRGN05M03" desc="Check IMPRESS area 2 - horizontal alignment"/>
+            <check name="MRGN05M04" desc="Check IMPRESS area 1 - vertical alignment"/>
+            <check name="MRGN05M05" desc="Check IMPRESS area 16 - vertical density"/>
+            <check name="MRGN05M06" desc="Check IMPRESS area 4 - odd alternate pixels black"/>
+            <check name="MRGN05M07" desc="Check IMPRESS area 5 - even alternate pixels black"/>
+            <check name="MRGN05M08" desc="Check IMPRESS area 7 - alternate lines black"/>
+            <check name="MRGN05M09" desc="Check IMPRESS area 11 - isolated black pixels"/>
+            <check name="MRGN05M10" desc="Check IMPRESS area 13 - white cross on black"/>
+            <check name="MRGN05M11" desc="Check IMPRESS area 14 - black cross on white"/>
+            <check name="MRGN05M12" desc="Check IMPRESS area 15 - vertical one pixel wide line"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN06a">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="55"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00">
+            <check name="MRGN06M01" desc="Low side of acceptable DIS to DCS limit as receiver (55ms)"/>
+            <check name="MRGN06M02" desc="High side of acceptable DIS to DCS limit as receiver (2650ms)"/>
+            <check name="MRGN06M03" desc="Accept DCS with 8 byte FIF"/>
+        </step>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF" value="1350"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="55"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="55"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="55"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="55"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN06b">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="2650"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00">
+            <check name="MRGN06M01" desc="Low side of acceptable DIS to DCS limit as receiver (55ms)"/>
+            <check name="MRGN06M02" desc="High side of acceptable DIS to DCS limit as receiver (2650ms)"/>
+            <check name="MRGN06M03" desc="Accept DCS with 8 byte FIF"/>
+        </step>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF" value="1650"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="5000"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="5000"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="5000"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="5000"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN07">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF" value="1010"/>
+
+        <step dir="R" type="FTT">
+            <check name="MRGN07M01" desc="FTT returned for corrupted TCF pattern"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF" value="10101010101010101010101010101010101010101010101010000000000"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN08">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="FTT">
+            <check name="MRGN07M01" desc="FTT returned for corrupted TCF pattern"/>
+            <check name="MRGN07M02" desc="FTT preamble between 850ms and 1150ms"/>
+            <check name="MRGN07M03" desc="FTT is 0xFF, 0xC8, FCF with MSB of zero, and no FIF bytes"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR">
+            <check name="MRGN07M04" desc="Accept TCF"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN09">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOM"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+        <step dir="R" type="DIS">
+            <check name="MRGN09M01" desc="Device goes to phase B after receiving EOM"/>
+            <check name="MRGN09M02" desc="T2 elapses afetr MCF response to EOM"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN10">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+        <step dir="R" type="DIS"/>
+        <step dir="R" type="DIS">
+            <check name="MRGN10M01" desc="Two non-responses to DIS"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN11">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="DIS">
+            <check name="MRGN11M01" desc="Two bad FCS responses to first DIS"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN12">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="CRP">
+            <check name="MRGN12M01" desc="Two CRP responses to first DIS"/>
+        </step>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN13">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="FTT"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="FTT">
+            <check name="MRGN13M01" desc="Two DCS lacking TCF responses to first DIS"/>
+
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN14">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CRP or nothing">
+            <check name="MRGN14M01" desc="One bad FCS DCS command after CFR"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN15">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="FTT">
+            <check name="MRGN15M01" desc="One DCS lacking TCF command after CFR"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN16">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOM"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOM"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step dir="T" type="EOM">
+            <check name="MRGN16M01" desc="Repeated EOM commands"/>
+        </step>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS">
+            <check name="MRGN16M02" desc="Repeated MPS commands"/>
+        </step>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP">
+            <check name="MRGN16M03" desc="Repeated EOP commands"/>
+        </step>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGN17">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOM" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="CRP or nothing"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOM" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="CRP or nothing"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOM"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF">
+            <check name="MRGN17M01" desc="Do not respond to bad EOM commands"/>
+        </step>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="CRP or nothing"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="CRP or nothing"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF">
+            <check name="MRGN17M02" desc="Do not respond to bad MPS commands"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="CRP or nothing"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="CRP or nothing"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF">
+            <check name="MRGN17M03" desc="Do not respond to bad EOP commands"/>
+        </step>
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+</test-group>
+<test-group name="Annex B - Capability receive test procedures">
+    <test name="ORGC01">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-DIAGO1"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-DIAGO2"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="ORGC02">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="ORGC03">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-IMPRESS"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+</test-group>
+<test-group name="Annex C - ECM receive test procedures">
+    <test name="OREN01">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 1F 30"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-NULL"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP"/>
+        <step dir="T" type="PPS-MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="OREN02">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 1F 30"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PPS-NULL"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PPS-NULL"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PPS-MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PPS-MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PPS-MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PPS-MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="OREN03">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 1F 30"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CTC"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="CTR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="OREN04">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 1F 30"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-NULL"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-NULL"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-NULL"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-NULL"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOR-NULL"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="ERR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="OREN05">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 1F 30"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-NULL"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-NULL"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-NULL"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-NULL"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-NULL"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOR-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="ERR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="OREN06">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 1F 30"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOR-MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="ERR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="OREN07">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 1F 30"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="PPR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="EOR-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="ERR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="OREN08">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 1F 30"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP"/>
+        <step dir="T" type="PPS-EOP"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <possible-step>
+            <step dir="R" type="RNR"/>
+
+            <step type="WAIT" value="75"/>
+            <step dir="T" type="SLOW-PREAMBLE"/>
+            <step dir="T" type="RR"/>
+            <step dir="T" type="SLOW-POSTAMBLE"/>
+        </possible-step>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="OREN09">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 1F 30"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-IMPRESS"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PPS-MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-STAIRSTEP"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="OREN10">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 1F 30"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PP-IMPRESS"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPS-EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+</test-group>
+<test-group name="Annex D - Exception receive test procedures">
+    <test name="MRGX01">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+        <step dir="R" type="DIS"/>
+        <step dir="R" type="DIS"/>
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MRGX02">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGX03">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+    </test>
+    <test name="MRGX04">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+    </test>
+    <test name="MRGX05">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+    </test>
+    <test name="MRGX06">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGX07">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGX08">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGX09">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="UNKNOWN_BCS_2"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGX10">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="UNKNOWN_BCS_3"/>
+
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="UNKNOWN_BCS_1"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGX11">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="UNKNOWN_BCS_4"/>
+
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGX12">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="UNKNOWN_BCS_2"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGX13">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="UNKNOWN_BCS_3"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGX14">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="UNKNOWN_BCS_4"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MRGX15">
+        <step type="CALL"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CALLER_SET_GROUP"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+</test-group>
+<test-group name="Annex E - Polling receive test procedures">
+    <test name="MTGP01">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 40 10"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGP02">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 80 10"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="CIG" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
+        <step dir="R" type="DTC"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 00 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="OTGP03">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 80 11 01 01 01 40"/>
+
+        <step dir="R" type="PWD"/>
+        <step dir="R" type="DTC"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 00 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MPS"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+</test-group>
+<test-group name="Annex F - Transmit test procedures">
+    <test name="MTGN01">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="TSI"/>
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-IMPRESS"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN02">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="TSI" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN03">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 40 10"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN04">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 40 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN05">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 40 02"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN06">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN07">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 00 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN08">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN09">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN10">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="CRP or nothing"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="CRP or nothing"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN11">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 72 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN12">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 72 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN13">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 72 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN14">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 72 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOM"/>
+        <step dir="R" type="EOM"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 72 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN15">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 72 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOM"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="EOM"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="EOM"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 72 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN16">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 72 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOM"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="EOM"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="EOM"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 72 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN17">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+        <step dir="R" type="MPS"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN18">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN19">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step dir="T" type="MCF"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN20">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+        <step dir="R" type="EOP"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN21">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF" crc="BAD"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN22">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN23">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOM"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="RTP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="2000"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN24">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="RTP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN25">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="RTP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN26">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 72 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOM"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="RTN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="2000"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN27">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="RTN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGN28">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="RTN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+</test-group>
+<test-group name="Annex G - Capability transmit tests">
+    <test name="OTGC01">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-IMPRESS"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTGC02">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 40 10"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-IMPRESS"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTGC03">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 72 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-IMPRESS"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTGC04">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 72 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="FTT"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-IMPRESS"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTGC05">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 76 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-IMPRESS"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTGC06">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 76 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-IMPRESS"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTGC07">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 76 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="FTT"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="FTT"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-IMPRESS"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTGC08">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="FTT"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="FTT"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="FTT"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-IMPRESS"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTGC09">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTGC10">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="FTT"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="RTP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTGC11">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-IMPRESS"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+</test-group>
+<test-group name="Annex H - ECM transmit test procedures">
+    <test name="OTEN01">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 1F 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-NULL"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTEN02">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 1F 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-IMPRESS"/>
+        <step dir="R" type="PPS-NULL"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-IMPRESS"/>
+        <step dir="R" type="PPS-NULL"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-IMPRESS"/>
+        <step dir="R" type="PPS-MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTEN03">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 1F 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="RNR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="RR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="RNR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTEN04">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 1F 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="EOR-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="ERR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTEN05">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 1F 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PPR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="CTC"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CTR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-WHITE"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="OTEN06">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 1F 20"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="PP-IMPRESS"/>
+        <step dir="R" type="PPS-EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+</test-group>
+<test-group name="Annex I - Exception transmit test procedures">
+    <test name="MTGX01">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+    </test>
+    <test name="MTGX02">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MTGX03">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MTGX04">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOM"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MTGX05">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MTGX06">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MTGX07">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX08">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOM"/>
+        <step dir="R" type="EOM"/>
+        <step dir="R" type="EOM"/>
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX09">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+        <step dir="R" type="MPS"/>
+        <step dir="R" type="MPS"/>
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX10">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+        <step dir="R" type="EOP"/>
+        <step dir="R" type="EOP"/>
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX11">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="FTT"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="FTT"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="FTT"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX12">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX13">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX14">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOM"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="EOM"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="EOM"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX15">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX16">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CRP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX17">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="UNKNOWN_BCS_2"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="UNKNOWN_BCS_2"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCN"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+    </test>
+    <test name="MTGX18">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="UNKNOWN_BCS_3"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="UNKNOWN_BCS_1"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00">
+            <check name="MTGX18M01" desc="Unknown frame for command received"/>
+            <check name="MTGX18M02" desc="Unknown frame for command received"/>
+        </step>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX19">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="UNKNOWN_BCS_4"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step type="WAIT" value="6000"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS">
+            <check name="MTGX19M01" desc="Unknown frame for command received"/>
+        </step>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX20">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+ 
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CED"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="T_UNKNOWN_BCS_2"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN">
+            <check name="MTGX20M01" desc="Unknown frame for response received"/>
+        </step>
+    </test>
+    <test name="MTGX21">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="UNKNOWN_BCS_3"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MPS">
+            <check name="MTGX21M01" desc="Unknown frame for response received"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX22">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS"/>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="UNKNOWN_BCS_4"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MPS">
+            <check name="MTGX22M01" desc="Unknown frame for response received"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MTGX23">
+        <step type="ANSWER"/>
+
+        <step dir="R" type="CNG"/>
+
+        <step dir="T" type="CED"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CALLED-CAP-GROUP"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS">
+            <check name="MTGX23M01" desc="DIS exhibits T.4 transmitter ability without password"/>
+        </step>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+</test-group>
+<test-group name="Annex J - Polling transmit test procedures">
+    <test name="MRGP01">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS">
+            <check name="MRGP01M01" desc="DIS exhibits T.4 transmitter ability without password"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DTC" fif="00 50 10"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="TSI" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20">
+            <check name="MRGP01M04" desc="Polled, TSI prescence"/>
+            <check name="MRGP01M05" desc="Polled, TSI framing"/>
+            <check name="MRGP01M06" desc="Polled, TSI FIF content"/>
+        </step>
+        <step dir="R" type="DCS">
+            <check name="MRGP01M02" desc="Polled, trasnmit DCS"/>
+            <check name="MRGP01M03" desc="Polled, DCS preamble"/>
+            <check name="MRGP01M07" desc="Polled, DCS framing"/>
+            <check name="MRGP01M08" desc="Polled, DCS FIF content"/>
+        </step>
+        <step dir="R" type="TCF">
+            <check name="MRGP01M09" desc="Polled, DCS TCF"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE">
+            <check name="MRGP01M10" desc="Polled, MSG1"/>
+        </step>
+        <step dir="R" type="MPS">
+            <check name="MRGP01M11" desc="Polled, MPS"/>
+            <check name="MRGP01M12" desc="Polled, MPS preamble"/>
+            <check name="MRGP01M13" desc="Polled, MPS framing"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE">
+            <check name="MRGP01M14" desc="Polled, MSG1"/>
+        </step>
+        <step dir="R" type="EOP">
+            <check name="MRGP01M15" desc="Polled, EOP"/>
+            <check name="MRGP01M16" desc="Polled, EOP preamble"/>
+            <check name="MRGP01M17" desc="Polled, EOP framing"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN">
+            <check name="MRGP01M18" desc="Polled, DCN"/>
+            <check name="MRGP01M19" desc="Polled, DCN preamble"/>
+            <check name="MRGP01M20" desc="Polled, DCN framing"/>
+            <check name="MRGP01M21" desc="Polled, disconnect after DCN"/>
+        </step>
+    </test>
+    <test name="MRGP02">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS">
+            <check name="MRGP02M01" desc="DIS exhibits T.4 transmitter ability with password"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PWD" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
+        <step dir="T" type="DTC" fif="00 50 11 01 01 01 40"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="TSI"/>
+        <step dir="R" type="DCS">
+            <check name="MRGP02M02" desc="Polled, DUT accepts tester's password"/>
+        </step>
+
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MRGP03">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="PWD" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
+        <step dir="T" type="DTC" fif="00 50 11 01 01 01 40"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN">
+            <check name="MRGP03M01" desc="Polled, DUT rejects tester's password"/>
+        </step>
+    </test>
+    <test name="MRGP04">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DTC"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN">
+            <check name="MRGP04M01" desc="Polled, DUT rejects DTC for lack of password"/>
+        </step>
+    </test>
+    <test name="MRGP05">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS">
+            <check name="MRGP05M01" desc="DIS not exhibit T.4 transmit capability"/>
+        </step>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DTC"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN">
+            <check name="MRGP05M02" desc="Polled, DUT rejects DTC for no document available"/>
+        </step>
+    </test>
+    <test name="MRGP06">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS">
+            <check name="MRGP06M01" desc="Polled, DUT accepts DIS in place of DTC"/>
+        </step>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="MPS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG-WHITE"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="MRGP07">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN">
+            <check name="MRGP07M01" desc="Polled, DUT rejects DIS in place of DTC for lackof password"/>
+        </step>
+    </test>
+    <test name="MRGP08">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DIS" fif="00 50 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN">
+            <check name="MRGP08M01" desc="Polled, DUT rejects DIS in place of DTC for no document available"/>
+        </step>
+    </test>
+    <test name="ORGP09">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 00 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOM"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DTC" fif="00 74 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS">
+            <check name="ORGP09M01" desc="Reception followed by invited polling transmission"/>
+        </step>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+    <test name="ORGP10">
+        <step type="CALL"/>
+
+        <step dir="T" type="CNG"/>
+
+        <step dir="R" type="CED"/>
+        <step dir="R" type="DIS"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="DCS" fif="00 00 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="TCF"/>
+
+        <step dir="R" type="CFR"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="MSG-WHITE"/>
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="EOM"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MCF"/>
+
+        <step type="WAIT" value="2000"/>
+        <step dir="T" type="DTC" fif="00 74 00"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCS">
+            <check name="ORGP10M01" desc="Reception followed by immediate polling transmission"/>
+        </step>
+        <step dir="R" type="TCF"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="CFR"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="MSG"/>
+        <step dir="R" type="EOP"/>
+
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="SLOW-PREAMBLE"/>
+        <step dir="T" type="MCF"/>
+        <step dir="T" type="SLOW-POSTAMBLE"/>
+
+        <step dir="R" type="DCN"/>
+    </test>
+</test-group>
+</fax-tests>
