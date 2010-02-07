@@ -463,7 +463,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SPANDSP_LT_CURRENT SPANDSP_LT_REVISION SPANDSP_LT_AGE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CPP EGREP SED LN_S ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB DSYMUTIL ac_ct_DSYMUTIL NMEDIT ac_ct_NMEDIT CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL LIBOBJS COND_DOC_TRUE COND_DOC_FALSE COND_TESTS_TRUE COND_TESTS_FALSE COND_TESTDATA_TRUE COND_TESTDATA_FALSE COND_MMX_TRUE COND_MMX_FALSE COND_SSE_TRUE COND_SSE_FALSE COND_SSE2_TRUE COND_SSE2_FALSE COND_SSE3_TRUE COND_SSE3_FALSE COND_SSE4_1_TRUE COND_SSE4_1_FALSE COND_SSE4_2_TRUE COND_SSE4_2_FALSE COND_SSE4A_TRUE COND_SSE4A_FALSE COND_SSE5_TRUE COND_SSE5_FALSE CC_FOR_BUILD CPPFLAGS_FOR_BUILD COMP_VENDOR_CFLAGS COMP_VENDOR_LDFLAGS TESTLIBS SPANDSP_USE_FIXED_POINT SPANDSP_MISALIGNED_ACCESS_FAILS SPANDSP_USE_EXPORT_CAPABILITY INSERT_INTTYPES_HEADER INSERT_STDINT_HEADER INSERT_TGMATH_HEADER INSERT_MATH_HEADER LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SPANDSP_LT_CURRENT SPANDSP_LT_REVISION SPANDSP_LT_AGE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CPP EGREP SED LN_S ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB DSYMUTIL ac_ct_DSYMUTIL NMEDIT ac_ct_NMEDIT CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL LIBOBJS COND_DOC_TRUE COND_DOC_FALSE COND_TESTS_TRUE COND_TESTS_FALSE COND_TESTDATA_TRUE COND_TESTDATA_FALSE COND_MMX_TRUE COND_MMX_FALSE COND_SSE_TRUE COND_SSE_FALSE COND_SSE2_TRUE COND_SSE2_FALSE COND_SSE3_TRUE COND_SSE3_FALSE COND_SSE4_1_TRUE COND_SSE4_1_FALSE COND_SSE4_2_TRUE COND_SSE4_2_FALSE COND_SSE4A_TRUE COND_SSE4A_FALSE COND_SSE5_TRUE COND_SSE5_FALSE CC_FOR_BUILD CPPFLAGS_FOR_BUILD COMP_VENDOR_CFLAGS COMP_VENDOR_LDFLAGS SIMLIBS TESTLIBS SPANDSP_USE_FIXED_POINT SPANDSP_MISALIGNED_ACCESS_FAILS SPANDSP_USE_EXPORT_CAPABILITY INSERT_INTTYPES_HEADER INSERT_STDINT_HEADER INSERT_TGMATH_HEADER INSERT_MATH_HEADER LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -30283,7 +30283,7 @@ if test $ac_cv_lib_xml2_xmlParseFile = yes; then
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_LIBXML2 1
 _ACEOF
- TESTLIBS="$TESTLIBS -lxml2"
+ SIMLIBS="$SIMLIBS -lxml2"
 fi
 
 
@@ -30359,7 +30359,7 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_audiofile_afOpenFile" >&5
 echo "${ECHO_T}$ac_cv_lib_audiofile_afOpenFile" >&6
 if test $ac_cv_lib_audiofile_afOpenFile = yes; then
-  TESTLIBS="$TESTLIBS -laudiofile"
+  SIMLIBS="$SIMLIBS -laudiofile"
 else
   { { echo "$as_me:$LINENO: error: \"Can't make tests without libaudiofile (does your system require a libaudiofile-devel package?)\"" >&5
 echo "$as_me: error: \"Can't make tests without libaudiofile (does your system require a libaudiofile-devel package?)\"" >&2;}
@@ -30431,7 +30431,7 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_fftw3_fftw_plan_dft_1d" >&5
 echo "${ECHO_T}$ac_cv_lib_fftw3_fftw_plan_dft_1d" >&6
 if test $ac_cv_lib_fftw3_fftw_plan_dft_1d = yes; then
-  TESTLIBS="$TESTLIBS -lfftw3"
+  SIMLIBS="$SIMLIBS -lfftw3"
 else
   echo "$as_me:$LINENO: checking for fftw_create_plan in -lfftw" >&5
 echo $ECHO_N "checking for fftw_create_plan in -lfftw... $ECHO_C" >&6
@@ -30498,7 +30498,7 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_fftw_fftw_create_plan" >&5
 echo "${ECHO_T}$ac_cv_lib_fftw_fftw_create_plan" >&6
 if test $ac_cv_lib_fftw_fftw_create_plan = yes; then
-  TESTLIBS="$TESTLIBS -lfftw"
+  SIMLIBS="$SIMLIBS -lfftw"
 else
   { { echo "$as_me:$LINENO: error: \"Can't make tests without FFTW 2 or 3 (does your system require an fftw?-devel package?)\"" >&5
 echo "$as_me: error: \"Can't make tests without FFTW 2 or 3 (does your system require an fftw?-devel package?)\"" >&2;}
@@ -31504,6 +31504,9 @@ _ACEOF
 
 fi
 
+TESTLIBS="$SIMLIBS $TESTLIBS"
+
+
 
 
 
@@ -32362,6 +32365,7 @@ s,@CC_FOR_BUILD@,$CC_FOR_BUILD,;t t
 s,@CPPFLAGS_FOR_BUILD@,$CPPFLAGS_FOR_BUILD,;t t
 s,@COMP_VENDOR_CFLAGS@,$COMP_VENDOR_CFLAGS,;t t
 s,@COMP_VENDOR_LDFLAGS@,$COMP_VENDOR_LDFLAGS,;t t
+s,@SIMLIBS@,$SIMLIBS,;t t
 s,@TESTLIBS@,$TESTLIBS,;t t
 s,@SPANDSP_USE_FIXED_POINT@,$SPANDSP_USE_FIXED_POINT,;t t
 s,@SPANDSP_MISALIGNED_ACCESS_FAILS@,$SPANDSP_MISALIGNED_ACCESS_FAILS,;t t

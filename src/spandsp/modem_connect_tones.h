@@ -24,7 +24,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.h,v 1.22 2009/02/10 13:06:47 steveu Exp $
+ * $Id: modem_connect_tones.h,v 1.23 2009/05/18 15:57:17 steveu Exp $
  */
  
 /*! \file */
@@ -72,8 +72,7 @@ enum
     /*! \brief The ANSam with phase reversals tone is a version of ANS_PR with 20% of 15Hz+-0.1Hz AM
                modulation, as per V.8 */
     MODEM_CONNECT_TONES_ANSAM_PR = 5,
-    /*! \brief FAX preamble in a string of V.21 HDLC flag octets. This is only valid as a result of tone
-               detection. It should not be specified as a tone type to transmit or receive. */
+    /*! \brief FAX preamble in a string of V.21 HDLC flag octets. */
     MODEM_CONNECT_TONES_FAX_PREAMBLE = 6,
     /*! \brief CED tone is the same as ANS tone. FAX preamble in a string of V.21 HDLC flag octets.
                This is only valid as a tone type to receive. It is never reported as a detected tone

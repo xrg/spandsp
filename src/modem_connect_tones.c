@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.c,v 1.35 2009/02/16 09:57:22 steveu Exp $
+ * $Id: modem_connect_tones.c,v 1.36 2009/05/18 15:57:17 steveu Exp $
  */
  
 /*! \file */
@@ -399,6 +399,10 @@ SPAN_DECLARE(int) modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, cons
             }
         }
         break;
+    case MODEM_CONNECT_TONES_FAX_PREAMBLE:
+        /* Ignore any CED tone, and just look for V.21 preamble. */
+        fsk_rx(&(s->v21rx), amp, len);
+        break;
     case MODEM_CONNECT_TONES_FAX_CED_OR_PREAMBLE:
         /* Also look for V.21 preamble. A lot of machines don't send the 2100Hz burst. It
            might also not be seen all the way through the channel, due to switching delays. */
@@ -520,6 +524,7 @@ SPAN_DECLARE(modem_connect_tones_rx_state_t *) modem_connect_tones_rx_init(modem
     s->tone_type = tone_type;
     switch (s->tone_type)
     {
+    case MODEM_CONNECT_TONES_FAX_PREAMBLE:
     case MODEM_CONNECT_TONES_FAX_CED_OR_PREAMBLE:
         fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, v21_put_bit, s);
         fsk_rx_signal_cutoff(&(s->v21rx), -45.5f);

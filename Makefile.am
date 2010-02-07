@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.46 2009/03/19 14:13:12 steveu Exp $
+## $Id: Makefile.am,v 1.47 2009/05/18 14:00:19 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -51,15 +51,16 @@ EXTRA_DIST = autogen.sh \
 if COND_DOC
     MAYBE_DOC=doc
 endif
-if COND_TESTS
-    MAYBE_TESTS=spandsp-sim tests
-endif
 if COND_TESTDATA
     MAYBE_TESTDATA=test-data
 endif
-SUBDIRS = src $(MAYBE_DOC) $(MAYBE_TESTS) $(MAYBE_TESTDATA)
+if COND_TESTS
+    MAYBE_TESTDATA=test-data
+    MAYBE_TESTS=spandsp-sim tests
+endif
+SUBDIRS = src $(MAYBE_DOC) $(MAYBE_TESTDATA) $(MAYBE_TESTS)
 
-DIST_SUBDIRS = src doc spandsp-sim tests test-data
+DIST_SUBDIRS = src doc test-data spandsp-sim tests
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = spandsp.pc

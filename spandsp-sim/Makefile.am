@@ -16,12 +16,12 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.7 2008/05/03 13:05:04 steveu Exp $
+## $Id: Makefile.am,v 1.8 2009/05/18 13:06:50 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
 
-LIBS += $(TESTLIBS)
+LIBS += -L$(top_builddir)/src -lspandsp $(SIMLIBS)
 
 MAINTAINERCLEANFILES = Makefile.in
 
@@ -38,7 +38,7 @@ libspandsp_sim_la_SOURCES = g1050.c \
 
 nodist_libspandsp_sim_la_SOURCES = line_models.c
 
-libspandsp_sim_la_LDFLAGS = -version-info @SPANDSP_LT_CURRENT@:@SPANDSP_LT_REVISION@:@SPANDSP_LT_AGE@
+libspandsp_sim_la_LDFLAGS = -version-info @SPANDSP_LT_CURRENT@:@SPANDSP_LT_REVISION@:@SPANDSP_LT_AGE@ $(COMP_VENDOR_LDFLAGS)
 
 nobase_include_HEADERS = spandsp/g1050.h \
                          spandsp/line_model.h \

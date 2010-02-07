@@ -174,6 +174,7 @@ RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SIMLIBS = @SIMLIBS@
 SPANDSP_LT_AGE = @SPANDSP_LT_AGE@
 SPANDSP_LT_CURRENT = @SPANDSP_LT_CURRENT@
 SPANDSP_LT_REVISION = @SPANDSP_LT_REVISION@
@@ -256,10 +257,11 @@ EXTRA_DIST = autogen.sh \
              debian/watch
 
 @COND_DOC_TRUE@MAYBE_DOC = doc
-@COND_TESTS_TRUE@MAYBE_TESTS = spandsp-sim tests
 @COND_TESTDATA_TRUE@MAYBE_TESTDATA = test-data
-SUBDIRS = src $(MAYBE_DOC) $(MAYBE_TESTS) $(MAYBE_TESTDATA)
-DIST_SUBDIRS = src doc spandsp-sim tests test-data
+@COND_TESTS_TRUE@MAYBE_TESTDATA = test-data
+@COND_TESTS_TRUE@MAYBE_TESTS = spandsp-sim tests
+SUBDIRS = src $(MAYBE_DOC) $(MAYBE_TESTDATA) $(MAYBE_TESTS)
+DIST_SUBDIRS = src doc test-data spandsp-sim tests
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = spandsp.pc
 all: all-recursive
