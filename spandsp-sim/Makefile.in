@@ -237,6 +237,16 @@ target_alias = @target_alias@
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
 MAINTAINERCLEANFILES = Makefile.in
+EXTRA_DIST = libspandsp_sim.dsp \
+             libspandsp_sim.2005.vcproj \
+             libspandsp_sim.2008.vcproj \
+             msvc/msvcproj.head \
+             msvc/msvcproj.foot \
+             msvc/vc8proj.head \
+             msvc/vc8proj.foot \
+             msvc/vc9proj.head \
+             msvc/vc9proj.foot
+
 INCLUDES = -I$(top_builddir) -I$(top_builddir)/src -DDATADIR="\"$(pkgdatadir)\""
 lib_LTLIBRARIES = libspandsp-sim.la
 libspandsp_sim_la_SOURCES = g1050.c \
@@ -255,12 +265,14 @@ nobase_include_HEADERS = spandsp/g1050.h \
 
 make_line_models_SOURCES = make_line_models.c
 make_line_models_LDADD = -L$(top_builddir)/src -lspandsp
-DSP = libspandsp-sim.dsp
-VCPROJ = libspandsp-sim.vcproj
-WIN32SOURCES = $(libspandsp_sim_la_SOURCES) msvc/gettimeofday.c
-WIN32HEADERS = $(nobase_include_HEADERS) spandsp-sim.h
+DSP = libspandsp_sim.dsp
+VCPROJ8 = libspandsp_sim.2005.vcproj
+VCPROJ9 = libspandsp_sim.2008.vcproj
+WIN32SOURCES = $(libspandsp_sim_la_SOURCES)
+WIN32HEADERS = $(nobase_include_HEADERS)
 DSPOUT = | awk '{printf("%s\r\n", $$0)}' >> $(DSP)
-VCPROJOUT = | awk '{printf("%s\r\n", $$0)}' >> $(VCPROJ)
+VCPROJOUT8 = | awk '{printf("%s\r\n", $$0)}' >> $(VCPROJ8)
+VCPROJOUT9 = | awk '{printf("%s\r\n", $$0)}' >> $(VCPROJ9)
 all: all-am
 
 .SUFFIXES:
@@ -446,7 +458,7 @@ distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 
 distdir: $(DISTFILES)
-	$(mkdir_p) $(distdir)/spandsp
+	$(mkdir_p) $(distdir)/msvc $(distdir)/spandsp
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
@@ -603,17 +615,29 @@ $(DSP): msvc/msvcproj.head msvc/msvcproj.foot Makefile.am
 	echo "# End Group" $(DSPOUT); \
 	cat $(srcdir)/msvc/msvcproj.foot $(DSPOUT) )
 
-$(VCPROJ): msvc/vc8proj.head msvc/vc8proj.foot Makefile.am
-	echo "creating $(VCPROJ)"
-	@(cp $(srcdir)/msvc/vc8proj.head $(VCPROJ); \
+$(VCPROJ8): msvc/vc8proj.head msvc/vc8proj.foot Makefile.am
+	echo "creating $(VCPROJ8)"
+	@(cp $(srcdir)/msvc/vc8proj.head $(VCPROJ8); \
 	for file in $(WIN32SOURCES); do \
-		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT); \
+		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT8); \
 	done; \
-	echo "</Filter><Filter  Name=\"Header Files\">" $(VCPROJOUT); \
+	echo "</Filter><Filter  Name=\"Header Files\">" $(VCPROJOUT8); \
 	for file in $(WIN32HEADERS); do \
-		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT); \
+		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT8); \
 	done; \
-	cat $(srcdir)/msvc/vc8proj.foot $(VCPROJOUT) )
+	cat $(srcdir)/msvc/vc8proj.foot $(VCPROJOUT8) )
+
+$(VCPROJ9): msvc/vc9proj.head msvc/vc9proj.foot Makefile.am
+	echo "creating $(VCPROJ9)"
+	@(cp $(srcdir)/msvc/vc9proj.head $(VCPROJ9); \
+	for file in $(WIN32SOURCES); do \
+		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT9); \
+	done; \
+	echo "</Filter><Filter  Name=\"Header Files\">" $(VCPROJOUT9); \
+	for file in $(WIN32HEADERS); do \
+		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT9); \
+	done; \
+	cat $(srcdir)/msvc/vc9proj.foot $(VCPROJOUT9) )
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

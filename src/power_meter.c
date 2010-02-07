@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter.c,v 1.30 2009/05/19 14:15:09 steveu Exp $
+ * $Id: power_meter.c,v 1.31 2009/05/30 17:29:23 steveu Exp $
  */
 
 /*! \file */
@@ -177,7 +177,7 @@ SPAN_DECLARE(float) power_surge_detector_current_dbov(power_surge_detector_state
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(power_surge_detector_state_t) *power_surge_detector_init(power_surge_detector_state_t *s, float min, float surge)
+SPAN_DECLARE(power_surge_detector_state_t *) power_surge_detector_init(power_surge_detector_state_t *s, float min, float surge)
 {
     float ratio;
 

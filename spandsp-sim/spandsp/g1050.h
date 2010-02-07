@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g1050.h,v 1.10 2009/01/31 08:48:10 steveu Exp $
+ * $Id: g1050.h,v 1.11 2009/05/31 14:47:10 steveu Exp $
  */
 
 /*! \file */
@@ -269,10 +269,10 @@ extern "C"
 {
 #endif
 
-SPAN_DECLARE(g1050_state_t) *g1050_init(int model,
-                                        int speed_pattern,
-                                        int packet_size,
-                                        int packet_rate);
+SPAN_DECLARE(g1050_state_t *) g1050_init(int model,
+                                         int speed_pattern,
+                                         int packet_size,
+                                         int packet_rate);
 
 void g1050_dump_parms(int model, int speed_pattern);
 

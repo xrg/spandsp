@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g1050.c,v 1.13 2009/02/03 16:28:39 steveu Exp $
+ * $Id: g1050.c,v 1.14 2009/05/31 14:47:10 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -36,7 +36,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <audiofile.h>
+#include <sndfile.h>
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

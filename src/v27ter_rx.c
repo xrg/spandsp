@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.128 2009/05/19 14:15:09 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.129 2009/05/30 17:29:23 steveu Exp $
  */
 
 /*! \file */
@@ -744,6 +744,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
         }
         break;
     case TRAINING_STAGE_PARKED:
+    default:
         /* We failed to train! */
         /* Park here until the carrier drops. */
         target = &zero;

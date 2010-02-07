@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.132 2009/05/18 13:06:50 steveu Exp $
+## $Id: Makefile.am,v 1.133 2009/05/31 14:47:10 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -24,7 +24,6 @@ AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
 MAINTAINERCLEANFILES = Makefile.in
 
 EXTRA_DIST = floating_fudge.h \
-             spandsp/version.h.in \
              libspandsp.dsp \
              libspandsp.2005.sln \
              libspandsp.2008.sln \
@@ -42,19 +41,20 @@ EXTRA_DIST = floating_fudge.h \
              msvc/make_at_dictionary.2008.vcproj \
              msvc/make_modem_filter.2005.vcproj \
              msvc/make_modem_filter.2008.vcproj \
-             msvc/spandsp.h \
-             msvc/unistd.h \
-             msvc/tgmath.h \
              msvc/msvcproj.head \
              msvc/msvcproj.foot \
-             msvc/util.vbs \
-             msvc/vc8proj.head \
-             msvc/vc8proj.foot \
-             msvc/vc9proj.head \
-             msvc/vc9proj.foot \
-             msvc/sys/time.h \
+             msvc/spandsp.h \
+             msvc/tgmath.h \
              msvc/tiff/cleancount \
-             spandsp/private/README
+             msvc/unistd.h \
+             msvc/util.vbs \
+             msvc/vc8proj.foot \
+             msvc/vc8proj.head \
+             msvc/vc9proj.foot \
+             msvc/vc9proj.head \
+             msvc/sys/time.h \
+             spandsp/private/README \
+             spandsp/version.h.in
 
 INCLUDES = -I$(top_builddir)
 
