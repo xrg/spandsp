@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.11 2004/09/19 08:47:11 steveu Exp $
+ * $Id: fsk.c,v 1.13 2005/03/28 08:15:21 steveu Exp $
  */
 
 /*! \file */
@@ -340,6 +340,32 @@ int fsk_tx(fsk_tx_state_t *s, int16_t *amp, int len)
 void fsk_tx_power(fsk_tx_state_t *s, float power)
 {
     s->scaling = dds_scaling(power);
+}
+/*- End of function --------------------------------------------------------*/
+
+void fsk_tx_set_get_bit(fsk_tx_state_t *s, get_bit_func_t get_bit, void *user_data)
+{
+    s->get_bit = get_bit;
+    s->user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+void fsk_rx_signal_cutoff(fsk_rx_state_t *s, float cutoff)
+{
+    s->min_power = power_meter_level(cutoff);
+}
+/*- End of function --------------------------------------------------------*/
+
+float fsk_rx_signal_power(fsk_rx_state_t *s)
+{
+    return power_meter_dbm0(&s->power);
+}
+/*- End of function --------------------------------------------------------*/
+
+void fsk_rx_set_put_bit(fsk_rx_state_t *s, put_bit_func_t put_bit, void *user_data)
+{
+    s->put_bit = put_bit;
+    s->user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 

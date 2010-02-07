@@ -17,7 +17,7 @@
 #
 # Makefile for building TIFF files from the ITU test pages
 #
-# $Id: Makefile.in,v 1.17 2005/01/16 11:13:21 steveu Exp $
+# $Id: Makefile.am,v 1.2 2005/01/13 15:26:21 steveu Exp $
 #
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
@@ -109,6 +109,9 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SPANDSP_LT_AGE = @SPANDSP_LT_AGE@
+SPANDSP_LT_CURRENT = @SPANDSP_LT_CURRENT@
+SPANDSP_LT_REVISION = @SPANDSP_LT_REVISION@
 STRIP = @STRIP@
 TESTLIBS = @TESTLIBS@
 VERSION = @VERSION@

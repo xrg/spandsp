@@ -27,7 +27,7 @@
  */
 
 /*! \page tone_generation_tests_page Tone generation tests
-\section tone_generation_tests_page_sec_1 What does it do
+\section tone_generation_tests_page_sec_1 What does it do?
 */
 
 /* "We can generate exactly repetitive tones" demo */

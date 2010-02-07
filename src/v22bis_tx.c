@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.8 2005/01/16 08:26:55 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.9 2005/03/20 04:07:17 steveu Exp $
  */
 
 /*! \file */
@@ -168,7 +168,8 @@ static const int phase_steps[4] =
 {
     1, 0, 2, 3
 };
-static const complex_t v22bis_constellation[16] =
+
+const complex_t v22bis_constellation[16] =
 {
     { 1.0,  1.0},
     { 1.0,  3.0},
@@ -235,9 +236,6 @@ static complex_t training_get(v22bis_state_t *s)
     complex_t z;
     int bits;
 
-            s->tx_training = 0;
-            s->tx_training_count = 0;
-            s->current_get_bit = s->get_bit;
     /* V.22bis training sequence */
     switch (s->tx_training)
     {
@@ -253,13 +251,13 @@ static complex_t training_get(v22bis_state_t *s)
                 if (s->bit_rate == 2400)
                 {
                     /* Try to establish at 2400bps */
-printf("+++ [%s] starting unscrambled 0011 at 1200\n", (s->caller)  ?  "caller"  :  "answerer");
+fprintf(stderr, "+++ [%s] starting unscrambled 0011 at 1200\n", (s->caller)  ?  "caller"  :  "answerer");
                     s->tx_training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_0011;
                 }
                 else
                 {
                     /* Only try at 1200bps */
-printf("+++ [%s] starting scrambled ones at 1200 (A)\n", (s->caller)  ?  "caller"  :  "answerer");
+fprintf(stderr, "+++ [%s] starting scrambled ones at 1200 (A)\n", (s->caller)  ?  "caller"  :  "answerer");
                     s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
                 }
                 s->tx_training_count = 0;
@@ -271,7 +269,7 @@ printf("+++ [%s] starting scrambled ones at 1200 (A)\n", (s->caller)  ?  "caller
             if (++s->tx_training_count >= ms_to_symbols(75))
             {
                 /* Inital 75ms of silence is over */
-printf("+++ [%s] starting unscrambled ones at 1200\n", (s->caller)  ?  "caller"  :  "answerer");
+fprintf(stderr, "+++ [%s] starting unscrambled ones at 1200\n", (s->caller)  ?  "caller"  :  "answerer");
                 s->tx_training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_ONES;
                 s->tx_training_count = 0;
             }
@@ -285,7 +283,7 @@ printf("+++ [%s] starting unscrambled ones at 1200\n", (s->caller)  ?  "caller" 
         if (s->detected_unscrambled_0011_ending)
         {
             /* We are going to work at 2400bps */
-printf("+++ [%s] [2400] starting unscrambled 0011 at 1200\n", (s->caller)  ?  "caller"  :  "answerer");
+fprintf(stderr, "+++ [%s] [2400] starting unscrambled 0011 at 1200\n", (s->caller)  ?  "caller"  :  "answerer");
             s->bit_rate = 2400;
             s->tx_training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_0011;
             s->tx_training_count = 0;
@@ -294,7 +292,7 @@ printf("+++ [%s] [2400] starting unscrambled 0011 at 1200\n", (s->caller)  ?  "c
         if (s->detected_scrambled_ones_or_zeros_at_1200bps)
         {
             /* We are going to work at 1200bps */
-printf("+++ [%s] [1200] starting scrambled ones at 1200 (B)\n", (s->caller)  ?  "caller"  :  "answerer");
+fprintf(stderr, "+++ [%s] [1200] starting scrambled ones at 1200 (B)\n", (s->caller)  ?  "caller"  :  "answerer");
             s->bit_rate = 1200;
             s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
             s->tx_training_count = 0;
@@ -308,7 +306,7 @@ printf("+++ [%s] [1200] starting scrambled ones at 1200 (B)\n", (s->caller)  ?  
         z = v22bis_constellation[(s->tx_constellation_state << 2) | 1];
         if (++s->tx_training_count >= ms_to_symbols(100))
         {
-printf("+++ [%s] starting scrambled ones at 1200 (C)\n", (s->caller)  ?  "caller"  :  "answerer");
+fprintf(stderr, "+++ [%s] starting scrambled ones at 1200 (C)\n", (s->caller)  ?  "caller"  :  "answerer");
             s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
             s->tx_training_count = 0;
         }
@@ -326,7 +324,7 @@ printf("+++ [%s] starting scrambled ones at 1200 (C)\n", (s->caller)  ?  "caller
                 /* Continue for a further 600+-10ms */
                 if (++s->tx_training_count >= ms_to_symbols(600))
                 {
-printf("+++ [%s] starting scrambled ones at 2400 (A)\n", (s->caller)  ?  "caller"  :  "answerer");
+fprintf(stderr, "+++ [%s] starting scrambled ones at 2400 (A)\n", (s->caller)  ?  "caller"  :  "answerer");
                     s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_2400;
                     s->tx_training_count = 0;
                 }
@@ -338,14 +336,14 @@ printf("+++ [%s] starting scrambled ones at 2400 (A)\n", (s->caller)  ?  "caller
                     /* Continue for a further 756+-10ms */
                     if (++s->tx_training_count >= ms_to_symbols(756))
                     {
-printf("+++ [%s] starting scrambled ones at 2400 (B)\n", (s->caller)  ?  "caller"  :  "answerer");
+fprintf(stderr, "+++ [%s] starting scrambled ones at 2400 (B)\n", (s->caller)  ?  "caller"  :  "answerer");
                         s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_2400;
                         s->tx_training_count = 0;
                     }
                 }
                 else
                 {
-printf("+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
+fprintf(stderr, "+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
                     s->tx_training = V22BIS_TRAINING_STAGE_NORMAL_OPERATION;
                     s->tx_training_count = 0;
                     s->current_get_bit = s->get_bit;
@@ -358,7 +356,7 @@ printf("+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
             {
                 if (++s->tx_training_count >= ms_to_symbols(500))
                 {
-printf("+++ [%s] starting scrambled ones at 2400 (C)\n", (s->caller)  ?  "caller"  :  "answerer");
+fprintf(stderr, "+++ [%s] starting scrambled ones at 2400 (C)\n", (s->caller)  ?  "caller"  :  "answerer");
                     s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_2400;
                     s->tx_training_count = 0;
                 }
@@ -367,7 +365,7 @@ printf("+++ [%s] starting scrambled ones at 2400 (C)\n", (s->caller)  ?  "caller
             {
                 if (++s->tx_training_count >= ms_to_symbols(756))
                 {
-printf("+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
+fprintf(stderr, "+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
                     s->tx_training = 0;
                     s->tx_training_count = 0;
                 }
@@ -385,7 +383,7 @@ printf("+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
         if (++s->tx_training_count >= ms_to_symbols(200))
         {
             /* We have completed training. Now handle some real work. */
-printf("+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
+fprintf(stderr, "+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
             s->tx_training = 0;
             s->tx_training_count = 0;
             s->current_get_bit = s->get_bit;
@@ -497,8 +495,8 @@ int v22bis_tx(v22bis_state_t *s, int16_t *amp, int len)
         x.im = pulseshaper[V22BIS_TX_FILTER_STEPS >> 1]*s->tx_rrc_filter[(V22BIS_TX_FILTER_STEPS >> 1) + s->tx_rrc_filter_step].im;
         for (i = 0;  i < (V22BIS_TX_FILTER_STEPS >> 1);  i++)
         {
-            x.re += pulseshaper[i]*(s->tx_rrc_filter[i + s->tx_rrc_filter_step].re + s->tx_rrc_filter[V22BIS_TX_FILTER_STEPS - 1 - i + s->tx_rrc_filter_step].re);
-            x.im += pulseshaper[i]*(s->tx_rrc_filter[i + s->tx_rrc_filter_step].im + s->tx_rrc_filter[V22BIS_TX_FILTER_STEPS - 1 - i + s->tx_rrc_filter_step].im);
+            x.re += pulseshaper[i]*(s->tx_rrc_filter[s->tx_rrc_filter_step + i].re + s->tx_rrc_filter[V22BIS_TX_FILTER_STEPS - 1 + s->tx_rrc_filter_step - i].re);
+            x.im += pulseshaper[i]*(s->tx_rrc_filter[s->tx_rrc_filter_step + i].im + s->tx_rrc_filter[V22BIS_TX_FILTER_STEPS - 1 + s->tx_rrc_filter_step - i].im);
         }
         /* Now create and modulate the carrier */
         z = dds_complexf(&(s->tx_carrier_phase), s->tx_carrier_phase_rate);
@@ -544,7 +542,6 @@ static int v22bis_tx_restart(v22bis_state_t *s, int bit_rate)
 
 int v22bis_restart(v22bis_state_t *s, int bit_rate)
 {
-
     if (v22bis_tx_restart(s, bit_rate))
         return -1;
     return v22bis_rx_restart(s, bit_rate);

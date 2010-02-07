@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.h,v 1.2 2004/10/16 15:20:49 steveu Exp $
+ * $Id: super_tone_rx.h,v 1.3 2005/01/18 14:05:49 steveu Exp $
  */
 
 #if !defined(_SUPER_TONE_RX_H_)
@@ -31,11 +31,13 @@
 
 /*! \page super_tone_rx_page Supervisory tone detection
 
+\section super_tone_rx_page_sec_1 What does it do?
+
 The supervisory tone detector may be configured to detect most of the world's
 telephone supervisory tones - things like ringback, busy, number unobtainable,
-and so on. 
+and so on.
 
-\section super_tone_rx_page_sec_1 Theory of operation
+\section super_tone_rx_page_sec_2 How does it work?
 
 The supervisory tone detector is passed a series of data structures describing
 the tone patterns - the frequencies and cadencing - of the tones to be searched

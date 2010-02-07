@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.10 2004/11/05 19:28:50 steveu Exp $
+ * $Id: t4.h,v 1.11 2005/01/18 14:05:49 steveu Exp $
  */
 
 /*! \file */
@@ -32,9 +32,13 @@
 #define _T4_H_
 
 /*! \page T4_page T.4 image compression and decompression
-    The T.4 image compression and decompression routines implement the 1D and 2D
-    encoding methods defined in T.4. They also implement the pure 2D encoding method
-    defined in T.6.
+
+\section T4_page_sec_1 What does it do?
+The T.4 image compression and decompression routines implement the 1D and 2D
+encoding methods defined in T.4. They also implement the pure 2D encoding method
+defined in T.6. These are image compression algorithms used for FAX transmission.
+
+\section T4_page_sec_1 How does it work?
 */
 
 #define T4_COMPRESSION_ITU_T4_1D    1

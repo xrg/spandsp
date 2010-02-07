@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo.c,v 1.1 2004/12/16 15:33:55 steveu Exp $
+ * $Id: modem_echo.c,v 1.2 2005/03/03 14:18:58 steveu Exp $
  */
 
 /*! \file */
@@ -119,7 +119,6 @@ int16_t modem_echo_can_update(modem_echo_can_state_t *ec, int16_t tx, int16_t rx
 {
     int32_t echo_value;
     int clean_rx;
-    int nsuppr;
     int shift;
     int i;
     int offset1;
@@ -149,37 +148,22 @@ printf("%8d %8d %8d %8d\n", tx, rx, echo_value, clean_rx);
                  makes the numbers grow a lot! */
         ec->tx_power += ((tx*tx - ec->tx_power) >> 5);
 
-        /* Divide isn't very quick, but the "where is the top bit" and shift
-           instructions are single cycle. */
-#if 0
-        if (ec->tx_power)
-            nsuppr = saturate((clean_rx << 10)/ec->tx_power);
-        else
-            nsuppr = 0;
-#endif
-#if 0
-        nsuppr = clean_rx;
-        i = top_bit(ec->tx_power) - 8;
-        if (i > 0)
-            nsuppr >>= i;
-#endif
-        nsuppr = clean_rx;
         shift = 1;
         /* Update the FIR taps */
         offset2 = ec->curr_pos;
         offset1 = ec->taps - offset2;
         for (i = ec->taps - 1;  i >= offset1;  i--)
         {
-            /* Leak to avoid the adapting drifting beyond the ability of the
-               adaption process to bring it back under control. */
+            /* Leak to avoid the coefficients drifting beyond the ability of the
+               adaption process to bring them back under control. */
             ec->fir_taps32[i] -= (ec->fir_taps32[i] >> 23);
-            ec->fir_taps32[i] += (ec->fir_state.history[i - offset1]*nsuppr) >> shift;
+            ec->fir_taps32[i] += (ec->fir_state.history[i - offset1]*clean_rx) >> shift;
             ec->fir_taps16[i] = ec->fir_taps32[i] >> 15;
         }
         for (  ;  i >= 0;  i--)
         {
             ec->fir_taps32[i] -= (ec->fir_taps32[i] >> 23);
-            ec->fir_taps32[i] += (ec->fir_state.history[i + offset2]*nsuppr) >> shift;
+            ec->fir_taps32[i] += (ec->fir_state.history[i + offset2]*clean_rx) >> shift;
             ec->fir_taps16[i] = ec->fir_taps32[i] >> 15;
         }
     }

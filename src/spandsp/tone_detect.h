@@ -24,38 +24,45 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect.h,v 1.10 2005/01/17 13:12:15 steveu Exp $
+ * $Id: tone_detect.h,v 1.11 2005/01/18 14:05:49 steveu Exp $
  */
 
 #if !defined(_TONE_DETECT_H_)
 #define _TONE_DETECT_H_
 
 /*! \page DTMF_rx_page DTMF receiver
-\section DTMF_rx_page_sec_1 What does it do
+\section DTMF_rx_page_sec_1 What does it do?
 The DTMF receiver detects the standard DTMF digits. It is compliant with
-ITU-T Q.23, ITU-T Q.24, and the local DTMF specifications in most places.
+ITU-T Q.23, ITU-T Q.24, and the local DTMF specifications of most administrations.
 Its passes the test suites. It also scores *very* well on the standard
 talk-off tests. 
 
-The current design uses floating point extensively. The current design is not
+The current design uses floating point extensively. It is not
 tolerant of DC or dial tone. It is expected that a DC restore stage will be
 placed before the DTMF detector. Whether dial tone tolerance matter depends on
 your application. If you are using the code in an IVR application you will need
 proper echo cancellation to get good performance in the prescence of speech
 prompts. 
 
-\section DTMF_rx_page_sec_2 Theory of Operation
+\section DTMF_rx_page_sec_2 How does it work?
+Like most other DSP based DTMF detector's, this one uses the Goertzel algorithm
+to look for the DTMF tones. What makes each detector design different is just how
+that algorithm is used.
+
+TODO:
 */
 
 /*! \page MFC_R2_tone_rx_page MFC/R2 tone receiver
 
+\section MFC_R2_tone_rx_page_sec_1 What does it do?
 The MFC/R2 tone receiver module provides for the detection of the
 repertoire of 15 dual tones needs for the digital MFC/R2 signalling protocol. 
-It is compliant with ITU-T Q.441d.
+It is compliant with ITU-T Q.441D.
 */
 
-/*! \page bell_mf_tone_rx_page Bell MF tone receiver
+/*! \page Bell_MF_tone_rx_page Bell MF tone receiver
 
+\section Bell_MF_tone_rx_page_sec_1 What does it do?
 The Bell MF tone receiver module provides for the detection of the
 repertoire of 15 dual tones needs for various Bell MF signalling protocols. 
 It is compliant with ITU-T Q.320, ITU-T Q.322, ITU-T Q.323B.

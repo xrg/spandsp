@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_tests.c,v 1.5 2004/07/16 20:55:29 steveu Exp $
+ * $Id: dtmf_tests.c,v 1.6 2005/01/18 14:05:50 steveu Exp $
  */
 
 /*
@@ -46,7 +46,7 @@
  */
 
 /*! \page DTMF_rx_tests_page DTMF receiver tests
-\section DTMF_rx_tests_page_sec_1 What does it do
+\section DTMF_rx_tests_page_sec_1 What does it do?
 
 The DTMF detection test suite performs similar tests to the Mitel test tape,
 traditionally used for testing DTMF receivers. Mitel seem to have discontinued

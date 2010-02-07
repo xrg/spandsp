@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc.h,v 1.4 2005/01/17 13:12:15 steveu Exp $
+ * $Id: plc.h,v 1.6 2005/01/19 14:40:20 steveu Exp $
  */
 
 /*! \file */
@@ -32,43 +32,57 @@
 #define _PLC_H_
 
 /*! \page plc_page Packet loss concealment
-\section plc_page_sec_1 What does it do
+\section plc_page_sec_1 What does it do?
+The packet loss concealment module provides a suitable synthetic fill-in signal,
+to minimise the audible effect of lost packets in VoIP applications. It is not
+tied to any particular codec, and could be used with almost any codec which does not
+specify its own procedure for packet loss concealment.
 
-The packet loss concealment module uses an algorithm somewhat like the one in
-Appendix I of G.711. There are, however, a number of differences intended to
-improve its speed. It is not tied to any particular codec, and could be used
-with almost any codec which does not specify its own procedure for packet loss
-concealment.
+Where a codec specific concealment procedure exists, the algorithm is usually built
+around knowledge of the characteristics of the particular codec. It will, therefore,
+generally give better results for that particular codec than this generic concealer will.
 
-The algorithm in appendix I of G.711 looks for peaks in the autocorrelation function
-of the speech, as an indication of its basic pitch contour. The present code uses
-AMDF instead.
+\section plc_page_sec_2 How does it work?
+While good packets are being received, the plc_rx() routine keeps a record of the trailing
+section of the known speech signal. If a packet is missed, plc_fillin() is called to produce
+a synthetic replacement for the real speech signal. The average mean difference function
+(AMDF) is applied to the last known good signal, to determine its effective pitch.
+Based on this, the last pitch period of signal is saved. Essentially, this cycle of speech
+will be repeated over and over until the real speech resumes. However, several refinements
+are needed to obtain smooth pleasant sounding results.
 
-The algorithm in appendix I of G.711 is rigidly structured around 10ms blocks of audio,
-with the implicit assumption VoIP packets will contain 10ms of audio. The present code
-is not tied to a specific block size. They may be freely chosen, to suit any particular
-packet duration a codec may use.
+- The two ends of the stored cycle of speech will not always fit together smoothly. This can
+  cause roughness, or even clicks, at the joins between cycles. To soften this, the
+  1/4 pitch period of real speech preceeding the cycle to be repeated is blended with the last
+  1/4 pitch period of the cycle to be repeated, using an overlap-add (OLA) technique (i.e.
+  in total, the last 5/4 pitch periods of real speech are used).
 
-When audio is received normally, each received block is passed to the routine plc_rx.
-This routine stores some signal history, such that if the next block is missing, the
-algorithm is be able to synthesise a suitable fill-in signal. The G.711 algorithm
-delays the audio a little, to allow OLA smoothing of the signal as erasure begins.
-The present software avoids this by smoothing the start if the fill-in signal itself.
-The method used may give slightly poorer results that the G.711 algorithm. However,
-it gains considerably in efficiency between erasures.
+- The start of the synthetic speech will not always fit together smoothly with the tail of
+  real speech passed on before the erasure was identified. Ideally, we would like to modify
+  the last 1/4 pitch period of the real speech, to blend it into the synthetic speech. However,
+  it is too late for that. We could have delayed the real speech a little, but that would
+  require more buffer manipulation, and hurt the efficiency of the no-lost-packets case
+  (which we hope is the dominant case). Instead we use a degenerate form of OLA to modify
+  the start of the synthetic data. The last 1/4 pitch period of real speech is time reversed,
+  and OLA is used to blend it with the first 1/4 pitch period of synthetic speech. The result
+  seems quite acceptable.
 
-When a block of audio is not received by the time it is required, the routine plc_fillin
-is called. This generates a synthetic signal, based on the last known good signal. At the
-beginning of an erasure we determine the pitch of the last good signal, using the historical
-data kept by plc_rx. We determine the pitch of the data at the tail of the history buffer.
-We overlap a 1/4 wavelength, to smooth the transition from the real to the synthetic signal,
-and repeat pitch periods of the signal for the length of the erasure. As the gap between
-periods of good signal widens, the likelyhood of the synthetic signal being close to correct
-falls. Therefore, the volume of the synthesized signal is made to decay linearly, such that
-after 50ms of missing audio it is reduced to silence.
+- As we progress into the erasure, the chances of the synthetic signal being anything like
+  correct steadily fall. Therefore, the volume of the synthesized signal is made to decay
+  linearly, such that after 50ms of missing audio it is reduced to silence.
 
-When the real signal resumes after a period of erasure, the tail of the synthetic signal is
-OLA smoothed with the start of the real signal, to avoid a sharp change in the signal.
+- When real speech resumes, an extra 1/4 pitch period of sythetic speech is blended with the
+  start of the real speech. If the erasure is small, this smoothes the transition. If the erasure
+  is long, and the synthetic signal has faded to zero, the blending softens the start up of the
+  real signal, avoiding a kind of "click" or "pop" effect that might occur with a sudden onset.
+
+\section plc_page_sec_3 How do I use it?
+Before audio is processed, call plc_init() to create an instance of the packet loss
+concealer. For each received audio packet that is acceptable (i.e. not including those being
+dropped for being too late) call plc_rx() to record the content of the packet. Note this may
+modify the packet a little after a period of packet loss, to blend real synthetic data smoothly.
+When a real packet is not available in time, call plc_fillin() to create a sythetic substitute.
+That's it!
 */
 
 /*! Minimum allowed pitch (66 Hz) */
@@ -105,8 +119,28 @@ typedef struct
 extern "C" {
 #endif
 
+/*! Process a block of received audio samples.
+    \brief Process a block of received audio samples.
+    \param s The packet loss concealer context.
+    \param amp The audio sample buffer.
+    \param len The number of samples in the buffer.
+    \return The number of samples in the buffer. */
 int plc_rx(plc_state_t *s, int16_t amp[], int len);
+
+/*! Fill-in a block of missing audio samples.
+    \brief Fill-in a block of missing audio samples.
+    \param s The packet loss concealer context.
+    \param amp The audio sample buffer.
+    \param len The number of samples to be synthesised.
+    \return The number of samples synthesized. */
 int plc_fillin(plc_state_t *s, int16_t amp[], int len);
+
+/*! Process a block of received V.29 modem audio samples.
+    \brief Process a block of received V.29 modem audio samples.
+    \param s The packet loss concealer context.
+    \param amp The audio sample buffer.
+    \param len The number of samples in the buffer.
+    \return A pointer to the he packet loss concealer context. */
 plc_state_t *plc_init(plc_state_t *s);
 
 #ifdef __cplusplus

@@ -56,11 +56,11 @@ libspandsp_la_LIBADD =
 am_libspandsp_la_OBJECTS = adsi.lo awgn.lo bert.lo complex_dds.lo \
 	complex_filters.lo dds.lo ec_disable_detector.lo echo.lo \
 	fsk.lo hdlc.lo ima_adpcm.lo modem_echo.lo oki_adpcm.lo oss.lo \
-	plc.lo power_meter.lo queue.lo schedule.lo sig_tone.lo \
-	super_tone_rx.lo super_tone_tx.lo t4.lo t30.lo t31.lo t35.lo \
-	testcpuid.lo time_scale.lo tone_detect.lo tone_generate.lo \
-	v17rx.lo v17tx.lo v22bis_rx.lo v22bis_tx.lo v27ter_rx.lo \
-	v27ter_tx.lo v29rx.lo v29tx.lo v42.lo v8.lo
+	playout.lo plc.lo power_meter.lo queue.lo schedule.lo \
+	sig_tone.lo super_tone_rx.lo super_tone_tx.lo t4.lo t30.lo \
+	t31.lo t35.lo testcpuid.lo time_scale.lo tone_detect.lo \
+	tone_generate.lo v17rx.lo v17tx.lo v22bis_rx.lo v22bis_tx.lo \
+	v27ter_rx.lo v27ter_tx.lo v29rx.lo v29tx.lo v42.lo v8.lo
 libspandsp_la_OBJECTS = $(am_libspandsp_la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
@@ -74,9 +74,9 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/hdlc.Plo ./$(DEPDIR)/ima_adpcm.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/modem_echo.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/oki_adpcm.Plo ./$(DEPDIR)/oss.Plo \
-@AMDEP_TRUE@	./$(DEPDIR)/plc.Plo ./$(DEPDIR)/power_meter.Plo \
-@AMDEP_TRUE@	./$(DEPDIR)/queue.Plo ./$(DEPDIR)/schedule.Plo \
-@AMDEP_TRUE@	./$(DEPDIR)/sig_tone.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/playout.Plo ./$(DEPDIR)/plc.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/power_meter.Plo ./$(DEPDIR)/queue.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/schedule.Plo ./$(DEPDIR)/sig_tone.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/super_tone_rx.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/super_tone_tx.Plo ./$(DEPDIR)/t30.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/t31.Plo ./$(DEPDIR)/t35.Plo \
@@ -163,6 +163,9 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SPANDSP_LT_AGE = @SPANDSP_LT_AGE@
+SPANDSP_LT_CURRENT = @SPANDSP_LT_CURRENT@
+SPANDSP_LT_REVISION = @SPANDSP_LT_REVISION@
 STRIP = @STRIP@
 TESTLIBS = @TESTLIBS@
 VERSION = @VERSION@
@@ -224,6 +227,7 @@ libspandsp_la_SOURCES = adsi.c \
                         modem_echo.c \
                         oki_adpcm.c \
                         oss.c \
+                        playout.c \
                         plc.c \
                         power_meter.c \
                         queue.c \
@@ -250,6 +254,7 @@ libspandsp_la_SOURCES = adsi.c \
                         v42.c \
                         v8.c
 
+libspandsp_la_LDFLAGS = -version-info @SPANDSP_LT_CURRENT@:@SPANDSP_LT_REVISION@:@SPANDSP_LT_AGE@
 nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/alaw_ulaw.h \
                         spandsp/arctan2.h \
@@ -271,6 +276,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/modem_echo.h \
                         spandsp/oss.h \
                         spandsp/oki_adpcm.h \
+                        spandsp/playout.h \
                         spandsp/plc.h \
                         spandsp/power_meter.h \
                         spandsp/queue.h \
@@ -404,6 +410,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/modem_echo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/oki_adpcm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/oss.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/playout.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/power_meter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/queue.Plo@am__quote@

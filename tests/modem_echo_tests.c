@@ -23,11 +23,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo_tests.c,v 1.1 2004/12/16 15:33:55 steveu Exp $
+ * $Id: modem_echo_tests.c,v 1.3 2005/03/03 14:19:00 steveu Exp $
  */
 
-/*! \page modem_echo_can_tests_page Modem Echo cancellation tests
-
+/*! \page modem_echo_can_tests_page Modem echo cancellation tests
+\section modem_echo_can_tests_page_sec_1 What does it do?
 Currently the echo cancellation tests only provide simple exercising of the
 cancellor in the way it might be used for line echo cancellation. The test code
 is in echotests.c. 
@@ -37,8 +37,7 @@ means the goal for the cancellor itself is to comply with those specs. Right
 now, the only aspect of these tests implemented is the line impulse response
 models in g168tests.c. 
 
-\section modem_echo_can_tests_page_sec_1 Theory of operation
-
+\section modem_echo_can_tests_page_sec_2 How does it work?
 The current test consists of feeding a wave file of real speech to the echo
 cancellor as the transmit signal. A very simple model of a telephone line is
 used to simulate a simple echo from the transmit signal. A second wave file of
@@ -123,6 +122,7 @@ fir32_state_t line_model;
 AFfilehandle resulthandle;
 int16_t residue_sound[8000];
 int residue_cur = 0;
+int do_alaw_munge = TRUE;
 
 static inline void put_residue(int16_t tx, int16_t residue)
 {
@@ -202,7 +202,9 @@ static int16_t signal_amp(signal_source_t *sig)
 
 static inline int16_t alaw_munge(int16_t amp)
 {
-    return alaw_to_linear(linear_to_alaw(amp));
+    if (do_alaw_munge)
+        return alaw_to_linear(linear_to_alaw(amp));
+    return amp;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -271,13 +273,15 @@ int main(int argc, char *argv[])
     int result_cur;
     AFfilesetup filesetup;
     int outframes;
-    int line_model;
+    int line_model_no;
     time_t now;
-
-    line_model = 0;
+    power_meter_t power_before;
+    power_meter_t power_after;
     
+    line_model_no = 0;
+
     if (argc > 1)
-        line_model = atoi(argv[1]);
+        line_model_no = atoi(argv[1]);
     time(&now);
     ctx = modem_echo_can_create(256);
     awgn_init(&far_noise_source, 7162534, -50);
@@ -309,10 +313,16 @@ int main(int argc, char *argv[])
     local_cur = 0;
     far_cur = 0;
     result_cur = 0;
-    channel_model_create(line_model);
+    channel_model_create(line_model_no);
+#if defined(ENABLE_GUI)
+    echo_can_monitor_line_model_update(line_model.coeffs, line_model.taps);
+#endif
 
     modem_echo_can_flush(ctx);
 
+    power_meter_init(&power_before, 5);
+    power_meter_init(&power_after, 5);
+    
     /* Converge the canceller */
     signal_restart(&local_css);
     modem_echo_can_adaption_mode(ctx, TRUE);
@@ -325,11 +335,14 @@ int main(int argc, char *argv[])
     {
         tx = signal_amp(&local_css);
         rx = channel_model(tx, 0);
-        tx = alaw_munge(tx);
         clean = modem_echo_can_update(ctx, tx, rx);
+        power_meter_update(&power_before, rx);
+        power_meter_update(&power_after, clean);
+        if (i%800 == 0)
+            printf("Powers %15.5fdBm0 %15.5fdBm0\n", power_meter_dbm0(&power_before), power_meter_dbm0(&power_after));
         put_residue(tx, clean);
 #if defined(ENABLE_GUI)
-        echo_can_monitor_update(ctx->fir_taps16, 256);
+        echo_can_monitor_can_update(ctx->fir_taps16, 256);
 #endif
     }
     modem_echo_can_free(ctx);

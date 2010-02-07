@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.h,v 1.8 2004/06/09 15:15:18 steveu Exp $
+ * $Id: tone_generate.h,v 1.9 2005/01/18 14:05:49 steveu Exp $
  */
 
 /*! \file */
@@ -33,12 +33,11 @@
 #define _TONE_GENERATE_H_
 
 /*! \page tone_generation_page Tone generation
-
+\section tone_generation_page_sec_1 What does it do?
 The tone generation module provides for the generation of cadenced tones,
 suitable for a wide range of telephony applications. 
 
-\section tone_generation_page_sec_1 Theory of operation
-
+\section tone_generation_page_sec_2 How does it work?
 Oscillators are a problem. They oscillate due to instability, and yet we need
 them to behave in a stable manner. A look around the web will reveal many papers
 on this subject. Many describe rather complex solutions to the problem. However,
@@ -49,21 +48,28 @@ conditions in which we will use it.
 */
 
 /*! \page DTMF_tx_page DTMF tone generation
+\section DTMF_tx_page_sec_1 What does it do?
 
 The DTMF tone generation module provides for the generation of the
 repertoire of 16 DTMF dual tones. 
+
+\section DTMF_tx_page_sec_2 How does it work?
 */
 
 /*! \page MFC_R2_tone_generation_page MFC/R2 tone generation
-
+\section MFC_R2_tone_generation_page_sec_1 What does it do?
 The MFC/R2 tone generation module provides for the generation of the
 repertoire of 15 dual tones needs for the digital MFC/R2 signalling protocol. 
+
+\section MFC_R2_tone_generation_page_sec_2 How does it work?
 */
 
-/*! \page bell_mf_tone_generation_page Bell MF tone generation
-
+/*! \page Bell_MF_tone_generation_page Bell MF tone generation
+\section Bell_MF_tone_generation_page_sec_1 What does it do?
 The Bell MF tone generation module provides for the generation of the
 repertoire of 15 dual tones needs for various Bell MF signalling protocols. 
+
+\section Bell_MF_tone_generation_page_sec_2 How does it work?
 */
 
 #if !defined(MAX_DTMF_DIGITS)

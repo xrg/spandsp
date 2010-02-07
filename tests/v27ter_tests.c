@@ -23,11 +23,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tests.c,v 1.25 2004/12/27 13:25:17 steveu Exp $
+ * $Id: v27ter_tests.c,v 1.26 2005/01/29 09:12:06 steveu Exp $
  */
 
 /*! \page v27ter_tests_page V.27ter modem tests
-\section v27ter_tests_page_sec_1 What does it do
+\section v27ter_tests_page_sec_1 What does it do?
 */
 
 #define	_ISOC9X_SOURCE	1
@@ -236,11 +236,13 @@ int main(int argc, char *argv[])
     int samples;
     int i;
     int test_bps;
+    int tep;
     int noise_level;
     int line_model_no;
     int block;
 
     test_bps = 4800;
+    tep = FALSE;
     line_model_no = 5;
     i = 1;
     if (argc > i)
@@ -248,6 +250,11 @@ int main(int argc, char *argv[])
         if (strcmp(argv[i], "-d") == 0)
         {
             decode_test = TRUE;
+            i++;
+        }
+        if (strcmp(argv[i], "-t") == 0)
+        {
+            tep = TRUE;
             i++;
         }
     }
@@ -300,7 +307,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    v27ter_tx_init(&tx, test_bps, v27tergetbit, NULL);
+    v27ter_tx_init(&tx, test_bps, tep, v27tergetbit, NULL);
     /* Move the carrier off a bit */
     tx.carrier_phase_rate = dds_phase_stepf(1808.0);
     v27ter_rx_init(&rx, test_bps, v27terputbit, NULL);
@@ -339,7 +346,7 @@ int main(int argc, char *argv[])
                 printf("Restarting on zero output\n");
                 bert_result(&bert, &bert_results);
                 fprintf(stderr, "%ddB AWGN, %d bits, %d bad bits, %d resyncs\n", noise_level, bert_results.total_bits, bert_results.bad_bits, bert_results.resyncs);
-                v27ter_tx_restart(&tx, test_bps);
+                v27ter_tx_restart(&tx, test_bps, tep);
                 v27ter_rx_restart(&rx, test_bps);
                 bert_init(&bert, 50000, BERT_PATTERN_ITU_O152_11, test_bps, 20);
                 bert_set_report(&bert, 10000, reporter, &bert);

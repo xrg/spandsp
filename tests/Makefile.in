@@ -15,7 +15,7 @@
 @SET_MAKE@
 
 
-SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) $(awgn_tests_SOURCES) $(bell_mf_tests_SOURCES) $(bert_tests_SOURCES) $(dc_restore_tests_SOURCES) $(dds_tests_SOURCES) $(dtmf_gen_tests_SOURCES) $(dtmf_tests_SOURCES) $(ec_disable_detector_tests_SOURCES) $(echo_tests_SOURCES) $(fax_tests_SOURCES) $(fsk_tests_SOURCES) $(g168_tests_SOURCES) $(hdlc_tests_SOURCES) $(ima_adpcm_tests_SOURCES) $(make_line_models_SOURCES) $(makecss_SOURCES) $(modem_echo_tests_SOURCES) $(oki_adpcm_tests_SOURCES) $(plc_tests_SOURCES) $(power_meter_tests_SOURCES) $(r2_mf_tests_SOURCES) $(schedule_tests_SOURCES) $(sig_tone_tests_SOURCES) $(super_tone_rx_tests_SOURCES) $(super_tone_tx_tests_SOURCES) $(t31_tests_SOURCES) $(t4_tests_SOURCES) $(testadsi_SOURCES) $(testfax_SOURCES) $(time_scale_tests_SOURCES) $(tone_generate_tests_SOURCES) $(v17_tests_SOURCES) $(v22bis_tests_SOURCES) $(v27ter_tests_SOURCES) $(v29_tests_SOURCES) $(v42_tests_SOURCES) $(v8_tests_SOURCES)
+SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) $(awgn_tests_SOURCES) $(bell_mf_tests_SOURCES) $(bert_tests_SOURCES) $(dc_restore_tests_SOURCES) $(dds_tests_SOURCES) $(dtmf_gen_tests_SOURCES) $(dtmf_tests_SOURCES) $(ec_disable_detector_tests_SOURCES) $(echo_tests_SOURCES) $(fax_decode_SOURCES) $(fax_tests_SOURCES) $(fsk_tests_SOURCES) $(g168_tests_SOURCES) $(hdlc_tests_SOURCES) $(ima_adpcm_tests_SOURCES) $(line_model_tests_SOURCES) $(make_line_models_SOURCES) $(makecss_SOURCES) $(modem_echo_tests_SOURCES) $(oki_adpcm_tests_SOURCES) $(playout_tests_SOURCES) $(plc_tests_SOURCES) $(power_meter_tests_SOURCES) $(r2_mf_tests_SOURCES) $(schedule_tests_SOURCES) $(sig_tone_tests_SOURCES) $(super_tone_rx_tests_SOURCES) $(super_tone_tx_tests_SOURCES) $(t31_tests_SOURCES) $(t4_tests_SOURCES) $(testadsi_SOURCES) $(testfax_SOURCES) $(time_scale_tests_SOURCES) $(tone_generate_tests_SOURCES) $(v17_tests_SOURCES) $(v22bis_tests_SOURCES) $(v27ter_tests_SOURCES) $(v29_tests_SOURCES) $(v42_tests_SOURCES) $(v8_tests_SOURCES)
 
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
@@ -43,10 +43,12 @@ noinst_PROGRAMS = adsi_tests$(EXEEXT) async_tests$(EXEEXT) \
 	dc_restore_tests$(EXEEXT) dds_tests$(EXEEXT) \
 	dtmf_tests$(EXEEXT) dtmf_gen_tests$(EXEEXT) \
 	ec_disable_detector_tests$(EXEEXT) echo_tests$(EXEEXT) \
-	fax_tests$(EXEEXT) fsk_tests$(EXEEXT) g168_tests$(EXEEXT) \
-	hdlc_tests$(EXEEXT) ima_adpcm_tests$(EXEEXT) makecss$(EXEEXT) \
-	make_line_models$(EXEEXT) modem_echo_tests$(EXEEXT) \
-	oki_adpcm_tests$(EXEEXT) plc_tests$(EXEEXT) \
+	fax_decode$(EXEEXT) fax_tests$(EXEEXT) fsk_tests$(EXEEXT) \
+	g168_tests$(EXEEXT) hdlc_tests$(EXEEXT) \
+	ima_adpcm_tests$(EXEEXT) line_model_tests$(EXEEXT) \
+	makecss$(EXEEXT) make_line_models$(EXEEXT) \
+	modem_echo_tests$(EXEEXT) oki_adpcm_tests$(EXEEXT) \
+	playout_tests$(EXEEXT) plc_tests$(EXEEXT) \
 	power_meter_tests$(EXEEXT) r2_mf_tests$(EXEEXT) \
 	schedule_tests$(EXEEXT) sig_tone_tests$(EXEEXT) \
 	super_tone_rx_tests$(EXEEXT) super_tone_tx_tests$(EXEEXT) \
@@ -101,6 +103,9 @@ ec_disable_detector_tests_DEPENDENCIES =
 am_echo_tests_OBJECTS = echo_tests.$(OBJEXT)
 echo_tests_OBJECTS = $(am_echo_tests_OBJECTS)
 echo_tests_DEPENDENCIES =
+am_fax_decode_OBJECTS = fax_decode.$(OBJEXT)
+fax_decode_OBJECTS = $(am_fax_decode_OBJECTS)
+fax_decode_DEPENDENCIES =
 am_fax_tests_OBJECTS = fax_tests.$(OBJEXT)
 fax_tests_OBJECTS = $(am_fax_tests_OBJECTS)
 fax_tests_DEPENDENCIES =
@@ -116,6 +121,10 @@ hdlc_tests_DEPENDENCIES =
 am_ima_adpcm_tests_OBJECTS = ima_adpcm_tests.$(OBJEXT)
 ima_adpcm_tests_OBJECTS = $(am_ima_adpcm_tests_OBJECTS)
 ima_adpcm_tests_DEPENDENCIES =
+am_line_model_tests_OBJECTS = line_model_tests.$(OBJEXT) \
+	line_model.$(OBJEXT)
+line_model_tests_OBJECTS = $(am_line_model_tests_OBJECTS)
+line_model_tests_DEPENDENCIES =
 am_make_line_models_OBJECTS = make_line_models.$(OBJEXT)
 make_line_models_OBJECTS = $(am_make_line_models_OBJECTS)
 make_line_models_DEPENDENCIES =
@@ -129,6 +138,9 @@ modem_echo_tests_DEPENDENCIES =
 am_oki_adpcm_tests_OBJECTS = oki_adpcm_tests.$(OBJEXT)
 oki_adpcm_tests_OBJECTS = $(am_oki_adpcm_tests_OBJECTS)
 oki_adpcm_tests_DEPENDENCIES =
+am_playout_tests_OBJECTS = playout_tests.$(OBJEXT)
+playout_tests_OBJECTS = $(am_playout_tests_OBJECTS)
+playout_tests_DEPENDENCIES =
 am_plc_tests_OBJECTS = plc_tests.$(OBJEXT)
 plc_tests_OBJECTS = $(am_plc_tests_OBJECTS)
 plc_tests_DEPENDENCIES =
@@ -204,15 +216,18 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/dtmf_tests.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/ec_disable_detector_tests.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/echo_monitor.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/echo_tests.Po ./$(DEPDIR)/fax_tests.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/echo_tests.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/fax_decode.Po ./$(DEPDIR)/fax_tests.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/fsk_tests.Po ./$(DEPDIR)/g168_tests.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/hdlc_tests.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/ima_adpcm_tests.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/line_model.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/line_model_tests.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/make_line_models.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/makecss.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/modem_echo_tests.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/oki_adpcm_tests.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/playout_tests.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/plc_tests.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/power_meter_tests.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/r2_mf_tests.Po \
@@ -250,39 +265,41 @@ SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(bert_tests_SOURCES) $(dc_restore_tests_SOURCES) \
 	$(dds_tests_SOURCES) $(dtmf_gen_tests_SOURCES) \
 	$(dtmf_tests_SOURCES) $(ec_disable_detector_tests_SOURCES) \
-	$(echo_tests_SOURCES) $(fax_tests_SOURCES) \
-	$(fsk_tests_SOURCES) $(g168_tests_SOURCES) \
-	$(hdlc_tests_SOURCES) $(ima_adpcm_tests_SOURCES) \
+	$(echo_tests_SOURCES) $(fax_decode_SOURCES) \
+	$(fax_tests_SOURCES) $(fsk_tests_SOURCES) \
+	$(g168_tests_SOURCES) $(hdlc_tests_SOURCES) \
+	$(ima_adpcm_tests_SOURCES) $(line_model_tests_SOURCES) \
 	$(make_line_models_SOURCES) $(makecss_SOURCES) \
 	$(modem_echo_tests_SOURCES) $(oki_adpcm_tests_SOURCES) \
-	$(plc_tests_SOURCES) $(power_meter_tests_SOURCES) \
-	$(r2_mf_tests_SOURCES) $(schedule_tests_SOURCES) \
-	$(sig_tone_tests_SOURCES) $(super_tone_rx_tests_SOURCES) \
-	$(super_tone_tx_tests_SOURCES) $(t31_tests_SOURCES) \
-	$(t4_tests_SOURCES) $(testadsi_SOURCES) $(testfax_SOURCES) \
-	$(time_scale_tests_SOURCES) $(tone_generate_tests_SOURCES) \
-	$(v17_tests_SOURCES) $(v22bis_tests_SOURCES) \
-	$(v27ter_tests_SOURCES) $(v29_tests_SOURCES) \
-	$(v42_tests_SOURCES) $(v8_tests_SOURCES)
+	$(playout_tests_SOURCES) $(plc_tests_SOURCES) \
+	$(power_meter_tests_SOURCES) $(r2_mf_tests_SOURCES) \
+	$(schedule_tests_SOURCES) $(sig_tone_tests_SOURCES) \
+	$(super_tone_rx_tests_SOURCES) $(super_tone_tx_tests_SOURCES) \
+	$(t31_tests_SOURCES) $(t4_tests_SOURCES) $(testadsi_SOURCES) \
+	$(testfax_SOURCES) $(time_scale_tests_SOURCES) \
+	$(tone_generate_tests_SOURCES) $(v17_tests_SOURCES) \
+	$(v22bis_tests_SOURCES) $(v27ter_tests_SOURCES) \
+	$(v29_tests_SOURCES) $(v42_tests_SOURCES) $(v8_tests_SOURCES)
 DIST_SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(awgn_tests_SOURCES) $(bell_mf_tests_SOURCES) \
 	$(bert_tests_SOURCES) $(dc_restore_tests_SOURCES) \
 	$(dds_tests_SOURCES) $(dtmf_gen_tests_SOURCES) \
 	$(dtmf_tests_SOURCES) $(ec_disable_detector_tests_SOURCES) \
-	$(echo_tests_SOURCES) $(fax_tests_SOURCES) \
-	$(fsk_tests_SOURCES) $(g168_tests_SOURCES) \
-	$(hdlc_tests_SOURCES) $(ima_adpcm_tests_SOURCES) \
+	$(echo_tests_SOURCES) $(fax_decode_SOURCES) \
+	$(fax_tests_SOURCES) $(fsk_tests_SOURCES) \
+	$(g168_tests_SOURCES) $(hdlc_tests_SOURCES) \
+	$(ima_adpcm_tests_SOURCES) $(line_model_tests_SOURCES) \
 	$(make_line_models_SOURCES) $(makecss_SOURCES) \
 	$(modem_echo_tests_SOURCES) $(oki_adpcm_tests_SOURCES) \
-	$(plc_tests_SOURCES) $(power_meter_tests_SOURCES) \
-	$(r2_mf_tests_SOURCES) $(schedule_tests_SOURCES) \
-	$(sig_tone_tests_SOURCES) $(super_tone_rx_tests_SOURCES) \
-	$(super_tone_tx_tests_SOURCES) $(t31_tests_SOURCES) \
-	$(t4_tests_SOURCES) $(testadsi_SOURCES) $(testfax_SOURCES) \
-	$(time_scale_tests_SOURCES) $(tone_generate_tests_SOURCES) \
-	$(v17_tests_SOURCES) $(v22bis_tests_SOURCES) \
-	$(v27ter_tests_SOURCES) $(v29_tests_SOURCES) \
-	$(v42_tests_SOURCES) $(v8_tests_SOURCES)
+	$(playout_tests_SOURCES) $(plc_tests_SOURCES) \
+	$(power_meter_tests_SOURCES) $(r2_mf_tests_SOURCES) \
+	$(schedule_tests_SOURCES) $(sig_tone_tests_SOURCES) \
+	$(super_tone_rx_tests_SOURCES) $(super_tone_tx_tests_SOURCES) \
+	$(t31_tests_SOURCES) $(t4_tests_SOURCES) $(testadsi_SOURCES) \
+	$(testfax_SOURCES) $(time_scale_tests_SOURCES) \
+	$(tone_generate_tests_SOURCES) $(v17_tests_SOURCES) \
+	$(v22bis_tests_SOURCES) $(v27ter_tests_SOURCES) \
+	$(v29_tests_SOURCES) $(v42_tests_SOURCES) $(v8_tests_SOURCES)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -344,6 +361,9 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SPANDSP_LT_AGE = @SPANDSP_LT_AGE@
+SPANDSP_LT_CURRENT = @SPANDSP_LT_CURRENT@
+SPANDSP_LT_REVISION = @SPANDSP_LT_REVISION@
 STRIP = @STRIP@
 TESTLIBS = @TESTLIBS@
 VERSION = @VERSION@
@@ -416,6 +436,8 @@ ec_disable_detector_tests_SOURCES = ec_disable_detector_tests.c
 ec_disable_detector_tests_LDADD = -L$(top_builddir)/src -lspandsp
 echo_tests_SOURCES = echo_tests.c
 echo_tests_LDADD = -L$(top_builddir)/src -lspandsp
+fax_decode_SOURCES = fax_decode.c
+fax_decode_LDADD = -L$(top_builddir)/src -lspandsp
 fax_tests_SOURCES = fax_tests.c
 fax_tests_LDADD = -L$(top_builddir)/src -lspandsp
 fsk_tests_SOURCES = fsk_tests.c
@@ -426,6 +448,8 @@ hdlc_tests_SOURCES = hdlc_tests.c
 hdlc_tests_LDADD = -L$(top_builddir)/src -lspandsp
 ima_adpcm_tests_SOURCES = ima_adpcm_tests.c
 ima_adpcm_tests_LDADD = -L$(top_builddir)/src -lspandsp
+line_model_tests_SOURCES = line_model_tests.c line_model.c
+line_model_tests_LDADD = -L$(top_builddir)/src -lspandsp
 makecss_SOURCES = makecss.c
 makecss_LDADD = -L$(top_builddir)/src -lspandsp
 make_line_models_SOURCES = make_line_models.c
@@ -434,6 +458,8 @@ modem_echo_tests_SOURCES = modem_echo_tests.c echo_monitor.cpp
 modem_echo_tests_LDADD = -L$(top_builddir)/src -lspandsp
 oki_adpcm_tests_SOURCES = oki_adpcm_tests.c
 oki_adpcm_tests_LDADD = -L$(top_builddir)/src -lspandsp
+playout_tests_SOURCES = playout_tests.c
+playout_tests_LDADD = -L$(top_builddir)/src -lspandsp
 plc_tests_SOURCES = plc_tests.c
 plc_tests_LDADD = -L$(top_builddir)/src -lspandsp
 power_meter_tests_SOURCES = power_meter_tests.c
@@ -545,6 +571,9 @@ ec_disable_detector_tests$(EXEEXT): $(ec_disable_detector_tests_OBJECTS) $(ec_di
 echo_tests$(EXEEXT): $(echo_tests_OBJECTS) $(echo_tests_DEPENDENCIES) 
 	@rm -f echo_tests$(EXEEXT)
 	$(LINK) $(echo_tests_LDFLAGS) $(echo_tests_OBJECTS) $(echo_tests_LDADD) $(LIBS)
+fax_decode$(EXEEXT): $(fax_decode_OBJECTS) $(fax_decode_DEPENDENCIES) 
+	@rm -f fax_decode$(EXEEXT)
+	$(LINK) $(fax_decode_LDFLAGS) $(fax_decode_OBJECTS) $(fax_decode_LDADD) $(LIBS)
 fax_tests$(EXEEXT): $(fax_tests_OBJECTS) $(fax_tests_DEPENDENCIES) 
 	@rm -f fax_tests$(EXEEXT)
 	$(LINK) $(fax_tests_LDFLAGS) $(fax_tests_OBJECTS) $(fax_tests_LDADD) $(LIBS)
@@ -560,6 +589,9 @@ hdlc_tests$(EXEEXT): $(hdlc_tests_OBJECTS) $(hdlc_tests_DEPENDENCIES)
 ima_adpcm_tests$(EXEEXT): $(ima_adpcm_tests_OBJECTS) $(ima_adpcm_tests_DEPENDENCIES) 
 	@rm -f ima_adpcm_tests$(EXEEXT)
 	$(LINK) $(ima_adpcm_tests_LDFLAGS) $(ima_adpcm_tests_OBJECTS) $(ima_adpcm_tests_LDADD) $(LIBS)
+line_model_tests$(EXEEXT): $(line_model_tests_OBJECTS) $(line_model_tests_DEPENDENCIES) 
+	@rm -f line_model_tests$(EXEEXT)
+	$(LINK) $(line_model_tests_LDFLAGS) $(line_model_tests_OBJECTS) $(line_model_tests_LDADD) $(LIBS)
 make_line_models$(EXEEXT): $(make_line_models_OBJECTS) $(make_line_models_DEPENDENCIES) 
 	@rm -f make_line_models$(EXEEXT)
 	$(LINK) $(make_line_models_LDFLAGS) $(make_line_models_OBJECTS) $(make_line_models_LDADD) $(LIBS)
@@ -572,6 +604,9 @@ modem_echo_tests$(EXEEXT): $(modem_echo_tests_OBJECTS) $(modem_echo_tests_DEPEND
 oki_adpcm_tests$(EXEEXT): $(oki_adpcm_tests_OBJECTS) $(oki_adpcm_tests_DEPENDENCIES) 
 	@rm -f oki_adpcm_tests$(EXEEXT)
 	$(LINK) $(oki_adpcm_tests_LDFLAGS) $(oki_adpcm_tests_OBJECTS) $(oki_adpcm_tests_LDADD) $(LIBS)
+playout_tests$(EXEEXT): $(playout_tests_OBJECTS) $(playout_tests_DEPENDENCIES) 
+	@rm -f playout_tests$(EXEEXT)
+	$(LINK) $(playout_tests_LDFLAGS) $(playout_tests_OBJECTS) $(playout_tests_LDADD) $(LIBS)
 plc_tests$(EXEEXT): $(plc_tests_OBJECTS) $(plc_tests_DEPENDENCIES) 
 	@rm -f plc_tests$(EXEEXT)
 	$(LINK) $(plc_tests_LDFLAGS) $(plc_tests_OBJECTS) $(plc_tests_LDADD) $(LIBS)
@@ -649,16 +684,19 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ec_disable_detector_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/echo_monitor.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/echo_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fax_decode.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fax_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fsk_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g168_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hdlc_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ima_adpcm_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/line_model.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/line_model_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/make_line_models.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/makecss.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/modem_echo_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/oki_adpcm_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/playout_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plc_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/power_meter_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/r2_mf_tests.Po@am__quote@

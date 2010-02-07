@@ -23,13 +23,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.h,v 1.6 2004/12/31 15:23:01 steveu Exp $
+ * $Id: hdlc.h,v 1.8 2005/03/20 04:07:18 steveu Exp $
  */
 
 /*! \file */
 
 #if !defined(_HDLC_H_)
 #define _HDLC_H_
+
+/*! \page HDLC_page HDLC
+
+\section HDLC_page_sec_1 What does it do?
+The HDLC module provides bit stuffing and destuffing, according to the HDLC
+protocol. It also provides CRC generation and checking services for HDLC
+frames.
+
+\section HDLC_page_sec_2 How does it work?
+*/
 
 /*! 
     HDLC_MAXFRAME_LEN is the maximum length of a stuffed HDLC frame, excluding the CRC.
@@ -194,7 +204,7 @@ hdlc_tx_state_t *hdlc_tx_init(hdlc_tx_state_t *s,
                               int crc32,
                               hdlc_underflow_handler_t handler,
                               void *user_data);
-void hdlc_tx_frame(hdlc_tx_state_t *s, uint8_t *frame, int len);
+void hdlc_tx_frame(hdlc_tx_state_t *s, const uint8_t *frame, int len);
 void hdlc_tx_preamble(hdlc_tx_state_t *s, int len);
 int hdlc_tx_getbit(hdlc_tx_state_t *s);
 int hdlc_tx_getbyte(hdlc_tx_state_t *s);

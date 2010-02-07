@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.c,v 1.20 2004/10/16 07:29:59 steveu Exp $
+ * $Id: v29tx.c,v 1.22 2005/03/03 14:19:00 steveu Exp $
  */
 
 /*! \file */
@@ -42,6 +42,7 @@
 #include "spandsp/v29tx.h"
 
 /* Segments of the training sequence */
+#define V29_TRAINING_TEP_LEN        480
 #define V29_TRAINING_SEG_1          0
 #define V29_TRAINING_SEG_2          48
 #define V29_TRAINING_SEG_3          (V29_TRAINING_SEG_2 + 128)
@@ -130,6 +131,11 @@ static complex_t getbaud(v29_tx_state_t *s)
     if (s->in_training)
     {
         /* Send the training sequence */
+        if (s->tep_step)
+        {
+            s->tep_step--;
+            return constellation[0];
+        }
         if (++s->training_step <= V29_TRAINING_SEG_4)
         {
             /* The V.29 training sequence */
@@ -272,9 +278,18 @@ void v29_tx_power(v29_tx_state_t *s, float power)
 }
 /*- End of function --------------------------------------------------------*/
 
-int v29_tx_restart(v29_tx_state_t *s, int bit_rate)
+void v29_tx_set_get_bit(v29_tx_state_t *s, get_bit_func_t get_bit, void *user_data)
 {
-    switch (bit_rate)
+    if (s->get_bit == s->current_get_bit)
+        s->current_get_bit = get_bit;
+    s->get_bit = get_bit;
+    s->user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+int v29_tx_restart(v29_tx_state_t *s, int rate, int tep)
+{
+    switch (rate)
     {
     case 9600:
         s->training_offset = 0;
@@ -288,13 +303,14 @@ int v29_tx_restart(v29_tx_state_t *s, int bit_rate)
     default:
         return -1;
     }
-    s->bit_rate = bit_rate;
+    s->bit_rate = rate;
     memset(s->rrc_filter, 0, sizeof(s->rrc_filter));
     s->rrc_filter_step = 0;
     s->current_point = complex_set(0.0, 0.0);
     s->scramble_reg = 0;
     s->training_scramble_reg = 0x2A;
     s->in_training = TRUE;
+    s->tep_step = (tep) ?  V29_TRAINING_TEP_LEN  :  0;
     s->training_step = 0;
     s->carrier_phase = 0;
     s->baud_phase = 0;
@@ -304,14 +320,14 @@ int v29_tx_restart(v29_tx_state_t *s, int bit_rate)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v29_tx_init(v29_tx_state_t *s, int rate, get_bit_func_t get_bit, void *user_data)
+void v29_tx_init(v29_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data)
 {
     memset(s, 0, sizeof(*s));
     s->get_bit = get_bit;
     s->user_data = user_data;
     s->carrier_phase_rate = dds_phase_stepf(1700.0);
     v29_tx_power(s, -10.0);
-    v29_tx_restart(s, rate);
+    v29_tx_restart(s, rate, tep);
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

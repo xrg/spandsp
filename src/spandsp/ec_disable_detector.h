@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ec_disable_detector.h,v 1.4 2004/07/24 11:46:55 steveu Exp $
+ * $Id: ec_disable_detector.h,v 1.5 2005/01/18 14:05:48 steveu Exp $
  */
  
 /*! \file */
@@ -34,13 +34,15 @@
 #define _EC_DISABLE_DETECTOR_H_
 
 /*! \page echo_can_disable_page Echo cancellor disable tone detection
+
+\section echo_can_disable_page_sec_1 What does it do?
 Some telephony terminal equipment, such as modems, require a channel which is as
 clear as possible. They use their own echo cancellation. If the network is also
 performing echo cancellation the two cancellors can end of squabbling about the
 nature of the channel, with bad results. A special tone is defined which should
 cause the network to disable any echo cancellation processes. 
 
-\section echo_can_disable_page_sec_1 Theory of operation
+\section echo_can_disable_page_sec_2 How does it work?
 A sharp notch filter is implemented as a single bi-quad section. The presence of
 the 2100Hz disable tone is detected by comparing the notched filtered energy
 with the unfiltered energy. If the notch filtered energy is much lower than the

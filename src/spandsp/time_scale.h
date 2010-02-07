@@ -23,22 +23,29 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.h,v 1.1 2004/10/14 13:47:16 steveu Exp $
+ * $Id: time_scale.h,v 1.3 2005/02/04 19:19:31 steveu Exp $
  */
 
 #if !defined(_TIME_SCALE_H_)
 #define _TIME_SCALE_H_
 
-/*! \page Time scaling speech
-    Time scaling for speech, based on the Pointer Interval Controlled
-    OverLap and Add (PICOLA) method, developed by Morita Naotaka.
+/*! \page time_scaling_page Time scaling speech
+\section time_scaling_page_sec_1 What does it do?
+The time scaling module allows speech files to be played back at a
+different speed, from the speed at which they were recorded. If this
+were done by simply speeding up or slowing down replay, the pitch of
+the voice would change, and sound very odd. This modules keeps the pitch
+of the voice normal.
 
-    Mikio Ikeda has an excellent web page on this subject at
-    http://keizai.yokkaichi-u.ac.jp/~ikeda/research/picola.html
-    There is also working code there. This implementation uses
-    exactly the same algorithms, but the code is a complete rewrite.
-    Mikio's code batch processes files. This version works incrementally
-    on streams, and allows multiple streams to be processed concurrently.
+\section time_scaling_page_sec_2 How does it work?
+The time scaling module is based on the Pointer Interval Controlled
+OverLap and Add (PICOLA) method, developed by Morita Naotaka.
+Mikio Ikeda has an excellent web page on this subject at
+http://keizai.yokkaichi-u.ac.jp/~ikeda/research/picola.html
+There is also working code there. This implementation uses
+exactly the same algorithms, but the code is a complete rewrite.
+Mikio's code batch processes files. This version works incrementally
+on streams, and allows multiple streams to be processed concurrently.
 */
 
 #define TIME_SCALE_MIN_PITCH    60
@@ -60,6 +67,7 @@ extern "C" {
 #endif
 
 int time_scale(time_scale_t *s, int16_t out[], int16_t in[], int len);
+int time_scale_rate(time_scale_t *s, float rate);
 int time_scale_init(time_scale_t *s, float rate);
 
 #ifdef __cplusplus

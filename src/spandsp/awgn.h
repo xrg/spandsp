@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn.h,v 1.3 2004/03/30 14:29:40 steveu Exp $
+ * $Id: awgn.h,v 1.4 2005/01/18 14:05:48 steveu Exp $
  */
 
 /*! \file */
@@ -48,10 +48,11 @@
 
 /*! \page awgn_page Additive white gaussian noise (AWGN) generation
 
+\section awgn_page_sec_1 What does it do?
 Adding noise is not the most useful thing in most DSP applications, but it is
 awfully useful for test suites. 
 
-\section awgn_page_sec_1 Theory of operation
+\section awgn_page_sec_2 How does it work?
 
 This code is based on some demonstration code in a research paper somewhere. I
 can't track down where I got the original from, so that due recognition can be
@@ -65,7 +66,7 @@ and not a core system component, I don't intend to worry excessively about
 copyright issues, unless someone worries me. 
 
 The non-core nature of this code also explains why it is unlikely to ever be
-optimised. 
+optimised.
 */
 
 /*!

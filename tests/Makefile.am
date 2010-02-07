@@ -14,7 +14,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.34 2005/01/16 10:52:02 steveu Exp $
+## $Id: Makefile.am,v 1.36 2005/01/25 12:54:08 steveu Exp $
 
 LIBS += $(TESTLIBS)
 
@@ -33,15 +33,18 @@ noinst_PROGRAMS =   adsi_tests \
                     dtmf_gen_tests \
                     ec_disable_detector_tests \
                     echo_tests \
+                    fax_decode \
                     fax_tests \
                     fsk_tests \
                     g168_tests \
                     hdlc_tests \
                     ima_adpcm_tests \
+                    line_model_tests \
                     makecss \
                     make_line_models \
                     modem_echo_tests \
                     oki_adpcm_tests \
+                    playout_tests \
                     plc_tests \
                     power_meter_tests \
                     r2_mf_tests \
@@ -99,6 +102,9 @@ ec_disable_detector_tests_LDADD = -L$(top_builddir)/src -lspandsp
 echo_tests_SOURCES = echo_tests.c
 echo_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
+fax_decode_SOURCES = fax_decode.c
+fax_decode_LDADD = -L$(top_builddir)/src -lspandsp
+
 fax_tests_SOURCES = fax_tests.c
 fax_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
@@ -114,6 +120,9 @@ hdlc_tests_LDADD = -L$(top_builddir)/src -lspandsp
 ima_adpcm_tests_SOURCES = ima_adpcm_tests.c
 ima_adpcm_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
+line_model_tests_SOURCES = line_model_tests.c line_model.c
+line_model_tests_LDADD = -L$(top_builddir)/src -lspandsp
+
 makecss_SOURCES = makecss.c
 makecss_LDADD = -L$(top_builddir)/src -lspandsp
 
@@ -125,6 +134,9 @@ modem_echo_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
 oki_adpcm_tests_SOURCES = oki_adpcm_tests.c
 oki_adpcm_tests_LDADD = -L$(top_builddir)/src -lspandsp
+
+playout_tests_SOURCES = playout_tests.c
+playout_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
 plc_tests_SOURCES = plc_tests.c
 plc_tests_LDADD = -L$(top_builddir)/src -lspandsp

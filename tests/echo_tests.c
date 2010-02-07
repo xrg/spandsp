@@ -26,11 +26,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo_tests.c,v 1.6 2004/12/16 15:33:55 steveu Exp $
+ * $Id: echo_tests.c,v 1.7 2005/01/18 14:05:50 steveu Exp $
  */
 
 /*! \page echo_can_tests_page Echo cancellation tests
 
+\section echo_can_tests_page_sec_1 What does it do?
 Currently the echo cancellation tests only provide simple exercising of the
 cancellor in the way it might be used for line echo cancellation. The test code
 is in echotests.c. 
@@ -40,8 +41,7 @@ means the goal for the cancellor itself is to comply with those specs. Right
 now, the only aspect of these tests implemented is the line impulse response
 models in g168tests.c. 
 
-\section echo_can_tests_page_sec_1 Theory of operation
-
+\section echo_can_tests_page_sec_2 How does it work?
 The current test consists of feeding a wave file of real speech to the echo
 cancellor as the transmit signal. A very simple model of a telephone line is
 used to simulate a simple echo from the transmit signal. A second wave file of

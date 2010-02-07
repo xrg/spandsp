@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dc_restore.h,v 1.4 2004/03/31 15:06:30 steveu Exp $
+ * $Id: dc_restore.h,v 1.5 2005/01/18 14:05:48 steveu Exp $
  */
 
 /*! \file */
@@ -34,11 +34,13 @@
 
 /*! \page dc_restore_page Removing DC bias from a signal
 
+\section dc_restore_page_sec_1 What does it do?
+
 Telecoms signals often contain considerable DC, but DC upsets a lot of signal
 processing functions. Placing a zero DC restorer at the front of the processing
 chain can often simplify the downstream processing. 
 
-\section dc_restore_page_sec_1 Theory of operation
+\section dc_restore_page_sec_2 How does it work?
 
 The DC restorer uses a leaky integrator to provide a long-ish term estimate of
 the DC bias in the signal. A 32 bit estimate is used for the 16 bit audio, so

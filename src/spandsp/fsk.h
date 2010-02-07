@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.h,v 1.7 2004/09/19 08:47:13 steveu Exp $
+ * $Id: fsk.h,v 1.10 2005/03/28 08:15:21 steveu Exp $
  */
 
 /*! \file */
@@ -31,17 +31,17 @@
 #if !defined(_FSK_H_)
 #define _FSK_H_
 
-/*! \page fsk_page The FSK modem
-\section fsk_page_sec_1 What does it do
+/*! \page fsk_page FSK modems
+\section fsk_page_sec_1 What does it do?
 Most of the oldest telephony modems use incorent FSK modulation. This module can
 be used to implement both the trasmit and receive sides of a number of these
 modems. There are integrated definitions for: 
 
-    V.21
-    V.23
-    Bell 103
-    Bell 202
-    Weitbrecht (Used for TDD - Telecoms Device for the Deaf)
+    - V.21
+    - V.23
+    - Bell 103
+    - Bell 202
+    - Weitbrecht (Used for TDD - Telecoms Device for the Deaf)
 
 The audio output or input is a stream of 16 bit samples, at 8000 samples/second.
 The transmit and receive sides can be used independantly. 
@@ -56,7 +56,7 @@ generally used (1200bps) is more than 7 samples long. The jitter resulting from
 switching at the nearest sample is, therefore, acceptable. No interpolation is
 used. 
 
-\section fsk_page_sec3 The receiver
+\section fsk_page_sec_3 The receiver
 
 The FSK receiver uses a quadrature correlation technique to demodulate the
 signal. Two DDS quadrature oscillators are used. The incoming signal is
@@ -248,6 +248,8 @@ void fsk_tx_init(fsk_tx_state_t *s,
     \param power The power level, in dBm0 */
 void fsk_tx_power(fsk_tx_state_t *s, float power);
 
+void fsk_tx_set_get_bit(fsk_tx_state_t *s, get_bit_func_t get_bit, void *user_data);
+
 /*! Generate a block of FSK modem audio samples.
     \brief Generate a block of FSK modem audio samples.
     \param s The modem context.
@@ -256,6 +258,17 @@ void fsk_tx_power(fsk_tx_state_t *s, float power);
     \return The number of samples actually generated.
 */
 int fsk_tx(fsk_tx_state_t *s, int16_t *amp, int len);
+
+/*! Get the current received signal power.
+    \param s The modem context.
+    \return The signal power, in dBm0. */
+float fsk_rx_signal_power(fsk_rx_state_t *s);
+
+/*! Adjust an FSK modem receive context's carrier detect power threshold.
+    \brief Adjust an FSK modem receive context's carrier detect power threshold.
+    \param s The modem context.
+    \param power The power level, in dBm0 */
+void fsk_rx_signal_cutoff(fsk_rx_state_t *s, float cutoff);
 
 /*! Initialise an FSK modem receive context.
     \brief Initialise an FSK modem receive context.
@@ -278,6 +291,8 @@ void fsk_rx_init(fsk_rx_state_t *s,
     \return The number of samples unprocessed.
 */
 int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len);
+
+void fsk_rx_set_put_bit(fsk_rx_state_t *s, put_bit_func_t put_bit, void *user_data);
 
 /*! Initialise an asynchronous data transmit context.
     \brief Initialise an asynchronous data transmit context.

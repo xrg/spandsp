@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.h,v 1.7 2004/10/19 14:53:41 steveu Exp $
+ * $Id: adsi.h,v 1.9 2005/01/25 12:54:08 steveu Exp $
  */
 
 /*! \file */
@@ -31,12 +31,28 @@
 #if !defined(_ADSI_H_)
 #define _ADSI_H_
 
-#define ADSI_STANDARD_CLASS     1
-#define ADSI_STANDARD_CLIP      2
-#define ADSI_STANDARD_ACLIP     3
-#define ADSI_STANDARD_JCLIP     4
-#define ADSI_STANDARD_CLIP_DTMF 5
-#define ADSI_STANDARD_TDD       6
+/*! \page ADSI_page ADSI transmission and reception
+\section ADSI_page_sec_1 What does it do?
+Although ADSI has a specific meaning in some places, the term is used here to indicate
+any form of Analogue Display Service Interface, which includes caller ID, SMS, and others.
+
+The ADSI module provides for the transmission and reception of ADSI messages
+in various formats. Currently, the US format (CLASS), the ETSI formats (CLIP, ACLIP and
+CLIP DTMF), the NTT format (JCLIP) and TDD are supported.
+
+\section ADSI_page_sec_2 How does it work?
+*/
+
+enum
+{
+    ADSI_STANDARD_NONE = 0,
+    ADSI_STANDARD_CLASS = 1,
+    ADSI_STANDARD_CLIP = 2,
+    ADSI_STANDARD_ACLIP = 3,
+    ADSI_STANDARD_JCLIP = 4,
+    ADSI_STANDARD_CLIP_DTMF = 5,
+    ADSI_STANDARD_TDD = 6
+};
 
 /* In some of the messages code characters are used, as follows:
         'C' for public callbox

@@ -23,10 +23,36 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.h,v 1.1 2005/01/12 13:35:41 steveu Exp $
+ * $Id: line_model.h,v 1.3 2005/03/03 14:19:00 steveu Exp $
  */
 
 /*! \file */
+
+/*! \page line_model_page Telephone line model
+\section line_model_page_sec_1 What does it do?
+The telephone line modelling module provides simple modelling of one way and two
+way telephone lines.
+
+The path being modelled is:
+
+    -    terminal
+    -      | < hybrid echo (2-way models)
+    -      |
+    -      | < noise and filtering
+    -      |
+    -      | < hybrid echo (2-way models)
+    -     CO
+    -      |
+    -      | < A-law distortion + bulk delay
+    -      |
+    -     CO
+    -      | < hybrid echo (2-way models)
+    -      |
+    -      | < noise and filtering
+    -      |
+    -      | < hybrid echo (2-way models)
+    -    terminal
+*/
 
 #if !defined(_LINE_MODEL_H_)
 #define _LINE_MODEL_H_
@@ -35,6 +61,8 @@
 
 typedef struct
 {
+    int alaw_munge;
+
     float *line_filter;
     int line_filter_len;
     float buf[LINE_FILTER_SIZE];    /* last transmitted samples (ring buffer, 
@@ -42,6 +70,9 @@ typedef struct
     int buf_ptr;                    /* pointer of the last transmitted sample in buf */
     float cpe_hybrid_echo;
     float co_hybrid_echo;
+    int16_t bulk_delay_buf[8000];
+    int bulk_delay;
+    int bulk_delay_ptr;
     awgn_state_t noise;
 } one_way_line_model_state_t;
 

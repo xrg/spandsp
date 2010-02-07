@@ -28,7 +28,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo.h,v 1.3 2004/12/16 15:33:55 steveu Exp $
+ * $Id: echo.h,v 1.4 2005/01/18 14:05:49 steveu Exp $
  */
 
 /*! \file */
@@ -38,12 +38,12 @@
 
 /*! \page echo_can_page Echo cancellation
 
+\section echo_can_page_sec_1 What does it do?
 This echo cancellation module is intended to cover the need to cancel electrical
 echoes (e.g. from 2-4 wire hybrids) and acoustic echoes (e.g. room echoes for
 speakerphones). 
 
-\section echo_can_page_sec_1 Theory of operation
-
+\section echo_can_page_sec_2 How does it work?
 The heart of the echo cancellor is an adaptive FIR filter. This is adapted to
 match the impulse response of the environment being cancelled (say, a telephone
 line or a room). It must be long enough to adequately cover the duration of that
@@ -57,8 +57,8 @@ far end of a telephone line) free from the echos of our own transmitted signal.
 The FIR filter is adapted using a LMS algorithm. This method performs well,
 provided certain conditions are met: 
 
-    * The transmitted signal has poor self-correlation.
-    * There is no signal being generated within the environment being cancelled.
+    - The transmitted signal has poor self-correlation.
+    - There is no signal being generated within the environment being cancelled.
 
 The difficulty is that neither of these can be guaranteed. If the adaption is
 performed while transmitting noise (or something fairly noise like, such as
@@ -87,8 +87,7 @@ that assessment is complete the far end signal will have already caused major
 mis-convergence in the adaption process. An assessment algorithm is needed which
 produces a fairly accurate result from a very short burst of far end energy. 
 
-\section echo_can_page_sec_2 How do I use it?
-
+\section echo_can_page_sec_3 How do I use it?
 The echo cancellor processes both the transmit and receive streams sample by
 sample. The processing function is not declared inline. Unfortunately,
 cancellation requires many operations per sample, so the call overhead is only a

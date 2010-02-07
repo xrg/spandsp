@@ -27,7 +27,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm.h,v 1.6 2004/11/15 13:36:32 steveu Exp $
+ * $Id: oki_adpcm.h,v 1.7 2005/01/18 14:05:49 steveu Exp $
  */
 
 /*! \file */
@@ -36,7 +36,7 @@
 #define _OKI_ADPCM_H_
 
 /*! \page okiadpcm_page OKI (Dialogic) ADPCM encoding and decoding
-\section okiadpcm_page_sec_1 What does it do
+\section okiadpcm_page_sec_1 What does it do?
 OKI ADPCM is widely used in the CTI industry because it is the principal format
 supported by Dialogic. As the market leader, they tend to define "common
 practice". It offers a good balance of simplicity and quality at rates of

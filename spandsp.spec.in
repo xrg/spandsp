@@ -3,7 +3,7 @@ Name:      @PACKAGE@
 Version:   @VERSION@
 Release:   1
 Copyright: GPL
-URL:       http://www.opencall.org/spandsp
+URL:       http://www.soft-switch.org/spandsp
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 Source:    http://www.opencall.org/spandsp/@PACKAGE@-@VERSION@.tar.gz
 

@@ -26,6 +26,11 @@
  * $Id: adsi_tests.c,v 1.10 2004/11/19 14:06:55 steveu Exp $
  */
 
+/*! \page adsi_tests_page ADSI tests
+\section adsi_tests_page_sec_1 What does it do?
+\section adsi_tests_page_sec_2 How does it work?
+*/
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>

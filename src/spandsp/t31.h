@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.9 2004/11/21 13:55:05 steveu Exp $
+ * $Id: t31.h,v 1.11 2005/03/03 14:19:00 steveu Exp $
  */
 
 /*! \file */
@@ -31,7 +31,12 @@
 #if !defined(_T31_H_)
 #define _T31_H_
 
-/*! \page T31_page T.31 CLass 1 FAX modem protocol handling
+/*! \page T31_page T.31 Class 1 FAX modem protocol handling
+\section T31_page_sec_1 What does it do?
+The T.31 class 1 FAX modem modules implements a class 1 interface to the FAX
+modems in spandsp.
+
+\section T31_page_sec_2 How does it work?
 */
 
 typedef struct t31_state_s t31_state_t;
@@ -124,18 +129,19 @@ struct t31_state_s
     v17_rx_state_t v17rx;
 #endif
 
-    /*! \brief A V.27ter modem context used when sending FAXes at 2400bps or
-               4800bps */
-    v27ter_tx_state_t v27ter_tx;
-    /*! \brief A V.27ter modem context used when receiving FAXes at 2400bps or
-               4800bps */
-    v27ter_rx_state_t v27ter_rx;
     /*! \brief A V.29 modem context used when sending FAXes at 7200bps or
                9600bps */
     v29_tx_state_t v29tx;
     /*! \brief A V.29 modem context used when receiving FAXes at 7200bps or
                9600bps */
     v29_rx_state_t v29rx;
+
+    /*! \brief A V.27ter modem context used when sending FAXes at 2400bps or
+               4800bps */
+    v27ter_tx_state_t v27ter_tx;
+    /*! \brief A V.27ter modem context used when receiving FAXes at 2400bps or
+               4800bps */
+    v27ter_rx_state_t v27ter_rx;
     /*! \brief A counter for audio samples when inserting times silences according
                to the ITU specifications. */
     int silent_samples;
@@ -164,7 +170,7 @@ void t31_call_event(t31_state_t *s, int event);
 
 void t31_at_rx(t31_state_t *s, const char *t, int len);
 
-int t31_tx(t31_state_t *s, int16_t *buf, int max_len);
+int t31_rx(t31_state_t *s, int16_t *buf, int max_len);
 
 int t31_tx(t31_state_t *s, int16_t *buf, int max_len);
 

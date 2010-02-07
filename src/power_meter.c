@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter.c,v 1.4 2004/03/23 17:08:32 steveu Exp $
+ * $Id: power_meter.c,v 1.5 2005/03/03 14:18:58 steveu Exp $
  */
 
 #define	_ISOC9X_SOURCE	1
@@ -74,7 +74,11 @@ int32_t power_meter_level(float level)
 
 float power_meter_dbm0(power_meter_t *meter)
 {
-    return log10(sqrt((float) meter->reading)/(32768.0*0.70711))*20.0 + 3.14;
+    float val;
+    
+    if ((val = sqrt((float) meter->reading)) <= 0.0)
+        return -INFINITY;
+    return log10(val/(32768.0*0.70711))*20.0 + 3.14;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

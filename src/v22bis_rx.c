@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.9 2005/01/17 13:12:15 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.10 2005/03/20 04:07:17 steveu Exp $
  */
 
 /*! \file */
@@ -60,26 +60,6 @@ enum
     V22BIS_TRAINING_STAGE_WAIT_FOR_START_1,
     V22BIS_TRAINING_STAGE_WAIT_FOR_START_2,
     V22BIS_TRAINING_STAGE_PARKED
-};
-
-static const complex_t v22bis_constellation[16] =
-{
-    { 1.0,  1.0},
-    { 1.0,  3.0},
-    { 3.0,  1.0},
-    { 3.0,  3.0},
-    {-1.0,  1.0},
-    {-1.0,  3.0},
-    {-3.0,  1.0},
-    {-3.0,  3.0},
-    {-1.0, -1.0},
-    {-1.0, -3.0},
-    {-3.0, -1.0},
-    {-3.0, -3.0},
-    { 1.0, -1.0},
-    { 1.0, -3.0},
-    { 3.0, -1.0},
-    { 3.0, -3.0}
 };
 
 /* The following is not an issue for multi-threading, as this is a global table
@@ -1405,6 +1385,68 @@ static const float pulseshaper[12][107] =
     }
 };
 
+static const float v22_bandpass[2][V22BIS_BANDPASS_STEPS >> 1] =
+{
+    {
+        -1.472932e-2,
+        -9.842455e-3,
+         3.569220e-3,
+         1.422932e-2,
+         9.510372e-3,
+         2.968600e-4,
+         5.694817e-3,
+         2.122606e-2,
+         2.349021e-2,
+         8.986460e-3,
+         3.601440e-3,
+         2.057591e-2,
+         3.385640e-2,
+         1.763219e-2,
+        -6.379558e-3,
+         1.324148e-3,
+         2.937703e-2,
+         2.471027e-2,
+        -1.943993e-2,
+        -3.844561e-2,
+         4.232762e-3,
+         3.978025e-2,
+        -1.457838e-2,
+        -1.036527e-1,
+        -6.632540e-2,
+         1.471608e-1,
+         3.627067e-1
+    },
+    {
+        -2.561922e-2,
+         3.840094e-2,
+        -3.204525e-2,
+         2.912974e-2,
+        -4.169289e-2,
+         3.926120e-2,
+        -1.444719e-2,
+         2.326342e-3,
+        -1.095604e-3,
+        -2.679430e-2,
+         6.298294e-2,
+        -6.363835e-2,
+         5.883334e-2,
+        -8.626520e-2,
+         9.377323e-2,
+        -4.952168e-2,
+         2.751346e-2,
+        -4.643123e-2,
+         1.328241e-2,
+         5.967735e-2,
+        -4.651493e-2,
+        -9.079046e-3,
+        -4.369678e-2,
+         9.111981e-2,
+         9.186300e-2,
+        -3.197281e-1,
+         1.914826e-1
+    }
+};
+
 float v22bis_rx_carrier_frequency(v22bis_state_t *s)
 {
     return s->rx_carrier_phase_rate*(float) SAMPLE_RATE/(65536.0*65536.0);
@@ -1440,23 +1482,6 @@ static void equalizer_reset(v22bis_state_t *s, float delta)
     s->eq_coeff[V22BIS_EQUALIZER_LEN] = complex_set(3.0, 0.0);
     for (i = 0;  i <= V22BIS_EQUALIZER_MASK;  i++)
         s->eq_buf[i] = complex_set(0.0, 0.0);
-#if 1
-s->eq_coeff[0] = complex_set(0.02665,        -0.00066);
-s->eq_coeff[1] = complex_set(-0.08924,        -0.00912);
-s->eq_coeff[2] = complex_set(0.04198,         0.00116);
-s->eq_coeff[3] = complex_set(0.12208,         0.01135);
-s->eq_coeff[4] = complex_set(-0.08063,        -0.00694);
-s->eq_coeff[5] = complex_set(-0.22126,        -0.01338);
-s->eq_coeff[6] = complex_set(0.00853,         0.01998);
-s->eq_coeff[7] = complex_set(2.44700,         0.04613);
-s->eq_coeff[8] = complex_set(0.02272,         0.02039);
-s->eq_coeff[9] = complex_set(-0.22893,        -0.01379);
-s->eq_coeff[10] = complex_set(-0.09634,        -0.01114);
-s->eq_coeff[11] = complex_set(0.12721,         0.00782);
-s->eq_coeff[12] = complex_set(0.05212,         0.00679);
-s->eq_coeff[13] = complex_set(-0.09209,        -0.00284);
-s->eq_coeff[14] = complex_set(0.02134,        -0.00133);
-#endif
     s->eq_put_step = 20 - 1;
     s->eq_step = 0;
     s->eq_delta = delta/(2*V22BIS_EQUALIZER_LEN + 1);
@@ -1592,12 +1617,13 @@ static void decode_baud(v22bis_state_t *s, complex_t *z)
     }
     else
     {
-        nearest = find_quadrant(z);
+        nearest = (find_quadrant(z) << 2) | 0x01;
         raw_bits = phase_steps[(nearest - s->rx_constellation_state) & 3];
         put_bit(s, raw_bits);
         put_bit(s, raw_bits >> 1);
     }
     //track_carrier(s, z, &v22bis_constellation[nearest]);
+printf("Tune eq %10.5f,%10.5f -> %10.5f,%10.5f\n", z->re, z->im, v22bis_constellation[nearest].re, v22bis_constellation[nearest].im);
     //tune_equalizer(s, z, &v22bis_constellation[nearest]);
     s->rx_constellation_state = nearest;
 }
@@ -1623,21 +1649,6 @@ static void process_baud(v22bis_state_t *s, const complex_t *sample)
     s->rx_rrc_filter[s->rx_rrc_filter_step + V22BIS_RX_FILTER_STEPS].im = sample->im;
     if (++s->rx_rrc_filter_step >= V22BIS_RX_FILTER_STEPS)
         s->rx_rrc_filter_step = 0;
-
-#if 0
-    for (j = 0;  j < 12;  j++)
-    {
-        z = complex_set(0.0, 0.0);
-        for (i = 0;  i < V22BIS_RX_FILTER_STEPS;  i++)
-        {
-            z.re += pulseshaper[j][i]*s->rx_rrc_filter[i + s->rx_rrc_filter_step].re;
-            z.im += pulseshaper[j][i]*s->rx_rrc_filter[i + s->rx_rrc_filter_step].im;
-        }
-        z.re *= 1.0/PULSESHAPER_GAIN;
-        z.im *= 1.0/PULSESHAPER_GAIN;
-        printf("ZZZ %15.5f %15.5f\n", z.re, z.im);
-    }
-#endif
 
     /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
        will fiddle the step to align this with the bits. */
@@ -1713,9 +1724,16 @@ fprintf(stderr, "VVV %p %d\n", s->user_data, s->rx_training);
         if (++s->rx_training_count >= 59)
         {
             if (s->caller)
+            {
                 s->rx_training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_ONES;
+            }
             else
-                s->rx_training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_0011;
+            {
+                if (s->bit_rate == 2400)
+                    s->rx_training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_0011;
+                else
+                    s->rx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
+            }
             break;
         }
 
@@ -1725,17 +1743,18 @@ fprintf(stderr, "VVV %p %d\n", s->user_data, s->rx_training);
            but since we might be off in the opposite direction from the source, the total
            error could be higher. */
         if (s->rx_training_count == 30)
-            s->gardner_step = 16;
+            s->gardner_step = 32;
         else if (s->rx_training_count == 45)
-            s->gardner_step = 4;
+            s->gardner_step = 16;
         else if (s->rx_training_count == 58)
-            s->gardner_step = 4;
+            s->gardner_step = 8;
         break;
     case V22BIS_TRAINING_STAGE_UNSCRAMBLED_ONES:
         target = &z;
         angle = arctan2(z.im, z.re);
         if (++s->rx_training_count >= 60  &&  s->rx_training_count <= 63)
         {
+            s->gardner_step = 4;
             /* Record the current phase angle */
             /* We record 4 of these, as we may be seeing phase alternations, or phases steping
                round in 90 degree steps. */
@@ -1787,14 +1806,19 @@ printf("0x%X 0x%X 0x%X 0x%X\n", s->angles[j], s->angles[(j + 1) & 0xF], s->angle
         break;
     case V22BIS_TRAINING_STAGE_UNSCRAMBLED_0011:
         target = &z;
-s->rx_training = V22BIS_TRAINING_STAGE_NORMAL_OPERATION;
         if (++s->rx_training_count > ms_to_symbols(800))
+        {
             s->detected_unscrambled_0011_ending = TRUE;
+            s->rx_training = V22BIS_TRAINING_STAGE_NORMAL_OPERATION;
+        }
         break;
     case V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200:
         target = &z;
         if (++s->rx_training_count > ms_to_symbols(900))
+        {
             s->detected_scrambled_ones_or_zeros_at_1200bps = TRUE;
+            s->rx_training = V22BIS_TRAINING_STAGE_NORMAL_OPERATION;
+        }
         break;
     case V22BIS_TRAINING_STAGE_PARKED:
     default:
@@ -1811,6 +1835,7 @@ s->rx_training = V22BIS_TRAINING_STAGE_NORMAL_OPERATION;
 int v22bis_rx(v22bis_state_t *s, const int16_t *amp, int len)
 {
     int i;
+    int j;
     int16_t sample;
     complex_t z;
     int32_t power;
@@ -1818,7 +1843,15 @@ int v22bis_rx(v22bis_state_t *s, const int16_t *amp, int len)
 
     for (i = 0;  i < len;  i++)
     {
-        sample = amp[i];
+        s->bandpass[s->bandpass_step] =
+        s->bandpass[s->bandpass_step + V22BIS_BANDPASS_STEPS] = amp[i];
+        if (++s->bandpass_step >= V22BIS_BANDPASS_STEPS)
+            s->bandpass_step = 0;
+        x = 0.0;
+        for (j = 0;  j < (V22BIS_BANDPASS_STEPS >> 1);  j++)
+            x += v22_bandpass[s->caller][j]*(s->bandpass[j + s->bandpass_step] + s->bandpass[V22BIS_BANDPASS_STEPS - 1 + s->bandpass_step - j]);
+        sample = x;
+
         power = power_meter_update(&(s->rx_power), sample);
         if (s->carrier_present)
         {
@@ -1842,6 +1875,7 @@ int v22bis_rx(v22bis_state_t *s, const int16_t *amp, int len)
         {
             /* Only spend effort processing this data if the modem is not
                parked, after training failure. */
+               
             if (s->rx_training == V22BIS_TRAINING_STAGE_SYMBOL_ACQUISITION)
             {
                 /* Only AGC during the initial training */
@@ -1876,10 +1910,7 @@ int v22bis_rx_restart(v22bis_state_t *s, int bit_rate)
     s->rx_training_count = 0;
     s->carrier_present = FALSE;
 
-    if (s->caller)
-        s->rx_carrier_phase_rate = dds_phase_stepf(2400.0);
-    else
-        s->rx_carrier_phase_rate = dds_phase_stepf(1200.0);
+    s->rx_carrier_phase_rate = dds_phase_stepf((s->caller)  ?  2400.0  :  1200.0);
     s->rx_carrier_phase = 0;
     power_meter_init(&(s->rx_power), 5);
     s->carrier_on_power = power_meter_level(-43);

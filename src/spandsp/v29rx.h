@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.h,v 1.16 2004/10/11 13:27:13 steveu Exp $
+ * $Id: v29rx.h,v 1.21 2005/03/20 04:07:18 steveu Exp $
  */
 
 /*! \file */
@@ -34,7 +34,7 @@
 #include "fsk.h"
 
 /*! \page V29rx_page The V.29 receiver
-\section V29rx_page_sec_1 What does it do
+\section V29rx_page_sec_1 What does it do?
 The V.29 receiver implements the receive side of a V.29 modem. This can operate
 at data rates of 9600, 7200 and 4800 bits/s. The audio input is a stream of 16
 bit samples, at 8000 samples/second. The transmit and receive side of V.29
@@ -42,7 +42,7 @@ modems operate independantly. V.29 is mostly used for FAX transmission, where it
 provides the standard 9600 and 7200 bits/s rates (the 4800 bits/s mode is not
 used for FAX). 
 
-\section V29rx_page_sec_2 Theory of operation
+\section V29rx_page_sec_2 How does it work?
 V.29 use QAM modulation. It specifies a training sequence at the start of
 transmission, which makes the design of a V.29 receiver relatively
 straightforward. The first stage of the training sequence consists of 128
@@ -203,8 +203,6 @@ typedef struct
     int32_t angles[16];
 } v29_rx_state_t;
 
-extern const complex_t v29_constellation[16];
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -215,14 +213,16 @@ extern "C" {
     \param rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
     \param put_bit The callback routine used to put the received data.
     \param user_data An opaque pointer. */
-void v29_rx_init(v29_rx_state_t *s, int bit_rate, put_bit_func_t put_bit, void *user_data);
+void v29_rx_init(v29_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data);
 
 /*! Reinitialise an existing V.29 modem receive context.
     \brief Reinitialise an existing V.29 modem receive context.
     \param s The modem context.
     \param rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
     \return 0 for OK, -1 for bad parameter */
-int v29_rx_restart(v29_rx_state_t *s, int bit_rate);
+int v29_rx_restart(v29_rx_state_t *s, int rate);
+
+void v29_rx_set_put_bit(v29_rx_state_t *s, put_bit_func_t put_bit, void *user_data);
 
 /*! Process a block of received V.29 modem audio samples.
     \brief Process a block of received V.29 modem audio samples.
@@ -246,11 +246,20 @@ float v29_rx_carrier_frequency(v29_rx_state_t *s);
 
 float v29_rx_symbol_timing_correction(v29_rx_state_t *s);
 
-/*! Get a current received signal power.
+/*! Get the current received signal power.
     \param s The modem context.
     \return The signal power, in dBm0. */
 float v29_rx_signal_power(v29_rx_state_t *s);
 
+/*! Set the power level at which the carrier detection will cut in
+    \param s The modem context.
+    \param cutoff The signal cutoff power, in dBm0. */
+void v29_rx_signal_cutoff(v29_rx_state_t *s, float cutoff);
+
+/*! Set a handler routine to process QAM status reports
+    \param s The modem context.
+    \param handler The handler routine.
+    \param user_data An opaque pointer passed to the handler routine. */
 void v29_rx_set_qam_report_handler(v29_rx_state_t *s, qam_report_handler_t *handler, void *user_data);
 
 #ifdef __cplusplus

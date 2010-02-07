@@ -23,20 +23,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.h,v 1.5 2005/01/12 13:39:26 steveu Exp $
+ * $Id: v42.h,v 1.6 2005/01/18 14:05:49 steveu Exp $
  */
 
 #if !defined(_V42_H_)
 #define _V42_H_
 
 /*! \page V42_page The V.42 modem error correction
-\section V42_page_sec_1 What does it do
+\section V42_page_sec_1 What does it do?
 The V.42 specification defines an error correcting protocol for PSTN modems, based on
 HDLC and LAP. This makes it similar to an X.25 link. A special variant of LAP, known
 as LAP-M, is defined in the V.42 specification. A means for modems to determine if the
 far modem supports V.42 is also defined.
 
-\section V42_page_sec_2 Theory of Operation
+\section V42_page_sec_2 How does it work?
 */
 
 enum

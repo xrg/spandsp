@@ -23,11 +23,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc_tests.c,v 1.2 2004/12/27 13:25:16 steveu Exp $
+ * $Id: plc_tests.c,v 1.3 2005/01/25 12:54:08 steveu Exp $
  */
 
 /*! \page plc_tests_page Packet loss concealment tests
-\section plc_tests_page_sec_1 What does it do
+\section plc_tests_page_sec_1 What does it do?
 These tests run a speech file through the packet loss concealment routines.
 The loss rate, in percent, and the packet size, in samples, may be specified
 on the command line.
@@ -132,3 +132,5 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
+/*- End of function --------------------------------------------------------*/
+/*- End of file ------------------------------------------------------------*/

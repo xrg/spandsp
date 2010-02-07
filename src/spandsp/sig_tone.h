@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.h,v 1.1 2004/10/03 11:53:32 steveu Exp $
+ * $Id: sig_tone.h,v 1.2 2005/01/18 14:05:49 steveu Exp $
  */
 
 /*! \file */
@@ -33,11 +33,11 @@
 #define _SIG_TONE_H_
 
 /*! \page sig_tone_page The signaling tone processor
-\section sig_tone_sec_1 What does it do
+\section sig_tone_sec_1 What does it do?
 The signaling tone processor handles the 2280Hz, 2400Hz and 2600Hz tones, used
 in many analogue signaling procotols, and digital ones derived from them.
 
-\section sig_tone_sec_2 Theory of operation
+\section sig_tone_sec_2 How does it work?
 TBD
 */
 

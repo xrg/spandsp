@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo_monitor.h,v 1.1 2004/12/16 15:33:55 steveu Exp $
+ * $Id: echo_monitor.h,v 1.2 2005/01/18 14:05:50 steveu Exp $
  */
 
 #if !defined(_ECHO_MONITOR_H_)
@@ -34,7 +34,8 @@ extern "C" {
 #endif
 
     int start_echo_can_monitor(int len);
-    int echo_can_monitor_update(const int16_t *coeffs, int len);
+    int echo_can_monitor_can_update(const int16_t *coeffs, int len);
+    int echo_can_monitor_line_model_update(const int32_t *coeffs, int len);
     void echo_can_monitor_wait_to_end(void);
 
 #ifdef __cplusplus

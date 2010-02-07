@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.h,v 1.2 2005/01/12 13:39:26 steveu Exp $
+ * $Id: v8.h,v 1.3 2005/01/18 14:05:49 steveu Exp $
  */
  
 /*! \file */
@@ -32,11 +32,11 @@
 #define _V8_H_
 
 /*! \page V8_page The V.8 modem negotiation protocol
-\section V8_page_sec_1 What does it do
+\section V8_page_sec_1 What does it do?
 The V.8 specification defines a procedure to be used as PSTN modem answer phone calls,
 which allows the modems to negotiate the optimum modem standard, which both ends can
 support.
-\section V8_page_sec_2 Theory of Operation
+\section V8_page_sec_2 How does it work?
 At startup the modems communicate using the V.21 standard at 300 bits/second. They
 exchange simple messages about their capabilities, and choose the modem standard they
 will use for data communication. The V.8 protocol then terminates, and the modems

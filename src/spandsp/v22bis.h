@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.4 2005/01/12 13:39:26 steveu Exp $
+ * $Id: v22bis.h,v 1.5 2005/01/18 14:05:49 steveu Exp $
  */
 
 /*! \file */
@@ -34,14 +34,14 @@
 #include "fsk.h"
 
 /*! \page V22bis_page The V.22bis modem
-\section V22bis_page_sec_1 What does it do
+\section V22bis_page_sec_1 What does it do?
 The V.22bis modem is a duplex modem for general data use on the PSTN, at rates
 of 1200 and 2400 bits/second. It is a compatible extension of the V.22 modem,
 which is a 1200 bits/second only design. It is a band-split design, using carriers
 of 1200Hz and 2400Hz. It is the fastest PSTN modem in general use which does not
 use echo-cancellation.
 
-\section V22bis__page_sec_2 Theory of Operation
+\section V22bis__page_sec_2 How does it work?
 V.22bis uses 4PSK modulation at 1200 bits/second or 16QAM modulation at 2400
 bits/second. At 1200bps the symbols are so long that a fixed compromise equaliser
 is sufficient to recover the 4PSK signal reliably. At 2400bps an adaptive
@@ -53,11 +53,13 @@ modems will automatically use 2400bps if both ends are willing to use that speed
 or 1200bps if one or both ends to not acknowledge that 2400bps is OK.
 */
 
-#define V22BIS_EQUALIZER_LEN   7  /* this much to the left and this much to the right */
-#define V22BIS_EQUALIZER_MASK  15 /* one less than a power of 2 >= (2*V22BIS_EQUALIZER_LEN + 1) */
+#define V22BIS_EQUALIZER_LEN    7  /* this much to the left and this much to the right */
+#define V22BIS_EQUALIZER_MASK   15 /* one less than a power of 2 >= (2*V22BIS_EQUALIZER_LEN + 1) */
 
-#define V22BIS_RX_FILTER_STEPS 107
-#define V22BIS_TX_FILTER_STEPS 107
+#define V22BIS_RX_FILTER_STEPS  107
+#define V22BIS_TX_FILTER_STEPS  107
+
+#define V22BIS_BANDPASS_STEPS   54
 
 /*!
     V.22bis modem receive side descriptor. This defines the working state for a
@@ -84,6 +86,9 @@ typedef struct
     /*! \brief A user specified opaque pointer passed to the qam_report callback
                function. */
     void *qam_user_data;
+
+    float bandpass[2*V22BIS_BANDPASS_STEPS];
+    int bandpass_step;
 
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
     complex_t rx_rrc_filter[2*V22BIS_RX_FILTER_STEPS];

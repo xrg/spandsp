@@ -23,18 +23,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bert.h,v 1.3 2004/09/24 17:02:19 steveu Exp $
+ * $Id: bert.h,v 1.4 2005/01/18 14:05:48 steveu Exp $
  */
 
 #if !defined(_BERT_H_)
 #define _BERT_H_
 
 /*! \page BERT_page The Bit Error Rate tester
-\section BERT_page_sec_1 What does it do
+\section BERT_page_sec_1 What does it do?
 The Bit Error Rate tester generates a pseudo random bit stream. It also accepts such
 a pattern, synchronises to it, and checks the bit error rate in this stream.
 
-\section BERT_page_sec_2 Theory of operation
+\section BERT_page_sec_2 How does it work?
 The Bit Error Rate tester generates a bit stream, with a repeating 2047 bit pseudo
 random pattern, using an 11 stage polynomial generator. It also accepts such a pattern,
 synchronises to it, and checks the bit error rate in this stream. If the error rate is

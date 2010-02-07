@@ -23,11 +23,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter.h,v 1.2 2004/03/30 14:29:41 steveu Exp $
+ * $Id: power_meter.h,v 1.4 2005/01/19 14:40:20 steveu Exp $
  */
 
 #if !defined(_POWER_METER_H_)
 #define _POWER_METER_H_
+
+/*! \page power_meter_page Power metering
+
+\section power_meter_page_sec_1 What does it do?
+The power metering module implements a simple IIR type running power meter. The damping
+factor of the IIR is selectable when the meter instance is created.
+
+\section power_meter_page_sec_2 How does it work?
+*/
 
 /*!
     Power meter descriptor. This defines the working state for a

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.32 2004/12/08 14:00:35 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.37 2005/03/20 04:07:17 steveu Exp $
  */
 
 /*! \file */
@@ -689,6 +689,13 @@ float v27ter_rx_signal_power(v27ter_rx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
+void v27ter_rx_signal_cutoff(v27ter_rx_state_t *s, float cutoff)
+{
+    s->carrier_on_power = power_meter_level(cutoff - 2.5);
+    s->carrier_off_power = power_meter_level(cutoff + 2.5);
+}
+/*- End of function --------------------------------------------------------*/
+
 int v27ter_rx_equalizer_state(v27ter_rx_state_t *s, complex_t **coeffs)
 {
     *coeffs = s->eq_coeff;
@@ -1077,13 +1084,17 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
                frequency deviation we could overflow, and get a silly answer. */
             /* Step back a few symbols so we don't get ISI distorting things. */
             i = (s->training_count - 8) & ~1;
-            j = i & 0xF;
-            ang = (s->angles[j] - s->start_angles[0])/i
-                + (s->angles[j | 0x1] - s->start_angles[1])/i;
-            if (s->bit_rate == 4800)
-                s->carrier_phase_rate += ang/10;
-            else
-                s->carrier_phase_rate += 3*(ang/40);
+            /* Avoid the possibility of a divide by zero */
+            if (i)
+            {
+                j = i & 0xF;
+                ang = (s->angles[j] - s->start_angles[0])/i
+                    + (s->angles[j | 0x1] - s->start_angles[1])/i;
+                if (s->bit_rate == 4800)
+                    s->carrier_phase_rate += ang/10;
+                else
+                    s->carrier_phase_rate += 3*(ang/40);
+            }
             fprintf(stderr, "Coarse carrier frequency %7.2f (%d)\n", s->carrier_phase_rate*8000.0/(65536.0*65536.0), s->training_count);
 
             /* Make a step shift in the phase, to pull it into line. We need to rotate the RRC filter
@@ -1187,7 +1198,7 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t *amp, int len)
         //fprintf(stderr, "Power = %f\n", power_meter_dbm0(&(s->power)));
         if (s->carrier_present)
         {
-            /* Look for power below -48dBm0 to turn the carrier off */
+            /* Look for power below turnoff threshold to turn the carrier off */
             if (power < s->carrier_off_power)
             {
                 v27ter_rx_restart(s, s->bit_rate);
@@ -1197,7 +1208,7 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t *amp, int len)
         }
         else
         {
-            /* Look for power exceeding -43dBm0 to turn the carrier on */
+            /* Look for power exceeding turnon threshold to turn the carrier on */
             if (power < s->carrier_on_power)
                 continue;
             s->carrier_present = TRUE;
@@ -1220,11 +1231,18 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t *amp, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-int v27ter_rx_restart(v27ter_rx_state_t *s, int bit_rate)
+void v27ter_rx_set_put_bit(v27ter_rx_state_t *s, put_bit_func_t put_bit, void *user_data)
 {
-    if (bit_rate != 4800  &&  bit_rate != 2400)
+    s->put_bit = put_bit;
+    s->user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+int v27ter_rx_restart(v27ter_rx_state_t *s, int rate)
+{
+    if (rate != 4800  &&  rate != 2400)
         return -1;
-    s->bit_rate = bit_rate;
+    s->bit_rate = rate;
 
     memset(s->rrc_filter, 0, sizeof(s->rrc_filter));
     s->rrc_filter_step = 0;
@@ -1242,8 +1260,6 @@ int v27ter_rx_restart(v27ter_rx_state_t *s, int bit_rate)
     s->carrier_track_i = 200000.0;
     s->carrier_track_p = 10000000.0;
     power_meter_init(&(s->power), 4);
-    s->carrier_on_power = power_meter_level(-43);
-    s->carrier_off_power = power_meter_level(-48);
     s->agc_scaling = 0.0005;
 
     s->constellation_state = 0;
@@ -1260,13 +1276,15 @@ int v27ter_rx_restart(v27ter_rx_state_t *s, int bit_rate)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v27ter_rx_init(v27ter_rx_state_t *s, int bit_rate, put_bit_func_t put_bit, void *user_data)
+void v27ter_rx_init(v27ter_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data)
 {
     memset(s, 0, sizeof(*s));
+    s->carrier_on_power = power_meter_level(-43);
+    s->carrier_off_power = power_meter_level(-48);
     s->put_bit = put_bit;
     s->user_data = user_data;
 
-    v27ter_rx_restart(s, bit_rate);
+    v27ter_rx_restart(s, rate);
 }
 /*- End of function --------------------------------------------------------*/
 

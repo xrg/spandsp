@@ -23,8 +23,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk_tests.c,v 1.8 2005/01/12 13:39:26 steveu Exp $
+ * $Id: fsk_tests.c,v 1.9 2005/01/18 14:05:50 steveu Exp $
  */
+
+/*! \page fsk_tests_page FSK modem tests
+\section fsk_tests_page_sec_1 What does it do?
+\section fsk_tests_page_sec_2 How does it work?
+*/
 
 #define	_ISOC9X_SOURCE	1
 #define _ISOC99_SOURCE	1
@@ -47,6 +52,41 @@
 #define NB_SAMPLES 160
 
 int decode_test = FALSE;
+
+int rx_bits = 0;
+
+static void put_bit(void *user_data, int bit)
+{
+    int i;
+    int len;
+    
+    if (bit < 0)
+    {
+        /* Special conditions */
+        switch (bit)
+        {
+        case PUTBIT_TRAINING_FAILED:
+            printf("Training failed\n");
+            break;
+        case PUTBIT_TRAINING_SUCCEEDED:
+            printf("Training succeeded\n");
+            break;
+        case PUTBIT_CARRIER_UP:
+            printf("Carrier up\n");
+            break;
+        case PUTBIT_CARRIER_DOWN:
+            printf("Carrier down\n");
+            break;
+        default:
+            printf("Eh!\n");
+            break;
+        }
+        return;
+    }
+
+    printf("Rx bit %d - %d\n", rx_bits++, bit);
+}
+/*- End of function --------------------------------------------------------*/
 
 void reporter(void *user_data, int reason)
 {
@@ -143,6 +183,22 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot open wave file '%s'\n", "fsk_samp.wav");
             exit(2);
         }
+        fsk_rx_init(&rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) put_bit, NULL);
+        test_bps = preset_fsk_specs[FSK_V21CH2].baud_rate;
+    }
+    else
+    {
+        printf("Test with BERT\n");
+        fsk_tx_init(&tx, &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) bert_get_bit, &bert);
+        fsk_rx_init(&rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) bert_put_bit, &bert);
+        test_bps = preset_fsk_specs[FSK_V21CH2].baud_rate;
+
+        bits_per_test = 50000000;
+        noise_level = -16; //-17;
+        awgn_init(&noise_source, 1234567, noise_level);
+
+        bert_init(&bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
+        bert_set_report(&bert, 100000, reporter, &bert);
     }
     outhandle = afOpenFile("fsk.wav", "w", filesetup);
     if (outhandle == AF_NULL_FILEHANDLE)
@@ -150,18 +206,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot create wave file '%s'\n", "fsk.wav");
         exit(2);
     }
-
-    printf("Test with BERT\n");
-    fsk_tx_init(&tx, &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) bert_get_bit, &bert);
-    fsk_rx_init(&rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) bert_put_bit, &bert);
-    test_bps = preset_fsk_specs[FSK_V21CH2].baud_rate;
-
-    bits_per_test = 50000000;
-    noise_level = -16; //-17;
-    awgn_init(&noise_source, 1234567, noise_level);
-
-    bert_init(&bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
-    bert_set_report(&bert, 100000, reporter, &bert);
 
     for (;;)
     {
@@ -177,9 +221,9 @@ int main(int argc, char *argv[])
         else
         {
             len = fsk_tx(&tx, amp, NB_SAMPLES);
+            for (i = 0;  i < len;  i++)
+                amp[i] = alaw_to_linear(linear_to_alaw(saturate(amp[i] + awgn(&noise_source))));
         }
-        for (i = 0;  i < len;  i++)
-            amp[i] = alaw_to_linear(linear_to_alaw(saturate(amp[i] + awgn(&noise_source))));
 #if 1
         outframes = afWriteFrames(outhandle,
                                   AF_DEFAULT_TRACK,

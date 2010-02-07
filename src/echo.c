@@ -28,7 +28,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo.c,v 1.5 2004/12/16 15:33:55 steveu Exp $
+ * $Id: echo.c,v 1.6 2005/03/03 14:18:58 steveu Exp $
  */
 
 /*! \file */
@@ -230,8 +230,8 @@ static inline void lms_adapt(echo_can_state_t *ec, int factor)
     /* Update the FIR taps */
     for (i = ec->taps - 1;  i >= 0;  i--)
     {
-        /* Leak to avoid the adapting drifting beyond the ability of the
-           adaption process to bring it back under control. */
+        /* Leak to avoid the coefficients drifting beyond the ability of the
+           adaption process to bring them back under control. */
         ec->fir_taps32[i] -= (ec->fir_taps32[i] >> 23);
         ec->fir_taps32[i] += (ec->fir_state.history[i + ec->curr_pos]*factor);
         ec->latest_correction = (ec->fir_state.history[i + ec->curr_pos]*factor);

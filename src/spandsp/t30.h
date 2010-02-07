@@ -66,6 +66,26 @@ typedef void (t30_phase_d_handler_t)(t30_state_t *s, void *user_data, int result
 typedef void (t30_phase_e_handler_t)(t30_state_t *s, void *user_data, int result);
 typedef void (t30_flush_handler_t)(t30_state_t *s,  void *user_data, int which);
 
+/*!
+    I/O modes for the T.30 protocol.
+*/
+enum
+{
+    T30_MODEM_NONE = 0,
+    T30_MODEM_PAUSE,
+    T30_MODEM_CED,
+    T30_MODEM_CNG,
+    T30_MODEM_V21,
+    T30_MODEM_V27TER_2400,
+    T30_MODEM_V27TER_4800,
+    T30_MODEM_V29_7200,
+    T30_MODEM_V29_9600,
+    T30_MODEM_V17_7200,
+    T30_MODEM_V17_9600,
+    T30_MODEM_V17_12000,
+    T30_MODEM_V17_14400,
+    T30_MODEM_DONE
+};
 
 /*!
     T.30 FAX channel descriptor. This defines the state of a single working

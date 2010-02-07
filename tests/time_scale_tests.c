@@ -27,7 +27,7 @@
  */
 
 /*! \page time_scale_tests_page Time scaling tests
-\section time_scale_tests_page_sec_1 What does it do
+\section time_scale_tests_page_sec_1 What does it do?
 */
 
 //#define _ISOC9X_SOURCE  1

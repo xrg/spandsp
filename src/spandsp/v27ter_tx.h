@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.h,v 1.8 2004/09/19 08:47:13 steveu Exp $
+ * $Id: v27ter_tx.h,v 1.11 2005/03/03 14:19:00 steveu Exp $
  */
 
 /*! \file */
@@ -32,14 +32,14 @@
 #define _V27TER_TX_H_
 
 /*! \page V27ter_tx_page The V.27ter transmitter
-\section V29ter_tx_page_sec_1 What does it do
+\section V27ter_tx_page_sec_1 What does it do?
 The V.27ter transmitter implements the transmit side of a V.27ter modem. This
 can operate at data rates of 4800 and 2400 bits/s. The audio output is a stream
 of 16 bit samples, at 8000 samples/second. The transmit and receive side of
 V.27ter modems operate independantly. V.27ter is used for FAX transmission,
 where it provides the standard 4800 and 2400 bits/s rates. 
 
-\section V27ter_tx_page_sec_2 Theory of Operation
+\section V27ter_tx_page_sec_2 How does it work?
 V.27ter uses DPSK modulation. A common method of producing a DPSK modulated
 signal is to use a sampling rate which is a multiple of the baud rate. The raw
 signal is then a series of complex pulses, each an integer number of samples
@@ -92,6 +92,8 @@ typedef struct
     /*! \brief TRUE if transmitting the training sequence, or shutting down transmission.
                FALSE if transmitting user data. */
     int in_training;
+    /*! A counter used to track progress through the optional TEP tone burst */
+    int tep_step;
     /*! \brief A counter used to track progress through sending the training sequence. */
     int training_step;
 
@@ -120,17 +122,21 @@ void v27ter_tx_power(v27ter_tx_state_t *s, float power);
 /*! Initialise a V.27ter modem transmit context.
     \brief Initialise a V.27ter modem transmit context.
     \param s The modem context.
-    \param bit_rate The bit rate of the modem. Valid values are 2400 and 4800.
+    \param rate The bit rate of the modem. Valid values are 2400 and 4800.
+    \parm tep TRUE is the optional TEP tone is to be transmitted.
     \param get_bit The callback routine used to get the data to be transmitted.
     \param user_data An opaque pointer. */
-void v27ter_tx_init(v27ter_tx_state_t *s, int bit_rate, get_bit_func_t get_bit, void *user_data);
+void v27ter_tx_init(v27ter_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data);
+
+void v27ter_tx_set_get_bit(v27ter_tx_state_t *s, get_bit_func_t get_bit, void *user_data);
 
 /*! Reinitialise an existing V.27ter modem transmit context, so it may be reused.
     \brief Reinitialise an existing V.27ter modem transmit context.
     \param s The modem context.
-    \param bit_rate The bit rate of the modem. Valid values are 2400 and 4800.
+    \param rate The bit rate of the modem. Valid values are 2400 and 4800.
+    \parm tep TRUE is the optional TEP tone is to be transmitted.
     \return 0 for OK, -1 for bad parameter */
-int v27ter_tx_restart(v27ter_tx_state_t *s, int bit_rate);
+int v27ter_tx_restart(v27ter_tx_state_t *s, int rate, int tep);
 
 /*! Generate a block of V.27ter modem audio samples.
     \brief Generate a block of V.27ter modem audio samples.

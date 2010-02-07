@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.h,v 1.10 2004/10/02 08:34:02 steveu Exp $
+ * $Id: v27ter_rx.h,v 1.15 2005/03/20 04:07:18 steveu Exp $
  */
 
 /*! \file */
@@ -34,13 +34,17 @@
 #include "fsk.h"
 
 /*! \page V27ter_rx_page The V.27ter receiver
+
+\section V2ter_rx_page_sec_1 What does it do?
+
+\section V2ter_rx_page_sec_2 How does it work?
 */
 
 #define V27_EQUALIZER_LEN   7  /* this much to the left and this much to the right */
 #define V27_EQUALIZER_MASK  15 /* one less than a power of 2 >= (2*V27_EQUALIZER_LEN + 1) */
 
-#define V27RX_4800_FILTER_STEPS  29
-#define V27RX_2400_FILTER_STEPS  29
+#define V27RX_4800_FILTER_STEPS  27
+#define V27RX_2400_FILTER_STEPS  27
 
 #if V27RX_4800_FILTER_STEPS > V27RX_2400_FILTER_STEPS
 #define V27RX_FILTER_STEPS V27RX_4800_FILTER_STEPS
@@ -122,8 +126,6 @@ typedef struct
     int32_t angles[16];
 } v27ter_rx_state_t;
 
-extern const complex_t v27ter_constellation[8];
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -134,14 +136,16 @@ extern "C" {
     \param rate The bit rate of the modem. Valid values are 2400 and 4800.
     \param put_bit The callback routine used to put the received data.
     \param user_data An opaque pointer. */
-void v27ter_rx_init(v27ter_rx_state_t *s, int bit_rate, put_bit_func_t put_bit, void *user_data);
+void v27ter_rx_init(v27ter_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data);
 
 /*! Reinitialise an existing V.27ter modem receive context.
     \brief Reinitialise an existing V.27ter modem receive context.
     \param s The modem context.
-    \param bit_rate The bit rate of the modem. Valid values are 2400 and 4800.
+    \param rate The bit rate of the modem. Valid values are 2400 and 4800.
     \return 0 for OK, -1 for bad parameter */
-int v27ter_rx_restart(v27ter_rx_state_t *s, int bit_rate);
+int v27ter_rx_restart(v27ter_rx_state_t *s, int rate);
+
+void v27ter_rx_set_put_bit(v27ter_rx_state_t *s, put_bit_func_t put_bit, void *user_data);
 
 /*! Process a block of received V.27ter modem audio samples.
     \brief Process a block of received V.27ter modem audio samples.
@@ -170,6 +174,15 @@ float v27ter_rx_symbol_timing_correction(v27ter_rx_state_t *s);
     \return The signal power, in dBm0. */
 float v27ter_rx_signal_power(v27ter_rx_state_t *s);
 
+/*! Set the power level at which the carrier detection will cut in
+    \param s The modem context.
+    \param cutoff The signal cutoff power, in dBm0. */
+void v27ter_rx_signal_cutoff(v27ter_rx_state_t *s, float cutoff);
+
+/*! Set a handler routine to process QAM status reports
+    \param s The modem context.
+    \param handler The handler routine.
+    \param user_data An opaque pointer passed to the handler routine. */
 void v27ter_rx_set_qam_report_handler(v27ter_rx_state_t *s, qam_report_handler_t *handler, void *user_data);
 
 #ifdef __cplusplus

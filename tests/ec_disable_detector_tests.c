@@ -27,7 +27,7 @@
  */
 
 /*! \page echo_cancellor_disable_tone_detection_tests_page Echo canceller disable tone tests
-\section echo_cancellor_disable_tone_detection_tests_page_sec_1 What does it do
+\section echo_cancellor_disable_tone_detection_tests_page_sec_1 What does it do?
 */
 
 #define _ISOC9X_SOURCE  1

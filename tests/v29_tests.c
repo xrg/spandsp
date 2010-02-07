@@ -23,11 +23,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29_tests.c,v 1.32 2004/12/27 13:25:17 steveu Exp $
+ * $Id: v29_tests.c,v 1.36 2005/03/28 08:15:21 steveu Exp $
  */
 
 /*! \page v29_tests_page V.29 modem tests
-\section v29_tests_page_sec_1 What does it do
+\section v29_tests_page_sec_1 What does it do?
 */
 
 #define	_ISOC9X_SOURCE	1
@@ -203,7 +203,7 @@ void qam_report(void *user_data, const complex_t *constel, const complex_t *targ
     }
     else
     {
-        printf("Gardner step %d\n", symbol);
+        //printf("Gardner step %d\n", symbol);
         len = v29_rx_equalizer_state(rx, &coeffs);
         printf("Equalizer A:\n");
         for (i = 0;  i < len;  i++)
@@ -229,6 +229,7 @@ int main(int argc, char *argv[])
     int outframes;
     int samples;
     int i;
+    int tep;
     int test_bps;
     int noise_level;
     int total_samples;
@@ -238,19 +239,21 @@ int main(int argc, char *argv[])
     
     power_meter_init(&power_meter, 8);
     test_bps = 9600;
-    line_model_no = 5;
-    i = 1;
+    tep = FALSE;
+    line_model_no = 0;
     decode_test = FALSE;
-    if (argc > i)
+    for (i = 1;  i < argc;  i++)
     {
         if (strcmp(argv[i], "-d") == 0)
         {
             decode_test = TRUE;
-            i++;
+            continue;
         }
-    }
-    if (argc > i)
-    {
+        if (strcmp(argv[i], "-t") == 0)
+        {
+            tep = TRUE;
+            continue;
+        }
         if (strcmp(argv[i], "9600") == 0)
             test_bps = 9600;
         else if (strcmp(argv[i], "7200") == 0)
@@ -299,12 +302,13 @@ int main(int argc, char *argv[])
             exit(2);
         }
     }
-    v29_tx_init(&tx, test_bps, v29getbit, NULL);
+    v29_tx_init(&tx, test_bps, tep, v29getbit, NULL);
     v29_tx_power(&tx, -18.0);
     /* Move the carrier off a bit */
     tx.carrier_phase_rate = dds_phase_stepf(1692.0);
     v29_rx_init(&rx, test_bps, v29putbit, &rx);
     v29_rx_set_qam_report_handler(&rx, qam_report, (void *) &rx);
+    //v29_rx_signal_cutoff(&rx, -50.0);
     /* Rotate the starting phase */
     rx.carrier_phase = 0x80000000;
 
@@ -343,7 +347,7 @@ int main(int argc, char *argv[])
                 printf("Restarting on zero output\n");
                 bert_result(&bert, &bert_results);
                 fprintf(stderr, "%ddB AWGN, %d bits, %d bad bits, %d resyncs\n", noise_level, bert_results.total_bits, bert_results.bad_bits, bert_results.resyncs);
-                v29_tx_restart(&tx, test_bps);
+                v29_tx_restart(&tx, test_bps, tep);
                 v29_rx_restart(&rx, test_bps);
                 bert_init(&bert, 50000, BERT_PATTERN_ITU_O152_11, test_bps, 20);
                 bert_set_report(&bert, 10000, reporter, &bert);

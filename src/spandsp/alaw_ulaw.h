@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: alaw_ulaw.h,v 1.5 2004/11/30 00:25:11 steveu Exp $
+ * $Id: alaw_ulaw.h,v 1.6 2005/01/18 14:05:48 steveu Exp $
  */
 
 /*! \file */
@@ -38,11 +38,12 @@ conversion routines can be faster than lookup tables, in most real world usage.
 A "find the first 1" instruction is available on most modern CPUs, and is a
 much underused feature. 
 
-Submit patches to add support for your own favourite processor.
-
 If an assembly language method of bit searching is not available, these routines
 revert to a method that can be a little slow, so the cache thrashing might not
 seem so bad :(
+
+Feel free to submit patches to add fast "find the first 1" support for your own
+favourite processor.
 */
 
 #if !defined(_ALAW_ULAW_H_)

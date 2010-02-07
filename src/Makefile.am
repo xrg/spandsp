@@ -14,7 +14,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.21 2004/12/29 15:04:59 steveu Exp $
+## $Id: Makefile.am,v 1.24 2005/03/03 14:18:58 steveu Exp $
 
 MAINTAINERCLEANFILES = Makefile.in
 
@@ -36,6 +36,7 @@ libspandsp_la_SOURCES = adsi.c \
                         modem_echo.c \
                         oki_adpcm.c \
                         oss.c \
+                        playout.c \
                         plc.c \
                         power_meter.c \
                         queue.c \
@@ -61,6 +62,7 @@ libspandsp_la_SOURCES = adsi.c \
                         v29tx.c \
                         v42.c \
                         v8.c
+libspandsp_la_LDFLAGS = -version-info @SPANDSP_LT_CURRENT@:@SPANDSP_LT_REVISION@:@SPANDSP_LT_AGE@
 
 nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/alaw_ulaw.h \
@@ -83,6 +85,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/modem_echo.h \
                         spandsp/oss.h \
                         spandsp/oki_adpcm.h \
+                        spandsp/playout.h \
                         spandsp/plc.h \
                         spandsp/power_meter.h \
                         spandsp/queue.h \

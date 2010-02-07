@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spandsp.h,v 1.19 2004/12/29 15:04:59 steveu Exp $
+ * $Id: spandsp.h,v 1.21 2005/03/03 14:18:58 steveu Exp $
  */
 
 /*! \file */
@@ -76,10 +76,12 @@
 #include <spandsp/t30.h>
 #include <spandsp/t30_fcf.h>
 #include <spandsp/t35.h>
+//#include <spandsp/fax.h>
 #include <spandsp/adsi.h>
 #include <spandsp/oki_adpcm.h>
 #include <spandsp/ima_adpcm.h>
 #include <spandsp/plc.h>
+#include <spandsp/playout.h>
 
 #endif
 /*- End of file ------------------------------------------------------------*/

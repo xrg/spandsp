@@ -64,7 +64,7 @@ enum
     T30_PHASE_C_RX,         /* Receiving a document message */
     T30_PHASE_C_TX,         /* Transmitting a document message */
     T30_PHASE_E,            /* In phase E */
-    T30_PHASE_CALL_DONE     /* Call completely finished */
+    T30_PHASE_CALL_FINISHED /* Call completely finished */
 };
 
 /* These state names are modelled after places in the T.30 flow charts. */
@@ -117,18 +117,6 @@ enum
 #define DEFAULT_TIMER_T5        60
 #define DEFAULT_TIMER_SIG_ON    3
 
-/* The simple fixed format messages */
-static const uint8_t mps_frame[] = {T30_MPS};
-static const uint8_t eom_frame[] = {T30_EOM};
-static const uint8_t eop_frame[] = {T30_EOP};
-
-static const uint8_t cfr_frame[] = {T30_CFR};
-static const uint8_t ftt_frame[] = {T30_FTT};
-
-static const uint8_t mcf_frame[] = {T30_MCF};
-
-static const uint8_t dcn_frame[] = {T30_DCN};
-
 /* Exact widths in PELs for the difference resolutions, and page widths:
     R4    864 pels/215mm for ISO A4, North American Letter and Legal
     R4   1024 pels/255mm for ISO B4
@@ -141,6 +129,38 @@ static const uint8_t dcn_frame[] = {T30_DCN};
     R16  4864 pels/303mm for ISO A3
 */
 
+#if defined(ENABLE_V17)
+#define T30_V17_FALLBACK_START          0
+#define T30_V29_FALLBACK_START          3
+#define T30_V27TER_FALLBACK_START       6
+#else
+#define T30_V29_FALLBACK_START          0
+#define T30_V27TER_FALLBACK_START       2
+#endif
+
+static const struct
+{
+    int bit_rate;
+    int modem_type;
+    int min_scan_class;
+    int dcs_code;
+} fallback_sequence[] =
+{
+#if defined(ENABLE_V17)
+    {14400, T30_MODEM_V17_14400,    0, DISBIT6},
+    {12000, T30_MODEM_V17_12000,    0, (DISBIT6 | DISBIT4)},
+    { 9600, T30_MODEM_V17_9600,     0, (DISBIT6 | DISBIT3)},
+#endif
+    { 9600, T30_MODEM_V29_9600,     0, DISBIT3},
+#if defined(ENABLE_V17)
+    { 7200, T30_MODEM_V17_7200,     1, (DISBIT6 | DISBIT4 | DISBIT3)},
+#endif
+    { 7200, T30_MODEM_V29_7200,     1, (DISBIT4 | DISBIT3)},
+    { 4800, T30_MODEM_V27TER_4800,  2, DISBIT4},
+    { 2400, T30_MODEM_V27TER_2400,  3, 0},
+    {    0, 0}
+};
+
 #if defined(LOG_FAX_AUDIO)
 static int fax_audio_rx_log;
 static int fax_audio_tx_log;
@@ -148,7 +168,9 @@ static int fax_audio_tx_log;
 
 static void queue_phase(t30_state_t *s, int phase);
 static void set_phase(t30_state_t *s, int phase);
+static void send_simple_frame(t30_state_t *s, int type);
 static void send_frame(t30_state_t *s, const uint8_t *fr, int frlen, int final);
+static void send_dcn(t30_state_t *s);
 static void disconnect(t30_state_t *s);
 static void decode_password(t30_state_t *s, char *msg, const uint8_t *pkt, int len);
 static void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len);
@@ -222,7 +244,7 @@ static void fast_putbit(void *user_data, int bit)
                     {
                         if (s->verbose)
                             fprintf(stderr, "Trainability test failed - longest run of zeros was %d\n", s->training_most_zeros);
-                        send_frame(s, ftt_frame, 1, TRUE);
+                        send_simple_frame(s, T30_FTT);
                     }
                     else
                     {
@@ -234,13 +256,13 @@ static void fast_putbit(void *user_data, int bit)
                         if (!s->in_message  &&  t4_rx_init(&(s->t4), s->rx_file, T4_COMPRESSION_ITU_T4_2D))
                         {
                             fprintf(stderr, "Cannot open target TIFF file '%s'\n", s->rx_file);
-                            send_frame(s, dcn_frame, 1, TRUE);
+                            send_dcn(s);
                         }
                         else
                         {
                             s->in_message = TRUE;
                             start_page(s);
-                            send_frame(s, cfr_frame, 1, TRUE);
+                            send_simple_frame(s, T30_CFR);
                         }
                     }
                 }
@@ -330,12 +352,12 @@ static int fast_getbit(void *user_data)
             t4_tx_set_local_ident(&(s->t4), s->local_ident);
             if (t4_tx_start_page(&(s->t4)) == 0)
             {
-                send_frame(s, mps_frame, 1, TRUE);
+                send_simple_frame(s, T30_MPS);
                 s->state = T30_STATE_II_MPS;
             }
             else
             {
-                send_frame(s, eop_frame, 1, TRUE);
+                send_simple_frame(s, T30_EOP);
                 s->state = T30_STATE_II_EOP;
             }
             bit &= 1;
@@ -417,6 +439,16 @@ static void print_frame(t30_state_t *s, const char *io, const uint8_t *fr, int f
             fprintf(stderr, " %02x", fr[i]);
         fprintf(stderr, "\n");
     }
+}
+/*- End of function --------------------------------------------------------*/
+
+static void send_simple_frame(t30_state_t *s, int type)
+{
+    uint8_t frame[3];
+
+    /* The simple command/response frames are always final frames */
+    frame[0] = type;
+    send_frame(s, frame, 1, TRUE);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -759,7 +791,7 @@ static void send_dcn(t30_state_t *s)
     s->timer_t4 = 0;
     set_phase(s, T30_PHASE_BDE_TX);
     s->state = T30_STATE_C;
-    send_frame(s, dcn_frame, 1, TRUE);
+    send_simple_frame(s, T30_DCN);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1006,7 +1038,7 @@ static void process_rx_mps(t30_state_t *s, const uint8_t *msg, int len)
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, T30_MPS);
         start_page(s);
-        send_frame(s, mcf_frame, 1, TRUE);
+        send_simple_frame(s, T30_MCF);
         break;
     default:
         if (s->verbose)
@@ -1053,7 +1085,7 @@ static void process_rx_eop(t30_state_t *s, const uint8_t *msg, int len)
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, T30_EOP);
         t4_rx_end(&(s->t4));
-        send_frame(s, mcf_frame, 1, TRUE);
+        send_simple_frame(s, T30_MCF);
         break;
     default:
         if (s->verbose)
@@ -1518,14 +1550,14 @@ static void set_phase(t30_state_t *s, int phase)
             switch (s->modem_type)
             {
             case T30_MODEM_V27TER:
-                v27ter_tx_restart(&(s->v27ter_tx), s->bit_rate);
+                v27ter_tx_restart(&(s->v27ter_tx), s->bit_rate, FALSE);
                 break;
             case T30_MODEM_V29:
-                v29_tx_restart(&(s->v29tx), s->bit_rate);
+                v29_tx_restart(&(s->v29tx), s->bit_rate, FALSE);
                 break;
 #if defined(ENABLE_V17)
             case T30_MODEM_V17:
-                v17_tx_restart(&(s->v17tx), s->bit_rate, s->short_train);
+                v17_tx_restart(&(s->v17tx), s->bit_rate, FALSE, s->short_train);
                 break;
 #endif
             }
@@ -1538,7 +1570,7 @@ static void set_phase(t30_state_t *s, int phase)
             s->training_current_zeros = 0;
             s->training_most_zeros = 0;
             break;
-        case T30_PHASE_CALL_DONE:
+        case T30_PHASE_CALL_FINISHED:
             break;
         }
         if (s->verbose)
@@ -1596,7 +1628,7 @@ void timer_t4_expired(t30_state_t *s)
     {
     case T30_STATE_F_EOP_MCF:
         set_phase(s, T30_PHASE_BDE_TX);
-        send_frame(s, mcf_frame, 1, TRUE);
+        send_simple_frame(s, T30_MCF);
         break;
     case T30_STATE_R:
         set_phase(s, T30_PHASE_BDE_TX);
@@ -1606,15 +1638,15 @@ void timer_t4_expired(t30_state_t *s)
         break;
     case T30_STATE_II_MPS:
         set_phase(s, T30_PHASE_BDE_TX);
-        send_frame(s, mps_frame, 1, TRUE);
+        send_simple_frame(s, T30_MPS);
         break;
     case T30_STATE_II_EOM:
         set_phase(s, T30_PHASE_BDE_TX);
-        send_frame(s, eom_frame, 1, TRUE);
+        send_simple_frame(s, T30_EOM);
         break;
     case T30_STATE_II_EOP:
         set_phase(s, T30_PHASE_BDE_TX);
-        send_frame(s, eop_frame, 1, TRUE);
+        send_simple_frame(s, T30_EOP);
         break;
     case T30_STATE_D:
         break;
@@ -1788,14 +1820,17 @@ static void decode_url_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int le
 
 void t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *pkt, int len)
 {
-    if (!s->verbose)
+    if (s  &&  !s->verbose)
         return;
+
     fprintf(stderr, "%s:\n", t30_frametype(pkt[0]));
     
     if ((pkt[1] & DISBIT1))
-        fprintf(stderr, "  Store and forward Internet fax\n");
+        fprintf(stderr, "  Store and forward Internet fax (T.37)\n");
     if ((pkt[1] & DISBIT3))
-        fprintf(stderr, "  Real-time Internet fax\n");
+        fprintf(stderr, "  Real-time Internet fax (T.38)\n");
+    if ((pkt[1] & DISBIT4))
+        fprintf(stderr, "  3rd generation mobile network\n");
     if (pkt[0] == T30_DCS)
     {
         if ((pkt[1] & DISBIT6))
@@ -1809,7 +1844,7 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *pkt, int len)
             fprintf(stderr, "  V.8 capable\n");
         fprintf(stderr, "  Prefer %d octet blocks\n", (pkt[1] & DISBIT7)  ?  64  :  256);
     }
-    if ((pkt[1] & (DISBIT2 | DISBIT4 | DISBIT5 | DISBIT8)))
+    if ((pkt[1] & (DISBIT2 | DISBIT5 | DISBIT8)))
         fprintf(stderr, "  Reserved: 0x%X\n", (pkt[1] & (DISBIT2 | DISBIT4 | DISBIT5 | DISBIT8)));
 
     if (pkt[0] == T30_DCS)
@@ -1842,16 +1877,16 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *pkt, int len)
             fprintf(stderr, "V.29, 7200bps\n");
             break;
         case DISBIT6:
-            fprintf(stderr, "V17, 14400bps\n");
+            fprintf(stderr, "V.17, 14400bps\n");
             break;
         case (DISBIT6 | DISBIT4):
-            fprintf(stderr, "V17, 12000bps\n");
+            fprintf(stderr, "V.17, 12000bps\n");
             break;
         case (DISBIT6 | DISBIT3):
-            fprintf(stderr, "V17, 9600bps\n");
+            fprintf(stderr, "V.17, 9600bps\n");
             break;
         case (DISBIT6 | DISBIT4 | DISBIT3):
-            fprintf(stderr, "V17, 7200bps\n");
+            fprintf(stderr, "V.17, 7200bps\n");
             break;
         case (DISBIT5 | DISBIT3):
         case (DISBIT5 | DISBIT4 | DISBIT3):
@@ -2031,7 +2066,7 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *pkt, int len)
         fprintf(stderr, "  Error correction mode\n");
     if (pkt[2] == T30_DCS)
     {
-        fprintf(stderr, "  Frame size: %s\n", (pkt[4] & DISBIT4)  ?  "256 octets"  :  "64 octets");
+        fprintf(stderr, "  Frame size: %s\n", (pkt[4] & DISBIT4)  ?  "64 octets"  :  "256 octets");
     }
     else
     {
@@ -2272,10 +2307,89 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *pkt, int len)
         fprintf(stderr, "  400pels/25.4mm x 800lines/25.4mm\n");
     if ((pkt[14] & DISBIT5))
         fprintf(stderr, "  600pels/25.4mm x 1200lines/25.4mm\n");
-    if ((pkt[14] & (DISBIT6 | DISBIT7)))
-        fprintf(stderr, "  Reserved: 0x%X\n", (pkt[14] & (DISBIT6 | DISBIT7)));
+    if ((pkt[14] & DISBIT6))
+        fprintf(stderr, "  Colour/gray scale 600pels/25.4mm x 600lines/25.4mm\n");
+    if ((pkt[14] & DISBIT7))
+        fprintf(stderr, "  Colour/gray scale 1200pels/25.4mm x 1200lines/25.4mm\n");
     if (!(pkt[14] & DISBIT8))
         return;
+
+    if ((pkt[15] & DISBIT1))
+        fprintf(stderr, "  Double sided printing capability (alternate mode)\n");
+    if ((pkt[15] & DISBIT2))
+        fprintf(stderr, "  Double sided printing capability (continuous mode)\n");
+    if (pkt[2] == T30_DCS)
+    {
+        if ((pkt[15] & DISBIT3))
+            fprintf(stderr, "  Black and white mixed raster content profile (MRCbw)\n");
+    }
+    else
+    {
+        if ((pkt[15] & DISBIT3))
+            fprintf(stderr, "  Set to \"0\": 1\n");
+    }
+    if ((pkt[15] & DISBIT4))
+        fprintf(stderr, "  T.45 run length colour encoded\n");
+    fprintf(stderr, "  Shared memory ");
+    switch (pkt[15] & (DISBIT5 | DISBIT6))
+    {
+    case 0:
+        fprintf(stderr, "not available\n");
+        break;
+    case DISBIT5:
+        fprintf(stderr, "level 1 = 1.0M bytes\n");
+        break;
+    case DISBIT6:
+        fprintf(stderr, "level 2 = 2.0M bytes\n");
+        break;
+    case DISBIT5 | DISBIT6:
+        fprintf(stderr, "level 3 = unlimited (i.e. >=32M bytes)\n");
+        break;
+    }
+    if ((pkt[15] & DISBIT7))
+        fprintf(stderr, "  Reserved: 1\n");
+    if (!(pkt[15] & DISBIT8))
+        return;
+
+    if ((pkt[16] & DISBIT1))
+        fprintf(stderr, "  Flow control capability for T.38 communication\n");
+    if ((pkt[16] & DISBIT2))
+        fprintf(stderr, "  K>4\n");
+    if ((pkt[16] & DISBIT3))
+        fprintf(stderr, "  Internet aware T.38 mode fax device capability\n");
+    fprintf(stderr, "  T.89 (Application profiles for ITU-T Rec T.8)");
+    switch (pkt[16] & (DISBIT4 | DISBIT5 | DISBIT6))
+    {
+    case 0:
+        fprintf(stderr, "not used\n");
+        break;
+    case DISBIT6:
+        fprintf(stderr, "profile 1\n");
+        break;
+    case DISBIT5:
+        fprintf(stderr, "profile 2\n");
+        break;
+    case DISBIT5 | DISBIT6:
+        fprintf(stderr, "profile 3\n");
+        break;
+    case DISBIT4:
+        fprintf(stderr, "profiles 2 and 3\n");
+        break;
+    case DISBIT4 | DISBIT6:
+        fprintf(stderr, "reserved\n");
+        break;
+    case DISBIT4 | DISBIT5:
+        fprintf(stderr, "reserved\n");
+        break;
+    case DISBIT4 | DISBIT5 | DISBIT6:
+        fprintf(stderr, "reserved\n");
+        break;
+    }
+    if ((pkt[16] & DISBIT7))
+        fprintf(stderr, "  sYCC-JPEG coding\n");
+    if (!(pkt[16] & DISBIT8))
+        return;
+
     fprintf(stderr, "  Extended beyond the current T.30 specification!\n");
 }
 /*- End of function --------------------------------------------------------*/
@@ -2288,15 +2402,15 @@ int fax_init(t30_state_t *s, int calling_party, void *user_data)
     s->bit_rate = 14400;
     s->modem_type = T30_MODEM_V17;
     v17_rx_init(&(s->v17rx), 14400, fast_putbit, s);
-    v17_tx_init(&(s->v17tx), 14400, fast_getbit, s);
+    v17_tx_init(&(s->v17tx), 14400, FALSE, fast_getbit, s);
 #else
     s->bit_rate = 9600;
     s->modem_type = T30_MODEM_V29;
 #endif
     v29_rx_init(&(s->v29rx), 9600, fast_putbit, s);
-    v29_tx_init(&(s->v29tx), 9600, fast_getbit, s);
+    v29_tx_init(&(s->v29tx), 9600, FALSE, fast_getbit, s);
     v27ter_rx_init(&(s->v27ter_rx), 4800, fast_putbit, s);
-    v27ter_tx_init(&(s->v27ter_tx), 4800, fast_getbit, s);
+    v27ter_tx_init(&(s->v27ter_tx), 4800, FALSE, fast_getbit, s);
     s->rx_signal_present = FALSE;
     if (calling_party)
     {
@@ -2370,7 +2484,7 @@ int fax_rx_process(t30_state_t *s, int16_t *buf, int len)
 #endif
         }
         break;
-    case T30_PHASE_CALL_DONE:
+    case T30_PHASE_CALL_FINISHED:
         /* No longer absorb the data when the call is finished. */
         return len;
     default:
@@ -2428,7 +2542,7 @@ int fax_tx_process(t30_state_t *s, int16_t *buf, int max_len)
                    call. */
                 if (s->phase_e_handler)
                     s->phase_e_handler(s, s->phase_e_user_data, TRUE);
-                set_phase(s, T30_PHASE_CALL_DONE);
+                set_phase(s, T30_PHASE_CALL_FINISHED);
             }
         }
     }

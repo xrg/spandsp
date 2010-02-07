@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.c,v 1.8 2004/10/16 07:29:58 steveu Exp $
+ * $Id: v17tx.c,v 1.11 2005/03/20 04:07:17 steveu Exp $
  */
 
 /*! \file */
@@ -44,6 +44,8 @@
 #include "spandsp/v17tx.h"
 
 /* Segments of the training sequence */
+#define V17_TRAINING_TEP_LEN        (480 + 48)
+#define V17_TRAINING_TEP_SEG_2      48
 #define V17_TRAINING_SEG_1          0
 #define V17_TRAINING_SEG_2          256
 #define V17_TRAINING_SEG_3          (V17_TRAINING_SEG_2 + 2976)
@@ -55,7 +57,7 @@
 
 #define V17_BRIDGE_WORD             0x8880
 
-static const complex_t v17_14400_constellation[128] =
+const complex_t v17_14400_constellation[128] =
 {
     {-8, -3},       /* 0x00 */
     { 9,  2},       /* 0x01 */
@@ -187,7 +189,7 @@ static const complex_t v17_14400_constellation[128] =
     {-5,  0}        /* 0x7F */
 };
 
-static const complex_t v17_12000_constellation[64] =
+const complex_t v17_12000_constellation[64] =
 {
     { 7,  1},       /* 0x00 */
     {-5, -1},       /* 0x01 */
@@ -255,7 +257,7 @@ static const complex_t v17_12000_constellation[64] =
     { 3, -5}        /* 0x3F */
 };
 
-static const complex_t v17_9600_constellation[32] =
+const complex_t v17_9600_constellation[32] =
 {
     {-8,  2},       /* 0x00 */
     {-6, -4},       /* 0x01 */
@@ -291,7 +293,7 @@ static const complex_t v17_9600_constellation[32] =
     {-2,  8}        /* 0x1F */
 };
 
-static const complex_t v17_7200_constellation[16] =
+const complex_t v17_7200_constellation[16] =
 {
     { 6, -6},       /* 0x00 */
     {-2,  6},       /* 0x01 */
@@ -341,6 +343,13 @@ static __inline__ complex_t training_get(v17_tx_state_t *s)
     int bits;
 
     /* V.17 training sequence */
+    if (s->tep_step)
+    {
+        s->tep_step--;
+        if (s->tep_step < V17_TRAINING_TEP_SEG_2)
+            return complex_set(0.0, 0.0);
+        return abcd[0];
+    }
     s->training_step++;
     if (s->training_step <= V17_TRAINING_SEG_2)
     {
@@ -533,9 +542,18 @@ void v17_tx_power(v17_tx_state_t *s, float power)
 }
 /*- End of function --------------------------------------------------------*/
 
-int v17_tx_restart(v17_tx_state_t *s, int bit_rate, int short_train)
+void v17_tx_set_get_bit(v17_tx_state_t *s, get_bit_func_t get_bit, void *user_data)
 {
-    switch (bit_rate)
+    if (s->get_bit == s->current_get_bit)
+        s->current_get_bit = get_bit;
+    s->get_bit = get_bit;
+    s->user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+int v17_tx_restart(v17_tx_state_t *s, int rate, int tep, int short_train)
+{
+    switch (rate)
     {
     case 14400:
         s->bits_per_symbol = 6;
@@ -565,13 +583,14 @@ int v17_tx_restart(v17_tx_state_t *s, int bit_rate, int short_train)
         s->diff = 1;
         s->carrier_phase_rate = dds_phase_stepf(1800.0);
     }
-    s->bit_rate = bit_rate;
+    s->bit_rate = rate;
     memset(s->rrc_filter, 0, sizeof(s->rrc_filter));
     s->rrc_filter_step = 0;
     s->current_point = complex_set(0.0, 0.0);
     s->convolution = 0;
     s->scramble_reg = 0x2ECDD5;
     s->in_training = TRUE;
+    s->tep_step = (tep) ?  V17_TRAINING_TEP_LEN  :  0;
     s->short_train = short_train;
     s->training_step = 0;
     s->carrier_phase = 0;
@@ -583,13 +602,13 @@ int v17_tx_restart(v17_tx_state_t *s, int bit_rate, int short_train)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v17_tx_init(v17_tx_state_t *s, int rate, get_bit_func_t get_bit, void *user_data)
+void v17_tx_init(v17_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data)
 {
     memset(s, 0, sizeof(*s));
     s->get_bit = get_bit;
     s->user_data = user_data;
     v17_tx_power(s, -12.0);
-    v17_tx_restart(s, rate, FALSE);
+    v17_tx_restart(s, rate, tep, FALSE);
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

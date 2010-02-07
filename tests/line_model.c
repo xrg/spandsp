@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.c,v 1.3 2005/01/16 08:26:55 steveu Exp $
+ * $Id: line_model.c,v 1.5 2005/03/03 14:19:00 steveu Exp $
  */
 
 #include <stdlib.h>
@@ -49,8 +49,141 @@
 #define NULL (void *) 0
 #endif
 
+float null_line_model[] =
+{
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+};
+
 static float *models[] =
 {
+    null_line_model,
     proakis_line_model,
     ad_1_edd_1_model,
     ad_1_edd_2_model,
@@ -91,7 +224,7 @@ static float calc_line_filter(one_way_line_model_state_t *s, float v)
     for (j = 0;  j < s->line_filter_len;  j++)
     {
         sum += s->line_filter[j]*s->buf[p];
-        if (++p == s->line_filter_len)
+        if (++p >= s->line_filter_len)
             p = 0;
     }
     
@@ -111,9 +244,10 @@ void one_way_line_model(one_way_line_model_state_t *s,
     int i;
     float in;
     float out;
+    float out1;
 
     /* The path being modelled is:
-        modem
+        terminal
           | < hybrid
           |
           | < noise and filtering
@@ -121,7 +255,7 @@ void one_way_line_model(one_way_line_model_state_t *s,
           | < hybrid
          CO
           |
-          | < A-law distortion
+          | < A-law distortion + bulk delay
           |
          CO
           | < hybrid
@@ -129,20 +263,25 @@ void one_way_line_model(one_way_line_model_state_t *s,
           | < noise and filtering
           |
           | < hybrid
-        modem
+        terminal
      */
     for (i = 0;  i < samples;  i++)
     {
         in = input[i];
 
         /* Line model filters & noise */
-        //out = calc_line_filter(s, in);
-        out = in;
-
-        /* Introduce distortion due to A-law munging. The effects
-           of u-law should be very similar, so a separate test for
+        out = calc_line_filter(s, in);
+        /* Introduce distortion due to A-law munging in the long distance digital link.
+           The effects of u-law should be very similar, so a separate test for
            this is not needed. */
-        output[i] = alaw_to_linear(linear_to_alaw(out));
+        if (s->alaw_munge)
+            out = alaw_to_linear(linear_to_alaw(out));
+        /* Introduce the bulk delay of the long distance digital link. */
+        out1 = s->bulk_delay_buf[s->bulk_delay_ptr];
+        s->bulk_delay_buf[s->bulk_delay_ptr] = out;
+        if (++s->bulk_delay_ptr >= s->bulk_delay)
+            s->bulk_delay_ptr = 0;
+        output[i] = out1;
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -163,23 +302,23 @@ void both_ways_line_model(both_ways_line_model_state_t *s,
     float tmp2;
 
     /* The path being modelled is:
-        modem
-          | < hybrid
+        terminal
+          | < hybrid echo
           |
           | < noise and filtering
           |
-          | < hybrid
+          | < hybrid echo
          CO
           |
-          | < A-law distortion
+          | < A-law distortion + bulk delay
           |
          CO
-          | < hybrid
+          | < hybrid echo
           |
           | < noise and filtering
           |
-          | < hybrid
-        modem
+          | < hybrid echo
+        terminal
      */
     for (i = 0;  i < samples;  i++)
     {
@@ -194,16 +333,28 @@ void both_ways_line_model(both_ways_line_model_state_t *s,
         s->fout1 = calc_line_filter(&s->line1, tmp1);
         s->fout2 = calc_line_filter(&s->line2, tmp2);
 
-        /* Introduce distortion due to A-law munging. The effects
-           of u-law should be very similar, so a separate test for
+        /* Introduce distortion due to A-law munging in the long distance digital link.
+           The effects of u-law should be very similar, so a separate test for
            this is not needed. */
-        s->fout1 = alaw_to_linear(linear_to_alaw(s->fout1));
-        s->fout2 = alaw_to_linear(linear_to_alaw(s->fout2));
+        if (s->line1.alaw_munge)
+            s->fout1 = alaw_to_linear(linear_to_alaw(s->fout1));
+        if (s->line2.alaw_munge)
+            s->fout2 = alaw_to_linear(linear_to_alaw(s->fout2));
+
+        /* Introduce the bulk delay of the long distance digital link. */
+        out1 = s->line1.bulk_delay_buf[s->line1.bulk_delay_ptr];
+        s->line1.bulk_delay_buf[s->line1.bulk_delay_ptr] = s->fout1;
+        if (++s->line1.bulk_delay_ptr >= s->line1.bulk_delay)
+            s->line1.bulk_delay_ptr = 0;
+
+        out2 = s->line2.bulk_delay_buf[s->line2.bulk_delay_ptr];
+        s->line2.bulk_delay_buf[s->line2.bulk_delay_ptr] = s->fout2;
+        if (++s->line2.bulk_delay_ptr >= s->line2.bulk_delay)
+            s->line2.bulk_delay_ptr = 0;
 
         /* Echo from each modem's own hybrid */
-        out1 = s->fout1 + in2*s->line1.cpe_hybrid_echo;
-        out2 = s->fout2 + in1*s->line2.cpe_hybrid_echo;
-
+        out1 += in2*s->line1.cpe_hybrid_echo;
+        out2 += in1*s->line2.cpe_hybrid_echo;
         output1[i] = fsaturate(out1);
         output2[i] = fsaturate(out2);
     }
@@ -219,6 +370,11 @@ one_way_line_model_state_t *one_way_line_model_init(int model, int noise)
     if ((s = (one_way_line_model_state_t *) malloc(sizeof(*s))) == NULL)
         return NULL;
     memset(s, 0, sizeof(*s));
+
+    s->bulk_delay = 8;
+    s->bulk_delay_ptr = 0;
+
+    s->alaw_munge = TRUE;
 
     s->line_filter = models[model];
     s->line_filter_len = 129;
@@ -242,13 +398,22 @@ both_ways_line_model_state_t *both_ways_line_model_init(int model1,
         return NULL;
     memset(s, 0, sizeof(*s));
 
+    s->line1.alaw_munge = TRUE;
+    s->line2.alaw_munge = TRUE;
+
+    s->line1.bulk_delay = 8;
+    s->line2.bulk_delay = 8;
+
+    s->line1.bulk_delay_ptr = 0;
+    s->line2.bulk_delay_ptr = 0;
+
     s->line1.line_filter = models[model1];
     s->line1.line_filter_len = 129;
     s->line2.line_filter = models[model2];
     s->line2.line_filter_len = 129;
 
     awgn_init(&s->line1.noise, 1234567, noise1);
-    awgn_init(&s->line2.noise, 1234567, noise2);
+    awgn_init(&s->line2.noise, 7654321, noise2);
 
     /* Echos */
     echo_level = -15; /* in dB */

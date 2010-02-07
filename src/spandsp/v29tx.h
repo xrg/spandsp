@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.h,v 1.7 2005/01/12 13:39:26 steveu Exp $
+ * $Id: v29tx.h,v 1.10 2005/03/03 14:19:00 steveu Exp $
  */
 
 /*! \file */
@@ -34,7 +34,7 @@
 #include "fsk.h"
 
 /*! \page V29tx_page The V.29 transmitter
-\section V29tx_page_sec_1 What does it do
+\section V29tx_page_sec_1 What does it do?
 The V.29 transmitter implements the transmit side of a V.29 modem. This can
 operate at data rates of 9600, 7200 and 4800 bits/s. The audio output is a
 stream of 16 bit samples, at 8000 samples/second. The transmit and receive side
@@ -42,7 +42,7 @@ of V.29 modems operate independantly. V.29 is mostly used for FAX transmission,
 where it provides the standard 9600 and 7200 bits/s rates (the 4800 bits/s mode
 is not used for FAX). 
 
-\section V29tx_page_sec_2 Theory of Operation
+\section V29tx_page_sec_2 How does it work?
 V.29 uses QAM modulation. The standard method of producing a QAM modulated
 signal is to use a sampling rate which is a multiple of the baud rate. The raw
 signal is then a series of complex pulses, each an integer number of samples
@@ -109,6 +109,8 @@ typedef struct
     /*! \brief TRUE if transmitting the training sequence, or shutting down transmission.
                FALSE if transmitting user data. */
     int in_training;
+    /*! A counter used to track progress through the optional TEP tone burst */
+    int tep_step;
     /*! \brief A counter used to track progress through sending the training sequence. */
     int training_step;
     /*! \brief An offset value into the table of training parameters, used to match the
@@ -142,16 +144,20 @@ void v29_tx_power(v29_tx_state_t *s, float power);
     \brief Initialise a V.29 modem transmit context.
     \param s The modem context.
     \param rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
+    \parm tep TRUE is the optional TEP tone is to be transmitted.
     \param get_bit The callback routine used to get the data to be transmitted.
     \param user_data An opaque pointer. */
-void v29_tx_init(v29_tx_state_t *s, int rate, get_bit_func_t get_bit, void *user_data);
+void v29_tx_init(v29_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data);
+
+void v29_tx_set_get_bit(v29_tx_state_t *s, get_bit_func_t get_bit, void *user_data);
 
 /*! Reinitialise an existing V.29 modem transmit context, so it may be reused.
     \brief Reinitialise an existing V.29 modem transmit context.
     \param s The modem context.
     \param rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
+    \parm tep TRUE is the optional TEP tone is to be transmitted.
     \return 0 for OK, -1 for bad parameter */
-int v29_tx_restart(v29_tx_state_t *s, int rate);
+int v29_tx_restart(v29_tx_state_t *s, int rate, int tep);
 
 /*! Generate a block of V.29 modem audio samples.
     \brief Generate a block of V.29 modem audio samples.

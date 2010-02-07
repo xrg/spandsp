@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.25 2004/11/30 00:25:10 steveu Exp $
+ * $Id: t4.c,v 1.28 2005/03/20 04:07:17 steveu Exp $
  */
 
 /*
@@ -1428,12 +1428,15 @@ static void t4_encode_eol(t4_state_t *s)
     unsigned int code;
     int length;
 
-    code = EOL;
-    length = 12;
     if (s->line_encoding == T4_COMPRESSION_ITU_T4_2D)
     {
-        code = (code << 1) | (!s->row_is_2d);
-        length++;
+        code = 0x0002 | (!s->row_is_2d);
+        length = 13;
+    }
+    else
+    {
+        code = 0x001;
+        length = 12;
     }
     /* We may need to pad the row to a minimum length. */
     if (s->row_bits + length < s->min_row_bits)
@@ -1736,12 +1739,9 @@ int t4_tx_start_page(t4_state_t *s)
         0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff
     };
 
-    fprintf(stderr, "Start tx page\n");
-    if (s->pages_transferred > 0)
-    {
-        if (!TIFFReadDirectory(s->tiff_file))
-            return -1;
-    }
+    fprintf(stderr, "Start tx page %d\n", s->pages_transferred);
+    if (!TIFFSetDirectory(s->tiff_file, s->pages_transferred))
+        return -1;
     s->image_size = 0;
     s->bit = 8;
     s->row_is_2d = FALSE;
@@ -1837,10 +1837,10 @@ int t4_tx_start_page(t4_state_t *s)
         s->row_bits = INT_MAX - 1000;
     }
     put_bits(s, 0, 7);
-
     s->bit_pos = 7;
     s->bit_ptr = 0;
     s->row_bits = 0;
+
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

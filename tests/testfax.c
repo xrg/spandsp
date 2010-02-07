@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: testfax.c,v 1.19 2005/01/17 13:12:15 steveu Exp $
+ * $Id: testfax.c,v 1.20 2005/03/03 14:19:01 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -142,7 +142,7 @@ void channel_read_fax_channel(uc_t *uc, int chan, void *user_data, uint8_t *buf,
         chan_stuff[chan].dtmf_ptr += xlen;
     }
     /*endif*/
-    fax_rx_process(&(chan_stuff[chan].fax), (int16_t *) buf, len);
+    t30_rx(&(chan_stuff[chan].fax), (int16_t *) buf, len);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -150,11 +150,8 @@ int channel_write_fax_channel(uc_t *uc, int chan, void *user_data, uint8_t *buf,
 {
     int len;
 
-    len = fax_tx_process(&(chan_stuff[chan].fax), (int16_t *) buf, max_len >> 1);
-    afWriteFrames(txhandle,
-                  AF_DEFAULT_TRACK,
-                  buf,
-                  len);
+    len = t30_tx(&(chan_stuff[chan].fax), (int16_t *) buf, max_len >> 1);
+    afWriteFrames(txhandle, AF_DEFAULT_TRACK, buf, len);
     if (len > 0)
         len <<= 1;
     return len;
@@ -383,14 +380,14 @@ static void handle_uc_event(uc_t *uc, void *user_data, uc_event_t *e)
 printf("XXX read callback set\n");
         uc_set_channel_write_callback(uc, 0, channel_write_fax_channel, (void *) chan);
 printf("XXX write callback set\n");
-        fax_init(&(chan_stuff[chan].fax), FALSE, uc);
-        fax_set_local_ident(&(chan_stuff[chan].fax), "12345678");
-        fax_set_tx_file(&(chan_stuff[chan].fax), "tx.tif");
-        //fax_set_rx_file(&(chan_stuff[chan].fax), "rx.tif");
-        fax_set_phase_b_handler(&(chan_stuff[chan].fax), phase_b_handler, &(chan_stuff[chan]));
-        fax_set_phase_d_handler(&(chan_stuff[chan].fax), phase_d_handler, &(chan_stuff[chan]));
-        fax_set_phase_e_handler(&(chan_stuff[chan].fax), phase_e_handler, &(chan_stuff[chan]));
-        fax_set_flush_handler(&(chan_stuff[chan].fax), flush_handler, &(chan_stuff[chan]));
+        t30_init(&(chan_stuff[chan].fax), FALSE, uc);
+        t30_set_local_ident(&(chan_stuff[chan].fax), "12345678");
+        t30_set_tx_file(&(chan_stuff[chan].fax), "tx.tif");
+        //t30_set_rx_file(&(chan_stuff[chan].fax), "rx.tif");
+        t30_set_phase_b_handler(&(chan_stuff[chan].fax), phase_b_handler, &(chan_stuff[chan]));
+        t30_set_phase_d_handler(&(chan_stuff[chan].fax), phase_d_handler, &(chan_stuff[chan]));
+        t30_set_phase_e_handler(&(chan_stuff[chan].fax), phase_e_handler, &(chan_stuff[chan]));
+        t30_set_flush_handler(&(chan_stuff[chan].fax), flush_handler, &(chan_stuff[chan]));
 printf("XXX FAX inited\n");
         dtmf_rx_init(&chan_stuff[chan].dtmf_state, NULL, NULL);
 printf("XXX DTMF inited\n");
@@ -401,13 +398,13 @@ printf("XXX DTMF inited\n");
 printf("XXX read callback set\n");
         uc_set_channel_write_callback(uc, 0, channel_write_fax_channel, (void *) chan);
 printf("XXX write callback set\n");
-        fax_init(&(chan_stuff[chan].fax), TRUE, uc);
-        fax_set_local_ident(&(chan_stuff[chan].fax), "87654321");
-        fax_set_tx_file(&(chan_stuff[chan].fax), "tx.tif");
-        //fax_set_rx_file(&(chan_stuff[chan].fax), "rx.tif");
-        fax_set_phase_b_handler(&(chan_stuff[chan].fax), phase_b_handler, &(chan_stuff[chan]));
-        fax_set_phase_d_handler(&(chan_stuff[chan].fax), phase_d_handler, &(chan_stuff[chan]));
-        fax_set_phase_e_handler(&(chan_stuff[chan].fax), phase_e_handler, &(chan_stuff[chan]));
+        t30_init(&(chan_stuff[chan].fax), TRUE, uc);
+        t30_set_local_ident(&(chan_stuff[chan].fax), "87654321");
+        t30_set_tx_file(&(chan_stuff[chan].fax), "tx.tif");
+        //t30_set_rx_file(&(chan_stuff[chan].fax), "rx.tif");
+        t30_set_phase_b_handler(&(chan_stuff[chan].fax), phase_b_handler, &(chan_stuff[chan]));
+        t30_set_phase_d_handler(&(chan_stuff[chan].fax), phase_d_handler, &(chan_stuff[chan]));
+        t30_set_phase_e_handler(&(chan_stuff[chan].fax), phase_e_handler, &(chan_stuff[chan]));
 printf("XXX FAX inited\n");
 #if 0
         if (uc_call_control(uc, UC_OP_DROPCALL, e->offered.crn, (void *) UC_CAUSE_NORMAL_CLEARING))

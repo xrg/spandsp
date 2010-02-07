@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.h,v 1.2 2004/10/16 15:20:49 steveu Exp $
+ * $Id: super_tone_tx.h,v 1.3 2005/01/18 14:05:49 steveu Exp $
  */
 
 #if !defined(_SUPER_TONE_TX_H_)
@@ -31,12 +31,14 @@
 
 /*! \page super_tone_tx_page Supervisory tone generation
 
+\section super_tone_tx_page_sec_1 What does it do?
+
 The supervisory tone generator may be configured to generate most of the world's
 telephone supervisory tones - things like ringback, busy, number unobtainable,
 and so on. It uses tree structure tone descriptions, which can deal with quite
 complex cadence patterns. 
 
-\section super_tone_tx_page_sec_1 Theory of operation
+\section super_tone_tx_page_sec_2 How does it work?
 
 */
 

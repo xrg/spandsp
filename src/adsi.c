@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.16 2004/12/31 15:23:00 steveu Exp $
+ * $Id: adsi.c,v 1.18 2005/03/20 04:07:16 steveu Exp $
  */
 
 /*! \file */
@@ -186,7 +186,7 @@ static int adsi_tx_bit(void *user_data)
     }
     else
     {
-        bit = 1;
+        bit = 2;
         if (s->fsk_on)
         {
             /* The FSK should now be switched off. */
@@ -267,46 +267,51 @@ static void adsi_rx_bit(void *user_data, int bit)
     else
     {
         /* Stop bit */
-        if (s->msg_len < 256)
+        if (bit)
         {
-            s->msg[s->msg_len++] = s->in_progress;
-            if (s->standard == ADSI_STANDARD_JCLIP)
+            if (s->msg_len < 256)
             {
-                if (s->msg_len >= 11  &&  s->msg_len == ((s->msg[6] & 0x7F) + 11))
+                s->msg[s->msg_len++] = s->in_progress;
+                if (s->standard == ADSI_STANDARD_JCLIP)
                 {
-                    /* Test the ITU CRC-16 */
-                    if (crc_itu16_check(s->msg, s->msg_len))
+                    if (s->msg_len >= 11  &&  s->msg_len == ((s->msg[6] & 0x7F) + 11))
                     {
-                        /* Strip off the parity bits. It doesn't seem
-                           worthwhile actually checking the parity if a
-                           CRC check has succeeded. */
-                        for (i = 0;  i < s->msg_len - 2;  i++)
-                            s->msg[i] &= 0x7F;
-                        s->put_msg(s->user_data, s->msg, s->msg_len - 2);
+                        /* Test the ITU CRC-16 */
+                        if (crc_itu16_check(s->msg, s->msg_len))
+                        {
+                            /* Strip off the parity bits. It doesn't seem
+                               worthwhile actually checking the parity if a
+                               CRC check has succeeded. */
+                            for (i = 0;  i < s->msg_len - 2;  i++)
+                                s->msg[i] &= 0x7F;
+                            s->put_msg(s->user_data, s->msg, s->msg_len - 2);
+                        }
+                        else
+                        {
+                            fprintf(stderr, "CRC fail\n");
+                        }
+                        s->msg_len = 0;
                     }
-                    else
-                    {
-                        fprintf(stderr, "CRC fail\n");
-                    }
-                    s->msg_len = 0;
                 }
-            }
-            else
-            {
-                if (s->msg_len >= 3  &&  s->msg_len == (s->msg[1] + 3))
+                else
                 {
-                    /* Test the checksum */
-                    sum = 0;
-                    for (i = 0;  i < s->msg_len - 1;  i++)
-                        sum += s->msg[i];
-                    if ((-sum & 0xFF) == s->msg[i])
-                        s->put_msg(s->user_data, s->msg, s->msg_len - 1);
-                    s->msg_len = 0;
+                    if (s->msg_len >= 3  &&  s->msg_len == (s->msg[1] + 3))
+                    {
+                        /* Test the checksum */
+                        sum = 0;
+                        for (i = 0;  i < s->msg_len - 1;  i++)
+                            sum += s->msg[i];
+                        if ((-sum & 0xFF) == s->msg[i])
+                            s->put_msg(s->user_data, s->msg, s->msg_len - 1);
+                        s->msg_len = 0;
+                    }
                 }
             }
         }
-        if (bit != 1)
+        else
+        {
             s->framing_errors++;
+        }
         s->bitpos = 0;
         s->in_progress = 0;
     }

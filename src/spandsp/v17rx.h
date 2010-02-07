@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.8 2005/01/12 13:39:25 steveu Exp $
+ * $Id: v17rx.h,v 1.13 2005/03/20 04:07:18 steveu Exp $
  */
 
 /*! \file */
@@ -34,14 +34,14 @@
 #include "fsk.h"
 
 /*! \page V17rx_page The V.17 receiver
-\section V17rx_page_sec_1 What does it do
+\section V17rx_page_sec_1 What does it do?
 The V.17 receiver implements the receive side of a V.17 modem. This can operate
 at data rates of 14400, 12000, 9600 and 7200 bits/second. The audio input is a stream
 of 16 bit samples, at 8000 samples/second. The transmit and receive side of V.17
 modems operate independantly. V.17 is mostly used for FAX transmission over PSTN
 lines, where it provides the standard 14400 bits/second rate. 
 
-\section V17rx_page_sec_2 Theory of operation
+\section V17rx_page_sec_2 How does it work?
 V.17 uses QAM modulation, and trellis coding. It specifies a training sequence at
 the start of transmission, which makes the design of a V.17 receiver relatively
 straightforward. The first stage of the training sequence consists of 256
@@ -260,19 +260,20 @@ extern "C" {
 /*! Initialise a V.17 modem receive context.
     \brief Initialise a V.17 modem receive context.
     \param s The modem context.
-    \param bit_rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
+    \param rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
     \param put_bit The callback routine used to put the received data.
     \param user_data An opaque pointer. */
-void v17_rx_init(v17_rx_state_t *s, int bit_rate, put_bit_func_t put_bit, void *user_data);
+void v17_rx_init(v17_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data);
 
 /*! Reinitialise an existing V.17 modem receive context.
     \brief Reinitialise an existing V.17 modem receive context.
     \param s The modem context.
-    \param bit_rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
+    \param rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
     \param short_train TRUE if a short training sequence is expected.
     \return 0 for OK, -1 for bad parameter */
-    
-int v17_rx_restart(v17_rx_state_t *s, int bit_rate, int short_train);
+int v17_rx_restart(v17_rx_state_t *s, int rate, int short_train);
+
+void v17_rx_set_put_bit(v17_rx_state_t *s, put_bit_func_t put_bit, void *user_data);
 
 /*! Process a block of received V.17 modem audio samples.
     \brief Process a block of received V.17 modem audio samples.
@@ -301,6 +302,15 @@ float v17_rx_symbol_timing_correction(v17_rx_state_t *s);
     \return The signal power, in dBm0. */
 float v17_rx_signal_power(v17_rx_state_t *s);
 
+/*! Set the power level at which the carrier detection will cut in
+    \param s The modem context.
+    \param cutoff The signal cutoff power, in dBm0. */
+void v17_rx_signal_cutoff(v17_rx_state_t *s, float cutoff);
+
+/*! Set a handler routine to process QAM status reports
+    \param s The modem context.
+    \param handler The handler routine.
+    \param user_data An opaque pointer passed to the handler routine. */
 void v17_rx_set_qam_report_handler(v17_rx_state_t *s, qam_report_handler_t *handler, void *user_data);
 
 #ifdef __cplusplus

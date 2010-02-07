@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.c,v 1.2 2004/12/20 14:23:22 steveu Exp $
+ * $Id: time_scale.c,v 1.3 2005/02/04 19:19:31 steveu Exp $
  */
 
 /*! \file */
@@ -88,16 +88,35 @@ static void __inline__ overlap_add(int16_t amp1[], int16_t amp2[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-int time_scale_init(time_scale_t *s, float rate)
+int time_scale_rate(time_scale_t *s, float rate)
 {
-    if (rate <= 0.0  ||  rate == 1.0)
+    if (rate <= 0.0)
         return -1;
     /*endif*/
-    s->rate = rate;
-    if (rate > 1.0)
-        s->rcomp = 1.0/(rate - 1.0);
-    else
+    if (rate >= 0.99  &&  rate <= 1.01)
+    {
+        /* Treat rate close to normal speed as exactly normal speed, and
+           avoid divide by zero, and other numerical problems. */
+        rate = 1.0;
+    }
+    else if (rate < 1.0)
+    {
         s->rcomp = rate/(1.0 - rate);
+    }
+    else
+    {
+        s->rcomp = 1.0/(rate - 1.0);
+    }
+    /*endif*/
+    s->rate = rate;
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int time_scale_init(time_scale_t *s, float rate)
+{
+    if (time_scale_rate(s, rate))
+        return -1;
     /*endif*/
     s->rate_nudge = 0.0;
     s->fill = 0;
@@ -119,7 +138,7 @@ int time_scale(time_scale_t *s, int16_t out[], int16_t in[], int len)
     in_len = 0;
 
     /* Top up the buffer */
-    if (len < TIME_SCALE_BUF_LEN - s->fill)
+    if (s->fill + len < TIME_SCALE_BUF_LEN)
     {
         /* Cannot continue without more samples */
         memcpy(s->buf + s->fill, in, sizeof(int16_t)*len);
@@ -165,42 +184,50 @@ int time_scale(time_scale_t *s, int16_t out[], int16_t in[], int len)
             in_len += s->lcp;
             s->lcp = 0;
         }
-        pitch = amdf_pitch(SAMPLE_RATE/TIME_SCALE_MIN_PITCH, SAMPLE_RATE/TIME_SCALE_MAX_PITCH, s->buf, SAMPLE_RATE/TIME_SCALE_MIN_PITCH);
-        lcpf = (double) pitch*s->rcomp;
-        /* Nudge around to compensate for fractional samples */
-        s->lcp = lcpf;
-        s->rate_nudge += s->lcp - lcpf;
-        if (s->rate_nudge >= 0.5)
+        if (s->rate == 1.0)
         {
-            s->lcp--;
-            s->rate_nudge -= 1.0;
-        }
-        else if (s->rate_nudge <= -0.5)
-        {
-            s->lcp++;
-            s->rate_nudge += 1.0;
-        }
-        if (s->rate < 1.0)
-        {
-            /* Speed up - drop a chunk of data */
-            overlap_add(s->buf, s->buf + pitch, pitch);
-            memcpy(&s->buf[pitch], &s->buf[2*pitch], sizeof(int16_t)*(TIME_SCALE_BUF_LEN - 2*pitch));
-            if (len - in_len < pitch)
-            {
-                /* Cannot continue without more samples */
-                memcpy(s->buf + TIME_SCALE_BUF_LEN - pitch, in + in_len, sizeof(int16_t)*(len - in_len));
-                s->fill += (len - in_len - pitch);
-                return out_len;
-            }
-            memcpy(s->buf + TIME_SCALE_BUF_LEN - pitch, in + in_len, sizeof(int16_t)*pitch);
-            in_len += pitch;
+            s->lcp = 0x7FFFFFFF;
         }
         else
         {
-            /* Slow down - insert a chunk of data */
-            memcpy(out + out_len, s->buf, sizeof(int16_t)*pitch);
-            out_len += pitch;
-            overlap_add(s->buf + pitch, s->buf, pitch);
+            pitch = amdf_pitch(SAMPLE_RATE/TIME_SCALE_MIN_PITCH, SAMPLE_RATE/TIME_SCALE_MAX_PITCH, s->buf, SAMPLE_RATE/TIME_SCALE_MIN_PITCH);
+            lcpf = (double) pitch*s->rcomp;
+            /* Nudge around to compensate for fractional samples */
+            s->lcp = lcpf;
+            /* Note that s->lcp and lcpf are not the same, as lcpf has a fractional part, and s->lcp doesn't */
+            s->rate_nudge += s->lcp - lcpf;
+            if (s->rate_nudge >= 0.5)
+            {
+                s->lcp--;
+                s->rate_nudge -= 1.0;
+            }
+            else if (s->rate_nudge <= -0.5)
+            {
+                s->lcp++;
+                s->rate_nudge += 1.0;
+            }
+            if (s->rate < 1.0)
+            {
+                /* Speed up - drop a chunk of data */
+                overlap_add(s->buf, s->buf + pitch, pitch);
+                memcpy(&s->buf[pitch], &s->buf[2*pitch], sizeof(int16_t)*(TIME_SCALE_BUF_LEN - 2*pitch));
+                if (len - in_len < pitch)
+                {
+                    /* Cannot continue without more samples */
+                    memcpy(s->buf + TIME_SCALE_BUF_LEN - pitch, in + in_len, sizeof(int16_t)*(len - in_len));
+                    s->fill += (len - in_len - pitch);
+                    return out_len;
+                }
+                memcpy(s->buf + TIME_SCALE_BUF_LEN - pitch, in + in_len, sizeof(int16_t)*pitch);
+                in_len += pitch;
+            }
+            else
+            {
+                /* Slow down - insert a chunk of data */
+                memcpy(out + out_len, s->buf, sizeof(int16_t)*pitch);
+                out_len += pitch;
+                overlap_add(s->buf + pitch, s->buf, pitch);
+            }
         }
     }
     return out_len;

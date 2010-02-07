@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.16 2004/12/31 15:23:01 steveu Exp $
+ * $Id: t31.c,v 1.17 2005/01/29 09:12:05 steveu Exp $
  */
 
 /*! \file */
@@ -430,7 +430,7 @@ printf("Restart modem %d\n", new_modem);
         break;
 #if defined(ENABLE_V17)
     case T31_V17_TX:
-        v17_tx_restart(&(s->v17tx), s->bit_rate, s->short_train);
+        v17_tx_restart(&(s->v17tx), s->bit_rate, FALSE, s->short_train);
         s->tx_data_bytes = 0;
         s->transmit = TRUE;
         break;
@@ -440,7 +440,7 @@ printf("Restart modem %d\n", new_modem);
         break;
 #endif
     case T31_V27TER_TX:
-        v27ter_tx_restart(&(s->v27ter_tx), s->bit_rate);
+        v27ter_tx_restart(&(s->v27ter_tx), FALSE, s->bit_rate);
         s->tx_data_bytes = 0;
         s->transmit = TRUE;
         break;
@@ -449,7 +449,7 @@ printf("Restart modem %d\n", new_modem);
         s->transmit = FALSE;
         break;
     case T31_V29_TX:
-        v29_tx_restart(&(s->v29tx), s->bit_rate);
+        v29_tx_restart(&(s->v29tx), FALSE, s->bit_rate);
         s->tx_data_bytes = 0;
         s->transmit = TRUE;
         break;
@@ -4305,12 +4305,12 @@ int t31_init(t31_state_t *s,
         return -1;
 #if defined(ENABLE_V17)
     v17_rx_init(&(s->v17rx), 14400, fast_putbit, s);
-    v17_tx_init(&(s->v17tx), 14400, fast_getbit, s);
+    v17_tx_init(&(s->v17tx), 14400, FALSE, fast_getbit, s);
 #endif
     v29_rx_init(&(s->v29rx), 9600, fast_putbit, s);
-    v29_tx_init(&(s->v29tx), 9600, fast_getbit, s);
+    v29_tx_init(&(s->v29tx), 9600, FALSE, fast_getbit, s);
     v27ter_rx_init(&(s->v27ter_rx), 4800, fast_putbit, s);
-    v27ter_tx_init(&(s->v27ter_tx), 4800, fast_getbit, s);
+    v27ter_tx_init(&(s->v27ter_tx), 4800, FALSE, fast_getbit, s);
     s->rx_signal_present = FALSE;
 
     s->line_ptr = 0;

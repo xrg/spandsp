@@ -3,7 +3,7 @@ Name:      spandsp
 Version:   0.0.2
 Release:   1
 Copyright: GPL
-URL:       http://www.opencall.org/spandsp
+URL:       http://www.soft-switch.org/spandsp
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 Source:    http://www.opencall.org/spandsp/spandsp-0.0.2.tar.gz
 

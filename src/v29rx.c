@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.44 2004/12/08 14:00:35 steveu Exp $
+ * $Id: v29rx.c,v 1.50 2005/03/28 08:15:21 steveu Exp $
  */
 
 /*! \file */
@@ -60,7 +60,7 @@ enum
     TRAINING_STAGE_PARKED
 };
 
-const complex_t v29_constellation[16] =
+static const complex_t v29_constellation[16] =
 {
     { 3.0,  0.0},   /*   0deg low  */
     { 1.0,  1.0},   /*  45deg low  */
@@ -1500,6 +1500,13 @@ float v29_rx_symbol_timing_correction(v29_rx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
+void v29_rx_signal_cutoff(v29_rx_state_t *s, float cutoff)
+{
+    s->carrier_on_power = power_meter_level(cutoff - 2.5);
+    s->carrier_off_power = power_meter_level(cutoff + 2.5);
+}
+/*- End of function --------------------------------------------------------*/
+
 float v29_rx_signal_power(v29_rx_state_t *s)
 {
     return power_meter_dbm0(&s->power);
@@ -1804,15 +1811,13 @@ static void process_baud(v29_rx_state_t *s, const complex_t *sample)
 
     s->gardner_integrate += (p + q > 0.0)  ?  s->gardner_step  :  -s->gardner_step;
 
-    if (abs(s->gardner_integrate) >= 16)
+    if (abs(s->gardner_integrate) >= 8)
     {
         /* This integrate and dump approach avoids rapid changes of the equalizer put step.
            Rapid changes, without hysteresis, are bad. They degrade the equalizer performance
            when the true symbol boundary is close to a sample boundary. */
-        //s->eq_put_step += (s->gardner_integrate > 0)  ?  1  :  -1;
-        //s->gardner_total_correction += (s->gardner_integrate > 0)  ?  1  :  -1;
-        s->eq_put_step += (s->gardner_integrate/16);
-        s->gardner_total_correction += (s->gardner_integrate/16);
+        s->eq_put_step += (s->gardner_integrate/8);
+        s->gardner_total_correction += (s->gardner_integrate/8);
         if (s->qam_report)
             s->qam_report(s->qam_user_data, NULL, NULL, s->gardner_integrate);
         s->gardner_integrate = 0;
@@ -1862,10 +1867,14 @@ static void process_baud(v29_rx_state_t *s, const complex_t *sample)
                frequency deviation we could overflow, and get a silly answer. */
             /* Step back a few symbols so we don't get ISI distorting things. */
             i = (s->training_count - 8) & ~1;
-            j = i & 0xF;
-            ang = (s->angles[j] - s->start_angles[0])/i
-                + (s->angles[j | 0x1] - s->start_angles[1])/i;
-            s->carrier_phase_rate += 3*(ang/20);
+            /* Avoid the possibility of a divide by zero */
+            if (i)
+            {
+                j = i & 0xF;
+                ang = (s->angles[j] - s->start_angles[0])/i
+                    + (s->angles[j | 0x1] - s->start_angles[1])/i;
+                s->carrier_phase_rate += 3*(ang/20);
+            }
             fprintf(stderr, "Coarse carrier frequency %7.2f (%d)\n", s->carrier_phase_rate*8000.0/(65536.0*65536.0), i);
 
             /* Make a step shift in the phase, to pull it into line. We need to rotate the RRC filter
@@ -2003,7 +2012,7 @@ int v29_rx(v29_rx_state_t *s, const int16_t *amp, int len)
         power = power_meter_update(&(s->power), sample);
         if (s->carrier_present)
         {
-            /* Look for power below -31dBm0 to turn the carrier off */
+            /* Look for power below turnoff threshold to turn the carrier off */
             if (power < s->carrier_off_power)
             {
                 v29_rx_restart(s, s->bit_rate);
@@ -2013,7 +2022,7 @@ int v29_rx(v29_rx_state_t *s, const int16_t *amp, int len)
         }
         else
         {
-            /* Look for power exceeding -26dBm0 to turn the carrier on */
+            /* Look for power exceeding turnon threshold to turn the carrier on */
             if (power < s->carrier_on_power)
                 continue;
             s->carrier_present = TRUE;
@@ -2040,11 +2049,18 @@ int v29_rx(v29_rx_state_t *s, const int16_t *amp, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-int v29_rx_restart(v29_rx_state_t *s, int bit_rate)
+void v29_rx_set_put_bit(v29_rx_state_t *s, put_bit_func_t put_bit, void *user_data)
+{
+    s->put_bit = put_bit;
+    s->user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+int v29_rx_restart(v29_rx_state_t *s, int rate)
 {
     int i;
 
-    switch (bit_rate)
+    switch (rate)
     {
     case 9600:
         s->training_cd = 0;
@@ -2058,7 +2074,7 @@ int v29_rx_restart(v29_rx_state_t *s, int bit_rate)
     default:
         return -1;
     }
-    s->bit_rate = bit_rate;
+    s->bit_rate = rate;
 
     memset(s->rrc_filter, 0, sizeof(s->rrc_filter));
     s->rrc_filter_step = 0;
@@ -2073,9 +2089,7 @@ int v29_rx_restart(v29_rx_state_t *s, int bit_rate)
     s->carrier_phase = 0;
     s->carrier_track_i = 100000.0;
     s->carrier_track_p = 4000000.0;
-    power_meter_init(&(s->power), 5);
-    s->carrier_on_power = power_meter_level(-26);
-    s->carrier_off_power = power_meter_level(-31);
+    power_meter_init(&(s->power), 4);
     s->agc_scaling = 0.0005;
 
     s->constellation_state = 0;
@@ -2092,7 +2106,7 @@ int v29_rx_restart(v29_rx_state_t *s, int bit_rate)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v29_rx_init(v29_rx_state_t *s, int bit_rate, put_bit_func_t put_bit, void *user_data)
+void v29_rx_init(v29_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data)
 {
     int i;
     int j;
@@ -2102,10 +2116,6 @@ void v29_rx_init(v29_rx_state_t *s, int bit_rate, put_bit_func_t put_bit, void *
     float best_distance;
     float x;
     float y;
-
-    memset(s, 0, sizeof(*s));
-    s->put_bit = put_bit;
-    s->user_data = user_data;
 
     if (!inited)
     {
@@ -2134,7 +2144,13 @@ void v29_rx_init(v29_rx_state_t *s, int bit_rate, put_bit_func_t put_bit, void *
         inited = TRUE;
     }
     
-    v29_rx_restart(s, bit_rate);
+    memset(s, 0, sizeof(*s));
+    s->put_bit = put_bit;
+    s->user_data = user_data;
+    s->carrier_on_power = power_meter_level(-26);
+    s->carrier_off_power = power_meter_level(-31);
+
+    v29_rx_restart(s, rate);
 }
 /*- End of function --------------------------------------------------------*/
 

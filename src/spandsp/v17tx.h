@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.h,v 1.8 2005/01/12 13:39:26 steveu Exp $
+ * $Id: v17tx.h,v 1.11 2005/03/03 14:19:00 steveu Exp $
  */
 
 /*! \file */
@@ -34,14 +34,14 @@
 #include "fsk.h"
 
 /*! \page V17tx_page The V.17 transmitter
-\section V17tx_page_sec_1 What does it do
+\section V17tx_page_sec_1 What does it do?
 The V.17 transmitter implements the transmit side of a V.17 modem. This can
 operate at data rates of 14400, 12000, 9600 and 7200 bits/second. The audio
 output is a stream of 16 bit samples, at 8000 samples/second. The transmit and
 receive side of V.17 modems operate independantly. V.17 is mostly used for FAX
 transmission, where it provides the standard 14400 bits/second rate. 
 
-\section V17tx_page_sec_2 Theory of Operation
+\section V17tx_page_sec_2 How does it work?
 V.17 uses QAM modulation and trellis coding. The data to be transmitted is
 scrambled, to whiten it. The least significant 2 bits of each symbol are then
 differentially encoded, using a simple lookup approach. The resulting 2 bits are
@@ -120,6 +120,8 @@ typedef struct
     unsigned int scramble_reg;
     /*! \brief TRUE if transmitting the training sequence. FALSE if transmitting user data. */
     int in_training;
+    /*! A counter used to track progress through the optional TEP tone burst */
+    int tep_step;
     /*! \brief TRUE if the short training sequence is to be used. */
     int short_train;
     /*! \brief A counter used to track progress through sending the training sequence. */
@@ -156,17 +158,21 @@ void v17_tx_power(v17_tx_state_t *s, float power);
     \brief Initialise a V.17 modem transmit context.
     \param s The modem context.
     \param rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
+    \parm tep TRUE is the optional TEP tone is to be transmitted.
     \param get_bit The callback routine used to get the data to be transmitted.
     \param user_data An opaque pointer. */
-void v17_tx_init(v17_tx_state_t *s, int rate, get_bit_func_t get_bit, void *user_data);
+void v17_tx_init(v17_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data);
+
+void v17_tx_set_get_bit(v17_tx_state_t *s, get_bit_func_t get_bit, void *user_data);
 
 /*! Reinitialise an existing V.17 modem transmit context, so it may be reused.
     \brief Reinitialise an existing V.17 modem transmit context.
     \param s The modem context.
     \param rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
+    \parm tep TRUE is the optional TEP tone is to be transmitted.
     \param short_train TRUE if the short training sequence should be used.
     \return 0 for OK, -1 for parameter error. */
-int v17_tx_restart(v17_tx_state_t *s, int rate, int short_train);
+int v17_tx_restart(v17_tx_state_t *s, int rate, int tep, int short_train);
 
 /*! Generate a block of V.17 modem audio samples.
     \brief Generate a block of V.17 modem audio samples.

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.c,v 1.18 2004/10/16 07:29:59 steveu Exp $
+ * $Id: v27ter_tx.c,v 1.20 2005/03/03 14:19:00 steveu Exp $
  */
 
 /*! \file */
@@ -44,8 +44,8 @@
 /* Segments of the training sequence */
 /* V.27ter defines a long and a short sequence. FAX doesn't use the
    short sequence, so it is not implemented here. */
-#define V27_TRAINING_SEG_1          0
-#define V27_TRAINING_SEG_2          320
+#define V27_TRAINING_TEP_LEN        320
+#define V27_TRAINING_SEG_2          0
 #define V27_TRAINING_SEG_3          (V27_TRAINING_SEG_2 + 32)
 #define V27_TRAINING_SEG_4          (V27_TRAINING_SEG_3 + 50)
 #define V27_TRAINING_SEG_5          (V27_TRAINING_SEG_4 + 1074)
@@ -127,6 +127,11 @@ static complex_t getbaud(v27ter_tx_state_t *s)
     if (s->in_training)
     {
        	/* Send the training sequence */
+        if (s->tep_step)
+        {
+            s->tep_step--;
+            return constellation[0];
+        }
         if (++s->training_step <= V27_TRAINING_SEG_5)
         {
             if (s->training_step <= V27_TRAINING_SEG_2)
@@ -344,17 +349,27 @@ void v27ter_tx_power(v27ter_tx_state_t *s, float power)
 }
 /*- End of function --------------------------------------------------------*/
 
-int v27ter_tx_restart(v27ter_tx_state_t *s, int bit_rate)
+void v27ter_tx_set_get_bit(v27ter_tx_state_t *s, get_bit_func_t get_bit, void *user_data)
 {
-    if (bit_rate != 4800  &&  bit_rate != 2400)
+    if (s->get_bit == s->current_get_bit)
+        s->current_get_bit = get_bit;
+    s->get_bit = get_bit;
+    s->user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+int v27ter_tx_restart(v27ter_tx_state_t *s, int rate, int tep)
+{
+    if (rate != 4800  &&  rate != 2400)
         return -1;
-    s->bit_rate = bit_rate;
+    s->bit_rate = rate;
     memset(s->rrc_filter, 0, sizeof(s->rrc_filter));
     s->rrc_filter_step = 0;
     s->current_point = complex_set(0.0, 0.0);
     s->scramble_reg = 0x3C;
     s->scrambler_pattern_count = 0;
     s->in_training = TRUE;
+    s->tep_step = (tep) ?  V27_TRAINING_TEP_LEN  :  0;
     s->training_step = 0;
     s->carrier_phase = 0;
     s->baud_phase = 0;
@@ -364,14 +379,14 @@ int v27ter_tx_restart(v27ter_tx_state_t *s, int bit_rate)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v27ter_tx_init(v27ter_tx_state_t *s, int bit_rate, get_bit_func_t get_bit, void *user_data)
+void v27ter_tx_init(v27ter_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data)
 {
     memset(s, 0, sizeof(*s));
     s->get_bit = get_bit;
     s->user_data = user_data;
     s->carrier_phase_rate = dds_phase_stepf(1800.0);
     v27ter_tx_power(s, -12.0);
-    v27ter_tx_restart(s, bit_rate);
+    v27ter_tx_restart(s, rate, tep);
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

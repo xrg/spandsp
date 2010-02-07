@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.c,v 1.9 2004/12/31 15:23:00 steveu Exp $
+ * $Id: hdlc.c,v 1.10 2005/03/20 04:07:17 steveu Exp $
  */
 
 /*! \file */
@@ -419,7 +419,7 @@ void hdlc_rx_byte(hdlc_rx_state_t *s, int new_byte)
 }
 /*- End of function --------------------------------------------------------*/
 
-void hdlc_tx_frame(hdlc_tx_state_t *s, uint8_t *frame, int len)
+void hdlc_tx_frame(hdlc_tx_state_t *s, const uint8_t *frame, int len)
 {
     int i;
     int j;

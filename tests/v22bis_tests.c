@@ -27,7 +27,7 @@
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
-\section v22bis_tests_page_sec_1 What does it do
+\section v22bis_tests_page_sec_1 What does it do?
 */
 
 #define	_ISOC9X_SOURCE	1
@@ -132,6 +132,7 @@ static void v22bis_putbit(void *user_data, int bit)
         fflush(stdout);
     }
 }
+/*- End of function --------------------------------------------------------*/
 
 static int v22bis_getbit(void *user_data)
 {
@@ -150,6 +151,7 @@ static int v22bis_getbit(void *user_data)
     }
     return bit;
 }
+/*- End of function --------------------------------------------------------*/
 
 void qam_report(void *user_data, const complex_t *constel, const complex_t *target, int symbol)
 {
@@ -186,6 +188,7 @@ void qam_report(void *user_data, const complex_t *constel, const complex_t *targ
 #endif
     }
 }
+/*- End of function --------------------------------------------------------*/
 
 int main(int argc, char *argv[])
 {
@@ -201,7 +204,6 @@ int main(int argc, char *argv[])
     int samples;
     int i;
     int test_bps;
-    awgn_state_t noise_source;
 
     test_bps = 2400;
     i = 1;
@@ -240,14 +242,13 @@ int main(int argc, char *argv[])
     v22bis_init(&answerer, test_bps, 2, FALSE, v22bis_getbit, v22bis_putbit, &answerer);
     //answerer.tx_carrier_phase_rate = dds_phase_stepf(2405.0);
     v22bis_rx_set_qam_report_handler(&caller, qam_report, (void *) &caller);
-
-    awgn_init(&noise_source, 1234567, -50);
+    //v22bis_rx_set_qam_report_handler(&answerer, qam_report, (void *) &answerer);
 
 #if defined(ENABLE_GUI)
     start_qam_monitor(6.0);
 #endif
 
-    if ((model = both_ways_line_model_init(5, -50, 6, -35)) == NULL)
+    if ((model = both_ways_line_model_init(0, -45, 0, -45)) == NULL)
     {
         fprintf(stderr, "    Failed to create line model\n");
         exit(2);
@@ -262,8 +263,6 @@ int main(int argc, char *argv[])
             rx_ptr = 0;
             tx_ptr = 0;
         }
-        for (i = 0;  i < samples;  i++)
-            out_amp[2*i] = caller_amp[i];
 
         samples = v22bis_tx(&answerer, answerer_amp, 160);
         if (samples == 0)
@@ -273,8 +272,6 @@ int main(int argc, char *argv[])
             rx_ptr = 0;
             tx_ptr = 0;
         }
-        for (i = 0;  i < samples;  i++)
-            out_amp[2*i + 1] = answerer_amp[i];
 
         both_ways_line_model(model, 
                              caller_model_amp,
@@ -285,6 +282,11 @@ int main(int argc, char *argv[])
         v22bis_rx(&answerer, caller_model_amp, samples);
         v22bis_rx(&caller, answerer_model_amp, samples);
 
+        for (i = 0;  i < samples;  i++)
+        {
+            out_amp[2*i] = caller_model_amp[i];
+            out_amp[2*i + 1] = answerer_model_amp[i];
+        }
         outframes = afWriteFrames(outhandle,
                                   AF_DEFAULT_TRACK,
                                   out_amp,

@@ -27,7 +27,7 @@
  */
 
 /*! \page dc_restore_tests_page DC restoration tests
-\section dc_restore_tests_page_sec_1 What does it do
+\section dc_restore_tests_page_sec_1 What does it do?
 */
 
 #define _ISOC9X_SOURCE  1

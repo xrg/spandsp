@@ -27,7 +27,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm.h,v 1.1 2004/11/15 13:48:11 steveu Exp $
+ * $Id: ima_adpcm.h,v 1.2 2005/01/18 14:05:49 steveu Exp $
  */
 
 /*! \file */
@@ -35,10 +35,14 @@
 #if !defined(_IMA_ADPCM_H_)
 #define _IMA_ADPCM_H_
 
-/*! \page imaadpcm_page IMA/DVI/Intel ADPCM encoding and decoding
-\section imaadpcm_page_sec_1 What does it do
+/*! \page IMA_ADPCM_page IMA/DVI/Intel ADPCM encoding and decoding
+\section IMA_ADPCM_page_sec_1 What does it do?
 IMA ADPCM offers a good balance of simplicity and quality at a rate of
 32kbps.
+
+\section IMA_ADPCM_page_sec_2 How does it work?
+
+\section IMA_ADPCM_page_sec_3 How do I use it?
 */
 
 /*!
