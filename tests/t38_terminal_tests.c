@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_tests.c,v 1.43 2007/10/18 15:08:06 steveu Exp $
+ * $Id: t38_terminal_tests.c,v 1.44 2007/10/21 12:06:36 steveu Exp $
  */
 
 /*! \file */
@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
     model_no = 0;
     speed_pattern_no = 1;
     use_gui = FALSE;
-    while ((opt = getopt(argc, argv, "egi:Im:ps:tv:")) != -1)
+    while ((opt = getopt(argc, argv, "efgi:Im:ps:tv:")) != -1)
     {
         switch (opt)
         {
@@ -271,6 +271,10 @@ int main(int argc, char *argv[])
             break;
         case 'v':
             t38_version = atoi(optarg);
+            break;
+        default:
+            //usage();
+            exit(2);
             break;
         }
     }

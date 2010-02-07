@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_to_gateway_tests.c,v 1.41 2007/08/14 14:57:37 steveu Exp $
+ * $Id: t38_terminal_to_gateway_tests.c,v 1.42 2007/10/21 12:06:36 steveu Exp $
  */
 
 /*! \file */
@@ -230,6 +230,7 @@ int main(int argc, char *argv[])
     int t38_version;
     int use_ecm;
     int use_tep;
+    int feedback_audio;
     int use_transmit_on_idle;
     const char *input_file_name;
     int i;
@@ -250,13 +251,17 @@ int main(int argc, char *argv[])
     speed_pattern_no = 1;
     use_gui = FALSE;
     use_tep = FALSE;
+    feedback_audio = FALSE;
     use_transmit_on_idle = TRUE;
-    while ((opt = getopt(argc, argv, "egi:Ilm:s:tv:")) != -1)
+    while ((opt = getopt(argc, argv, "efgi:Ilm:s:tv:")) != -1)
     {
         switch (opt)
         {
         case 'e':
             use_ecm = TRUE;
+            break;
+        case 'f':
+            feedback_audio = TRUE;
             break;
         case 'g':
             use_gui = TRUE;
@@ -281,6 +286,10 @@ int main(int argc, char *argv[])
             break;
         case 'v':
             t38_version = atoi(optarg);
+            break;
+        default:
+            //usage();
+            exit(2);
             break;
         }
     }
@@ -408,6 +417,11 @@ int main(int argc, char *argv[])
                 memset(t30_amp_b + t30_len_b, 0, sizeof(int16_t)*(SAMPLES_PER_CHUNK - t30_len_b));
                 t30_len_b = SAMPLES_PER_CHUNK;
             }
+        }
+        if (feedback_audio)
+        {
+            for (i = 0;  i < t30_len_b;  i++)
+                t30_amp_b[i] += t38_amp_b[i] >> 1;
         }
         if (log_audio)
         {

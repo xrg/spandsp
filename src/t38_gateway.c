@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.86 2007/10/18 15:08:06 steveu Exp $
+ * $Id: t38_gateway.c,v 1.87 2007/10/21 12:06:35 steveu Exp $
  */
 
 /*! \file */
@@ -524,6 +524,7 @@ static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int l
         if (!from_modem)
             restart_rx_modem(s);
         break;
+    case T30_RTN:
     case T30_RTP:
         /* We are going back to the exchange of fresh TCF */
         s->short_train = FALSE;
@@ -1538,7 +1539,14 @@ int t38_gateway_rx(t38_gateway_state_t *s, int16_t amp[], int len)
     }
     for (i = 0;  i < len;  i++)
         amp[i] = dc_restore(&(s->dc_restore), amp[i]);
-    s->rx_handler(s->rx_user_data, amp, len);
+    /* Don't process the received signal while transmitting. We might start
+       decoding the echo of our own output. */
+    if (s->tx_handler == (span_tx_handler_t *) &(silence_gen)
+        ||
+        s->tx_handler == (span_tx_handler_t *) &(tone_gen))
+    {
+        s->rx_handler(s->rx_user_data, amp, len);
+    }
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

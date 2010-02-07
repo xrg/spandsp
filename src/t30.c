@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.203 2007/10/18 15:08:05 steveu Exp $
+ * $Id: t30.c,v 1.204 2007/10/19 04:29:35 steveu Exp $
  */
 
 /*! \file */
@@ -2566,6 +2566,7 @@ static void process_state_d_post_tcf(t30_state_t *s, const uint8_t *msg, int len
             send_dcn(s);
             break;
         }
+        queue_phase(s, T30_PHASE_B_TX);
         send_dcs_sequence(s);
         break;
     case T30_DIS:
@@ -2577,6 +2578,7 @@ static void process_state_d_post_tcf(t30_state_t *s, const uint8_t *msg, int len
             break;
         }
         queue_phase(s, T30_PHASE_B_TX);
+        /* TODO: should be reassess the new DIS message, and possibly adjust the DCS we use? */
         send_dcs_sequence(s);
         break;
     case T30_DCN:
