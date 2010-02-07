@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.17 2007/04/05 19:20:50 steveu Exp $
+ * $Id: t38_terminal.h,v 1.19 2007/06/08 13:49:38 steveu Exp $
  */
 
 /*! \file */
@@ -77,6 +77,7 @@ typedef struct
     int octets_per_data_packet;
     
     int ms_per_tx_chunk;
+    int merge_tx_fields;
 
     /*! \brief The number of times an indicator packet will be sent. Numbers greater than one
                will increase reliability for UDP transmission. Zero is valid, to suppress all
@@ -95,7 +96,7 @@ typedef struct
     logging_state_t logging;
 } t38_terminal_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -116,7 +117,7 @@ t38_terminal_state_t *t38_terminal_init(t38_terminal_state_t *s,
                                         t38_tx_packet_handler_t *tx_packet_handler,
                                         void *tx_packet_user_data);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector_int.c,v 1.5 2006/11/19 14:07:26 steveu Exp $
+ * $Id: vector_int.c,v 1.6 2007/08/21 14:25:54 steveu Exp $
  */
 
 /*! \file */
@@ -154,7 +154,7 @@ int32_t vec_dot_prodi16(const int16_t x[], const int16_t y[], int n)
 
     z = 0;
     for (i = 0;  i < n;  i++)
-        z += x[i]*y[i];
+        z += (int32_t) x[i]*(int32_t) y[i];
 #endif
     return  z;
 }

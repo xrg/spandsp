@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.37 2007/04/05 19:20:50 steveu Exp $
+ * $Id: v17rx.h,v 1.41 2007/08/13 13:08:19 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_SPANDSP_V17RX_H_)
-#define _SPANDSP_V17RX_H_
+#if !defined(_V17RX_H_)
+#define _V17RX_H_
 
 /*! \page v17rx_page The V.17 receiver
 \section v17rx_page_sec_1 What does it do?
@@ -246,7 +246,11 @@ typedef struct
     void *qam_user_data;
 
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
+#if defined(SPANDSP_USE_FIXED_POINT)
+    int16_t rrc_filter[2*V17_RX_FILTER_STEPS];
+#else
     float rrc_filter[2*V17_RX_FILTER_STEPS];
+#endif
     /*! \brief Current offset into the RRC pulse shaping filter buffer. */
     int rrc_filter_step;
 
@@ -256,11 +260,14 @@ typedef struct
     unsigned int scramble_reg;
     /*! \brief TRUE if the short training sequence is to be used. */
     int short_train;
-    int in_training;
+    /*! \brief The section of the training data we are currently in. */
+    int training_stage;
     int training_count;
     float training_error;
-    int carrier_present;
+    /*! \brief The value of the last signal sample, using the a simple HPF for signal power estimation. */
     int16_t last_sample;
+    /*! \brief >0 if a signal above the minimum is present. It may or may not be a V.17 signal. */
+    int signal_present;
 
     /*! \brief The current phase of the carrier (i.e. the DDS parameter). */
     uint32_t carrier_phase;
@@ -280,9 +287,15 @@ typedef struct
 
     float eq_delta;
     /*! \brief The adaptive equalizer coefficients */
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    complexi_t eq_coeff[V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN];
+    complexi_t eq_coeff_save[V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN];
+    complexi_t eq_buf[V17_EQUALIZER_MASK + 1];
+#else
     complexf_t eq_coeff[V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN];
     complexf_t eq_coeff_save[V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN];
     complexf_t eq_buf[V17_EQUALIZER_MASK + 1];
+#endif
     /*! \brief Current offset into equalizer buffer. */
     int eq_step;
     int eq_put_step;
@@ -290,10 +303,17 @@ typedef struct
     /*! \brief The current half of the baud. */
     int baud_half;
     /*! \brief Band edge symbol sync. filter state. */
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    int32_t symbol_sync_low[2];
+    int32_t symbol_sync_high[2];
+    int32_t symbol_sync_dc_filter[2];
+    int32_t baud_phase;
+#else
     float symbol_sync_low[2];
     float symbol_sync_high[2];
     float symbol_sync_dc_filter[2];
     float baud_phase;
+#endif
     /*! \brief The total symbol timing correction since the carrier came up.
                This is only for performance analysis purposes. */
     int total_baud_timing_correction;
@@ -303,7 +323,11 @@ typedef struct
     /*! \brief History list of phase angles for the coarse carrier aquisition step. */
     int32_t angles[16];
     /*! \brief A pointer to the current constellation. */
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    const complexi_t *constellation;
+#else
     const complexf_t *constellation;
+#endif
     /*! \brief A pointer to the current space map. There is a space map for
                each trellis state. */
     int space_map;
@@ -318,15 +342,14 @@ typedef struct
     int past_state_locations[V17_TRELLIS_STORAGE_DEPTH][8];
     /*! \brief Euclidean distances (actually the sqaures of the distances)
                from the last states of the trellis. */
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    int32_t distances[8];
+#else
     float distances[8];
+#endif
     /*! \brief Error and flow logging control */
     logging_state_t logging;
 } v17_rx_state_t;
-
-extern const complexf_t v17_14400_constellation[128];
-extern const complexf_t v17_12000_constellation[64];
-extern const complexf_t v17_9600_constellation[32];
-extern const complexf_t v17_7200_constellation[16];
 
 #ifdef __cplusplus
 extern "C"
@@ -376,7 +399,11 @@ void v17_rx(v17_rx_state_t *s, const int16_t amp[], int len);
     \param s The modem context.
     \param coeffs The vector of complex coefficients.
     \return The number of coefficients in the vector. */
+#if defined(SPANDSP_USE_FIXED_POINTx)
+int v17_rx_equalizer_state(v17_rx_state_t *s, complexi_t **coeffs);
+#else
 int v17_rx_equalizer_state(v17_rx_state_t *s, complexf_t **coeffs);
+#endif
 
 /*! Get the current received carrier frequency.
     \param s The modem context.

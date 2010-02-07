@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.32 2006/11/19 14:07:26 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.33 2007/04/10 16:12:20 steveu Exp $
  */
 
 /*! \file */
@@ -1076,7 +1076,7 @@ float v22bis_rx_symbol_timing_correction(v22bis_state_t *s)
 
 float v22bis_rx_signal_power(v22bis_state_t *s)
 {
-    return power_meter_dbm0(&s->rx_power);
+    return power_meter_current_dbm0(&s->rx_power);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1542,7 +1542,7 @@ int v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len)
                 ii += pulseshaper_1200[6][j].re*s->rx_rrc_filter[j + s->rx_rrc_filter_step];
         }
         power = power_meter_update(&(s->rx_power), (int16_t) (ii/10.0f));
-        if (s->carrier_present)
+        if (s->signal_present)
         {
             /* Look for power below -48dBm0 to turn the carrier off */
             if (power < s->carrier_off_power)
@@ -1557,7 +1557,7 @@ int v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len)
             /* Look for power exceeding -43dBm0 to turn the carrier on */
             if (power < s->carrier_on_power)
                 continue;
-            s->carrier_present = TRUE;
+            s->signal_present = TRUE;
             s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
         }
         if (s->rx_training != V22BIS_TRAINING_STAGE_PARKED)
@@ -1628,7 +1628,7 @@ int v22bis_rx_restart(v22bis_state_t *s, int bit_rate)
     s->rx_scrambler_pattern_count = 0;
     s->rx_training = V22BIS_TRAINING_STAGE_SYMBOL_ACQUISITION;
     s->rx_training_count = 0;
-    s->carrier_present = FALSE;
+    s->signal_present = FALSE;
 
     s->rx_carrier_phase_rate = dds_phase_ratef((s->caller)  ?  2400.0f  :  1200.0f);
     s->rx_carrier_phase = 0;

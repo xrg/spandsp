@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.h,v 1.17 2007/03/29 12:28:36 steveu Exp $
+ * $Id: t38_core.h,v 1.20 2007/06/08 13:49:38 steveu Exp $
  */
 
 /*! \file */
@@ -301,7 +301,7 @@ int t38_core_send_indicator(t38_core_state_t *s, int indicator, int count);
     \param field_len The length of the message data, in bytes.
     \param count The number of copies of the packet to send.
     \return ??? */
-int t38_core_send_data(t38_core_state_t *s, int data_type, int field_type, const uint8_t *field, int field_len, int count);
+int t38_core_send_data(t38_core_state_t *s, int data_type, int field_type, const uint8_t field[], int field_len, int count);
 
 /*! \brief Send a data packet
     \param s The T.38 context.
@@ -310,15 +310,15 @@ int t38_core_send_data(t38_core_state_t *s, int data_type, int field_type, const
     \param fields The number of fields in the list.
     \param count The number of copies of the packet to send.
     \return ??? */
-int t38_core_send_data_multi_field(t38_core_state_t *s, int data_type, const t38_data_field_t *field, int fields, int count);
+int t38_core_send_data_multi_field(t38_core_state_t *s, int data_type, const t38_data_field_t field[], int fields, int count);
 
 /*! \brief Process a received T.38 IFP packet.
     \param s The T.38 context.
-    \param seq_no The packet sequence number.
     \param buf The packet contents.
     \param len The length of the packet contents.
+    \param seq_no The packet sequence number.
     \return 0 for OK, else -1. */
-int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, int len);
+int t38_core_rx_ifp_packet(t38_core_state_t *s, const uint8_t *buf, int len, uint16_t seq_no);
 
 /*! Set the method to be used for data rate management, as per the T.38 spec.
     \param s The T.38 context.

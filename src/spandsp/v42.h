@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.h,v 1.19 2007/04/05 19:20:50 steveu Exp $
+ * $Id: v42.h,v 1.23 2007/07/20 15:30:50 steveu Exp $
  */
 
 /*! \page v42_page V.42 modem error correction
@@ -111,7 +111,7 @@ typedef struct
     lapm_frame_queue_t *txqueue;
     lapm_frame_queue_t *tx_next;
     lapm_frame_queue_t *tx_last;
-    queue_t tx_queue;
+    queue_state_t *tx_queue;
     
     span_sched_state_t sched;
     /*! \brief Error and flow logging control */
@@ -154,7 +154,7 @@ typedef struct
 /*! Log state machine changes */
 #define LAPM_DEBUG_LAPM_STATE 	    (1 << 2)
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -171,7 +171,7 @@ void lapm_dump(lapm_state_t *s, const uint8_t *frame, int len, int showraw, int 
 
 /*! Accept an HDLC packet
 */
-void lapm_receive(void *user_data, int ok, const uint8_t *buf, int len);
+void lapm_receive(void *user_data, const uint8_t *buf, int len, int ok);
 
 /*! Transmit a LAP.M frame
 */
@@ -224,7 +224,7 @@ void v42_restart(v42_state_t *s);
     \return 0 if OK */
 int v42_release(v42_state_t *s);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.h,v 1.9 2007/04/05 19:20:50 steveu Exp $
+ * $Id: time_scale.h,v 1.10 2007/04/08 08:16:18 steveu Exp $
  */
 
 #if !defined(_SPANDSP_TIME_SCALE_H_)
@@ -61,7 +61,7 @@ typedef struct
     int16_t buf[TIME_SCALE_BUF_LEN];
 } time_scale_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -91,7 +91,7 @@ int time_scale_rate(time_scale_t *s, float rate);
 */
 int time_scale(time_scale_t *s, int16_t out[], int16_t in[], int len);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

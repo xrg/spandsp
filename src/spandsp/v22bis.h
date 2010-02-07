@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.21 2007/04/05 19:20:50 steveu Exp $
+ * $Id: v22bis.h,v 1.23 2007/04/10 16:12:20 steveu Exp $
  */
 
 /*! \file */
@@ -47,8 +47,8 @@ modems will automatically use 2400bps if both ends are willing to use that speed
 or 1200bps if one or both ends to not acknowledge that 2400bps is OK.
 */
 
-#if !defined(_SPANDSP_V22BIS_H_)
-#define _SPANDSP_V22BIS_H_
+#if !defined(_V22BIS_H_)
+#define _V22BIS_H_
 
 #define V22BIS_EQUALIZER_LEN    7  /* this much to the left and this much to the right */
 #define V22BIS_EQUALIZER_MASK   15 /* one less than a power of 2 >= (2*V22BIS_EQUALIZER_LEN + 1) */
@@ -97,7 +97,8 @@ typedef struct
     int rx_training;
     int rx_training_count;
     float training_error;
-    int carrier_present;
+    /*! \brief >0 if a signal above the minimum is present. It may or may not be a V.22bis signal. */
+    int signal_present;
 
     /*! \brief The current phase of the carrier (i.e. the DDS parameter). */
     uint32_t rx_carrier_phase;

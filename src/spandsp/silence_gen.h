@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: silence_gen.h,v 1.6 2007/04/05 19:20:49 steveu Exp $
+ * $Id: silence_gen.h,v 1.7 2007/04/08 08:16:18 steveu Exp $
  */
 
 #if !defined(_SPANDSP_SILENCE_GEN_H_)
@@ -34,7 +34,7 @@ typedef struct
     int total_samples;
 } silence_gen_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -93,7 +93,7 @@ int silence_gen_generated(silence_gen_state_t *s);
 */
 silence_gen_state_t *silence_gen_init(silence_gen_state_t *s, int silent_samples);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

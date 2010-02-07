@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.c,v 1.23 2007/03/28 13:56:05 steveu Exp $
+ * $Id: line_model.c,v 1.1 2007/04/03 12:59:32 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -47,11 +47,8 @@
 #endif
 
 #include "spandsp.h"
+#include "spandsp-sim.h"
 #include "spandsp/g168models.h"
-
-#include "test_utils.h"
-#include "line_model.h"
-#include "line_models.h"
 
 #if !defined(NULL)
 #define NULL (void *) 0

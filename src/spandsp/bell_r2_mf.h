@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.h,v 1.9 2007/04/05 19:20:49 steveu Exp $
+ * $Id: bell_r2_mf.h,v 1.11 2007/05/19 18:01:47 steveu Exp $
  */
 
 /*! \file */
@@ -117,9 +117,10 @@ typedef enum
 typedef struct
 {
     tone_gen_state_t tones;
-    char digits[MAX_BELL_MF_DIGITS + 1];
     int current_sample;
-    size_t current_digits;
+    /* The queue structure MUST be followed immediately by the buffer */
+    queue_state_t queue;
+    char digits[MAX_BELL_MF_DIGITS + 1];
 } bell_mf_tx_state_t;
 
 /*!
@@ -138,12 +139,12 @@ typedef struct
     /*! The current sample number within a processing block. */
     int current_sample;
 
-    /*! The received digits buffer. This is a NULL terminated string. */
-    char digits[MAX_BELL_MF_DIGITS + 1];
-    /*! The number of digits currently in the digit buffer. */
-    int current_digits;
     /*! The number of digits which have been lost due to buffer overflows. */
     int lost_digits;
+    /*! The number of digits currently in the digit buffer. */
+    int current_digits;
+    /*! The received digits buffer. This is a NULL terminated string. */
+    char digits[MAX_BELL_MF_DIGITS + 1];
 } bell_mf_rx_state_t;
 
 /*!
@@ -169,7 +170,7 @@ typedef struct
     int current_sample;
 } r2_mf_rx_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -177,10 +178,10 @@ extern "C"
 /*! \brief Generate a buffer of Bell MF tones.
     \param s The Bell MF generator context.
     \param amp The buffer for the generated signal.
-    \param samples The required number of generated samples.
+    \param max_samples The required number of generated samples.
     \return The number of samples actually generated. This may be less than 
-            samples if the input buffer empties. */
-int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int samples);
+            max_samples if the input buffer empties. */
+int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int max_samples);
 
 /*! \brief Put a string of digits in a Bell MF generator's input buffer.
     \param s The Bell MF generator context.
@@ -256,7 +257,7 @@ int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t amp[], int samples);
     \return A pointer to the R2 MF receiver context. */
 r2_mf_rx_state_t *r2_mf_rx_init(r2_mf_rx_state_t *s, int fwd);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

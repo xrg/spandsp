@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.h,v 1.14 2007/03/28 13:56:05 steveu Exp $
+ * $Id: line_model.h,v 1.1 2007/04/03 12:59:32 steveu Exp $
  */
 
 /*! \file */
@@ -53,8 +53,8 @@ The path being modelled is:
     -    terminal
 */
 
-#if !defined(_LINE_MODEL_H_)
-#define _LINE_MODEL_H_
+#if !defined(_SPANDSP_LINE_MODEL_H_)
+#define _SPANDSP_LINE_MODEL_H_
 
 #define LINE_FILTER_SIZE 129
 
@@ -125,7 +125,8 @@ typedef struct
 } both_ways_line_model_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 void both_ways_line_model(both_ways_line_model_state_t *s, 

@@ -186,10 +186,11 @@
 <File RelativePath="bert.c"></File>
 <File RelativePath="bit_operations.c"></File>
 <File RelativePath="bitstream.c"></File>
-<File RelativePath="complex_dds.c"></File>
 <File RelativePath="complex_filters.c"></File>
 <File RelativePath="complex_vector_float.c"></File>
-<File RelativePath="dds.c"></File>
+<File RelativePath="crc.c"></File>
+<File RelativePath="dds_float.c"></File>
+<File RelativePath="dds_int.c"></File>
 <File RelativePath="dtmf.c"></File>
 <File RelativePath="echo.c"></File>
 <File RelativePath="fax.c"></File>
@@ -262,6 +263,7 @@
 <File RelativePath="spandsp/biquad.h"></File>
 <File RelativePath="spandsp/bit_operations.h"></File>
 <File RelativePath="spandsp/bitstream.h"></File>
+<File RelativePath="spandsp/crc.h"></File>
 <File RelativePath="spandsp/complex.h"></File>
 <File RelativePath="spandsp/complex_filters.h"></File>
 <File RelativePath="spandsp/complex_vector_float.h"></File>
@@ -319,7 +321,7 @@
 <File RelativePath="spandsp/v8.h"></File>
 <File RelativePath="spandsp/vector_float.h"></File>
 <File RelativePath="spandsp/vector_int.h"></File>
-<File RelativePath="spandsp.h"></File>
+<File RelativePath="spandsp/version.h"></File>
 <File RelativePath="spandsp.h"></File>
 		</Filter>
 		<Filter

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dc_restore.h,v 1.17 2007/04/05 19:20:49 steveu Exp $
+ * $Id: dc_restore.h,v 1.18 2007/04/08 08:16:17 steveu Exp $
  */
 
 /*! \file */
@@ -61,7 +61,7 @@ typedef struct
     int32_t state;
 } dc_restore_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -119,7 +119,7 @@ static __inline__ int16_t fsaturate(double damp)
 }
 /*- End of function --------------------------------------------------------*/
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

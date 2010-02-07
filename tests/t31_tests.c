@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31_tests.c,v 1.43 2007/03/30 14:16:46 steveu Exp $
+ * $Id: t31_tests.c,v 1.44 2007/08/14 16:19:32 steveu Exp $
  */
 
 /*! \file */
@@ -38,6 +38,7 @@
 #define _GNU_SOURCE
 
 #include <inttypes.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -348,7 +349,6 @@ printf("Match %d against %d\n", response_buf_ptr, fax_test_seq[test_seq_ptr].len
 
 int main(int argc, char *argv[])
 {
-    int i;
     int k;
     int outframes;
     fax_state_t fax_state;
@@ -366,31 +366,31 @@ int main(int argc, char *argv[])
     int fast_send;
     int fast_blocks;
     uint8_t fast_buf[1000];
+    int opt;
     
     decode_test_file = NULL;
     log_audio = FALSE;
     test_sending = FALSE;
-    for (i = 1;  i < argc;  i++)
+    while ((opt = getopt(argc, argv, "d:lrs")) != -1)
     {
-        if (strcmp(argv[i], "-d") == 0)
+        switch (opt)
         {
-            decode_test_file = argv[++i];
-            continue;
-        }
-        if (strcmp(argv[i], "-l") == 0)
-        {
+        case 'd':
+            decode_test_file = optarg;
+            break;
+        case 'l':
             log_audio = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-r") == 0)
-        {
+            break;
+        case 'r':
             test_sending = FALSE;
-            continue;
-        }
-        if (strcmp(argv[i], "-s") == 0)
-        {
+            break;
+        case 's':
             test_sending = TRUE;
-            continue;
+            break;
+        default:
+            //usage();
+            exit(2);
+            break;
         }
     }
 

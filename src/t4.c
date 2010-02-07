@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.71 2007/04/05 16:32:08 steveu Exp $
+ * $Id: t4.c,v 1.77 2007/08/17 15:12:55 steveu Exp $
  */
 
 /*
@@ -126,7 +126,7 @@ typedef struct
     uint32_t param;         /* run length in bits */
 } T4_tab_entry;
 
-#include "t4states.h"
+#include "t4_states.h"
 
 /* From the T.4 spec:
 
@@ -644,8 +644,10 @@ int t4_rx_end_page(t4_state_t *s)
     if (gethostname(buf, sizeof(buf)) == 0)
         TIFFSetField(s->tiff_file, TIFFTAG_HOSTCOMPUTER, buf);
 
-    //TIFFSetField(s->tiff_file, TIFFTAG_FAXRECVPARAMS, ???);
-    //TIFFSetField(s->tiff_file, TIFFTAG_FAXMODE, ???);
+#ifdef TIFFTAG_FAXDCS
+    if (s->dcs)
+        TIFFSetField(s->tiff_file, TIFFTAG_FAXDCS, s->dcs);
+#endif
     if (s->sub_address)
         TIFFSetField(s->tiff_file, TIFFTAG_FAXSUBADDRESS, s->sub_address);
     if (s->far_ident)
@@ -673,6 +675,7 @@ int t4_rx_end_page(t4_state_t *s)
        right. For multi-page documents we will need to come back and fill in
        the right answer when we know it. */
     TIFFSetField(s->tiff_file, TIFFTAG_PAGENUMBER, s->pages_transferred++, 1);
+    s->pages_in_file = s->pages_transferred;
     if (s->output_compression == COMPRESSION_CCITT_T4)
     {
         if (s->bad_rows)
@@ -1101,6 +1104,9 @@ int t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
     s->bytes_per_row = 0;
 
     s->pages_transferred = 0;
+    s->pages_in_file = 0;
+    s->start_page = 0;
+    s->stop_page = INT_MAX;
 
     s->image_buffer = NULL;
     s->image_buffer_size = 0;
@@ -1163,12 +1169,12 @@ int t4_rx_start_page(t4_state_t *s)
     s->its_black = FALSE;
     s->black_white = 0;
 
-    s->pa = s->cur_runs;
-    s->pb = s->ref_runs;
-
     /* Initialise the reference line to all white */
     s->ref_runs[0] = s->image_width;
     s->ref_runs[1] = 0;
+    s->pb = s->ref_runs + 1;
+    s->pa = s->cur_runs;
+
     s->a0 = 0;
     s->b1 = s->image_width;
     s->run_length = 0;
@@ -1253,6 +1259,12 @@ void t4_rx_set_y_resolution(t4_state_t *s, int resolution)
 void t4_rx_set_x_resolution(t4_state_t *s, int resolution)
 {
     s->x_resolution = resolution;
+}
+/*- End of function --------------------------------------------------------*/
+
+void t4_rx_set_dcs(t4_state_t *s, const char *dcs)
+{
+    s->dcs = (dcs  &&  dcs[0])  ?  dcs  :  NULL;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1670,11 +1682,15 @@ int t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page)
     s->file = strdup(file);
     s->start_page = (start_page >= 0)  ?  start_page  :  0;
     s->stop_page = (stop_page >= 0)  ?  stop_page : INT_MAX;
+    parm = 0;
     TIFFGetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, &parm);
     s->image_width = parm;
     s->bytes_per_row = (s->image_width + 7)/8;
+    x_resolution = 0.0f;
     TIFFGetField(s->tiff_file, TIFFTAG_XRESOLUTION, &x_resolution);
+    y_resolution = 0.0f;
     TIFFGetField(s->tiff_file, TIFFTAG_YRESOLUTION, &y_resolution);
+    res_unit = RESUNIT_INCH;
     TIFFGetField(s->tiff_file, TIFFTAG_RESOLUTIONUNIT, &res_unit);
 
     /* Allow a little range for the X resolution in centimeters. The spec doesn't pin down the
@@ -1719,6 +1735,7 @@ int t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page)
     s->rows_to_next_1d_row = s->max_rows_to_next_1d_row - 1;
 
     s->pages_transferred = s->start_page;
+    s->pages_in_file = -1;
     if ((s->row_buf = malloc(s->bytes_per_row)) == NULL)
         return -1;
     if ((s->ref_row_buf = malloc(s->bytes_per_row)) == NULL)
@@ -1792,6 +1809,7 @@ int t4_tx_start_page(t4_state_t *s)
     s->rows_to_next_1d_row = s->max_rows_to_next_1d_row - 1;
 
     /* Allow for pages being of different width */
+    parm = 0;
     TIFFGetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, &parm);
     if (parm != s->image_width)
     {
@@ -1843,6 +1861,7 @@ int t4_tx_start_page(t4_state_t *s)
             }
         }
     }
+    s->image_length = 0;
     TIFFGetField(s->tiff_file, TIFFTAG_IMAGELENGTH, &s->image_length);
     for (row = 0;  row < s->image_length;  row++)
     {
@@ -1878,12 +1897,20 @@ int t4_tx_start_page(t4_state_t *s)
 int t4_tx_more_pages(t4_state_t *s)
 {
     span_log(&s->logging, SPAN_LOG_FLOW, "Checking for the existance of page %d\n", s->pages_transferred + 1);
-    if (s->pages_transferred > s->stop_page)
+    if (s->pages_transferred >= s->stop_page)
         return -1;
     if (s->tiff_file == NULL)
         return -1;
-    if (!TIFFSetDirectory(s->tiff_file, (tdir_t) s->pages_transferred + 1))
-        return -1;
+    if (s->pages_in_file >= 0)
+    {
+        if (s->pages_transferred + 1 >= s->pages_in_file)
+            return -1;
+    }
+    else
+    {
+        if (!TIFFSetDirectory(s->tiff_file, (tdir_t) s->pages_transferred + 1))
+            return -1;
+    }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -2034,9 +2061,25 @@ int t4_tx_get_image_width(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
+int t4_tx_get_pages_in_file(t4_state_t *s)
+{
+    int max;
+
+    max = 0;
+    while (TIFFSetDirectory(s->tiff_file, (tdir_t) max))
+    	max++;
+    s->pages_in_file = max;
+    /* Back to the previous page */
+    if (!TIFFSetDirectory(s->tiff_file, (tdir_t) s->pages_transferred))
+        return -1;
+    return max;
+}
+/*- End of function --------------------------------------------------------*/
+
 void t4_get_transfer_statistics(t4_state_t *s, t4_stats_t *t)
 {
-    t->pages_transferred = s->pages_transferred;
+    t->pages_transferred = s->pages_transferred - s->start_page;
+    t->pages_in_file = s->pages_in_file;
     t->width = s->image_width;
     t->length = s->image_length;
     t->bad_rows = s->bad_rows;

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.h,v 1.16 2007/04/05 19:20:50 steveu Exp $
+ * $Id: v8.h,v 1.19 2007/04/30 13:13:36 steveu Exp $
  */
  
 /*! \file */
@@ -111,7 +111,7 @@ typedef struct
     int ci_count;
     fsk_tx_state_t v21tx;
     fsk_rx_state_t v21rx;
-    queue_t tx_queue;
+    queue_state_t *tx_queue;
     modem_connect_tones_tx_state_t ec_dis_tx;
     modem_connect_tones_rx_state_t ec_dis_rx;
 
@@ -162,7 +162,7 @@ struct v8_result_s
     int t66_seen;
 };
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -217,7 +217,7 @@ const char *v8_protocol_to_str(int protocol);
 const char *v8_pstn_access_to_str(int pstn_access);
 const char *v8_pcm_modem_availability_to_str(int pcm_modem_availability);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

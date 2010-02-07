@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.h,v 1.9 2007/04/05 19:20:49 steveu Exp $
+ * $Id: sig_tone.h,v 1.10 2007/04/08 08:16:18 steveu Exp $
  */
 
 /*! \file */
@@ -166,7 +166,7 @@ typedef struct
     int signaling_state_duration;
 } sig_tone_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -196,7 +196,7 @@ int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len);
     \return The number of samples actually generated. */
 int sig_tone_tx(sig_tone_state_t *s, int16_t amp[], int len);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

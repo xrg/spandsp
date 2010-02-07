@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: gsm0610_tests.c,v 1.6 2006/11/19 14:07:27 steveu Exp $
+ * $Id: gsm0610_tests.c,v 1.7 2007/08/21 14:25:54 steveu Exp $
  */
 
 /*! \file */
@@ -226,6 +226,7 @@ static int get_test_vector(int full, int disk, const char *name)
 
     return len;
 }
+/*- End of function --------------------------------------------------------*/
 
 static int get_law_test_vector(int full, int law, const char *name)
 {
@@ -302,6 +303,7 @@ static int get_law_test_vector(int full, int law, const char *name)
     
     return len;
 }
+/*- End of function --------------------------------------------------------*/
 
 static int perform_linear_test(int full, int disk, const char *name)
 {
@@ -366,6 +368,7 @@ static int perform_linear_test(int full, int disk, const char *name)
     printf("Test passed\n");
     return 0;
 }
+/*- End of function --------------------------------------------------------*/
 
 static int perform_law_test(int full, int law, const char *name)
 {
@@ -453,6 +456,73 @@ static int perform_law_test(int full, int law, const char *name)
     printf("Test passed\n");
     return 0;
 }
+/*- End of function --------------------------------------------------------*/
+
+static int repack_gsm0610_voip_to_wav49(uint8_t c[], const uint8_t d[])
+{
+    gsm0610_frame_t frame[2];
+    int n;
+ 
+	n = gsm0610_unpack_voip(&frame[0], d);
+	gsm0610_unpack_voip(&frame[1], d + n);
+    n = gsm0610_pack_wav49(c, frame);
+    return n;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int repack_gsm0610_wav49_to_voip(uint8_t d[], const uint8_t c[])
+{
+    gsm0610_frame_t frame[2];
+    int n[2];
+
+    gsm0610_unpack_wav49(frame, c);
+    n[0] = gsm0610_pack_voip(d, &frame[0]);
+    n[1] = gsm0610_pack_voip(d + n[0], &frame[1]);
+    return n[0] + n[1];
+}
+/*- End of function --------------------------------------------------------*/
+
+static int perform_pack_unpack_test(void)
+{
+    uint8_t a[66];
+    uint8_t b[66];
+    uint8_t c[66];
+    int i;
+    int j;
+
+    printf("Performing packing/unpacking tests (not part of the ETSI conformance tests).\n");
+    /* Try trans-packing a lot of random data looking for before/after mismatch. */
+    for (j = 0;  j < 1000;  j++)
+    {        
+        for (i = 0;  i < 65;  i++)
+            a[i] = rand();
+        repack_gsm0610_wav49_to_voip(b, a);
+        repack_gsm0610_voip_to_wav49(c, b);
+        if (memcmp(a, c, 65))
+        {
+            printf("Test failed: data mismatch\n");
+            exit(2);
+        }
+
+        for (i = 0;  i < 66;  i++)
+            a[i] = rand();
+        /* Insert the magic code */
+        a[0] = (a[0] & 0xF) | 0xD0;
+        a[33] = (a[33] & 0xF) | 0xD0;
+        repack_gsm0610_voip_to_wav49(b, a);
+        repack_gsm0610_wav49_to_voip(c, b);
+        //for (i = 0;  i < 66;  i++)
+        //    printf("%2d: 0x%02X 0x%02X\n", i, a[i], c[i]);
+        if (memcmp(a, c, 66))
+        {
+            printf("Test failed: data mismatch\n");
+            exit(2);
+        }
+    }
+    printf("Test passed\n");
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
 
 int main(int argc, char *argv[])
 {
@@ -506,6 +576,8 @@ int main(int argc, char *argv[])
         perform_law_test(TRUE, 'u', "Seq03");
         perform_law_test(TRUE, 'u', "Seq04");
         perform_law_test(FALSE, 'u', "Seq05");
+        /* This is not actually an ETSI test */
+        perform_pack_unpack_test();
 
         printf("Tests passed.\n");
     }

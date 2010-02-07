@@ -48,7 +48,7 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.h,v 1.15 2007/04/05 19:20:49 steveu Exp $
+ * $Id: g726.h,v 1.16 2007/04/08 08:16:17 steveu Exp $
  */
 
 /*! \file */
@@ -143,7 +143,7 @@ typedef struct g726_state_s
     g726_decoder_func_t dec_func;
 } g726_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -184,7 +184,7 @@ int g726_encode(g726_state_t *s,
                 const int16_t amp[],
                 int len);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

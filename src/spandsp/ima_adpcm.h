@@ -26,7 +26,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm.h,v 1.14 2007/04/05 19:20:49 steveu Exp $
+ * $Id: ima_adpcm.h,v 1.15 2007/04/08 08:16:18 steveu Exp $
  */
 
 /*! \file */
@@ -64,7 +64,7 @@ typedef struct
     int bits;
 } ima_adpcm_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -102,7 +102,7 @@ int ima_adpcm_decode(ima_adpcm_state_t *s,
                      const uint8_t ima_data[],
                      int ima_bytes);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

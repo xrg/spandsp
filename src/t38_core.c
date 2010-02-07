@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.c,v 1.33 2007/03/28 13:56:04 steveu Exp $
+ * $Id: t38_core.c,v 1.37 2007/06/08 15:25:13 steveu Exp $
  */
 
 /*! \file */
@@ -50,27 +50,6 @@
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
 #include "spandsp/bit_operations.h"
-#include "spandsp/queue.h"
-#include "spandsp/power_meter.h"
-#include "spandsp/complex.h"
-#include "spandsp/tone_generate.h"
-#include "spandsp/async.h"
-#include "spandsp/hdlc.h"
-#include "spandsp/fsk.h"
-#include "spandsp/v29rx.h"
-#include "spandsp/v29tx.h"
-#include "spandsp/v27ter_rx.h"
-#include "spandsp/v27ter_tx.h"
-#if defined(ENABLE_V17)
-#include "spandsp/v17rx.h"
-#include "spandsp/v17tx.h"
-#endif
-#include "spandsp/t4.h"
-
-#include "spandsp/t30_fcf.h"
-#include "spandsp/t35.h"
-#include "spandsp/t30.h"
-
 #include "spandsp/t38_core.h"
 
 #define ACCEPTABLE_SEQ_NO_OFFSET    2000
@@ -306,7 +285,7 @@ static __inline__ int classify_seq_no_offset(int expected, int actual)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, int len)
+int t38_core_rx_ifp_packet(t38_core_state_t *s, const uint8_t *buf, int len, uint16_t seq_no)
 {
     int i;
     int t30_indicator;
@@ -327,7 +306,7 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
 
     if (span_log_test(&s->logging, SPAN_LOG_FLOW))
     {
-        sprintf(tag, "Rx %5d:", log_seq_no);
+        sprintf(tag, "Rx %5d: IFP", log_seq_no);
         span_log_buf(&s->logging, SPAN_LOG_FLOW, tag, buf, len);
     }
     if (len < 1)
@@ -402,6 +381,9 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
             span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Data field with indicator\n", log_seq_no);
             return -1;
         }
+        /* Any received indicator should mean we no longer have a valid concept of "last received data/field type". */
+        s->current_rx_data_type = -1;
+        s->current_rx_field_type = -1;
         if ((buf[0] & 0x20))
         {
             /* Extension */
@@ -561,8 +543,17 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
                 span_log(&s->logging, SPAN_LOG_PROTOCOL_WARNING, "Rx %5d: Invalid length for data (G)\n", log_seq_no);
                 return -1;
             }
-            span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: data %s/%s + %d byte(s)\n", log_seq_no, t38_data_type(t30_data), t38_field_type(t30_field_type), numocts);
+            span_log(&s->logging,
+                     SPAN_LOG_FLOW,
+                     "Rx %5d: (%d) data %s/%s + %d byte(s)\n",
+                     log_seq_no,
+                     i,
+                     t38_data_type(t30_data),
+                     t38_field_type(t30_field_type),
+                     numocts);
             s->rx_data_handler(s, s->rx_user_data, t30_data, t30_field_type, msg, numocts);
+            s->current_rx_data_type = t30_data;
+            s->current_rx_field_type = t30_field_type;
         }
         if (ptr != len)
         {
@@ -572,10 +563,6 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
                 return -1;
             }
         }
-        /* This must come after the last data handler, so the handler routine sees the final state of the
-           last received packet. */
-        s->current_rx_data_type = t30_data;
-        s->current_rx_field_type = t30_field_type;
         break;
     }
     return 0;
@@ -626,18 +613,22 @@ static int t38_encode_data(t38_core_state_t *s, uint8_t buf[], int data_type, co
 
     /* Build the IFP packet */
 
-    /* There seems to valid reason why a packet would ever be generated without a data field present */
+    /* There seems no valid reason why a packet would ever be generated without a data field present */
     data_field_present = TRUE;
 
+    for (data_field_no = 0;  data_field_no < fields;  data_field_no++)
+    {
+        span_log(&s->logging,
+                 SPAN_LOG_FLOW,
+                 "Tx %5d: (%d) data %s/%s + %d byte(s)\n",
+                 s->tx_seq_no,
+                 data_field_no,
+                 t38_data_type(data_type),
+                 t38_field_type(field[data_field_no].field_type),
+                 field[data_field_no].field_len);
+    }
+    
     data_field_no = 0;
-    span_log(&s->logging,
-             SPAN_LOG_FLOW,
-             "Tx %5d: data %s/%s + %d byte(s)\n",
-             s->tx_seq_no,
-             t38_data_type(data_type),
-             t38_field_type(field[data_field_no].field_type),
-             field[data_field_no].field_len);
-
     len = 0;
     /* Data field present */
     /* Data packet */
@@ -732,7 +723,7 @@ static int t38_encode_data(t38_core_state_t *s, uint8_t buf[], int data_type, co
 
     if (span_log_test(&s->logging, SPAN_LOG_FLOW))
     {
-        sprintf(tag, "Tx %5d:", s->tx_seq_no);
+        sprintf(tag, "Tx %5d: IFP", s->tx_seq_no);
         span_log_buf(&s->logging, SPAN_LOG_FLOW, tag, buf, len);
     }
     return len;
@@ -762,7 +753,7 @@ int t38_core_send_indicator(t38_core_state_t *s, int indicator, int count)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t38_core_send_data(t38_core_state_t *s, int data_type, int field_type, const uint8_t *field, int field_len, int count)
+int t38_core_send_data(t38_core_state_t *s, int data_type, int field_type, const uint8_t field[], int field_len, int count)
 {
     t38_data_field_t field0;
     uint8_t buf[1000];
@@ -782,7 +773,7 @@ int t38_core_send_data(t38_core_state_t *s, int data_type, int field_type, const
 }
 /*- End of function --------------------------------------------------------*/
 
-int t38_core_send_data_multi_field(t38_core_state_t *s, int data_type, const t38_data_field_t *field, int fields, int count)
+int t38_core_send_data_multi_field(t38_core_state_t *s, int data_type, const t38_data_field_t field[], int fields, int count)
 {
     uint8_t buf[1000];
     int len;

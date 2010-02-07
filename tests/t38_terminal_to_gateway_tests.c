@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_to_gateway_tests.c,v 1.36 2007/03/29 12:28:37 steveu Exp $
+ * $Id: t38_terminal_to_gateway_tests.c,v 1.41 2007/08/14 14:57:37 steveu Exp $
  */
 
 /*! \file */
@@ -43,6 +43,7 @@ These tests exercise the path
 #endif
 
 #include <inttypes.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -68,7 +69,8 @@ These tests exercise the path
 #include <tiffio.h>
 
 #include "spandsp.h"
-#include "g1050.h"
+#include "spandsp-sim.h"
+
 #if defined(ENABLE_GUI)
 #include "media_monitor.h"
 #endif
@@ -227,6 +229,8 @@ int main(int argc, char *argv[])
     AFfilehandle wave_handle;
     int t38_version;
     int use_ecm;
+    int use_tep;
+    int use_transmit_on_idle;
     const char *input_file_name;
     int i;
     int seq_no;
@@ -235,6 +239,7 @@ int main(int argc, char *argv[])
     double tx_when;
     double rx_when;
     int use_gui;
+    int opt;
 
     log_audio = FALSE;
     t38_version = 1;
@@ -244,47 +249,39 @@ int main(int argc, char *argv[])
     model_no = 0;
     speed_pattern_no = 1;
     use_gui = FALSE;
-    for (i = 1;  i < argc;  i++)
+    use_tep = FALSE;
+    use_transmit_on_idle = TRUE;
+    while ((opt = getopt(argc, argv, "egi:Ilm:s:tv:")) != -1)
     {
-        if (strcmp(argv[i], "-e") == 0)
+        switch (opt)
         {
+        case 'e':
             use_ecm = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-g") == 0)
-        {
+            break;
+        case 'g':
             use_gui = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-i") == 0)
-        {
-            input_file_name = argv[++i];
-            continue;
-        }
-        if (strcmp(argv[i], "-I") == 0)
-        {
+            break;
+        case 'i':
+            input_file_name = optarg;
+            break;
+        case 'I':
             simulate_incrementing_repeats = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-l") == 0)
-        {
+            break;
+        case 'l':
             log_audio = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-m") == 0)
-        {
-            model_no = argv[++i][0] - 'A' + 1;
-            continue;
-        }
-        if (strcmp(argv[i], "-s") == 0)
-        {
-            speed_pattern_no = atoi(argv[++i]);
-            continue;
-        }
-        if (strcmp(argv[i], "-v") == 0)
-        {
-            t38_version = atoi(argv[++i]);
-            continue;
+            break;
+        case 'm':
+            model_no = optarg[0] - 'A' + 1;
+            break;
+        case 's':
+            speed_pattern_no = atoi(optarg);
+            break;
+        case 't':
+            use_tep = TRUE;
+            break;
+        case 'v':
+            t38_version = atoi(optarg);
+            break;
         }
     }
 
@@ -352,20 +349,28 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Cannot start the T.38 channel\n");
         exit(2);
     }
+    t38_gateway_set_transmit_on_idle(&t38_state_b, use_transmit_on_idle);
     t38_set_t38_version(&t38_state_b.t38, t38_version);
-    t38_gateway_ecm_control(&t38_state_b, use_ecm);
+    t38_gateway_set_ecm_capability(&t38_state_b, use_ecm);
     span_log_set_level(&t38_state_b.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t38_state_b.logging, "T.38-B");
     span_log_set_level(&t38_state_b.t38.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t38_state_b.t38.logging, "T.38-B");
     memset(t38_amp_b, 0, sizeof(t38_amp_b));
 
-    fax_init(&fax_state_b, FALSE);
+    if (fax_init(&fax_state_b, FALSE) == NULL)
+    {
+        fprintf(stderr, "Cannot start FAX\n");
+        exit(2);
+    }
+    fax_set_transmit_on_idle(&fax_state_b, use_transmit_on_idle);
+    fax_set_tep_mode(&fax_state_b, use_tep);
     t30_set_local_ident(&fax_state_b.t30_state, "22222222");
     t30_set_rx_file(&fax_state_b.t30_state, OUTPUT_FILE_NAME, -1);
     t30_set_phase_b_handler(&fax_state_b.t30_state, phase_b_handler, (void *) (intptr_t) 'B');
     t30_set_phase_d_handler(&fax_state_b.t30_state, phase_d_handler, (void *) (intptr_t) 'B');
     t30_set_phase_e_handler(&fax_state_b.t30_state, phase_e_handler, (void *) (intptr_t) 'B');
+    t30_set_local_nsf(&fax_state_b.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
     t30_set_ecm_capability(&fax_state_b.t30_state, use_ecm);
     if (use_ecm)
         t30_set_supported_compressions(&fax_state_b.t30_state, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
@@ -393,13 +398,16 @@ int main(int argc, char *argv[])
         t38_terminal_send_timeout(&t38_state_a, SAMPLES_PER_CHUNK);
 
         t30_len_b = fax_tx(&fax_state_b, t30_amp_b, SAMPLES_PER_CHUNK);
-        /* The receive side always expects a full block of samples, but the
-           transmit side may not be sending any when it doesn't need to. We
-           may need to pad with some silence. */
-        if (t30_len_b < SAMPLES_PER_CHUNK)
+        if (!use_transmit_on_idle)
         {
-            memset(t30_amp_b + t30_len_b, 0, sizeof(int16_t)*(SAMPLES_PER_CHUNK - t30_len_b));
-            t30_len_b = SAMPLES_PER_CHUNK;
+            /* The receive side always expects a full block of samples, but the
+               transmit side may not be sending any when it doesn't need to. We
+               may need to pad with some silence. */
+            if (t30_len_b < SAMPLES_PER_CHUNK)
+            {
+                memset(t30_amp_b + t30_len_b, 0, sizeof(int16_t)*(SAMPLES_PER_CHUNK - t30_len_b));
+                t30_len_b = SAMPLES_PER_CHUNK;
+            }
         }
         if (log_audio)
         {
@@ -410,10 +418,13 @@ int main(int argc, char *argv[])
             break;
     
         t38_len_b = t38_gateway_tx(&t38_state_b, t38_amp_b, SAMPLES_PER_CHUNK);
-        if (t38_len_b < SAMPLES_PER_CHUNK)
+        if (!use_transmit_on_idle)
         {
-            memset(t38_amp_b + t38_len_b, 0, sizeof(int16_t)*(SAMPLES_PER_CHUNK - t38_len_b));
-            t38_len_b = SAMPLES_PER_CHUNK;
+            if (t38_len_b < SAMPLES_PER_CHUNK)
+            {
+                memset(t38_amp_b + t38_len_b, 0, sizeof(int16_t)*(SAMPLES_PER_CHUNK - t38_len_b));
+                t38_len_b = SAMPLES_PER_CHUNK;
+            }
         }
         if (log_audio)
         {
@@ -431,7 +442,7 @@ int main(int argc, char *argv[])
             if (use_gui)
                 media_monitor_rx(seq_no, tx_when, rx_when);
 #endif
-            t38_core_rx_ifp_packet(&t38_state_b.t38, seq_no, msg, msg_len);
+            t38_core_rx_ifp_packet(&t38_state_b.t38, msg, msg_len, seq_no);
         }
         while ((msg_len = g1050_get(path_b_to_a, msg, 1024, when, &seq_no, &tx_when, &rx_when)) >= 0)
         {
@@ -439,7 +450,7 @@ int main(int argc, char *argv[])
             if (use_gui)
                 media_monitor_rx(seq_no, tx_when, rx_when);
 #endif
-            t38_core_rx_ifp_packet(&t38_state_a.t38, seq_no, msg, msg_len);
+            t38_core_rx_ifp_packet(&t38_state_a.t38, msg, msg_len, seq_no);
         }
         if (log_audio)
         {

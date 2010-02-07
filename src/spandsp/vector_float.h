@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector_float.h,v 1.6 2007/04/05 19:20:50 steveu Exp $
+ * $Id: vector_float.h,v 1.7 2007/04/08 08:16:18 steveu Exp $
  */
 
 #if !defined(_SPANDSP_VECTOR_FLOAT_H_)
 #define _SPANDSP_VECTOR_FLOAT_H_
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -105,7 +105,7 @@ double vec_dot_prod(const double x[], const double y[], int n);
 long double vec_dot_prodl(const long double x[], const long double y[], int n);
 #endif
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

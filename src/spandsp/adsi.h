@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.h,v 1.17 2007/04/05 19:20:49 steveu Exp $
+ * $Id: adsi.h,v 1.23 2007/06/08 13:49:38 steveu Exp $
  */
 
 /*! \file */
@@ -263,11 +263,43 @@ enum
 /*! Caller number absent: 'C', 'O', 'P' or 'S' */
 #define JCLIP_ABSENCE           0x04
 
+/* Dutch/Danish scheme from the ETSI documents.
+   We are looking for a string of digits ending with "#". There
+   is no special start marker. Only the caller number is supplied */
+
+/* Finland/Denmark/Iceland/Netherlands/India/Belgium/Sweden/
+   Brazil/Saudi Arabia/Uruguay scheme.
+   We are looking for a string of digits like "AnnnnBnnnDnnnnC"
+   where:
+        "A" is used as a start code for the Calling party number
+        "B" is used as a start code for the special information concerning the "not availability / restriction information" of the Calling party number
+        "C" is used as an end code for the information transfer
+        "D" is used as a start code for the Diverting party number in case of call diversion
+
+   The following special information codes are defined
+        Decimal value "00" is used to indicate, that the calling party number is not available
+        Decimal value "10" is used to indicate, that the presentation of the calling party number is restricted */
+
+/* Taiwan/Kuwait scheme.
+   We are looking for a string of digits like "DnnnnC", containing
+   the caller number. */
+
 /*! Definitions for CLIP-DTMF */
+
+#define CLIP_DTMF_HASH_TERMINATED       '#'
+#define CLIP_DTMF_C_TERMINATED          'C'
+
 /*! Caller number */
-#define CLIP_DTMF_CALLER_NUMBER 'A'
+#define CLIP_DTMF_HASH_CALLER_NUMBER    'A'
 /*! Caller number absent: private (1), overseas (2) or not available (3) */
-#define CLIP_DTMF_ABSENCE1      'D'
+#define CLIP_DTMF_HASH_ABSENCE          'D'
+
+/*! Caller number */
+#define CLIP_DTMF_C_CALLER_NUMBER       'A'
+/*! Diverting number */
+#define CLIP_DTMF_C_REDIRECT_NUMBER     'D'
+/*! Caller number absent: private/restricted (00) or not available (10) */
+#define CLIP_DTMF_C_ABSENCE             'B'
 
 /*!
     ADSI transmitter descriptor. This contains all the state information for an ADSI
@@ -285,12 +317,15 @@ typedef struct
     
     int tx_signal_on;
     
-    int byteno;
-    int bitpos;
-    int bitno;
+    int byte_no;
+    int bit_pos;
+    int bit_no;
     uint8_t msg[256];
     int msg_len;
-    int ones_len;
+    int preamble_len;
+    int preamble_ones_len;
+    int postamble_ones_len;
+    int stop_bits;
     int baudot_shift;
     
     logging_state_t logging;
@@ -298,7 +333,7 @@ typedef struct
 
 /*!
     ADSI receiver descriptor. This contains all the state information for an ADSI
-    (caller ID, CLASS, CLIP, ACLIP) receive channel.
+    (caller ID, CLASS, CLIP, ACLIP, JCLIP) receive channel.
  */
 typedef struct
 {
@@ -311,7 +346,7 @@ typedef struct
     async_rx_state_t asyncrx;
     
     int consecutive_ones;
-    int bitpos;
+    int bit_pos;
     int in_progress;
     uint8_t msg[256];
     int msg_len;
@@ -323,7 +358,7 @@ typedef struct
     logging_state_t logging;
 } adsi_rx_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -349,6 +384,19 @@ void adsi_rx(adsi_rx_state_t *s, const int16_t *amp, int len);
     \param standard The code for the ADSI standard to be used.
 */
 void adsi_tx_init(adsi_tx_state_t *s, int standard);
+
+/*! \brief Adjust the preamble associated with an ADSI transmit context.
+    \param s The ADSI transmit context.
+    \param preamble_len The number of bits of preamble.
+    \param preamble_ones_len The number of bits of continuous one before a message.
+    \param postamble_ones_len The number of bits of continuous one after a message.
+    \param stop_bits The number of stop bits per character.
+*/
+void adsi_tx_set_preamble(adsi_tx_state_t *s,
+                          int preamble_len,
+                          int preamble_ones_len,
+                          int postamble_ones_len,
+                          int stop_bits);
 
 /*! \brief Generate a block of ADSI audio samples.
     \param s The ADSI transmit context.
@@ -400,7 +448,7 @@ int adsi_add_field(adsi_tx_state_t *s, uint8_t *msg, int len, uint8_t field_type
 */
 const char *adsi_standard_to_str(int standard);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

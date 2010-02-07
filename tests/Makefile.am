@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.84 2007/03/29 13:38:27 steveu Exp $
+## $Id: Makefile.am,v 1.89 2007/08/13 13:08:19 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -28,7 +28,9 @@ EXTRA_DIST = regression_tests.sh v42bis_tests.sh fax_tests.sh
  
 MAINTAINERCLEANFILES = Makefile.in
 
-INCLUDES = -I$(top_builddir)/src -DDATADIR="\"$(pkgdatadir)\""
+INCLUDES = -I$(top_builddir)/src -I$(top_builddir)/spandsp-sim -DDATADIR="\"$(pkgdatadir)\""
+
+LIBDIR = -L$(top_builddir)/src
 
 noinst_PROGRAMS =   adsi_tests \
                     async_tests \
@@ -38,6 +40,7 @@ noinst_PROGRAMS =   adsi_tests \
                     bell_mf_tx_tests \
                     bert_tests \
                     bit_operations_tests \
+                    crc_tests \
                     dc_restore_tests \
                     dds_tests \
                     dtmf_rx_tests \
@@ -58,7 +61,6 @@ noinst_PROGRAMS =   adsi_tests \
                     logging_tests \
                     lpc10_tests \
                     make_g168_css \
-                    make_line_models \
                     modem_echo_tests \
                     modem_connect_tones_tests \
                     noise_tests \
@@ -66,6 +68,7 @@ noinst_PROGRAMS =   adsi_tests \
                     playout_tests \
                     plc_tests \
                     power_meter_tests \
+                    queue_tests \
                     r2_mf_rx_tests \
                     r2_mf_tx_tests \
                     schedule_tests \
@@ -94,207 +97,199 @@ noinst_PROGRAMS =   adsi_tests \
                     testfax
 
 noinst_HEADERS =    echo_monitor.h \
-                    g1050.h \
-                    line_model.h \
                     line_model_monitor.h \
                     media_monitor.h \
-                    modem_monitor.h \
-                    test_utils.h
+                    modem_monitor.h
 
 adsi_tests_SOURCES = adsi_tests.c
-adsi_tests_LDADD = -L$(top_builddir)/src -lspandsp
+adsi_tests_LDADD = $(LIBDIR) -lspandsp
 
 async_tests_SOURCES = async_tests.c
-async_tests_LDADD = -L$(top_builddir)/src -lspandsp
+async_tests_LDADD = $(LIBDIR) -lspandsp
 
 at_interpreter_tests_SOURCES = at_interpreter_tests.c
-at_interpreter_tests_LDADD = -L$(top_builddir)/src -lspandsp
+at_interpreter_tests_LDADD = $(LIBDIR) -lspandsp
 
 awgn_tests_SOURCES = awgn_tests.c
-awgn_tests_LDADD = -L$(top_builddir)/src -lspandsp
+awgn_tests_LDADD = $(LIBDIR) -lspandsp
 
 bell_mf_rx_tests_SOURCES = bell_mf_rx_tests.c
-bell_mf_rx_tests_LDADD = -L$(top_builddir)/src -lspandsp
+bell_mf_rx_tests_LDADD = $(LIBDIR) -lspandsp
 
 bell_mf_tx_tests_SOURCES = bell_mf_tx_tests.c
-bell_mf_tx_tests_LDADD = -L$(top_builddir)/src -lspandsp
+bell_mf_tx_tests_LDADD = $(LIBDIR) -lspandsp
 
 bert_tests_SOURCES = bert_tests.c
-bert_tests_LDADD = -L$(top_builddir)/src -lspandsp
+bert_tests_LDADD = $(LIBDIR) -lspandsp
 
 bit_operations_tests_SOURCES = bit_operations_tests.c
-bit_operations_tests_LDADD = -L$(top_builddir)/src -lspandsp
+bit_operations_tests_LDADD = $(LIBDIR) -lspandsp
+
+crc_tests_SOURCES = crc_tests.c
+crc_tests_LDADD = $(LIBDIR) -lspandsp
 
 dc_restore_tests_SOURCES = dc_restore_tests.c
-dc_restore_tests_LDADD = -L$(top_builddir)/src -lspandsp
+dc_restore_tests_LDADD = $(LIBDIR) -lspandsp
 
 dds_tests_SOURCES = dds_tests.c
-dds_tests_LDADD = -L$(top_builddir)/src -lspandsp
+dds_tests_LDADD = $(LIBDIR) -lspandsp
 
-dtmf_rx_tests_SOURCES = dtmf_rx_tests.c test_utils.c
-dtmf_rx_tests_LDADD = -L$(top_builddir)/src -lspandsp
+dtmf_rx_tests_SOURCES = dtmf_rx_tests.c
+dtmf_rx_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
 dtmf_tx_tests_SOURCES = dtmf_tx_tests.c
-dtmf_tx_tests_LDADD = -L$(top_builddir)/src -lspandsp
+dtmf_tx_tests_LDADD = $(LIBDIR) -lspandsp
 
 echo_tests_SOURCES = echo_tests.c echo_monitor.cpp
-echo_tests_LDADD = -L$(top_builddir)/src -lspandsp
+echo_tests_LDADD = $(LIBDIR) -lspandsp
 
 fax_decode_SOURCES = fax_decode.c
-fax_decode_LDADD = -L$(top_builddir)/src -lspandsp
+fax_decode_LDADD = $(LIBDIR) -lspandsp
 
 fax_tests_SOURCES = fax_tests.c
-fax_tests_LDADD = -L$(top_builddir)/src -lspandsp
+fax_tests_LDADD = $(LIBDIR) -lspandsp
 
-fsk_tests_SOURCES = fsk_tests.c line_model.c test_utils.c
-fsk_tests_LDADD = -L$(top_builddir)/src -lspandsp
+fsk_tests_SOURCES = fsk_tests.c
+fsk_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
-g1050_tests_SOURCES = g1050_tests.c g1050.c media_monitor.cpp
-g1050_tests_LDADD = -L$(top_builddir)/src -lspandsp
+g1050_tests_SOURCES = g1050_tests.c media_monitor.cpp
+g1050_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
 g168_tests_SOURCES = g168_tests.c
-g168_tests_LDADD = -L$(top_builddir)/src -lspandsp
+g168_tests_LDADD = $(LIBDIR) -lspandsp
 
 g711_tests_SOURCES = g711_tests.c
-g711_tests_LDADD = -L$(top_builddir)/src -lspandsp
+g711_tests_LDADD = $(LIBDIR) -lspandsp
 
 g722_tests_SOURCES = g722_tests.c
-g722_tests_LDADD = -L$(top_builddir)/src -lspandsp
+g722_tests_LDADD = $(LIBDIR) -lspandsp
 
 g726_tests_SOURCES = g726_tests.c
-g726_tests_LDADD = -L$(top_builddir)/src -lspandsp
+g726_tests_LDADD = $(LIBDIR) -lspandsp
 
 gsm0610_tests_SOURCES = gsm0610_tests.c
-gsm0610_tests_LDADD = -L$(top_builddir)/src -lspandsp
+gsm0610_tests_LDADD = $(LIBDIR) -lspandsp
 
 hdlc_tests_SOURCES = hdlc_tests.c
-hdlc_tests_LDADD = -L$(top_builddir)/src -lspandsp
+hdlc_tests_LDADD = $(LIBDIR) -lspandsp
 
 ima_adpcm_tests_SOURCES = ima_adpcm_tests.c
-ima_adpcm_tests_LDADD = -L$(top_builddir)/src -lspandsp
+ima_adpcm_tests_LDADD = $(LIBDIR) -lspandsp
 
-line_model_tests_SOURCES = line_model_tests.c line_model.c test_utils.c
-line_model_tests_LDADD = -L$(top_builddir)/src -lspandsp
+line_model_tests_SOURCES = line_model_tests.c
+line_model_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
 logging_tests_SOURCES = logging_tests.c
-logging_tests_LDADD = -L$(top_builddir)/src -lspandsp
+logging_tests_LDADD = $(LIBDIR) -lspandsp
 
 lpc10_tests_SOURCES = lpc10_tests.c
-lpc10_tests_LDADD = -L$(top_builddir)/src -lspandsp
+lpc10_tests_LDADD = $(LIBDIR) -lspandsp
 
 make_g168_css_SOURCES = make_g168_css.c
-make_g168_css_LDADD = -L$(top_builddir)/src -lspandsp
-
-make_line_models_SOURCES = make_line_models.c
-make_line_models_LDADD = -L$(top_builddir)/src -lspandsp
+make_g168_css_LDADD = $(LIBDIR) -lspandsp
 
 modem_echo_tests_SOURCES = modem_echo_tests.c echo_monitor.cpp
-modem_echo_tests_LDADD = -L$(top_builddir)/src -lspandsp
+modem_echo_tests_LDADD = $(LIBDIR) -lspandsp
 
 modem_connect_tones_tests_SOURCES = modem_connect_tones_tests.c
-modem_connect_tones_tests_LDADD = -L$(top_builddir)/src -lspandsp
+modem_connect_tones_tests_LDADD = $(LIBDIR) -lspandsp
 
 noise_tests_SOURCES = noise_tests.c
-noise_tests_LDADD = -L$(top_builddir)/src -lspandsp
+noise_tests_LDADD = $(LIBDIR) -lspandsp
 
 oki_adpcm_tests_SOURCES = oki_adpcm_tests.c
-oki_adpcm_tests_LDADD = -L$(top_builddir)/src -lspandsp
+oki_adpcm_tests_LDADD = $(LIBDIR) -lspandsp
 
 playout_tests_SOURCES = playout_tests.c
-playout_tests_LDADD = -L$(top_builddir)/src -lspandsp
+playout_tests_LDADD = $(LIBDIR) -lspandsp
 
 plc_tests_SOURCES = plc_tests.c
-plc_tests_LDADD = -L$(top_builddir)/src -lspandsp
+plc_tests_LDADD = $(LIBDIR) -lspandsp
 
 power_meter_tests_SOURCES = power_meter_tests.c
-power_meter_tests_LDADD = -L$(top_builddir)/src -lspandsp
+power_meter_tests_LDADD = $(LIBDIR) -lspandsp
+
+queue_tests_SOURCES = queue_tests.c
+queue_tests_LDADD = $(LIBDIR) -lspandsp
 
 r2_mf_rx_tests_SOURCES = r2_mf_rx_tests.c
-r2_mf_rx_tests_LDADD = -L$(top_builddir)/src -lspandsp
+r2_mf_rx_tests_LDADD = $(LIBDIR) -lspandsp
 
 r2_mf_tx_tests_SOURCES = r2_mf_tx_tests.c
-r2_mf_tx_tests_LDADD = -L$(top_builddir)/src -lspandsp
+r2_mf_tx_tests_LDADD = $(LIBDIR) -lspandsp
 
 schedule_tests_SOURCES = schedule_tests.c
-schedule_tests_LDADD = -L$(top_builddir)/src -lspandsp 
+schedule_tests_LDADD = $(LIBDIR) -lspandsp 
 
 sig_tone_tests_SOURCES = sig_tone_tests.c
-sig_tone_tests_LDADD = -L$(top_builddir)/src -lspandsp 
+sig_tone_tests_LDADD = $(LIBDIR) -lspandsp 
 
 super_tone_rx_tests_SOURCES = super_tone_rx_tests.c
-super_tone_rx_tests_LDADD = -L$(top_builddir)/src -lspandsp
+super_tone_rx_tests_LDADD = $(LIBDIR) -lspandsp
 
 super_tone_tx_tests_SOURCES = super_tone_tx_tests.c
-super_tone_tx_tests_LDADD = -L$(top_builddir)/src -lspandsp
+super_tone_tx_tests_LDADD = $(LIBDIR) -lspandsp
 
 t4_tests_SOURCES = t4_tests.c
-t4_tests_LDADD = -L$(top_builddir)/src -lspandsp
+t4_tests_LDADD = $(LIBDIR) -lspandsp
 
 t31_tests_SOURCES = t31_tests.c
-t31_tests_LDADD = -L$(top_builddir)/src -lspandsp
+t31_tests_LDADD = $(LIBDIR) -lspandsp
 
 t38_core_tests_SOURCES = t38_core_tests.c
-t38_core_tests_LDADD = -L$(top_builddir)/src -lspandsp
+t38_core_tests_LDADD = $(LIBDIR) -lspandsp
 
-t38_gateway_tests_SOURCES = t38_gateway_tests.c g1050.c media_monitor.cpp
-t38_gateway_tests_LDADD = -L$(top_builddir)/src -lspandsp
+t38_gateway_tests_SOURCES = t38_gateway_tests.c media_monitor.cpp
+t38_gateway_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
-t38_gateway_to_terminal_tests_SOURCES = t38_gateway_to_terminal_tests.c g1050.c media_monitor.cpp
-t38_gateway_to_terminal_tests_LDADD = -L$(top_builddir)/src -lspandsp
+t38_gateway_to_terminal_tests_SOURCES = t38_gateway_to_terminal_tests.c media_monitor.cpp
+t38_gateway_to_terminal_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
-t38_terminal_tests_SOURCES = t38_terminal_tests.c g1050.c media_monitor.cpp
-t38_terminal_tests_LDADD = -L$(top_builddir)/src -lspandsp
+t38_terminal_tests_SOURCES = t38_terminal_tests.c media_monitor.cpp
+t38_terminal_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
-t38_terminal_to_gateway_tests_SOURCES = t38_terminal_to_gateway_tests.c g1050.c media_monitor.cpp
-t38_terminal_to_gateway_tests_LDADD = -L$(top_builddir)/src -lspandsp
+t38_terminal_to_gateway_tests_SOURCES = t38_terminal_to_gateway_tests.c media_monitor.cpp
+t38_terminal_to_gateway_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
 time_scale_tests_SOURCES = time_scale_tests.c
-time_scale_tests_LDADD = -L$(top_builddir)/src -lspandsp
+time_scale_tests_LDADD = $(LIBDIR) -lspandsp
 
 tone_generate_tests_SOURCES = tone_generate_tests.c
-tone_generate_tests_LDADD = -L$(top_builddir)/src -lspandsp
+tone_generate_tests_LDADD = $(LIBDIR) -lspandsp
 
-v17_tests_SOURCES = v17_tests.c line_model.c test_utils.c line_model_monitor.cpp modem_monitor.cpp
-v17_tests_LDADD = -L$(top_builddir)/src -lspandsp
+v17_tests_SOURCES = v17_tests.c line_model_monitor.cpp modem_monitor.cpp
+v17_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
-v22bis_tests_SOURCES = v22bis_tests.c line_model.c test_utils.c line_model_monitor.cpp modem_monitor.cpp
-v22bis_tests_LDADD = -L$(top_builddir)/src -lspandsp
+v22bis_tests_SOURCES = v22bis_tests.c line_model_monitor.cpp modem_monitor.cpp
+v22bis_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
-v27ter_tests_SOURCES = v27ter_tests.c line_model.c test_utils.c line_model_monitor.cpp modem_monitor.cpp
-v27ter_tests_LDADD = -L$(top_builddir)/src -lspandsp
+v27ter_tests_SOURCES = v27ter_tests.c line_model_monitor.cpp modem_monitor.cpp
+v27ter_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
-v29_tests_SOURCES = v29_tests.c line_model.c test_utils.c line_model_monitor.cpp modem_monitor.cpp
-v29_tests_LDADD = -L$(top_builddir)/src -lspandsp
+v29_tests_SOURCES = v29_tests.c line_model_monitor.cpp modem_monitor.cpp
+v29_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
 v42_tests_SOURCES = v42_tests.c
-v42_tests_LDADD = -L$(top_builddir)/src -lspandsp
+v42_tests_LDADD = $(LIBDIR) -lspandsp
 
 v42bis_tests_SOURCES = v42bis_tests.c
-v42bis_tests_LDADD = -L$(top_builddir)/src -lspandsp
+v42bis_tests_LDADD = $(LIBDIR) -lspandsp
 
 v8_tests_SOURCES = v8_tests.c
-v8_tests_LDADD = -L$(top_builddir)/src -lspandsp
+v8_tests_LDADD = $(LIBDIR) -lspandsp
 
 vector_float_tests_SOURCES = vector_float_tests.c
-vector_float_tests_LDADD = -L$(top_builddir)/src -lspandsp
+vector_float_tests_LDADD = $(LIBDIR) -lspandsp
 
 vector_int_tests_SOURCES = vector_int_tests.c
-vector_int_tests_LDADD = -L$(top_builddir)/src -lspandsp
+vector_int_tests_LDADD = $(LIBDIR) -lspandsp
 
 testadsi_SOURCES = testadsi.c
-testadsi_LDADD = -L$(top_builddir)/src -lspandsp
+testadsi_LDADD = $(LIBDIR) -lspandsp
 
 testfax_SOURCES = testfax.c
-testfax_LDADD = -L$(top_builddir)/src -lspandsp
+testfax_LDADD = $(LIBDIR) -lspandsp
 
-# We need to run make_line_models, so it generates the line_models.h file
-# used by several of the test programs.
-
-line_model.$(OBJEXT): make_line_models$(EXEEXT) line_models.h
-
-line_models.h: make_line_models$(EXEEXT)
-	./make_line_models$(EXEEXT)
-    
 # We need to create the CSS files for echo cancellation tests.
 
 sound_c1_8k.wav sound_c3_8k.wav: make_g168_css$(EXEEXT)

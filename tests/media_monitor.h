@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: media_monitor.h,v 1.2 2007/03/29 12:28:37 steveu Exp $
+ * $Id: media_monitor.h,v 1.3 2007/04/03 12:59:33 steveu Exp $
  */
 
 /*! \page media_monitor_page IP streaming media performance monitoring
@@ -38,7 +38,7 @@ In addition to the basic FLTK toolkit, fltk_cartesian is also required.
 #if !defined(_MEDIA_MONITOR_H_)
 #define _MEDIA_MONITOR_H_
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -48,7 +48,7 @@ void media_monitor_rx(int seq_no, double departure_time, double arrival_time);
 void media_monitor_wait_to_end(void);
 void media_monitor_update_display(void);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

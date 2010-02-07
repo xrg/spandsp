@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.28 2006/12/15 15:03:59 steveu Exp $
+ * $Id: fsk.c,v 1.32 2007/06/28 13:10:59 steveu Exp $
  */
 
 /*! \file */
@@ -184,13 +184,15 @@ void fsk_tx_set_get_bit(fsk_tx_state_t *s, get_bit_func_t get_bit, void *user_da
 
 void fsk_rx_signal_cutoff(fsk_rx_state_t *s, float cutoff)
 {
-    s->min_power = power_meter_level_dbm0(cutoff);
+    /* The 6.04 allows for the gain of the DC blocker */
+    s->carrier_on_power = (int32_t) (power_meter_level_dbm0(cutoff + 2.5f - 6.04f));
+    s->carrier_off_power = (int32_t) (power_meter_level_dbm0(cutoff - 2.5f - 6.04f));
 }
 /*- End of function --------------------------------------------------------*/
 
 float fsk_rx_signal_power(fsk_rx_state_t *s)
 {
-    return power_meter_dbm0(&s->power);
+    return power_meter_current_dbm0(&s->power);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -212,7 +214,7 @@ fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
     memset(s, 0, sizeof(*s));
     s->baud_rate = spec->baud_rate;
     s->sync_mode = sync_mode;
-    s->min_power = power_meter_level_dbm0((float) spec->min_level);
+    fsk_rx_signal_cutoff(s, (float) spec->min_level);
     s->put_bit = put_bit;
     s->user_data = user_data;
 
@@ -249,7 +251,7 @@ fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
     
     /* Initialise a power detector, so sense when a signal is present. */
     power_meter_init(&(s->power), 4);
-    s->carrier_present = FALSE;
+    s->signal_present = 0;
     return s;
 }
 /*- End of function --------------------------------------------------------*/
@@ -258,35 +260,47 @@ int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
 {
     int buf_ptr;
     int baudstate;
-    int sample;
+    int i;
     int j;
+    int16_t x;
     int32_t dot;
     int32_t sum;
     int32_t power;
-    icomplex_t ph;
+    complexi_t ph;
 
     buf_ptr = s->buf_ptr;
 
-    for (sample = 0;  sample < len;  sample++)
+    for (i = 0;  i < len;  i++)
     {
         /* If there isn't much signal, don't demodulate - it will only produce
            useless junk results. */
-        /* TODO: The carrier signal has no hysteresis! */
-        power = power_meter_update(&(s->power), amp[sample] - s->last_sample);
-        s->last_sample = amp[sample];
-        if (power < s->min_power)
+        /* There should be no DC in the signal, but sometimes there is.
+           We need to measure the power with the DC blocked, but not using
+           a slow to respond DC blocker. Use the most elementary HPF. */
+        x = amp[i] >> 1;
+        power = power_meter_update(&(s->power), x - s->last_sample);
+        s->last_sample = x;
+        if (s->signal_present)
         {
-            if (s->carrier_present)
+            /* Look for power below turn-off threshold to turn the carrier off */
+            if (power < s->carrier_off_power)
             {
-                s->put_bit(s->user_data, PUTBIT_CARRIER_DOWN);
-                s->carrier_present = FALSE;
+                if (--s->signal_present <= 0)
+                {
+                    /* Count down a short delay, to ensure we push the last
+                       few bits through the filters before stopping. */
+                    s->put_bit(s->user_data, PUTBIT_CARRIER_DOWN);
+                    continue;
+                }
             }
-            continue;
         }
-        if (!s->carrier_present)
+        else
         {
+            /* Look for power exceeding turn-on threshold to turn the carrier on */
+            if (power < s->carrier_on_power)
+                continue;
+            s->signal_present = 1;
             s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
-            s->carrier_present = TRUE;
         }
         /* Non-coherent FSK demodulation by correlation with the target tones
            over a one baud interval. The slow V.xx specs. are too open ended
@@ -300,9 +314,9 @@ int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
             s->dot_i[j] -= s->window_i[j][buf_ptr];
             s->dot_q[j] -= s->window_q[j][buf_ptr];
 
-            ph = dds_complex(&(s->phase_acc[j]), s->phase_rate[j]);
-            s->window_i[j][buf_ptr] = (ph.re*amp[sample]) >> s->scaling_shift;
-            s->window_q[j][buf_ptr] = (ph.im*amp[sample]) >> s->scaling_shift;
+            ph = dds_complexi(&(s->phase_acc[j]), s->phase_rate[j]);
+            s->window_i[j][buf_ptr] = (ph.re*amp[i]) >> s->scaling_shift;
+            s->window_q[j][buf_ptr] = (ph.im*amp[i]) >> s->scaling_shift;
 
             s->dot_i[j] += s->window_i[j][buf_ptr];
             s->dot_q[j] += s->window_q[j][buf_ptr];

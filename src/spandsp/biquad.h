@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: biquad.h,v 1.11 2007/04/05 19:20:49 steveu Exp $
+ * $Id: biquad.h,v 1.12 2007/04/08 08:16:17 steveu Exp $
  */
 
 /*! \page biquad_page Bi-quadratic filter sections
@@ -56,7 +56,7 @@ typedef struct
 #endif
 } biquad2_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -109,7 +109,7 @@ static __inline__ int16_t biquad2(biquad2_state_t *bq, int16_t sample)
 }
 /*- End of function --------------------------------------------------------*/
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.22 2007/02/13 13:47:22 steveu Exp $
+## $Id: Makefile.am,v 1.28 2007/07/22 08:52:45 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -29,9 +29,12 @@ MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = DueDiligence \
              spandsp.spec \
              wrapper.xsl \
+             doc/libspandsp-doxygen \
+             src/float_fudge.h \
+             src/spandsp/version.h.in \
              src/libspandsp.vcproj \
              src/libspandsp.dsp \
-             doc/libspandsp-doxygen \
+             src/libspandsp.sln \
              src/msvc/gettimeofday.c \
              src/msvc/inttypes.h \
              src/msvc/tgmath.h \
@@ -42,22 +45,30 @@ EXTRA_DIST = DueDiligence \
              src/msvc/msvcproj.foot \
              src/msvc/vc8proj.head \
              src/msvc/vc8proj.foot \
-             src/libspandsp.sln \
              spandsp/global-tones.xml \
-             spandsp/tones.dtd
+             spandsp/tones.dtd \
+             debian/changelog \
+             debian/compat \
+             debian/control \
+             debian/copyright \
+             debian/libspandsp3.install \
+             debian/libspandsp-dev.install \
+             debian/libspandsp-doc.install \
+             debian/rules \
+             debian/watch
 
 if COND_DOC
     MAYBE_DOC=doc
 endif
 if COND_TESTS
-    MAYBE_TESTS=tests
+    MAYBE_TESTS=spandsp-sim tests
 endif
 if COND_ITUTESTS
     MAYBE_ITUTESTS=itutests
 endif
 SUBDIRS = src $(MAYBE_DOC) $(MAYBE_TESTS) $(MAYBE_ITUTESTS)
 
-DIST_SUBDIRS = src doc tests itutests
+DIST_SUBDIRS = src spandsp-sim doc tests itutests
 
 faq: faq.xml
 	cd faq ; xsltproc ../wrapper.xsl ../faq.xml

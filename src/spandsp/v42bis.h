@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis.h,v 1.18 2007/04/05 19:20:50 steveu Exp $
+ * $Id: v42bis.h,v 1.19 2007/04/08 08:16:18 steveu Exp $
  */
 
 /*! \page v42bis_page V.42bis modem data compression
@@ -164,7 +164,7 @@ typedef struct
     int v42bis_parm_n7;
 } v42bis_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -229,7 +229,7 @@ void v42bis_compression_control(v42bis_state_t *s, int mode);
     \return 0 if OK */
 int v42bis_release(v42bis_state_t *s);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

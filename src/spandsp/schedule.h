@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule.h,v 1.11 2007/04/05 19:20:49 steveu Exp $
+ * $Id: schedule.h,v 1.13 2007/07/09 15:29:50 steveu Exp $
  */
 
 /*! \file */
@@ -58,7 +58,7 @@ struct span_sched_state_s
     logging_state_t logging;
 };
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -66,14 +66,14 @@ extern "C"
 uint64_t span_schedule_next(span_sched_state_t *s);
 uint64_t span_schedule_time(span_sched_state_t *s);
 
-int span_schedule_event(span_sched_state_t *s, int ms, void (*function)(span_sched_state_t *s, void *data), void *user_data);
-void span_schedule_update(span_sched_state_t *s, int samples);
+int span_schedule_event(span_sched_state_t *s, int us, span_sched_callback_func_t function, void *user_data);
+void span_schedule_update(span_sched_state_t *s, int us);
 void span_schedule_del(span_sched_state_t *s, int id);
 
 span_sched_state_t *span_schedule_init(span_sched_state_t *s);
 int span_schedule_release(span_sched_state_t *s);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

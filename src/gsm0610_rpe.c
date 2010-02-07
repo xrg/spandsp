@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_rpe.c,v 1.13 2006/11/19 14:07:24 steveu Exp $
+ * $Id: gsm0610_rpe.c,v 1.14 2007/08/20 15:22:22 steveu Exp $
  */
 
 /*! \file */
@@ -45,6 +45,7 @@
 #include <stdlib.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/bitstream.h"
 #include "spandsp/dc_restore.h"
 #include "spandsp/gsm0610.h"
 

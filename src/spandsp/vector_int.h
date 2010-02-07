@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector_int.h,v 1.6 2007/04/05 19:20:50 steveu Exp $
+ * $Id: vector_int.h,v 1.7 2007/04/08 08:16:18 steveu Exp $
  */
 
 #if !defined(_SPANDSP_VECTOR_INT_H_)
 #define _SPANDSP_VECTOR_INT_H_
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -91,7 +91,7 @@ static __inline__ int vec_max_bitsi16(const int16_t *vec, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

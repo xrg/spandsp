@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc_tests.c,v 1.30 2006/11/19 14:07:27 steveu Exp $
+ * $Id: hdlc_tests.c,v 1.36 2007/08/02 13:55:48 steveu Exp $
  */
 
 /*! \file */
@@ -54,10 +54,14 @@ using both 16 and 32 bit CRCs.
 int ref_len;
 uint8_t buf[1000];
 
+int abort_reported;
 int frame_handled;
+int frame_failed;
 int frame_len_errors;
 int frame_data_errors;
 int underflow_reported;
+int framing_ok_reported;
+int framing_ok_reports;
 
 hdlc_rx_state_t rx;
 hdlc_tx_state_t tx;
@@ -91,13 +95,16 @@ static int cook_up_msg(uint8_t *buf)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void frame_handler(void *user_data, int ok, const uint8_t *pkt, int len)
+static void frame_handler(void *user_data, const uint8_t *pkt, int len, int ok)
 {
     if (len < 0)
     {
         /* Special conditions */
         switch (len)
         {
+        case PUTBIT_TRAINING_IN_PROGRESS:
+            printf("Training in progress\n");
+            break;
         case PUTBIT_TRAINING_FAILED:
             printf("Training failed\n");
             break;
@@ -111,10 +118,22 @@ static void frame_handler(void *user_data, int ok, const uint8_t *pkt, int len)
             printf("Carrier down\n");
             break;
         case PUTBIT_FRAMING_OK:
+            framing_ok_reported = TRUE;
+            framing_ok_reports++;
             //printf("Framing OK\n");
             break;
+        case PUTBIT_END_OF_DATA:
+            printf("End of data\n");
+            break;
         case PUTBIT_ABORT:
-            printf("Abort\n");
+            abort_reported = TRUE;
+            //printf("Abort\n");
+            break;
+        case PUTBIT_BREAK:
+            printf("Break\n");
+            break;
+        case PUTBIT_OCTET_REPORT:
+            printf("Octet report\n");
             break;
         default:
             printf("Eh!\n");
@@ -122,19 +141,26 @@ static void frame_handler(void *user_data, int ok, const uint8_t *pkt, int len)
         }
         return;
     }
-    if (len != ref_len)
+    if (ok)
     {
-        printf("Len error - %d %d\n", len, ref_len);
-        frame_len_errors++;
-        return;
+        if (len != ref_len)
+        {
+            printf("Len error - %d %d\n", len, ref_len);
+            frame_len_errors++;
+            return;
+        }
+        if (memcmp(pkt, buf, len))
+        {
+            printf("Frame data error\n");
+            frame_data_errors++;
+            return;
+        }
+        frame_handled = TRUE;
     }
-    if (memcmp(pkt, buf, len))
+    else
     {
-        printf("Frame data error\n");
-        frame_data_errors++;
-        return;
+        frame_failed = TRUE;
     }
-    frame_handled = TRUE;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -179,7 +205,7 @@ static void check_result(void)
 }
 /*- End of function --------------------------------------------------------*/
 
-int main(int argc, char *argv[])
+static int test_hdlc_modes(void)
 {
     int i;
     int j;
@@ -187,37 +213,9 @@ int main(int argc, char *argv[])
     int nextbyte;
     int progress;
     int progress_delay;
+    uint8_t bufx[100];
 
-    printf("HDLC module tests\n");
-
-    /* Try a few random messages through the CRC logic. */
-    printf("Testing the CRC-16 routines\n");
-    for (i = 0;  i < 100;  i++)
-    {
-        ref_len = cook_up_msg(buf);
-        len = crc_itu16_append(buf, ref_len);
-        if (!crc_itu16_check(buf, len))
-        {
-            printf("CRC-16 failure\n");
-            exit(2);
-        }
-    }
-    printf("Test passed.\n\n");
-    
-    printf("Testing the CRC-32 routines\n");
-    for (i = 0;  i < 100;  i++)
-    {
-        ref_len = cook_up_msg(buf);
-        len = crc_itu32_append(buf, ref_len);
-        if (!crc_itu32_check(buf, len))
-        {
-            printf("CRC-32 failure\n");
-            exit(2);
-        }
-    }
-    printf("Test passed.\n\n");
-
-    /* Now try sending HDLC messages with CRC-16 */
+    /* Try sending HDLC messages with CRC-16 */
     printf("Testing with CRC-16 (byte by byte)\n");
     frame_len_errors = 0;
     frame_data_errors = 0;
@@ -226,11 +224,12 @@ int main(int argc, char *argv[])
     underflow_reported = FALSE;
 
     start = rdtscll();
-    hdlc_tx_preamble(&tx, 40);
+    hdlc_tx_flags(&tx, 40);
     /* Push an initial message so we should NOT get an underflow after the preamble. */
     ref_len = cook_up_msg(buf);
     hdlc_tx_frame(&tx, buf, ref_len);
     frame_handled = FALSE;
+    frame_failed = FALSE;
     frames_sent = 0;
     bytes_sent = 0;
     for (i = 0;  i < 1000000;  i++)
@@ -247,8 +246,48 @@ int main(int argc, char *argv[])
             if (!frame_handled)
             {
                 printf("Frame not received.\n");
-                printf("Tests failed.\n");
-                exit(2);
+                return -1;
+            }
+            ref_len = cook_up_msg(buf);
+            hdlc_tx_frame(&tx, buf, ref_len);
+            frame_handled = FALSE;
+        }
+    }
+    end = rdtscll();
+    check_result();
+
+    /* Now try sending HDLC messages with CRC-16 */
+    printf("Testing with CRC-16 (chunk by chunk)\n");
+    frame_len_errors = 0;
+    frame_data_errors = 0;
+    hdlc_tx_init(&tx, FALSE, 1, FALSE, underflow_handler, NULL);
+    hdlc_rx_init(&rx, FALSE, FALSE, 5, frame_handler, NULL);
+    underflow_reported = FALSE;
+
+    start = rdtscll();
+    hdlc_tx_flags(&tx, 40);
+    /* Push an initial message so we should NOT get an underflow after the preamble. */
+    ref_len = cook_up_msg(buf);
+    hdlc_tx_frame(&tx, buf, ref_len);
+    frame_handled = FALSE;
+    frame_failed = FALSE;
+    frames_sent = 0;
+    bytes_sent = 0;
+    for (i = 0;  i < 10000;  i++)
+    {
+        len = hdlc_tx_get(&tx, bufx, 100);
+        hdlc_rx_put(&rx, bufx, len);
+        if (underflow_reported)
+        {
+            underflow_reported = FALSE;
+            len = hdlc_tx_get(&tx, bufx, 100);
+            hdlc_rx_put(&rx, bufx, len);
+            frames_sent++;
+            bytes_sent += ref_len;
+            if (!frame_handled)
+            {
+                printf("Frame not received.\n");
+                return -1;
             }
             ref_len = cook_up_msg(buf);
             hdlc_tx_frame(&tx, buf, ref_len);
@@ -267,10 +306,11 @@ int main(int argc, char *argv[])
     underflow_reported = FALSE;
 
     start = rdtscll();
-    hdlc_tx_preamble(&tx, 40);
+    hdlc_tx_flags(&tx, 40);
     /* Don't push an initial message so we should get an underflow after the preamble. */
     /* Lie for the first message, as there isn't really one */
     frame_handled = TRUE;
+    frame_failed = FALSE;
     frames_sent = 0;
     bytes_sent = 0;
     ref_len = 0;
@@ -294,8 +334,7 @@ int main(int argc, char *argv[])
             if (!frame_handled)
             {
                 printf("Frame not received.\n");
-                printf("Tests failed.\n");
-                exit(2);
+                return -1;
             }
             ref_len = cook_up_msg(buf);
             hdlc_tx_frame(&tx, buf, ref_len);
@@ -314,10 +353,11 @@ int main(int argc, char *argv[])
     underflow_reported = FALSE;
 
     start = rdtscll();
-    hdlc_tx_preamble(&tx, 40);
+    hdlc_tx_flags(&tx, 40);
     /* Don't push an initial message so we should get an underflow after the preamble. */
     /* Lie for the first message, as there isn't really one */
     frame_handled = TRUE;
+    frame_failed = FALSE;
     frames_sent = 0;
     bytes_sent = 0;
     ref_len = 0;
@@ -338,8 +378,7 @@ int main(int argc, char *argv[])
             if (!frame_handled)
             {
                 printf("Frame not received.\n");
-                printf("Tests failed.\n");
-                exit(2);
+                return -1;
             }
             ref_len = cook_up_msg(buf);
             hdlc_tx_frame(&tx, buf, ref_len);
@@ -358,10 +397,11 @@ int main(int argc, char *argv[])
     underflow_reported = FALSE;
 
     start = rdtscll();
-    hdlc_tx_preamble(&tx, 40);
+    hdlc_tx_flags(&tx, 40);
     /* Don't push an initial message so we should get an underflow after the preamble. */
     /* Lie for the first message, as there isn't really one */
     frame_handled = TRUE;
+    frame_failed = FALSE;
     progress = 9999;
     progress_delay = 9999;
     frames_sent = 0;
@@ -384,8 +424,7 @@ int main(int argc, char *argv[])
             if (!frame_handled)
             {
                 printf("Frame not received.\n");
-                printf("Tests failed.\n");
-                exit(2);
+                return -1;
             }
             ref_len = cook_up_msg(buf);
             hdlc_tx_frame(&tx, buf, 10);
@@ -398,7 +437,7 @@ int main(int argc, char *argv[])
             if (hdlc_tx_frame(&tx, buf + progress, (progress + 10 <= ref_len)  ?  10  :  ref_len - progress) < 0)
             {
                 printf("Failed to add progressively\n");
-                exit(2);
+                return -1;
             }
             progress += 10;
             progress_delay = 8;
@@ -407,6 +446,376 @@ int main(int argc, char *argv[])
     end = rdtscll();
     check_result();
 
+    printf("Tests passed.\n");
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int test_hdlc_frame_length_error_handling(void)
+{
+    int i;
+    int j;
+    int nextbyte;
+
+    printf("Testing frame length error handling using CRC-16 (bit by bit)\n");
+    frame_len_errors = 0;
+    frame_data_errors = 0;
+    hdlc_tx_init(&tx, FALSE, 2, FALSE, underflow_handler, NULL);
+    hdlc_rx_init(&rx, FALSE, TRUE, 5, frame_handler, NULL);
+    hdlc_rx_set_max_frame_len(&rx, 100);
+    underflow_reported = FALSE;
+    framing_ok_reported = FALSE;
+    framing_ok_reports = 0;
+
+    hdlc_tx_flags(&tx, 10);
+    /* Don't push an initial message so we should get an underflow after the preamble. */
+    /* Lie for the first message, as there isn't really one */
+    frame_handled = TRUE;
+    frame_failed = FALSE;
+    frames_sent = 0;
+    bytes_sent = 0;
+    ref_len = 0;
+    for (i = 0;  i < 8*1000000;  i++)
+    {
+        nextbyte = hdlc_tx_get_bit(&tx);
+        hdlc_rx_put_bit(&rx, nextbyte);
+        if (framing_ok_reported)
+        {
+            printf("Framing OK reported at bit %d (%d)\n", i, framing_ok_reports);
+            framing_ok_reported = FALSE;
+        }
+        if (underflow_reported)
+        {
+            underflow_reported = FALSE;
+            for (j = 0;  j < 20;  j++)
+            {
+                nextbyte = hdlc_tx_get_bit(&tx);
+                hdlc_rx_put_bit(&rx, nextbyte);
+                if (framing_ok_reported)
+                {
+                    printf("Framing OK reported at bit %d (%d) - %d\n", i, framing_ok_reports, frame_handled);
+                    framing_ok_reported = FALSE;
+                }
+            }
+            if (ref_len)
+            {
+                frames_sent++;
+                bytes_sent += ref_len;
+            }
+            if (!frame_handled)
+            {
+                /* We should get a failure when the length reaches 101 */
+                if (ref_len == 101)
+                {
+                    printf("Tests passed.\n");
+                    return 0;
+                }
+                if (frame_failed)
+                    printf("Frame failed.\n");
+                printf("Frame not received at length %d.\n", ref_len);
+                return -1;
+            }
+            else
+            {
+                /* We should get a failure when the length reaches 101 */
+                if (ref_len > 100)
+                {
+                    printf("Tests failed.\n");
+                    return -1;
+                }
+            }
+            ref_len++;
+            hdlc_tx_frame(&tx, buf, ref_len);
+            frame_handled = FALSE;
+        }
+    }
+    /* We shouldn't reach here */
+    printf("Tests failed.\n");
+    return -1;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int test_hdlc_crc_error_handling(void)
+{
+    int i;
+    int j;
+    int nextbyte;
+    int corrupt;
+
+    printf("Testing CRC error handling using CRC-16 (bit by bit)\n");
+    frame_len_errors = 0;
+    frame_data_errors = 0;
+    hdlc_tx_init(&tx, FALSE, 2, FALSE, underflow_handler, NULL);
+    hdlc_rx_init(&rx, FALSE, TRUE, 5, frame_handler, NULL);
+    underflow_reported = FALSE;
+    framing_ok_reported = FALSE;
+    framing_ok_reports = 0;
+
+    hdlc_tx_flags(&tx, 10);
+    /* Don't push an initial message so we should get an underflow after the preamble. */
+    /* Lie for the first message, as there isn't really one */
+    frame_handled = TRUE;
+    frame_failed = FALSE;
+    frames_sent = 0;
+    bytes_sent = 0;
+    ref_len = 100;
+    corrupt = FALSE;
+    for (i = 0;  i < 8*1000000;  i++)
+    {
+        nextbyte = hdlc_tx_get_bit(&tx);
+        hdlc_rx_put_bit(&rx, nextbyte);
+        if (framing_ok_reported)
+        {
+            printf("Framing OK reported at bit %d (%d)\n", i, framing_ok_reports);
+            framing_ok_reported = FALSE;
+        }
+        if (underflow_reported)
+        {
+            underflow_reported = FALSE;
+            for (j = 0;  j < 20;  j++)
+            {
+                nextbyte = hdlc_tx_get_bit(&tx);
+                hdlc_rx_put_bit(&rx, nextbyte);
+                if (framing_ok_reported)
+                {
+                    printf("Framing OK reported at bit %d (%d) - %d\n", i, framing_ok_reports, frame_handled);
+                    framing_ok_reported = FALSE;
+                }
+            }
+            if (ref_len)
+            {
+                frames_sent++;
+                bytes_sent += ref_len;
+            }
+            if (!frame_handled)
+            {
+                if (!corrupt)
+                {
+                    printf("Frame not received when it should be correct.\n");
+                    return -1;
+                }
+            }
+            else
+            {
+                if (corrupt)
+                {
+                    printf("Frame received when it should be corrupt.\n");
+                    return -1;
+                }
+            }
+            ref_len = cook_up_msg(buf);
+            hdlc_tx_frame(&tx, buf, ref_len);
+            if ((corrupt = rand() & 1))
+                hdlc_tx_corrupt_frame(&tx);
+            frame_handled = FALSE;
+        }
+    }
+
+    printf("Tests passed.\n");
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int test_hdlc_abort_handling(void)
+{
+    int i;
+    int j;
+    int nextbyte;
+    int abort;
+
+    printf("Testing abort handling using CRC-16 (bit by bit)\n");
+    frame_len_errors = 0;
+    frame_data_errors = 0;
+    hdlc_tx_init(&tx, FALSE, 2, FALSE, underflow_handler, NULL);
+    hdlc_rx_init(&rx, FALSE, TRUE, 0, frame_handler, NULL);
+    underflow_reported = FALSE;
+    framing_ok_reported = FALSE;
+    framing_ok_reports = 0;
+
+    hdlc_tx_flags(&tx, 10);
+    /* Don't push an initial message so we should get an underflow after the preamble. */
+    /* Lie for the first message, as there isn't really one */
+    frame_handled = TRUE;
+    frame_failed = FALSE;
+    frames_sent = 0;
+    bytes_sent = 0;
+    ref_len = 0;
+    abort = FALSE;
+    abort_reported = FALSE;
+    for (i = 0;  i < 8*1000000;  i++)
+    {
+        nextbyte = hdlc_tx_get_bit(&tx);
+        hdlc_rx_put_bit(&rx, nextbyte);
+        if (framing_ok_reported)
+        {
+            printf("Framing OK reported at bit %d (%d)\n", i, framing_ok_reports);
+            framing_ok_reported = FALSE;
+        }
+        if (underflow_reported)
+        {
+            underflow_reported = FALSE;
+            for (j = 0;  j < 20;  j++)
+            {
+                nextbyte = hdlc_tx_get_bit(&tx);
+                hdlc_rx_put_bit(&rx, nextbyte);
+                if (framing_ok_reported)
+                {
+                    printf("Framing OK reported at bit %d (%d) - %d\n", i, framing_ok_reports, frame_handled);
+                    framing_ok_reported = FALSE;
+                }
+            }
+            if (ref_len)
+            {
+                frames_sent++;
+                bytes_sent += ref_len;
+            }
+            if (abort)
+            {
+                if (abort  &&  !abort_reported)
+                {
+                    printf("Abort not received when sent\n");
+                    return -1;
+                }
+                if (frame_handled)
+                {
+                    if (frame_failed)
+                        printf("Frame failed.\n");
+                    printf("Frame received when abort sent.\n");
+                    return -1;
+                }
+            }
+            else
+            {
+                if (abort_reported)
+                {
+                    printf("Abort received when not sent\n");
+                    return -1;
+                }
+                if (!frame_handled)
+                {
+                    if (frame_failed)
+                        printf("Frame failed.\n");
+                    printf("Frame not received.\n");
+                    return -1;
+                }
+            }
+            ref_len = cook_up_msg(buf);
+            hdlc_tx_frame(&tx, buf, ref_len);
+            if ((abort = rand() & 1))
+                hdlc_tx_abort(&tx);
+            frame_handled = FALSE;
+            abort_reported = FALSE;
+        }
+    }
+
+    printf("Tests passed.\n");
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int test_hdlc_octet_count_handling(void)
+{
+    int i;
+    int j;
+    int nextbyte;
+
+    printf("Testing the octet_counting handling using CRC-16 (bit by bit)\n");
+    frame_len_errors = 0;
+    frame_data_errors = 0;
+    hdlc_tx_init(&tx, FALSE, 2, FALSE, underflow_handler, NULL);
+    hdlc_rx_init(&rx, FALSE, TRUE, 0, frame_handler, NULL);
+    //hdlc_rx_set_max_frame_len(&rx, 50);
+    hdlc_rx_set_octet_counting_report_interval(&rx, 16);
+    underflow_reported = FALSE;
+    framing_ok_reported = FALSE;
+    framing_ok_reports = 0;
+
+    hdlc_tx_flags(&tx, 10);
+    /* Don't push an initial message so we should get an underflow after the preamble. */
+    /* Lie for the first message, as there isn't really one */
+    frame_handled = TRUE;
+    frame_failed = FALSE;
+    frames_sent = 0;
+    bytes_sent = 0;
+    ref_len = 0;
+    for (i = 0;  i < 8*1000000;  i++)
+    {
+        nextbyte = hdlc_tx_get_bit(&tx);
+        hdlc_rx_put_bit(&rx, nextbyte);
+        if (framing_ok_reported)
+        {
+            printf("Framing OK reported at bit %d (%d)\n", i, framing_ok_reports);
+            framing_ok_reported = FALSE;
+        }
+        if (underflow_reported)
+        {
+            underflow_reported = FALSE;
+            for (j = 0;  j < 20;  j++)
+            {
+                nextbyte = hdlc_tx_get_bit(&tx);
+                hdlc_rx_put_bit(&rx, nextbyte);
+                if (framing_ok_reported)
+                {
+                    printf("Framing OK reported at bit %d (%d) - %d\n", i, framing_ok_reports, frame_handled);
+                    framing_ok_reported = FALSE;
+                }
+            }
+            if (ref_len)
+            {
+                frames_sent++;
+                bytes_sent += ref_len;
+            }
+            if (!frame_handled)
+            {
+                if (frame_failed)
+                    printf("Frame failed.\n");
+                printf("Frame not received.\n");
+                return -1;
+            }
+            ref_len = cook_up_msg(buf);
+            hdlc_tx_frame(&tx, buf, ref_len);
+            hdlc_tx_abort(&tx);
+            //hdlc_tx_corrupt_frame(&tx);
+            frame_handled = FALSE;
+        }
+    }
+
+    printf("Tests passed.\n");
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int main(int argc, char *argv[])
+{
+    printf("HDLC module tests\n");
+
+    if (0)//test_hdlc_modes())
+    {
+        printf("Tests failed\n");
+        exit(2);
+    }
+    if (test_hdlc_frame_length_error_handling())
+    {
+        printf("Tests failed\n");
+        exit(2);
+    }
+    if (test_hdlc_crc_error_handling())
+    {
+        printf("Tests failed\n");
+        exit(2);
+    }
+    if (test_hdlc_abort_handling())
+    {
+        printf("Tests failed\n");
+        exit(2);
+    }
+#if 0
+    if (test_hdlc_octet_count_handling())
+    {
+        printf("Tests failed\n");
+        exit(2);
+    }
+#endif
     printf("Tests passed.\n");
     return  0;
 }

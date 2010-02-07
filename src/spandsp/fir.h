@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fir.h,v 1.10 2007/04/05 19:20:49 steveu Exp $
+ * $Id: fir.h,v 1.11 2007/04/08 08:16:17 steveu Exp $
  */
 
 /*! \page fir_page FIR filtering
@@ -77,7 +77,7 @@ typedef struct
     float *history;
 } fir_float_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -296,7 +296,7 @@ static __inline__ int16_t fir_float(fir_float_state_t *fir, int16_t sample)
 }
 /*- End of function --------------------------------------------------------*/
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

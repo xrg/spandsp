@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx_tests.c,v 1.19 2007/02/27 16:52:16 steveu Exp $
+ * $Id: super_tone_rx_tests.c,v 1.20 2007/06/28 13:10:59 steveu Exp $
  */
 
 /*! \file */
@@ -67,10 +67,13 @@
 #include "spandsp.h"
 
 #define IN_FILE_NAME    "super_tone.wav"
+
+#define MITEL_DIR       "../itutests/mitel/"
 #define BELLCORE_DIR	"../itutests/bellcore/"
 
 const char *bellcore_files[] =
 {
+    MITEL_DIR    "mitel-cm7291-talkoff.wav",
     BELLCORE_DIR "tr-tsy-00763-1.wav",
     BELLCORE_DIR "tr-tsy-00763-2.wav",
     BELLCORE_DIR "tr-tsy-00763-3.wav",

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: playout.h,v 1.8 2007/04/05 19:20:49 steveu Exp $
+ * $Id: playout.h,v 1.9 2007/04/08 08:16:18 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PLAYOUT_H_)
@@ -133,7 +133,7 @@ typedef struct
     int actual_buffer_length;
 } playout_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -202,7 +202,7 @@ void playout_free(playout_state_t *s);
            length buffering is used. */
 void playout_restart(playout_state_t *s, int min_length, int max_length);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.c,v 1.48 2007/03/18 09:43:50 steveu Exp $
+ * $Id: v17tx.c,v 1.51 2007/08/13 13:08:19 steveu Exp $
  */
 
 /*! \file */
@@ -70,7 +70,11 @@
 
 #define V17_BRIDGE_WORD             0x8880
 
-const complexf_t v17_14400_constellation[128] =
+#if defined(SPANDSP_USE_FIXED_POINT)
+static const complexi16_t v17_14400_constellation[128] =
+#else
+static const complexf_t v17_14400_constellation[128] =
+#endif
 {
     {-8, -3},       /* 0x00 */
     { 9,  2},       /* 0x01 */
@@ -202,7 +206,11 @@ const complexf_t v17_14400_constellation[128] =
     {-5,  0}        /* 0x7F */
 };
 
-const complexf_t v17_12000_constellation[64] =
+#if defined(SPANDSP_USE_FIXED_POINT)
+static const complexi16_t v17_12000_constellation[64] =
+#else
+static const complexf_t v17_12000_constellation[64] =
+#endif
 {
     { 7,  1},       /* 0x00 */
     {-5, -1},       /* 0x01 */
@@ -270,7 +278,11 @@ const complexf_t v17_12000_constellation[64] =
     { 3, -5}        /* 0x3F */
 };
 
-const complexf_t v17_9600_constellation[32] =
+#if defined(SPANDSP_USE_FIXED_POINT)
+static const complexi16_t v17_9600_constellation[32] =
+#else
+static const complexf_t v17_9600_constellation[32] =
+#endif
 {
     {-8,  2},       /* 0x00 */
     {-6, -4},       /* 0x01 */
@@ -306,7 +318,11 @@ const complexf_t v17_9600_constellation[32] =
     {-2,  8}        /* 0x1F */
 };
 
-const complexf_t v17_7200_constellation[16] =
+#if defined(SPANDSP_USE_FIXED_POINT)
+static const complexi16_t v17_7200_constellation[16] =
+#else
+static const complexf_t v17_7200_constellation[16] =
+#endif
 {
     { 6, -6},       /* 0x00 */
     {-2,  6},       /* 0x01 */
@@ -332,6 +348,121 @@ const complexf_t v17_7200_constellation[16] =
 #define PULSESHAPER_GAIN            (9.9888356312f/10.0f)
 #define PULSESHAPER_COEFF_SETS      10
 
+#if defined(SPANDSP_USE_FIXED_POINT)
+static const int16_t pulseshaper[PULSESHAPER_COEFF_SETS][V17_TX_FILTER_STEPS] =
+{
+    {
+          -90,          /* Filter 0 */
+         -561,
+         2003,
+        -5224,
+        19072,
+        19072,
+        -5224,
+         2003,
+         -561
+    },
+    {
+           97,          /* Filter 1 */
+         -922,
+         2554,
+        -6055,
+        23508,
+        14325,
+        -3960,
+         1301,
+         -183
+    },
+    {
+          298,          /* Filter 2 */
+        -1210,
+         2855,
+        -6269,
+        27331,
+         9578,
+        -2462,
+          549,
+          159
+    },
+    {
+          478,          /* Filter 3 */
+        -1371,
+         2828,
+        -5714,
+        30276,
+         5121,
+         -925,
+         -157,
+          427
+    },
+    {
+          606,          /* Filter 4 */
+        -1360,
+         2421,
+        -4291,
+        32132,
+         1208,
+          482,
+         -741,
+          594
+    },
+    {
+          651,          /* Filter 5 */
+        -1151,
+         1627,
+        -1969,
+        32767,
+        -1969,
+         1627,
+        -1151,
+          651
+    },
+    {
+          594,          /* Filter 6 */
+         -741,
+          482,
+         1208,
+        32132,
+        -4291,
+         2421,
+        -1360,
+          606
+    },
+    {
+          427,          /* Filter 7 */
+         -157,
+         -925,
+         5121,
+        30276,
+        -5714,
+         2828,
+        -1371,
+          478
+    },
+    {
+          159,          /* Filter 8 */
+          549,
+        -2462,
+         9578,
+        27331,
+        -6269,
+         2855,
+        -1210,
+          298
+    },
+    {
+         -183,          /* Filter 9 */
+         1301,
+        -3960,
+        14325,
+        23508,
+        -6055,
+         2554,
+         -922,
+           97
+    }
+};
+#else
 static const float pulseshaper[PULSESHAPER_COEFF_SETS][V17_TX_FILTER_STEPS] =
 {
     {
@@ -445,6 +576,7 @@ static const float pulseshaper[PULSESHAPER_COEFF_SETS][V17_TX_FILTER_STEPS] =
          0.0031876922f
     },
 };
+#endif
 
 static __inline__ int scramble(v17_tx_state_t *s, int in_bit)
 {
@@ -456,8 +588,21 @@ static __inline__ int scramble(v17_tx_state_t *s, int in_bit)
 }
 /*- End of function --------------------------------------------------------*/
 
+#if defined(SPANDSP_USE_FIXED_POINT)
+static __inline__ complexi16_t training_get(v17_tx_state_t *s)
+#else
 static __inline__ complexf_t training_get(v17_tx_state_t *s)
+#endif
 {
+#if defined(SPANDSP_USE_FIXED_POINT)
+    static const complexi16_t abcd[4] =
+    {
+        {-6, -2},
+        { 2, -6},
+        { 6,  2},
+        {-2,  6}
+    };
+#else
     static const complexf_t abcd[4] =
     {
         {-6.0f, -2.0f},
@@ -465,6 +610,7 @@ static __inline__ complexf_t training_get(v17_tx_state_t *s)
         { 6.0f,  2.0f},
         {-2.0f,  6.0f}
     };
+#endif
     static const int cdba_to_abcd[4] =
     {
         2, 3, 1, 0
@@ -488,7 +634,11 @@ static __inline__ complexf_t training_get(v17_tx_state_t *s)
             if (s->training_step <= V17_TRAINING_SEG_1)
             {
                 /* Optional segment: silence (talker echo protection) */
+#if defined(SPANDSP_USE_FIXED_POINT)
+                return complex_seti16(0, 0);
+#else
                 return complex_setf(0.0f, 0.0f);
+#endif
             }
             /* Segment 1: ABAB... */
             return abcd[(s->training_step & 1) ^ 1];
@@ -545,7 +695,11 @@ static int fake_get_bit(void *user_data)
 }
 /*- End of function --------------------------------------------------------*/
 
+#if defined(SPANDSP_USE_FIXED_POINT)
+static __inline__ complexi16_t getbaud(v17_tx_state_t *s)
+#else
 static __inline__ complexf_t getbaud(v17_tx_state_t *s)
+#endif
 {
     int i;
     int bit;
@@ -572,7 +726,11 @@ static __inline__ complexf_t getbaud(v17_tx_state_t *s)
             {
                 /* The shutdown sequence is 32 bauds of all 1's, then 48 bauds
                    of silence */
+#if defined(SPANDSP_USE_FIXED_POINT)
+                return complex_seti16(0, 0);
+#else
                 return complex_setf(0.0f, 0.0f);
+#endif
             }
         }
     }
@@ -595,8 +753,13 @@ static __inline__ complexf_t getbaud(v17_tx_state_t *s)
 
 int v17_tx(v17_tx_state_t *s, int16_t amp[], int len)
 {
+#if defined(SPANDSP_USE_FIXED_POINT)
+    complexi_t x;
+    complexi_t z;
+#else
     complexf_t x;
     complexf_t z;
+#endif
     int i;
     int sample;
 
@@ -616,8 +779,22 @@ int v17_tx(v17_tx_state_t *s, int16_t amp[], int len)
                 s->rrc_filter_step = 0;
         }
         /* Root raised cosine pulse shaping at baseband */
-        x.re = 0.0f;
-        x.im = 0.0f;
+#if defined(SPANDSP_USE_FIXED_POINT)
+        x = complex_seti(0, 0);
+        for (i = 0;  i < V17_TX_FILTER_STEPS;  i++)
+        {
+            x.re += (int32_t) pulseshaper[9 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].re;
+            x.im += (int32_t) pulseshaper[9 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].im;
+        }
+        /* Now create and modulate the carrier */
+        x.re >>= 4;
+        x.im >>= 4;
+        z = dds_complexi(&(s->carrier_phase), s->carrier_phase_rate);
+        /* Don't bother saturating. We should never clip. */
+        i = (x.re*z.re - x.im*z.im) >> 15;
+        amp[sample] = (int16_t) ((i*s->gain) >> 15);
+#else
+        x = complex_setf(0.0f, 0.0f);
         for (i = 0;  i < V17_TX_FILTER_STEPS;  i++)
         {
             x.re += pulseshaper[9 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].re;
@@ -627,6 +804,7 @@ int v17_tx(v17_tx_state_t *s, int16_t amp[], int len)
         z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
         /* Don't bother saturating. We should never clip. */
         amp[sample] = (int16_t) rintf((x.re*z.re - x.im*z.im)*s->gain);
+#endif
     }
     return sample;
 }
@@ -636,7 +814,11 @@ void v17_tx_power(v17_tx_state_t *s, float power)
 {
     /* The constellation design seems to keep the average power the same, regardless
        of which bit rate is in use. */
+#if defined(SPANDSP_USE_FIXED_POINT)
+    s->gain = 0.223f*powf(10.0f, (power - DBM0_MAX_POWER)/20.0f)*16.0f*(32767.0f/30672.52f)*32768.0f/PULSESHAPER_GAIN;
+#else
     s->gain = 0.223f*powf(10.0f, (power - DBM0_MAX_POWER)/20.0f)*32768.0f/PULSESHAPER_GAIN;
+#endif
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -675,7 +857,11 @@ int v17_tx_restart(v17_tx_state_t *s, int rate, int tep, int short_train)
     /* NB: some modems seem to use 3 instead of 1 for long training */
     s->diff = (short_train)  ?  0  :  1;
     s->bit_rate = rate;
+#if defined(SPANDSP_USE_FIXED_POINT)
+    memset(s->rrc_filter, 0, sizeof(s->rrc_filter));
+#else
     cvec_zerof(s->rrc_filter, sizeof(s->rrc_filter)/sizeof(s->rrc_filter[0]));
+#endif
     s->rrc_filter_step = 0;
     s->convolution = 0;
     s->scramble_reg = 0x2ECDD5;

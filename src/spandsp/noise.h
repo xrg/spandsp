@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: noise.h,v 1.10 2007/04/05 19:20:49 steveu Exp $
+ * $Id: noise.h,v 1.11 2007/04/08 08:16:18 steveu Exp $
  */
 
 /*! \file */
@@ -100,7 +100,7 @@ typedef struct
     int32_t state;
 } noise_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -126,7 +126,7 @@ noise_state_t *noise_init_dbov(noise_state_t *s, int seed, float level, int clas
 */
 int16_t noise(noise_state_t *s);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

@@ -28,7 +28,7 @@
  * Computer Science, Speech Group
  * Chengxiang Lu and Alex Hauptmann
  *
- * $Id: g722.h,v 1.15 2007/04/05 19:20:49 steveu Exp $
+ * $Id: g722.h,v 1.16 2007/04/08 08:16:17 steveu Exp $
  */
 
 
@@ -132,7 +132,7 @@ typedef struct
     int out_bits;
 } g722_decode_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -173,7 +173,7 @@ int g722_decode_release(g722_decode_state_t *s);
     \return The number of samples returned. */
 int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[], int len);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

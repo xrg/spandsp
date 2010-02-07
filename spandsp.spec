@@ -1,12 +1,12 @@
 Summary:    A DSP library for telephony.
 Name:       spandsp
-Version:    0.0.3
+Version:    0.0.4
 Release:    1
 License:    GPL
 Group:      System Environment/Libraries
 URL:        http://www.soft-switch.org/spandsp
 BuildRoot:  %{_tmppath}/%{name}-%{version}-root
-Source:     http://www.soft-switch.org/downloads/spandsp/spandsp-0.0.3.tar.gz
+Source:     http://www.soft-switch.org/downloads/spandsp/spandsp-0.0.4.tar.gz
 BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Docdir:     %{_prefix}/doc

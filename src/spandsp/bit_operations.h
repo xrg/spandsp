@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bit_operations.h,v 1.17 2007/04/05 19:20:49 steveu Exp $
+ * $Id: bit_operations.h,v 1.18 2007/04/08 08:16:17 steveu Exp $
  */
 
 /*! \file */
@@ -30,7 +30,7 @@
 #if !defined(_SPANDSP_BIT_OPERATIONS_H_)
 #define _SPANDSP_BIT_OPERATIONS_H_
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -254,7 +254,7 @@ static __inline__ int parity32(uint32_t x)
 }
 /*- End of function --------------------------------------------------------*/
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g711_tests.c,v 1.4 2006/11/19 14:07:27 steveu Exp $
+ * $Id: g711_tests.c,v 1.6 2007/08/25 05:00:30 steveu Exp $
  */
 
 /*! \page g711_tests_page A-law and u-law conversion tests
@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
     int block;
     int pre;
     int post;
+    int post_post;
     int alaw_failures;
     int ulaw_failures;
     float worst_alaw;
@@ -179,6 +180,33 @@ int main(int argc, char *argv[])
         exit(2);
     }
     
+    printf("Cyclic conversion repeatability tests.\n");
+    /* Find what happens to every possible linear value after a round trip. */
+    for (i = 0;  i < 65536;  i++)
+    {
+        pre = i - 32768;
+        /* Make a round trip */
+        post = alaw_to_linear(linear_to_alaw(pre));
+        /* A second round trip should cause no further change */
+        post_post = alaw_to_linear(linear_to_alaw(post));
+        if (post_post != post)
+        {
+            printf("A-law second round trip mismatch - at %d, %d != %d\n", pre, post, post_post);
+            printf("Tests failed\n");
+            exit(2);
+        }
+        /* Make a round trip */
+        post = ulaw_to_linear(linear_to_ulaw(pre));
+        /* A second round trip should cause no further change */
+        post_post = ulaw_to_linear(linear_to_ulaw(post));
+        if (post_post != post)
+        {
+            printf("u-law round trip mismatch - at %d, %d != %d\n", pre, post, post_post);
+            printf("Tests failed\n");
+            exit(2);
+        }
+    }
+    
     printf("Reference power level tests.\n");
     power_meter_init(&power_meter, 7);
 
@@ -187,7 +215,7 @@ int main(int argc, char *argv[])
         amp[i] = ulaw_to_linear(ulaw_1khz_sine[i & 7]);
         power_meter_update(&power_meter, amp[i]);
     }
-    printf("Reference u-law 1kHz tone is %fdBm0\n", power_meter_dbm0(&power_meter));
+    printf("Reference u-law 1kHz tone is %fdBm0\n", power_meter_current_dbm0(&power_meter));
     outframes = afWriteFrames(outhandle,
                               AF_DEFAULT_TRACK,
                               amp,
@@ -197,7 +225,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
-    if (0.1f < fabs(power_meter_dbm0(&power_meter)))
+    if (0.1f < fabs(power_meter_current_dbm0(&power_meter)))
     {
         printf("Test failed.\n");
         exit(2);
@@ -208,7 +236,7 @@ int main(int argc, char *argv[])
         amp[i] = alaw_to_linear(alaw_1khz_sine[i & 7]);
         power_meter_update(&power_meter, amp[i]);
     }
-    printf("Reference A-law 1kHz tone is %fdBm0\n", power_meter_dbm0(&power_meter));
+    printf("Reference A-law 1kHz tone is %fdBm0\n", power_meter_current_dbm0(&power_meter));
     outframes = afWriteFrames(outhandle,
                               AF_DEFAULT_TRACK,
                               amp,
@@ -218,7 +246,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
-    if (0.1f < fabs(power_meter_dbm0(&power_meter)))
+    if (0.1f < fabs(power_meter_current_dbm0(&power_meter)))
     {
         printf("Test failed.\n");
         exit(2);

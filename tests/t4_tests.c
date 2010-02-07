@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.36 2007/03/27 13:04:01 steveu Exp $
+ * $Id: t4_tests.c,v 1.38 2007/08/14 14:57:37 steveu Exp $
  */
 
 /*! \file */
@@ -38,6 +38,7 @@ in ITU specifications T.4 and T.6.
 #endif
 
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <inttypes.h>
 #include <fcntl.h>
@@ -68,7 +69,6 @@ int main(int argc, char* argv[])
     int bit;
     int end_of_page;
     int end_marks;
-    int i;
     int decode_test;
     int compression;
     int compression_step;
@@ -80,6 +80,7 @@ int main(int argc, char* argv[])
     uint8_t block[1024];
     t4_stats_t stats;
     const char *in_file_name;
+    int opt;
 
     decode_test = FALSE;
     compression = -1;
@@ -88,54 +89,43 @@ int main(int argc, char* argv[])
     in_file_name = IN_FILE_NAME;
     min_row_bits = 0;
     block_size = 0;
-    for (i = 1;  i < argc;  i++)
+    while ((opt = getopt(argc, argv, "b:d126hri:m:")) != -1)
     {
-        if (strcmp(argv[i], "-b") == 0)
+        switch (opt)
         {
-            block_size = atoi(argv[++i]);
+        case 'b':
+            block_size = atoi(optarg);
             if (block_size > 1024)
                 block_size = 1024;
-            continue;
-        }
-        if (strcmp(argv[i], "-d") == 0)
-        {
+            break;
+        case 'd':
             decode_test = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-1") == 0)
-        {
+            break;
+        case '1':
             compression = T4_COMPRESSION_ITU_T4_1D;
-            continue;
-        }
-        if (strcmp(argv[i], "-2") == 0)
-        {
+            break;
+        case '2':
             compression = T4_COMPRESSION_ITU_T4_2D;
-            continue;
-        }
-        if (strcmp(argv[i], "-6") == 0)
-        {
+            break;
+        case '6':
             compression = T4_COMPRESSION_ITU_T6;
-            continue;
-        }
-        if (strcmp(argv[i], "-h") == 0)
-        {
+            break;
+        case 'h':
             add_page_headers = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-r") == 0)
-        {
+            break;
+        case 'r':
             restart_pages = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-i") == 0)
-        {
-            in_file_name = argv[++i];
-            continue;
-        }
-        if (strcmp(argv[i], "-m") == 0)
-        {
-            min_row_bits = atoi(argv[++i]);
-            continue;
+            break;
+        case 'i':
+            in_file_name = optarg;
+            break;
+        case 'm':
+            min_row_bits = atoi(optarg);
+            break;
+        default:
+            //usage();
+            exit(2);
+            break;
         }
     }
     /* Create a send and a receive end */

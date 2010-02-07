@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.h,v 1.12 2007/04/05 19:20:49 steveu Exp $
+ * $Id: at_interpreter.h,v 1.14 2007/05/15 13:22:43 steveu Exp $
  */
 
 /*! \file */
@@ -98,6 +98,13 @@ enum
     AT_RESPONSE_CODE_NO_ANSWER,
     AT_RESPONSE_CODE_FCERROR,
     AT_RESPONSE_CODE_FRH3
+};
+
+struct at_call_id
+{
+    char *id;
+    char *value;
+    struct at_call_id *next;
 };
 
 /*!
@@ -177,12 +184,7 @@ struct at_state_s
 
     int display_call_info;
     int call_info_displayed;
-    char *call_date;
-    char *call_time;
-    char *originating_name;
-    char *originating_number;
-    char *originating_ani;
-    char *destination_number;
+    struct at_call_id *call_id;
     char *local_id;
     /*! The currently select FAX modem class. 0 = data modem mode. */
     int fclass_mode;
@@ -212,7 +214,7 @@ struct at_state_s
     logging_state_t logging;
 };
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -230,19 +232,9 @@ void at_reset_call_info(at_state_t *s);
 /*! Set the call information for an AT interpreter.
     \brief Set the call information for an AT interpreter.
     \param s The AT interpreter context.
-    \param call_date .
-    \param call_time .
-    \param originating_name .
-    \param originating_number .
-    \param originating_ani .
-    \param destination_number . */
-void at_set_call_info(at_state_t *s,
-                      char const *call_date,
-                      char const *call_time,
-                      char const *originating_name,
-                      char const *originating_number,
-                      char const *originating_ani,
-                      char const *destination_number);
+    \param id .
+    \param value . */
+void at_set_call_info(at_state_t *s, char const *id, char const *value);
 
 void at_display_call_info(at_state_t *s);
 
@@ -260,7 +252,7 @@ at_state_t *at_init(at_state_t *s,
                     at_modem_control_handler_t *modem_control_handler,
                     void *modem_control_user_data);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

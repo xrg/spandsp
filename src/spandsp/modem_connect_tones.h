@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.h,v 1.6 2007/04/05 19:20:49 steveu Exp $
+ * $Id: modem_connect_tones.h,v 1.9 2007/06/28 13:10:59 steveu Exp $
  */
  
 /*! \file */
@@ -97,9 +97,14 @@ typedef struct
     int tone_cycle_duration;
     int good_cycles;
     int hit;
+    /*! \brief A V.21 FSK modem context used when searching for FAX preamble. */
+    fsk_rx_state_t v21rx;
+    int one_zero_weight[2];
+    int odd_even;
+    int preamble_on;
 } modem_connect_tones_rx_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -149,7 +154,7 @@ modem_connect_tones_rx_state_t *modem_connect_tones_rx_init(modem_connect_tones_
                                                             tone_report_func_t tone_callback,
                                                             void *user_data);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

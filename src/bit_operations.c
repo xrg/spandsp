@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bit_operations.c,v 1.7 2007/02/23 13:30:52 steveu Exp $
+ * $Id: bit_operations.c,v 1.10 2007/06/17 12:42:48 steveu Exp $
  */
 
 /*! \file */
@@ -81,6 +81,9 @@ uint64_t bit_reverse_8bytes(uint64_t x)
 
 void bit_reverse(uint8_t to[], const uint8_t from[], int len)
 {
+#if defined(__sparc__)  ||  defined(__sparc)
+    int i;
+#else
     const uint8_t *y1;
     uint8_t *z1;
     const uint32_t *y4;
@@ -91,7 +94,14 @@ void bit_reverse(uint8_t to[], const uint8_t from[], int len)
     uint64_t *z8;
     uint64_t x8;
 #endif
+#endif
 
+#if defined(__sparc__)  ||  defined(__sparc)
+    /* This code work 8 bits at a time, so it works on machines where misalignment
+       is either desperately slow or fails */
+    for (i = 0;  i < len;  i++)
+        to[i] = bit_reverse8(from[i]);
+#else
     /* This code is this is based on the woolly assumption that the start of the buffers
        is memory aligned. If it isn't, the routine will be less efficient on some machines,
        but might not work at all on others. */
@@ -124,6 +134,7 @@ void bit_reverse(uint8_t to[], const uint8_t from[], int len)
     z1 = (uint8_t *) z4;
     while (len-- > 0)
         *z1++ = bit_reverse8(*y1++);
+#endif
 }
 /*- End of function --------------------------------------------------------*/
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t35.c,v 1.20 2006/11/15 14:57:16 steveu Exp $
+ * $Id: t35.c,v 1.22 2007/06/22 12:40:35 steveu Exp $
  */
 
 /*
@@ -464,7 +464,7 @@ static const nsf_data_t known_nsf[] =
     {"\x00\x00\x16", 3, "System House Mind", FALSE, NULL},
     {"\x00\x00\x19", 3, "Xerox", TRUE, NULL},
     {"\x00\x00\x1D", 3, "Hitachi Software", FALSE, NULL},
-    {"\x00\x00\x21", 3, "Oki Electric/Lanier", TRUE, NULL},
+    {"\x00\x00\x21", 3, "OKI Electric/Lanier", TRUE, NULL},
     {"\x00\x00\x25", 3, "Ricoh", TRUE, Ricoh},
     {"\x00\x00\x26", 3, "Konica", FALSE, NULL},
     {"\x00\x00\x29", 3, "Japan Wireless", FALSE, NULL},
@@ -568,6 +568,7 @@ static const nsf_data_t known_nsf[] =
     {"\x86\x00\x98", 3, "Samsung", FALSE, NULL},
     {"\x86\x00\xA2", 3, "Samsung", FALSE, SamsungA2},
     {"\x86\x00\xA4", 3, "unknown - Korea A4", FALSE, NULL},
+    {"\x86\x00\xC2", 3, "Samsung", FALSE, NULL},
     {"\x86\x00\xC9", 3, "unknown - Korea C9", FALSE, NULL},
     {"\x86\x00\xCC", 3, "unknown - Korea CC", FALSE, NULL},
     {"\x86\x00\xD2", 3, "unknown - Korea D2", FALSE, NULL},

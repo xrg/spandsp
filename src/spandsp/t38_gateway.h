@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.24 2007/04/05 19:20:50 steveu Exp $
+ * $Id: t38_gateway.h,v 1.28 2007/05/15 13:22:43 steveu Exp $
  */
 
 /*! \file */
@@ -49,8 +49,19 @@ to maximum the tolerance of jitter and packet loss on the IP network.
 typedef struct
 {
     t38_core_state_t t38;
-    
+
+    /*! TRUE if ECM FAX mode is allowed through the gateway. */
     int ecm_allowed;
+
+    /*! If TRUE, transmit silence when there is nothing else to transmit. If FALSE return only
+        the actual generated audio. Note that this only affects untimed silences. Timed silences
+        (e.g. the 75ms silence between V.21 and a high speed modem) will alway be transmitted as
+        silent audio. */
+    int transmit_on_idle;
+
+    int supported_modems;
+    
+    int suppress_nsx;
 
     /*! \brief HDLC message buffers. */
     uint8_t hdlc_buf[T38_TX_HDLC_BUFS][T38_MAX_HDLC_LEN];
@@ -134,14 +145,12 @@ typedef struct
                messages. */
     fsk_rx_state_t v21rx;
 
-#if defined(ENABLE_V17)
     /*! \brief A V.17 modem context used when sending FAXes at 7200bps, 9600bps
                12000bps or 14400bps*/
     v17_tx_state_t v17tx;
     /*! \brief A V.29 modem context used when receiving FAXes at 7200bps, 9600bps
                12000bps or 14400bps*/
     v17_rx_state_t v17rx;
-#endif
 
     /*! \brief A V.29 modem context used when sending FAXes at 7200bps or
                9600bps */
@@ -187,7 +196,10 @@ typedef struct
 
     /*! \brief TRUE if we need to corrupt the HDLC frame in progress, so the receiver cannot
                interpret it. */
-    int corrupt_the_frame;
+    int corrupt_the_frame_to_t38;
+    /*! \brief TRUE if we need to corrupt the HDLC frame in progress, so the receiver cannot
+               interpret it. */
+    int corrupt_the_frame_from_t38;
     
     int current_rx_type;
     int current_tx_type;
@@ -195,7 +207,7 @@ typedef struct
     logging_state_t logging;
 } t38_gateway_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -231,9 +243,15 @@ int t38_gateway_tx(t38_gateway_state_t *s, int16_t amp[], int max_len);
     \param s The T.38 context.
     \param ecm_allowed TRUE is ECM is to be allowed.
 */
-void t38_gateway_ecm_control(t38_gateway_state_t *s, int ecm_allowed);
+void t38_gateway_set_ecm_capability(t38_gateway_state_t *s, int ecm_allowed);
 
-#ifdef __cplusplus
+void t38_gateway_set_transmit_on_idle(t38_gateway_state_t *s, int transmit_on_idle);
+
+void t38_gateway_set_supported_modems(t38_gateway_state_t *s, int supported_modems);
+
+void t38_gateway_set_nsx_suppression(t38_gateway_state_t *s, int suppress_nsx);
+
+#if defined(__cplusplus)
 }
 #endif
 

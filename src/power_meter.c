@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter.c,v 1.18 2006/11/19 14:07:25 steveu Exp $
+ * $Id: power_meter.c,v 1.19 2007/04/10 16:12:19 steveu Exp $
  */
 
 /*! \file */
@@ -95,7 +95,13 @@ int32_t power_meter_level_dbov(float level)
 }
 /*- End of function --------------------------------------------------------*/
 
-float power_meter_dbm0(power_meter_t *s)
+int32_t power_meter_current(power_meter_t *s)
+{
+    return s->reading;
+}
+/*- End of function --------------------------------------------------------*/
+
+float power_meter_current_dbm0(power_meter_t *s)
 {
     if (s->reading <= 0)
         return FLT_MIN;
@@ -104,7 +110,7 @@ float power_meter_dbm0(power_meter_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-float power_meter_dbov(power_meter_t *s)
+float power_meter_current_dbov(power_meter_t *s)
 {
     if (s->reading <= 0)
         return FLT_MIN;

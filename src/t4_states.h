@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * t4states.h - state tables for T.4 FAX image processing
+ * t4_states.h - state tables for T.4 FAX image processing
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4states.h,v 1.5 2006/10/24 13:45:26 steveu Exp $
+ * $Id: t4_states.h,v 1.1 2007/08/04 15:41:36 steveu Exp $
  */
 
 static const T4_tab_entry T4_common_table[128] =
@@ -12452,3 +12452,5 @@ static const T4_tab_entry T4_black_table[8192] =
     {S_TermB   ,   3,    4},
     {S_TermB   ,   2,    2}
 };
+
+/*- End of file ------------------------------------------------------------*/

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model_monitor.h,v 1.3 2007/03/29 12:28:37 steveu Exp $
+ * $Id: line_model_monitor.h,v 1.4 2007/04/03 12:59:33 steveu Exp $
  */
 
 /*! \page line_model_monitor_page Telephone line model monitoring
@@ -42,7 +42,7 @@ In addition to the basic FLTK toolkit, fltk_cartesian is also required.
 #if !defined(_LINE_MODEL_MONITOR_H_)
 #define _LINE_MODEL_MONITOR_H_
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -54,7 +54,7 @@ int line_model_monitor_line_spectrum_update(const int16_t amp[], int len);
 void line_model_monitor_wait_to_end(void);
 void line_model_monitor_update_display(void);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

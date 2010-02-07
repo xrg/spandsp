@@ -150,6 +150,7 @@ SHELL = @SHELL@
 SPANDSP_LT_AGE = @SPANDSP_LT_AGE@
 SPANDSP_LT_CURRENT = @SPANDSP_LT_CURRENT@
 SPANDSP_LT_REVISION = @SPANDSP_LT_REVISION@
+SPANDSP_USE_FIXED_POINT = @SPANDSP_USE_FIXED_POINT@
 STRIP = @STRIP@
 TESTLIBS = @TESTLIBS@
 VERSION = @VERSION@
@@ -203,9 +204,12 @@ MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = DueDiligence \
              spandsp.spec \
              wrapper.xsl \
+             doc/libspandsp-doxygen \
+             src/float_fudge.h \
+             src/spandsp/version.h.in \
              src/libspandsp.vcproj \
              src/libspandsp.dsp \
-             doc/libspandsp-doxygen \
+             src/libspandsp.sln \
              src/msvc/gettimeofday.c \
              src/msvc/inttypes.h \
              src/msvc/tgmath.h \
@@ -216,15 +220,23 @@ EXTRA_DIST = DueDiligence \
              src/msvc/msvcproj.foot \
              src/msvc/vc8proj.head \
              src/msvc/vc8proj.foot \
-             src/libspandsp.sln \
              spandsp/global-tones.xml \
-             spandsp/tones.dtd
+             spandsp/tones.dtd \
+             debian/changelog \
+             debian/compat \
+             debian/control \
+             debian/copyright \
+             debian/libspandsp3.install \
+             debian/libspandsp-dev.install \
+             debian/libspandsp-doc.install \
+             debian/rules \
+             debian/watch
 
 @COND_DOC_TRUE@MAYBE_DOC = doc
-@COND_TESTS_TRUE@MAYBE_TESTS = tests
+@COND_TESTS_TRUE@MAYBE_TESTS = spandsp-sim tests
 @COND_ITUTESTS_TRUE@MAYBE_ITUTESTS = itutests
 SUBDIRS = src $(MAYBE_DOC) $(MAYBE_TESTS) $(MAYBE_ITUTESTS)
-DIST_SUBDIRS = src doc tests itutests
+DIST_SUBDIRS = src spandsp-sim doc tests itutests
 all: all-recursive
 
 .SUFFIXES:
@@ -428,7 +440,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/. $(distdir)/config $(distdir)/doc $(distdir)/spandsp $(distdir)/src $(distdir)/src/msvc $(distdir)/src/msvc/sys
+	$(mkdir_p) $(distdir)/. $(distdir)/config $(distdir)/debian $(distdir)/doc $(distdir)/spandsp $(distdir)/src $(distdir)/src/msvc $(distdir)/src/msvc/sys $(distdir)/src/spandsp
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

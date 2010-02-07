@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_vector_float.h,v 1.5 2007/04/05 19:20:49 steveu Exp $
+ * $Id: complex_vector_float.h,v 1.6 2007/04/08 08:16:17 steveu Exp $
  */
 
 #if !defined(_SPANDSP_COMPLEX_VECTOR_FLOAT_H_)
 #define _SPANDSP_COMPLEX_VECTOR_FLOAT_H_
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -120,7 +120,7 @@ static __inline__ void cvec_setl(complexl_t z[], complexl_t *x, int n)
 /*- End of function --------------------------------------------------------*/
 #endif
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

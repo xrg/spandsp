@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc.c,v 1.16 2006/11/19 14:07:24 steveu Exp $
+ * $Id: plc.c,v 1.17 2007/07/21 13:54:17 steveu Exp $
  */
 
 /*! \file */
@@ -248,7 +248,8 @@ plc_state_t *plc_init(plc_state_t *s)
 
 int plc_release(plc_state_t *s)
 {
-    free(s);
+    if (s)
+        free(s);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

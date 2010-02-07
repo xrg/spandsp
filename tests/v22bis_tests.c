@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tests.c,v 1.38 2007/02/06 14:43:32 steveu Exp $
+ * $Id: v22bis_tests.c,v 1.40 2007/08/14 14:57:37 steveu Exp $
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
@@ -46,6 +46,7 @@ display of modem status is maintained.
 #endif
 
 #include <inttypes.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -61,8 +62,8 @@ display of modem status is maintained.
 #include <tiffio.h>
 
 #include "spandsp.h"
-#include "test_utils.h"
-#include "line_model.h"
+#include "spandsp-sim.h"
+
 #if defined(ENABLE_GUI)
 #include "modem_monitor.h"
 #endif
@@ -236,6 +237,7 @@ int main(int argc, char *argv[])
     int signal_level;
     int log_audio;
     int channel_codec;
+    int opt;
     
     channel_codec = MUNGE_CODEC_NONE;
     test_bps = 2400;
@@ -244,46 +246,44 @@ int main(int argc, char *argv[])
     signal_level = -13;
     bits_per_test = 50000;
     log_audio = FALSE;
-    for (i = 1;  i < argc;  i++)
+    while ((opt = getopt(argc, argv, "b:c:glm:n:s:")) != -1)
     {
-        if (strcmp(argv[i], "-b") == 0)
+        switch (opt)
         {
-            bits_per_test = atoi(argv[++i]);
-            continue;
-        }
-        if (strcmp(argv[i], "-c") == 0)
-        {
-            channel_codec = atoi(argv[++i]);
-            continue;
-        }
-        if (strcmp(argv[i], "-g") == 0)
-        {
+        case 'b':
+            bits_per_test = atoi(optarg);
+            break;
+        case 'c':
+            channel_codec = atoi(optarg);
+            break;
+        case 'g':
             use_gui = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-m") == 0)
-        {
+            break;
+        case 'l':
             log_audio = TRUE;
-            continue;
+            break;
+        case 'm':
+            line_model_no = atoi(optarg);
+            break;
+        case 'n':
+            noise_level = atoi(optarg);
+            break;
+        case 's':
+            signal_level = atoi(optarg);
+            break;
+        default:
+            //usage();
+            exit(2);
+            break;
         }
-        if (strcmp(argv[i], "-m") == 0)
-        {
-            line_model_no = atoi(argv[++i]);
-            continue;
-        }
-        if (strcmp(argv[i], "-n") == 0)
-        {
-            noise_level = atoi(argv[++i]);
-            continue;
-        }
-        if (strcmp(argv[i], "-s") == 0)
-        {
-            signal_level = atoi(argv[++i]);
-            continue;
-        }
-        if (strcmp(argv[i], "2400") == 0)
+    }
+    argc -= optind;
+    argv += optind;
+    if (argc > 0)
+    {
+        if (strcmp(argv[0], "2400") == 0)
             test_bps = 2400;
-        else if (strcmp(argv[i], "1200") == 0)
+        else if (strcmp(argv[0], "1200") == 0)
             test_bps = 1200;
         else
         {

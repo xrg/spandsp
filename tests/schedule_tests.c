@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule_tests.c,v 1.13 2006/11/19 14:07:27 steveu Exp $
+ * $Id: schedule_tests.c,v 1.14 2007/07/09 15:29:50 steveu Exp $
  */
 
 /*! \page schedule_tests_page Event scheduler tests
@@ -60,14 +60,14 @@ static void callback1(span_sched_state_t *s, void *user_data)
     uint64_t when;
 
     when = span_schedule_time(s);
-    printf("1: Callback at %f %" PRId64 "\n", (float) when/8000.0, when - when1);
+    printf("1: Callback at %f %" PRId64 "\n", (float) when/1000000.0, when - when1);
     if ((when - when1))
     {
         printf("Callback occured at the wrong time.\n");
         exit(2);
     }
-    id = span_schedule_event(s, 500, callback1, NULL);
-    when1 = when + 500*8;
+    id = span_schedule_event(s, 500000, callback1, NULL);
+    when1 = when + 500000;
     when = span_schedule_next(s);
     printf("1: Event %d, earliest is %" PRId64 "\n", id, when);
 }
@@ -78,14 +78,14 @@ static void callback2(span_sched_state_t *s, void *user_data)
     uint64_t when;
 
     when = span_schedule_time(s);
-    printf("2: Callback at %f %" PRId64 "\n", (float) when/8000.0, when - when2);
-    id = span_schedule_event(s, 550, callback2, NULL);
-    if ((when - when2) != 80)
+    printf("2: Callback at %f %" PRId64 "\n", (float) when/1000000.0, when - when2);
+    id = span_schedule_event(s, 550000, callback2, NULL);
+    if ((when - when2) != 10000)
     {
         printf("Callback occured at the wrong time.\n");
         exit(2);
     }
-    when2 = when + 550*8;
+    when2 = when + 550000;
     when = span_schedule_next(s);
     printf("2: Event %d, earliest is %" PRId64 "\n", id, when);
 }
@@ -100,18 +100,18 @@ int main(int argc, char *argv[])
     
     span_schedule_init(&sched);
 
-    id1 = span_schedule_event(&sched, 500, callback1, NULL);
-    id2 = span_schedule_event(&sched, 550, callback2, NULL);
-    when1 = span_schedule_time(&sched) + 500*8;
-    when2 = span_schedule_time(&sched) + 550*8;
+    id1 = span_schedule_event(&sched, 500000, callback1, NULL);
+    id2 = span_schedule_event(&sched, 550000, callback2, NULL);
+    when1 = span_schedule_time(&sched) + 500000;
+    when2 = span_schedule_time(&sched) + 550000;
     //span_schedule_del(&sched, id);
     
-    for (i = 0;  i < SAMPLE_RATE*100;  i += 160)
+    for (i = 0;  i < 100000000;  i += 20000)
     {
-        span_schedule_update(&sched, 160);
+        span_schedule_update(&sched, 20000);
     }
     when = span_schedule_time(&sched);
-    if ((when1 - when) < 0  ||  (when1 - when) > 4000  ||  (when2 - when) < 0  ||  (when2 - when) > 4400)
+    if ((when1 - when) < 0  ||  (when1 - when) > 500000  ||  (when2 - when) < 0  ||  (when2 - when) > 550000)
     {
         printf("Callback failed to occur.\n");
         exit(2);

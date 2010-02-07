@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_dds.c,v 1.20 2007/01/03 14:15:35 steveu Exp $
+ * $Id: dds_float.c,v 1.1 2007/05/12 12:25:38 steveu Exp $
  */
 
 /*! \file */
@@ -2145,8 +2145,6 @@ float dds_modf(uint32_t *phase_acc, int32_t phase_rate, float scale, int32_t pha
 }
 /*- End of function --------------------------------------------------------*/
 
-/* This is a simple direct digital synthesis (DDS) function to generate complex
-   sine waves. */
 complexf_t dds_complexf(uint32_t *phase_acc, int32_t phase_rate)
 {
     complexf_t amp;
@@ -2158,8 +2156,6 @@ complexf_t dds_complexf(uint32_t *phase_acc, int32_t phase_rate)
 }
 /*- End of function --------------------------------------------------------*/
 
-/* This is a simple direct digital synthesis (DDS) function to generate complex
-   sine waves. */
 complexf_t dds_complex_modf(uint32_t *phase_acc, int32_t phase_rate, float scale, int32_t phase)
 {
     complexf_t amp;

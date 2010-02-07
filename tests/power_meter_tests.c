@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter_tests.c,v 1.15 2006/11/24 12:34:55 steveu Exp $
+ * $Id: power_meter_tests.c,v 1.16 2007/04/10 16:12:21 steveu Exp $
  */
 
 /*! \page power_meter_tests_page Power meter tests
@@ -72,11 +72,11 @@ int main(int argc, char *argv[])
     {
         amp[i] = (i & 1)  ?  10362  :  -10362;
         level = power_meter_update(&meter, amp[i]);
-        //printf("%12d %fdBm0 %fdBov\n", level, power_meter_dbm0(&meter), power_meter_dbov(&meter));
+        //printf("%12d %fdBm0 %fdBov\n", level, power_meter_current_dbm0(&meter), power_meter_current_dbov(&meter));
     }
     printf("Level: expected %" PRId32 "/%" PRId32 ", got %" PRId32 "\n", power_meter_level_dbov(-10.0f), power_meter_level_dbm0(-10.0f + DBM0_MAX_POWER), level);
-    printf("Power: expected %fdBm0, got %fdBm0\n", -10.0f + DBM0_MAX_POWER, power_meter_dbm0(&meter));
-    printf("Power: expected %fdBOv, got %fdBOv\n", -10.0f, power_meter_dbov(&meter));
+    printf("Power: expected %fdBm0, got %fdBm0\n", -10.0f + DBM0_MAX_POWER, power_meter_current_dbm0(&meter));
+    printf("Power: expected %fdBOv, got %fdBOv\n", -10.0f, power_meter_current_dbov(&meter));
     if (level < power_meter_level_dbov(-10.0f)*0.99f
         ||
         level > power_meter_level_dbov(-10.0f)*1.01f)
@@ -84,12 +84,12 @@ int main(int argc, char *argv[])
         printf("Test failed (level)\n");
         exit(2);
     }
-    if (0.1f < fabsf(power_meter_dbm0(&meter) + 10.0f - DBM0_MAX_POWER))
+    if (0.1f < fabsf(power_meter_current_dbm0(&meter) + 10.0f - DBM0_MAX_POWER))
     {
         printf("Test failed (dBm0)\n");
         exit(2);
     }
-    if (0.1f < fabsf(power_meter_dbov(&meter) + 10.0))
+    if (0.1f < fabsf(power_meter_current_dbov(&meter) + 10.0))
     {
         printf("Test failed (dBOv)\n");
         exit(2);
@@ -111,11 +111,11 @@ int main(int argc, char *argv[])
     for (i = 0;  i < len;  i++)
     {
         level = power_meter_update(&meter, amp[i]);
-        //printf("%12d %fdBm0 %fdBov\n", level, power_meter_dbm0(&meter), power_meter_dbov(&meter));
+        //printf("%12d %fdBm0 %fdBov\n", level, power_meter_current_dbm0(&meter), power_meter_current_dbov(&meter));
     }
     printf("Level: expected %" PRId32 "/%" PRId32 ", got %" PRId32 "\n", power_meter_level_dbov(-10.0f), power_meter_level_dbm0(-10.0f + DBM0_MAX_POWER), level);
-    printf("Power: expected %fdBm0, got %fdBm0\n", -10.0f + DBM0_MAX_POWER, power_meter_dbm0(&meter));
-    printf("Power: expected %fdBOv, got %fdBOv\n", -10.0f, power_meter_dbov(&meter));
+    printf("Power: expected %fdBm0, got %fdBm0\n", -10.0f + DBM0_MAX_POWER, power_meter_current_dbm0(&meter));
+    printf("Power: expected %fdBOv, got %fdBOv\n", -10.0f, power_meter_current_dbov(&meter));
     if (level < power_meter_level_dbov(-10.0f)*0.95f
         ||
         level > power_meter_level_dbov(-10.0f)*1.05f)
@@ -123,12 +123,12 @@ int main(int argc, char *argv[])
         printf("Test failed (level)\n");
         exit(2);
     }
-    if (0.2f < fabsf(power_meter_dbm0(&meter) + 10.0f - DBM0_MAX_POWER))
+    if (0.2f < fabsf(power_meter_current_dbm0(&meter) + 10.0f - DBM0_MAX_POWER))
     {
         printf("Test failed (dBm0)\n");
         exit(2);
     }
-    if (0.2f < fabsf(power_meter_dbov(&meter) + 10.0))
+    if (0.2f < fabsf(power_meter_current_dbov(&meter) + 10.0))
     {
         printf("Test failed (dBOv)\n");
         exit(2);
@@ -141,11 +141,11 @@ int main(int argc, char *argv[])
     for (i = 0;  i < 1000;  i++)
     {
         level = power_meter_update(&meter, amp[i]);
-        //printf("%12d %fdBm0 %fdBov\n", level, power_meter_dbm0(&meter), power_meter_dbov(&meter));
+        //printf("%12d %fdBm0 %fdBov\n", level, power_meter_current_dbm0(&meter), power_meter_current_dbov(&meter));
     }
     printf("Level: expected %" PRId32 "/%" PRId32 ", got %" PRId32 "\n", power_meter_level_dbov(-10.0f), power_meter_level_dbm0(-10.0f + DBM0_MAX_POWER), level);
-    printf("Power: expected %fdBm0, got %fdBm0\n", -10.0f + DBM0_MAX_POWER, power_meter_dbm0(&meter));
-    printf("Power: expected %fdBOv, got %fdBOv\n", -10.0f, power_meter_dbov(&meter));
+    printf("Power: expected %fdBm0, got %fdBm0\n", -10.0f + DBM0_MAX_POWER, power_meter_current_dbm0(&meter));
+    printf("Power: expected %fdBOv, got %fdBOv\n", -10.0f, power_meter_current_dbov(&meter));
     if (level < power_meter_level_dbov(-10.0f)*0.95f
         ||
         level > power_meter_level_dbov(-10.0f)*1.05f)
@@ -153,12 +153,12 @@ int main(int argc, char *argv[])
         printf("Test failed (level)\n");
         exit(2);
     }
-    if (0.2f < fabsf(power_meter_dbm0(&meter) + 10.0f - DBM0_MAX_POWER))
+    if (0.2f < fabsf(power_meter_current_dbm0(&meter) + 10.0f - DBM0_MAX_POWER))
     {
         printf("Test failed (dBm0)\n");
         exit(2);
     }
-    if (0.2f < fabsf(power_meter_dbov(&meter) + 10.0f))
+    if (0.2f < fabsf(power_meter_current_dbov(&meter) + 10.0f))
     {
         printf("Test failed (dBOv)\n");
         exit(2);

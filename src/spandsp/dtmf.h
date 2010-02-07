@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.h,v 1.9 2007/04/05 19:20:49 steveu Exp $
+ * $Id: dtmf.h,v 1.13 2007/06/26 15:54:12 steveu Exp $
  */
 
 #if !defined(_SPANDSP_DTMF_H_)
@@ -83,9 +83,10 @@ typedef struct
 {
     tone_gen_descriptor_t *tone_descriptors;
     tone_gen_state_t tones;
-    char digits[MAX_DTMF_DIGITS + 1];
     int current_sample;
-    size_t current_digits;
+    /* The queue structure MUST be followed immediately by the buffer */
+    queue_state_t queue;
+    char digits[MAX_DTMF_DIGITS + 1];
 } dtmf_tx_state_t;
 
 /*!
@@ -127,15 +128,15 @@ typedef struct
     /*! The current sample number within a processing block. */
     int current_sample;
 
-    /*! The received digits buffer. This is a NULL terminated string. */
-    char digits[MAX_DTMF_DIGITS + 1];
-    /*! The number of digits currently in the digit buffer. */
-    int current_digits;
     /*! The number of digits which have been lost due to buffer overflows. */
     int lost_digits;
+    /*! The number of digits currently in the digit buffer. */
+    int current_digits;
+    /*! The received digits buffer. This is a NULL terminated string. */
+    char digits[MAX_DTMF_DIGITS + 1];
 } dtmf_rx_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -145,7 +146,7 @@ extern "C"
     \param amp The buffer for the generated signal.
     \param max_samples The required number of generated samples.
     \return The number of samples actually generated. This may be less than 
-            samples if the input buffer empties. */
+            max_samples if the input buffer empties. */
 int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples);
 
 /*! \brief Put a string of digits in a DTMF generator's input buffer.
@@ -189,6 +190,15 @@ void dtmf_rx_parms(dtmf_rx_state_t *s, int filter_dialtone, int twist, int rever
     \return The number of samples unprocessed. */
 int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples);
 
+/*! Get the status of DTMF detection during processing of the last audio
+    chunk.
+    \brief Get the status of DTMF detection during processing of the last
+           audio chunk.
+    \param s The DTMF receiver context.
+    \return The current digit status. Either 'x' for a "maybe" condition, or the
+            digit being detected. */
+int dtmf_rx_status(dtmf_rx_state_t *s);
+
 /*! \brief Get a string of digits from a DTMF receiver's output buffer.
     \param s The DTMF receiver context.
     \param digits The buffer for the received digits.
@@ -208,7 +218,7 @@ dtmf_rx_state_t *dtmf_rx_init(dtmf_rx_state_t *s,
                               dtmf_rx_callback_t callback,
                               void *user_data);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: logging.h,v 1.12 2007/04/05 19:20:49 steveu Exp $
+ * $Id: logging.h,v 1.13 2007/04/08 08:16:18 steveu Exp $
  */
 
 /*! \file */
@@ -86,7 +86,7 @@ typedef struct
     error_handler_func_t span_error;
 } logging_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -139,7 +139,7 @@ void span_set_message_handler(message_handler_func_t func);
 
 void span_set_error_handler(error_handler_func_t func);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

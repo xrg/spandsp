@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.c,v 1.11 2006/12/27 04:09:46 steveu Exp $
+ * $Id: bell_r2_mf.c,v 1.15 2007/08/13 13:08:18 steveu Exp $
  */
 
 /*! \file bell_r2_mf.h */
@@ -43,6 +43,7 @@
 #endif
 
 #include "spandsp/telephony.h"
+#include "spandsp/queue.h"
 #include "spandsp/dc_restore.h"
 #include "spandsp/dds.h"
 #include "spandsp/tone_detect.h"
@@ -184,6 +185,15 @@ static const mf_digit_tones_t socotel_tones[] =
 static char socotel_mf_tone_codes[] = "1234567890ABCDEFG";
 #endif
 
+#if defined(SPANDSP_USE_FIXED_POINT_EXPERIMENTAL)
+#define BELL_MF_THRESHOLD           (1.6e9f/65536.0f)
+#define BELL_MF_TWIST               4.0f    /* 6dB */
+#define BELL_MF_RELATIVE_PEAK       12.6f   /* 11dB */
+
+#define R2_MF_THRESHOLD             (5.0e8f/4096.0f)
+#define R2_MF_TWIST                 5.0f    /* 7dB */
+#define R2_MF_RELATIVE_PEAK         12.6f   /* 11dB */
+#else
 #define BELL_MF_THRESHOLD           1.6e9f
 #define BELL_MF_TWIST               4.0f    /* 6dB */
 #define BELL_MF_RELATIVE_PEAK       12.6f   /* 11dB */
@@ -191,6 +201,7 @@ static char socotel_mf_tone_codes[] = "1234567890ABCDEFG";
 #define R2_MF_THRESHOLD             5.0e8f
 #define R2_MF_TWIST                 5.0f    /* 7dB */
 #define R2_MF_RELATIVE_PEAK         12.6f   /* 11dB */
+#endif
 
 static goertzel_descriptor_t bell_mf_detect_desc[6];
 
@@ -252,32 +263,25 @@ static void bell_mf_gen_init(void)
 }
 /*- End of function --------------------------------------------------------*/
 
-int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int samples)
+int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int max_samples)
 {
     int len;
-    size_t dig;
-    char *cp;
+    const char *cp;
+    int digit;
 
     len = 0;
     if (s->tones.current_section >= 0)
     {
         /* Deal with the fragment left over from last time */
-        len = tone_gen(&(s->tones), amp, samples);
+        len = tone_gen(&(s->tones), amp, max_samples);
     }
-    dig = 0;
-    while (dig < s->current_digits  &&  len < samples)
+    while (len < max_samples  &&  (digit = queue_read_byte(&s->queue)) >= 0)
     {
         /* Step to the next digit */
-        if ((cp = strchr(bell_mf_tone_codes, s->digits[dig++])) == NULL)
+        if ((cp = strchr(bell_mf_tone_codes, digit)) == NULL)
             continue;
         tone_gen_init(&(s->tones), &bell_mf_digit_tones[cp - bell_mf_tone_codes]);
-        len += tone_gen(&(s->tones), amp + len, samples - len);
-    }
-    if (dig)
-    {
-        /* Shift out the consumed digits */
-        s->current_digits -= dig;
-        memmove(s->digits, s->digits + dig, s->current_digits);
+        len += tone_gen(&(s->tones), amp + len, max_samples - len);
     }
     return len;
 }
@@ -286,24 +290,18 @@ int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int samples)
 size_t bell_mf_tx_put(bell_mf_tx_state_t *s, const char *digits)
 {
     size_t len;
+    size_t space;
 
     /* This returns the number of characters that would not fit in the buffer.
        The buffer will only be loaded if the whole string of digits will fit,
        in which case zero is returned. */
-    if ((len = strlen(digits)) > 0)
-    {
-        if (s->current_digits + len <= MAX_BELL_MF_DIGITS)
-        {
-            memcpy(s->digits + s->current_digits, digits, len);
-            s->current_digits += len;
-            len = 0;
-        }
-        else
-        {
-            len = MAX_BELL_MF_DIGITS - s->current_digits;
-        }
-    }
-    return len;
+    if ((len = strlen(digits)) == 0)
+        return 0;
+    if ((space = queue_free_space(&s->queue)) < len)
+        return len - space;
+    if (queue_write(&s->queue, (const uint8_t *) digits, len) >= 0)
+        return 0;
+    return -1;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -313,7 +311,7 @@ bell_mf_tx_state_t *bell_mf_tx_init(bell_mf_tx_state_t *s)
         bell_mf_gen_init();
     tone_gen_init(&(s->tones), &bell_mf_digit_tones[0]);
     s->current_sample = 0;
-    s->current_digits = 0;
+    queue_init(&s->queue, MAX_BELL_MF_DIGITS, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC);
     s->tones.current_section = -1;
     return s;
 }
@@ -406,8 +404,13 @@ r2_mf_tx_state_t *r2_mf_tx_init(r2_mf_tx_state_t *s, int fwd)
 int bell_mf_rx(bell_mf_rx_state_t *s, const int16_t amp[], int samples)
 {
     float energy[6];
+#if defined(SPANDSP_USE_FIXED_POINT_EXPERIMENTAL)
+    int32_t famp;
+    int32_t v1;
+#else
     float famp;
     float v1;
+#endif
     int i;
     int j;
     int sample;
@@ -426,7 +429,34 @@ int bell_mf_rx(bell_mf_rx_state_t *s, const int16_t amp[], int samples)
         for (j = sample;  j < limit;  j++)
         {
             famp = amp[j];
+#if defined(SPANDSP_USE_FIXED_POINT_EXPERIMENTAL)
+            famp >>= 8;
+            /* With GCC 2.95, the following unrolled code seems to take about 35%
+               (rough estimate) as long as a neat little 0-5 loop */
+            v1 = s->out[0].v2;
+            s->out[0].v2 = s->out[0].v3;
+            s->out[0].v3 = ((s->out[0].fac*s->out[0].v2) >> 12) - v1 + famp;
     
+            v1 = s->out[1].v2;
+            s->out[1].v2 = s->out[1].v3;
+            s->out[1].v3 = ((s->out[1].fac*s->out[1].v2) >> 12) - v1 + famp;
+    
+            v1 = s->out[2].v2;
+            s->out[2].v2 = s->out[2].v3;
+            s->out[2].v3 = ((s->out[2].fac*s->out[2].v2) >> 12) - v1 + famp;
+    
+            v1 = s->out[3].v2;
+            s->out[3].v2 = s->out[3].v3;
+            s->out[3].v3 = ((s->out[3].fac*s->out[3].v2) >> 12) - v1 + famp;
+    
+            v1 = s->out[4].v2;
+            s->out[4].v2 = s->out[4].v3;
+            s->out[4].v3 = ((s->out[4].fac*s->out[4].v2) >> 12) - v1 + famp;
+    
+            v1 = s->out[5].v2;
+            s->out[5].v2 = s->out[5].v3;
+            s->out[5].v3 = ((s->out[5].fac*s->out[5].v2) >> 12) - v1 + famp;
+#else
             /* With GCC 2.95, the following unrolled code seems to take about 35%
                (rough estimate) as long as a neat little 0-5 loop */
             v1 = s->out[0].v2;
@@ -452,6 +482,7 @@ int bell_mf_rx(bell_mf_rx_state_t *s, const int16_t amp[], int samples)
             v1 = s->out[5].v2;
             s->out[5].v2 = s->out[5].v3;
             s->out[5].v3 = s->out[5].fac*s->out[5].v2 - v1 + famp;
+#endif
         }
         s->current_sample += (limit - sample);
         if (s->current_sample < 120)
@@ -625,8 +656,13 @@ bell_mf_rx_state_t *bell_mf_rx_init(bell_mf_rx_state_t *s,
 int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t amp[], int samples)
 {
     float energy[6];
+#if defined(SPANDSP_USE_FIXED_POINT_EXPERIMENTAL)
+    int32_t famp;
+    int32_t v1;
+#else
     float famp;
     float v1;
+#endif
     int i;
     int j;
     int sample;
@@ -647,7 +683,34 @@ int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t amp[], int samples)
         for (j = sample;  j < limit;  j++)
         {
             famp = amp[j];
+#if defined(SPANDSP_USE_FIXED_POINT_EXPERIMENTAL)
+            famp >>= 6;
+            /* With GCC 2.95, the following unrolled code seems to take about 35%
+               (rough estimate) as long as a neat little 0-5 loop */
+            v1 = s->out[0].v2;
+            s->out[0].v2 = s->out[0].v3;
+            s->out[0].v3 = ((s->out[0].fac*s->out[0].v2) >> 12) - v1 + famp;
     
+            v1 = s->out[1].v2;
+            s->out[1].v2 = s->out[1].v3;
+            s->out[1].v3 = ((s->out[1].fac*s->out[1].v2) >> 12) - v1 + famp;
+    
+            v1 = s->out[2].v2;
+            s->out[2].v2 = s->out[2].v3;
+            s->out[2].v3 = ((s->out[2].fac*s->out[2].v2) >> 12) - v1 + famp;
+    
+            v1 = s->out[3].v2;
+            s->out[3].v2 = s->out[3].v3;
+            s->out[3].v3 = ((s->out[3].fac*s->out[3].v2) >> 12) - v1 + famp;
+    
+            v1 = s->out[4].v2;
+            s->out[4].v2 = s->out[4].v3;
+            s->out[4].v3 = ((s->out[4].fac*s->out[4].v2) >> 12) - v1 + famp;
+    
+            v1 = s->out[5].v2;
+            s->out[5].v2 = s->out[5].v3;
+            s->out[5].v3 = ((s->out[5].fac*s->out[5].v2) >> 12) - v1 + famp;
+#else    
             /* With GCC 2.95, the following unrolled code seems to take about 35%
                (rough estimate) as long as a neat little 0-5 loop */
             v1 = s->out[0].v2;
@@ -673,6 +736,7 @@ int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t amp[], int samples)
             v1 = s->out[5].v2;
             s->out[5].v2 = s->out[5].v3;
             s->out[5].v3 = s->out[5].fac*s->out[5].v2 - v1 + famp;
+#endif
         }
         s->current_sample += (limit - sample);
         if (s->current_sample < s->samples)

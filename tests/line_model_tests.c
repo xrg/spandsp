@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model_tests.c,v 1.18 2007/02/06 14:43:32 steveu Exp $
+ * $Id: line_model_tests.c,v 1.19 2007/04/03 12:59:33 steveu Exp $
  */
 
 /*! \page line_model_tests_page Telephony line model tests
@@ -55,8 +55,7 @@
 #endif
 
 #include "spandsp.h"
-#include "test_utils.h"
-#include "line_model.h"
+#include "spandsp-sim.h"
 
 #if !defined(NULL)
 #define NULL (void *) 0

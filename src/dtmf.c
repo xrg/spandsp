@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.14 2007/02/27 16:52:16 steveu Exp $
+ * $Id: dtmf.c,v 1.22 2007/08/13 13:08:18 steveu Exp $
  */
  
 /*! \file dtmf.h */
@@ -45,6 +45,7 @@
 #include <fcntl.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/queue.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
 #include "spandsp/super_tone_rx.h"
@@ -61,12 +62,23 @@
 #define DEFAULT_DTMF_TX_ON_TIME     50
 #define DEFAULT_DTMF_TX_OFF_TIME    55
 
+#if defined(SPANDSP_USE_FIXED_POINT_EXPERIMENTAL)
+#define DTMF_THRESHOLD              1.0e5f
+#define DTMF_NORMAL_TWIST           6.3f    /* 8dB */
+#define DTMF_REVERSE_TWIST          2.5f    /* 4dB */
+#define DTMF_RELATIVE_PEAK_ROW      6.3f    /* 8dB */
+#define DTMF_RELATIVE_PEAK_COL      6.3f    /* 8dB */
+#define DTMF_TO_TOTAL_ENERGY        42.0f
+#define DTMF_POWER_OFFSET           (90.30f - 48.32f)
+#else
 #define DTMF_THRESHOLD              8.0e7f
 #define DTMF_NORMAL_TWIST           6.3f    /* 8dB */
 #define DTMF_REVERSE_TWIST          2.5f    /* 4dB */
 #define DTMF_RELATIVE_PEAK_ROW      6.3f    /* 8dB */
 #define DTMF_RELATIVE_PEAK_COL      6.3f    /* 8dB */
 #define DTMF_TO_TOTAL_ENERGY        42.0f
+#define DTMF_POWER_OFFSET           90.30f
+#endif
 
 static const float dtmf_row[] =
 {
@@ -174,8 +186,13 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
 {
     float row_energy[4];
     float col_energy[4];
+#if defined(SPANDSP_USE_FIXED_POINT_EXPERIMENTAL)
+    int famp;
+    int v1;
+#else
     float famp;
     float v1;
+#endif
     int i;
     int j;
     int sample;
@@ -216,33 +233,70 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
                 s->z440_2 = s->z440_1;
                 s->z440_1 = v1;
             }
+#if defined(SPANDSP_USE_FIXED_POINT_EXPERIMENTAL)
+            famp >>= 8;
+            s->energy += famp*famp;
+            /* With GCC 2.95, the following unrolled code seems to take about 35%
+               (rough estimate) as long as a neat little 0-3 loop */
+            v1 = s->row_out[0].v2;
+            s->row_out[0].v2 = s->row_out[0].v3;
+            s->row_out[0].v3 = ((s->row_out[0].fac*s->row_out[0].v2) >> 12) - v1 + famp;
+
+            v1 = s->col_out[0].v2;
+            s->col_out[0].v2 = s->col_out[0].v3;
+            s->col_out[0].v3 = ((s->col_out[0].fac*s->col_out[0].v2) >> 12) - v1 + famp;
+
+            v1 = s->row_out[1].v2;
+            s->row_out[1].v2 = s->row_out[1].v3;
+            s->row_out[1].v3 = ((s->row_out[1].fac*s->row_out[1].v2) >> 12) - v1 + famp;
+
+            v1 = s->col_out[1].v2;
+            s->col_out[1].v2 = s->col_out[1].v3;
+            s->col_out[1].v3 = ((s->col_out[1].fac*s->col_out[1].v2) >> 12) - v1 + famp;
+
+            v1 = s->row_out[2].v2;
+            s->row_out[2].v2 = s->row_out[2].v3;
+            s->row_out[2].v3 = ((s->row_out[2].fac*s->row_out[2].v2) >> 12) - v1 + famp;
+
+            v1 = s->col_out[2].v2;
+            s->col_out[2].v2 = s->col_out[2].v3;
+            s->col_out[2].v3 = ((s->col_out[2].fac*s->col_out[2].v2) >> 12) - v1 + famp;
+
+            v1 = s->row_out[3].v2;
+            s->row_out[3].v2 = s->row_out[3].v3;
+            s->row_out[3].v3 = ((s->row_out[3].fac*s->row_out[3].v2) >> 12) - v1 + famp;
+
+            v1 = s->col_out[3].v2;
+            s->col_out[3].v2 = s->col_out[3].v3;
+            s->col_out[3].v3 = ((s->col_out[3].fac*s->col_out[3].v2) >> 12) - v1 + famp;
+#else
             s->energy += famp*famp;
             /* With GCC 2.95, the following unrolled code seems to take about 35%
                (rough estimate) as long as a neat little 0-3 loop */
             v1 = s->row_out[0].v2;
             s->row_out[0].v2 = s->row_out[0].v3;
             s->row_out[0].v3 = s->row_out[0].fac*s->row_out[0].v2 - v1 + famp;
-    
+
             v1 = s->col_out[0].v2;
             s->col_out[0].v2 = s->col_out[0].v3;
             s->col_out[0].v3 = s->col_out[0].fac*s->col_out[0].v2 - v1 + famp;
-    
+
             v1 = s->row_out[1].v2;
             s->row_out[1].v2 = s->row_out[1].v3;
             s->row_out[1].v3 = s->row_out[1].fac*s->row_out[1].v2 - v1 + famp;
-    
+
             v1 = s->col_out[1].v2;
             s->col_out[1].v2 = s->col_out[1].v3;
             s->col_out[1].v3 = s->col_out[1].fac*s->col_out[1].v2 - v1 + famp;
-    
+
             v1 = s->row_out[2].v2;
             s->row_out[2].v2 = s->row_out[2].v3;
             s->row_out[2].v3 = s->row_out[2].fac*s->row_out[2].v2 - v1 + famp;
-    
+
             v1 = s->col_out[2].v2;
             s->col_out[2].v2 = s->col_out[2].v3;
             s->col_out[2].v3 = s->col_out[2].fac*s->col_out[2].v2 - v1 + famp;
-    
+
             v1 = s->row_out[3].v2;
             s->row_out[3].v2 = s->row_out[3].v3;
             s->row_out[3].v3 = s->row_out[3].fac*s->row_out[3].v2 - v1 + famp;
@@ -250,6 +304,7 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
             v1 = s->col_out[3].v2;
             s->col_out[3].v2 = s->col_out[3].v3;
             s->col_out[3].v3 = s->col_out[3].fac*s->col_out[3].v2 - v1 + famp;
+#endif
         }
 #endif
         s->current_sample += (limit - sample);
@@ -297,6 +352,7 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
                 &&
                 (row_energy[best_row] + col_energy[best_col]) > DTMF_TO_TOTAL_ENERGY*s->energy)
             {
+                /* Got a hit */
                 hit = dtmf_positions[(best_row << 2) + best_col];
             }
         }
@@ -337,7 +393,7 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
                     /* Avoid reporting multiple no digit conditions on flaky hits */
                     if (s->in_digit  ||  hit)
                     {
-                        i = (s->in_digit  &&  !hit)  ?  -99  :  rint(log10f(s->energy)*10.0f - 20.08f - 90.30F + DBM0_MAX_POWER);
+                        i = (s->in_digit  &&  !hit)  ?  -99  :  rintf(log10f(s->energy)*10.0f - 20.08f - DTMF_POWER_OFFSET + DBM0_MAX_POWER);
                         s->realtime_callback(s->realtime_callback_data, hit, i);
                     }
                 }
@@ -380,6 +436,16 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
         s->digits[0] = '\0';
         s->current_digits = 0;
     }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int dtmf_rx_status(dtmf_rx_state_t *s)
+{
+    if (s->in_digit)
+        return s->in_digit;
+    if (s->last_hit)
+        return 'x';
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -499,8 +565,8 @@ static void dtmf_tx_initialise(void)
 int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples)
 {
     int len;
-    size_t dig;
-    char *cp;
+    const char *cp;
+    int digit;
 
     len = 0;
     if (s->tones.current_section >= 0)
@@ -508,20 +574,13 @@ int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples)
         /* Deal with the fragment left over from last time */
         len = tone_gen(&(s->tones), amp, max_samples);
     }
-    dig = 0;
-    while (dig < s->current_digits  &&  len < max_samples)
+    while (len < max_samples  &&  (digit = queue_read_byte(&s->queue)) >= 0)
     {
         /* Step to the next digit */
-        if ((cp = strchr(dtmf_positions, s->digits[dig++])) == NULL)
+        if ((cp = strchr(dtmf_positions, digit)) == NULL)
             continue;
         tone_gen_init(&(s->tones), &(s->tone_descriptors[cp - dtmf_positions]));
         len += tone_gen(&(s->tones), amp + len, max_samples - len);
-    }
-    if (dig)
-    {
-        /* Shift out the consumed digits */
-        s->current_digits -= dig;
-        memmove(s->digits, s->digits + dig, s->current_digits);
     }
     return len;
 }
@@ -530,24 +589,18 @@ int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples)
 size_t dtmf_tx_put(dtmf_tx_state_t *s, const char *digits)
 {
     size_t len;
+    size_t space;
 
     /* This returns the number of characters that would not fit in the buffer.
        The buffer will only be loaded if the whole string of digits will fit,
        in which case zero is returned. */
-    if ((len = strlen(digits)) > 0)
-    {
-        if (s->current_digits + len <= MAX_DTMF_DIGITS)
-        {
-            memcpy(s->digits + s->current_digits, digits, len);
-            s->current_digits += len;
-            len = 0;
-        }
-        else
-        {
-            len = MAX_DTMF_DIGITS - s->current_digits;
-        }
-    }
-    return len;
+    if ((len = strlen(digits)) == 0)
+        return 0;
+    if ((space = queue_free_space(&s->queue)) < len)
+        return len - space;
+    if (queue_write(&s->queue, (const uint8_t *) digits, len) >= 0)
+        return 0;
+    return -1;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -558,7 +611,7 @@ dtmf_tx_state_t *dtmf_tx_init(dtmf_tx_state_t *s)
     s->tone_descriptors = dtmf_digit_tones;
     tone_gen_init(&(s->tones), &dtmf_digit_tones[0]);
     s->current_sample = 0;
-    s->current_digits = 0;
+    queue_init(&s->queue, MAX_DTMF_DIGITS, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC);
     s->tones.current_section = -1;
     return s;
 }

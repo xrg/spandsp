@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.31 2007/04/05 19:20:50 steveu Exp $
+ * $Id: t4.h,v 1.35 2007/08/11 13:36:16 steveu Exp $
  */
 
 /*! \file */
@@ -41,17 +41,26 @@ for FAX transmission.
 \section t4_page_sec_1 How does it work?
 */
 
-#define T4_COMPRESSION_ITU_T4_1D    1
-#define T4_COMPRESSION_ITU_T4_2D    2
-#define T4_COMPRESSION_ITU_T6       3
+enum
+{
+    T4_COMPRESSION_ITU_T4_1D = 1,
+    T4_COMPRESSION_ITU_T4_2D = 2,
+    T4_COMPRESSION_ITU_T6 = 3
+};
 
-#define T4_X_RESOLUTION_R4          4019
-#define T4_X_RESOLUTION_R8          8037
-#define T4_X_RESOLUTION_R16         16074
+enum
+{
+    T4_X_RESOLUTION_R4 = 4019,
+    T4_X_RESOLUTION_R8 = 8037,
+    T4_X_RESOLUTION_R16 = 16074
+};
 
-#define T4_Y_RESOLUTION_STANDARD    3850
-#define T4_Y_RESOLUTION_FINE        7700
-#define T4_Y_RESOLUTION_SUPERFINE   15400
+enum
+{
+    T4_Y_RESOLUTION_STANDARD = 3850,
+    T4_Y_RESOLUTION_FINE = 7700,
+    T4_Y_RESOLUTION_SUPERFINE = 15400
+};
 
 /*!
     T.4 FAX compression/decompression descriptor. This defines the working state
@@ -70,6 +79,8 @@ typedef struct
     const char      *far_ident;
     /*! \brief The FAX sub-address. */ 
     const char      *sub_address;
+    /*! \brief The FAX DCS information, as an ASCII string. */ 
+    const char      *dcs;
     /*! \brief The text which will be used in FAX page header. No text results
                in no header line. */
     const char      *header_info;
@@ -96,6 +107,7 @@ typedef struct
     int             stop_page;
 
     int             pages_transferred;
+    int             pages_in_file;
     /*! Column-to-column (X) resolution in pixels per metre. */
     int             x_resolution;
     /*! Row-to-row (Y) resolution in pixels per metre. */
@@ -182,6 +194,8 @@ typedef struct
 {
     /*! \brief The number of pages transferred so far. */
     int pages_transferred;
+    /*! \brief The number of pages in the file (<0 if unknown). */
+    int pages_in_file;
     /*! \brief The number of horizontal pixels in the most recent page. */
     int width;
     /*! \brief The number of vertical pixels in the most recent page. */
@@ -200,7 +214,7 @@ typedef struct
     int image_size;
 } t4_stats_t;
     
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -280,6 +294,11 @@ void t4_rx_set_y_resolution(t4_state_t *s, int resolution);
     \param s The T.4 context.
     \param resolution The resolution, in pixels per metre. */
 void t4_rx_set_x_resolution(t4_state_t *s, int resolution);
+
+/*! \brief Set the DCS information of the fax, for inclusion in the file.
+    \param s The T.4 context.
+    \param dcs The DCS information, formatted as an ASCII string. */
+void t4_rx_set_dcs(t4_state_t *s, const char *dcs);
 
 /*! \brief Set the sub-address of the fax, for inclusion in the file.
     \param s The T.4 context.
@@ -431,6 +450,11 @@ int t4_tx_get_x_resolution(t4_state_t *s);
     \return The number of columns. */
 int t4_tx_get_image_width(t4_state_t *s);
 
+/*! \brief Get the number of pages in the file.
+    \param s The T.4 context.
+    \return The number of pages, or -1 if there is an error. */
+int t4_tx_get_pages_in_file(t4_state_t *s);
+
 /*! Get the current image transfer statistics. 
     \brief Get the current transfer statistics.
     \param s The T.4 context.
@@ -443,7 +467,7 @@ void t4_get_transfer_statistics(t4_state_t *s, t4_stats_t *t);
     \return A pointer to the string. */
 const char *t4_encoding_to_str(int encoding);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

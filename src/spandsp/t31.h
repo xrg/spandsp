@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.39 2007/04/05 19:20:50 steveu Exp $
+ * $Id: t31.h,v 1.43 2007/05/15 13:22:43 steveu Exp $
  */
 
 /*! \file */
@@ -42,8 +42,8 @@ typedef struct t31_state_s t31_state_t;
 
 typedef int (t31_modem_control_handler_t)(t31_state_t *s, void *user_data, int op, const char *num);
 
-#define T31_TX_BUF_LEN          (4096*32)
-#define T31_TX_BUF_HIGH_TIDE    (4096*32 - 1024)
+#define T31_TX_BUF_LEN          (4096)
+#define T31_TX_BUF_HIGH_TIDE    (4096 - 1024)
 #define T31_TX_BUF_LOW_TIDE     (1024)
 
 /*!
@@ -106,14 +106,12 @@ struct t31_state_s
                messages. */
     fsk_rx_state_t v21rx;
 
-#if defined(ENABLE_V17)
     /*! \brief A V.17 modem context used when sending FAXes at 7200bps, 9600bps
                12000bps or 14400bps*/
     v17_tx_state_t v17tx;
     /*! \brief A V.29 modem context used when receiving FAXes at 7200bps, 9600bps
                12000bps or 14400bps*/
     v17_rx_state_t v17rx;
-#endif
 
     /*! \brief A V.29 modem context used when sending FAXes at 7200bps or
                9600bps */
@@ -150,7 +148,7 @@ struct t31_state_s
     int short_train;
     int hdlc_final;
     int data_final;
-    queue_t rx_queue;
+    queue_state_t *rx_queue;
 
     uint8_t hdlc_rx_buf[256];
     int hdlc_rx_len;
@@ -173,7 +171,7 @@ struct t31_state_s
     logging_state_t logging;
 };
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -235,7 +233,7 @@ t31_state_t *t31_init(t31_state_t *s,
     \return 0 for OK */
 int t31_release(t31_state_t *s);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

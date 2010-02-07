@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: test_utils.c,v 1.10 2007/02/06 14:43:32 steveu Exp $
+ * $Id: test_utils.c,v 1.1 2007/04/03 12:59:32 steveu Exp $
  */
 
 /*! \file */
@@ -47,7 +47,7 @@
 #include <tiffio.h>
 
 #include "spandsp.h"
-#include "test_utils.h"
+#include "spandsp-sim.h"
 
 struct codec_munge_state_s
 {

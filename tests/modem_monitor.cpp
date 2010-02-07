@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_monitor.cpp,v 1.11 2006/10/24 13:45:29 steveu Exp $
+ * $Id: modem_monitor.cpp,v 1.12 2007/08/04 15:41:37 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -111,6 +111,25 @@ struct qam_monitor_s
 };
 
 #include "modem_monitor.h"
+
+int qam_monitor_clear_constel(qam_monitor_t *s)
+{
+    int i;
+
+    s->canvas_const->current(s->canvas_const);
+    for (i = 0;  i < s->constel_window;  i++)
+    {
+        if (s->constel_point[i])
+        {
+            delete s->constel_point[i];
+            s->constel_point[i] = NULL;
+        }
+    }
+    s->next_constel_point = 0;
+    Fl::check();
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
 
 int qam_monitor_update_constel(qam_monitor_t *s, const complexf_t *pt)
 {

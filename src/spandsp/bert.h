@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bert.h,v 1.16 2007/04/05 19:20:49 steveu Exp $
+ * $Id: bert.h,v 1.17 2007/04/08 08:16:17 steveu Exp $
  */
 
 #if !defined(_SPANDSP_BERT_H_)
@@ -155,7 +155,7 @@ typedef struct
     logging_state_t logging;
 } bert_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -197,7 +197,7 @@ void bert_set_report(bert_state_t *s, int freq, bert_report_func_t reporter, voi
     \return The size of the result structure. */
 int bert_result(bert_state_t *s, bert_results_t *results);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spandsp.h,v 1.48 2007/03/23 17:17:27 steveu Exp $
+ * $Id: spandsp.h.in,v 1.1 2007/08/13 14:11:44 steveu Exp $
  */
 
 /*! \file */
@@ -30,7 +30,11 @@
 #if !defined(_SPANDSP_H_)
 #define _SPANDSP_H_
 
+@SPANDSP_USE_FIXED_POINT@
+
+#include <stdlib.h>
 #include <inttypes.h>
+#include <string.h>
 #include <limits.h>
 #include <time.h>
 #include <tiffio.h>
@@ -58,6 +62,7 @@
 #include <spandsp/dds.h>
 #include <spandsp/echo.h>
 #include <spandsp/modem_echo.h>
+#include <spandsp/crc.h>
 #include <spandsp/hdlc.h>
 #include <spandsp/async.h>
 #include <spandsp/noise.h>
@@ -66,18 +71,16 @@
 #include <spandsp/tone_generate.h>
 #include <spandsp/super_tone_rx.h>
 #include <spandsp/super_tone_tx.h>
-#include <spandsp/modem_connect_tones.h>
 #include <spandsp/dtmf.h>
 #include <spandsp/bell_r2_mf.h>
 #include <spandsp/sig_tone.h>
 #include <spandsp/fsk.h>
+#include <spandsp/modem_connect_tones.h>
 #include <spandsp/silence_gen.h>
 #include <spandsp/v29rx.h>
 #include <spandsp/v29tx.h>
-#if defined(ENABLE_V17)
 #include <spandsp/v17rx.h>
 #include <spandsp/v17tx.h>
-#endif
 #include <spandsp/v22bis.h>
 #include <spandsp/v27ter_rx.h>
 #include <spandsp/v27ter_tx.h>

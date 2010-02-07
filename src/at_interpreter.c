@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.c,v 1.16 2006/11/19 14:07:24 steveu Exp $
+ * $Id: at_interpreter.c,v 1.18 2007/08/07 11:47:19 steveu Exp $
  */
 
 /*! \file */
@@ -309,81 +309,52 @@ void at_call_event(at_state_t *s, int event)
 
 void at_reset_call_info(at_state_t *s)
 {
+    struct at_call_id *call_id = s->call_id;
+    while (call_id)
+    {
+        free(call_id);
+        call_id = call_id->next;
+    }
+    s->call_id = NULL;
     s->rings_indicated = 0;
     s->call_info_displayed = FALSE;
-    if (s->call_date)
-    {
-        free(s->call_date);
-        s->call_date = NULL;
-    }
-    if (s->call_time)
-    {
-        free(s->call_time);
-        s->call_time = NULL;
-    }
-    if (s->originating_name)
-    {
-        free(s->originating_name);
-        s->originating_name = NULL;
-    }
-    if (s->originating_number)
-    {
-        free(s->originating_number);
-        s->originating_number = NULL;
-    }
-    if (s->originating_ani)
-    {
-        free(s->originating_ani);
-        s->originating_ani = NULL;
-    }
-    if (s->destination_number)
-    {
-        free(s->destination_number);
-        s->destination_number = NULL;
-    }
 }
 /*- End of function --------------------------------------------------------*/
 
-void at_set_call_info(at_state_t *s,
-                      char const *call_date,
-                      char const *call_time,
-                      char const *originating_name,
-                      char const *originating_number,
-                      char const *originating_ani,
-                      char const *destination_number)
+void at_set_call_info(at_state_t *s, char const *id, char const *value)
 {
-    at_reset_call_info(s);
-    if (call_date)
-        s->call_date = strdup(call_date);
-    if (call_time)
-        s->call_time = strdup(call_time);
-    if (originating_name)
-        s->originating_name = strdup(originating_name);
-    if (originating_number)
-        s->originating_number = strdup(originating_number);
-    if (originating_ani)
-        s->originating_ani = strdup(originating_ani);
-    if (destination_number)
-        s->destination_number = strdup(destination_number);
+    struct at_call_id *new_call_id = malloc(sizeof(struct at_call_id));
+    struct at_call_id *call_id = s->call_id;
+
+    new_call_id->id = id ? strdup(id) : NULL;
+    new_call_id->value = value ? strdup(value) : NULL;
+    new_call_id->next = NULL;
+
+    if (call_id)
+    {
+        while (call_id->next)
+            call_id = call_id->next;
+        call_id->next = new_call_id;
+    }
+    else
+    {
+        s->call_id = new_call_id;
+    }
 }
 /*- End of function --------------------------------------------------------*/
 
 void at_display_call_info(at_state_t *s)
 {
     char buf[132 + 1];
+    struct at_call_id *call_id = s->call_id;
 
-    snprintf(buf, sizeof(buf), "DATE=%s", (s->call_date)  ?  s->call_date  :  "<NONE>");
-    at_put_response(s, buf);
-    snprintf(buf, sizeof(buf), "TIME=%s", (s->call_time)  ?  s->call_time  :  "<NONE>");
-    at_put_response(s, buf);
-    snprintf(buf, sizeof(buf), "NAME=%s", (s->originating_name)  ?  s->originating_name  :  "<NONE>");
-    at_put_response(s, buf);
-    snprintf(buf, sizeof(buf), "NMBR=%s", (s->originating_number)  ?  s->originating_number  :  "<NONE>");
-    at_put_response(s, buf);
-    snprintf(buf, sizeof(buf), "ANID=%s", (s->originating_ani)  ?  s->originating_ani  :  "<NONE>");
-    at_put_response(s, buf);
-    snprintf(buf, sizeof(buf), "NDID=%s", (s->destination_number)  ?  s->destination_number  :  "<NONE>");
-    at_put_response(s, buf);
+    while (call_id)
+    {
+        snprintf(buf, sizeof(buf), "%s=%s", 
+                 call_id->id ? call_id->id : "NULL", call_id->value ? call_id->value : "<NONE>");
+        at_put_response(s, buf);
+        call_id = call_id->next;
+    }
     s->call_info_displayed = TRUE;
 }
 /*- End of function --------------------------------------------------------*/
@@ -651,11 +622,7 @@ static int process_class1_cmd(at_state_t *s, const char **t)
         allowed = "3";
         break;
     default:
-#if defined(ENABLE_V17)
         allowed = "24,48,72,73,74,96,97,98,121,122,145,146";
-#else
-        allowed = "24,48,72,96";
-#endif
         break;
     }
     
@@ -807,6 +774,11 @@ static const char *at_cmd_D(at_state_t *s, const char *t)
                 /* V.250 6.3.1.1 Full DTMF repertoire */
                 if (!s->p.pulse_dial)
                     *u++ = ch;
+                break;
+            case '-':
+                /* Ignore dashes */
+                /* This is not a standards based thing. It just improves
+                   compatibility with some other modems. */
                 break;
             case '+':
                 /* V.250 6.3.1.1 International access code */
@@ -5300,7 +5272,7 @@ at_state_t *at_init(at_state_t *s,
     s->modem_control_user_data = modem_control_user_data;
     s->at_tx_handler = at_tx_handler;
     s->at_tx_user_data = at_tx_user_data;
-    at_reset_call_info(s);
+    s->call_id = NULL;
     s->local_id = NULL;
     s->display_call_info = 0;
     at_set_at_rx_mode(s, AT_MODE_ONHOOK_COMMAND);

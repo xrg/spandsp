@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g1050_tests.c,v 1.7 2007/03/29 12:28:37 steveu Exp $
+ * $Id: g1050_tests.c,v 1.9 2007/04/05 16:32:08 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -53,7 +53,8 @@
 #endif
 
 #include "spandsp.h"
-#include "g1050.h"
+#include "spandsp-sim.h"
+
 #if defined(ENABLE_GUI)
 #include "media_monitor.h"
 #endif
@@ -152,7 +153,11 @@ int main(int argc, char *argv[])
     /* Use a fixed seed to produce identical results in successive runs of the simulation, for debug purposes. */
     srand48(0x1234567);
 
-    s = g1050_init(model_no, speed_pattern_no, PACKET_SIZE, packets_per_sec);
+    if ((s = g1050_init(model_no, speed_pattern_no, PACKET_SIZE, packets_per_sec)) == NULL)
+    {
+        fprintf(stderr, "Failed to start the G.1050 model\n");
+        exit(2);
+    }
     g1050_dump_parms(model_no, speed_pattern_no);
 
 #if defined(ENABLE_GUI)

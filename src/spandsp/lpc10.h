@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: lpc10.h,v 1.12 2007/04/05 19:20:49 steveu Exp $
+ * $Id: lpc10.h,v 1.13 2007/04/08 08:16:18 steveu Exp $
  */
 
 #if !defined(_SPANDSP_LPC10_H_)
@@ -167,7 +167,7 @@ typedef struct
     float deo[3];
 } lpc10_decode_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -205,7 +205,7 @@ int lpc10_decode_release(lpc10_decode_state_t *s);
 int lpc10_decode(lpc10_decode_state_t *s, int16_t amp[], const uint8_t code[], int quant);
 
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

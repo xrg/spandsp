@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter_tests.c,v 1.9 2006/11/19 14:07:26 steveu Exp $
+ * $Id: at_interpreter_tests.c,v 1.10 2007/05/15 13:22:43 steveu Exp $
  */
 
 /*! \file */
@@ -255,21 +255,13 @@ static const struct command_response_s general_test_seq[] =
     {"AT+FPR?\r", "\r\n0\r\n\r\nOK\r\n"},
     {"AT+FRH=?\r", "\r\n3\r\n\r\nOK\r\n"},                          /* T.31 8.3.6 - HDLC receive */ 
     {"AT+FRH?\r", "\r\n-1\r\n\r\nOK\r\n"},
-#if defined(ENABLE_V17)
     {"AT+FRM=?\r", "\r\n24,48,72,73,74,96,97,98,121,122,145,146\r\n\r\nOK\r\n"}, /* T.31 8.3.4 - Facsimile receive */ 
-#else
-    {"AT+FRM=?\r", "\r\n24,48,72,96\r\n\r\nOK\r\n"},                /* T.31 8.3.4 - Facsimile receive */ 
-#endif    
     {"AT+FRM?\r", "\r\n-1\r\n\r\nOK\r\n"},
     {"AT+FRS=?\r", "\r\n0-255\r\n\r\nOK\r\n"},                      /* T.31 8.3.2 - Receive silence */ 
     {"AT+FRS?\r", "\r\n-1\r\n\r\nOK\r\n"},
     {"AT+FTH=?\r", "\r\n3\r\n\r\nOK\r\n"},                          /* T.31 8.3.5 - HDLC transmit */ 
     {"AT+FTH?\r", "\r\n-1\r\n\r\nOK\r\n"},
-#if defined(ENABLE_V17)
     {"AT+FTM=?\r", "\r\n24,48,72,73,74,96,97,98,121,122,145,146\r\n\r\nOK\r\n"}, /* T.31 8.3.3 - Facsimile transmit */ 
-#else
-    {"AT+FTM=?\r", "\r\n24,48,72,96\r\n\r\nOK\r\n"},                /* T.31 8.3.3 - Facsimile transmit */ 
-#endif
     {"AT+FTM?\r", "\r\n-1\r\n\r\nOK\r\n"},
     {"AT+FTS=?\r", "\r\n0-255\r\n\r\nOK\r\n"},                      /* T.31 8.3.1 - Transmit silence */ 
     {"AT+FTS?\r", "\r\n-1\r\n\r\nOK\r\n"},

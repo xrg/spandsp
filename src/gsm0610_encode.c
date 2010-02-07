@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_encode.c,v 1.12 2006/11/30 15:41:47 steveu Exp $
+ * $Id: gsm0610_encode.c,v 1.16 2007/08/21 14:25:54 steveu Exp $
  */
 
 /*! \file */
@@ -46,8 +46,8 @@
 #include <memory.h>
 
 #include "spandsp/telephony.h"
-#include "spandsp/dc_restore.h"
 #include "spandsp/bitstream.h"
+#include "spandsp/dc_restore.h"
 #include "spandsp/gsm0610.h"
 
 #include "gsm0610_local.h"
@@ -66,7 +66,7 @@
    frame.  That means once for each sub-segment RPE-LTP analysis of
    40 samples.  These parts produce at the output of the coder.
 */
-static void encode_a_frame(gsm0610_state_t *s, const int16_t amp[], gsm0610_frame_t *f)
+static void encode_a_frame(gsm0610_state_t *s, gsm0610_frame_t *f, const int16_t amp[])
 {
     int k;
     int16_t *dp;
@@ -98,9 +98,9 @@ static void encode_a_frame(gsm0610_state_t *s, const int16_t amp[], gsm0610_fram
         dpp += 40;
     }
     /*endfor*/
-    memcpy ((char *) s->dp0,
-            (char *) (s->dp0 + GSM0610_FRAME_LEN),
-            120*sizeof(*s->dp0));
+    memcpy((char *) s->dp0,
+           (char *) (s->dp0 + GSM0610_FRAME_LEN),
+           120*sizeof(*s->dp0));
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -121,6 +121,13 @@ gsm0610_state_t *gsm0610_init(gsm0610_state_t *s, int packing)
 }
 /*- End of function --------------------------------------------------------*/
 
+int gsm0610_set_packing(gsm0610_state_t *s, int packing)
+{
+    s->packing = packing;
+    return 0;    
+}
+/*- End of function --------------------------------------------------------*/
+
 int gsm0610_release(gsm0610_state_t *s)
 {
     if (s)
@@ -130,7 +137,7 @@ int gsm0610_release(gsm0610_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int gsm0610_pack_none(uint8_t c[], gsm0610_frame_t *s)
+int gsm0610_pack_none(uint8_t c[], const gsm0610_frame_t *s)
 {
     int i;
     int j;
@@ -152,63 +159,140 @@ int gsm0610_pack_none(uint8_t c[], gsm0610_frame_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int gsm0610_pack_wav49(uint8_t code[], gsm0610_frame_t *s, int half)
+int gsm0610_pack_wav49(uint8_t c[], const gsm0610_frame_t *s)
 {
+    uint16_t sr;
     int i;
-    int j;
-    uint8_t *c;
-    bitstream_state_t bs;
+ 
+	sr = 0;
+	sr = (sr >> 6) | (s->LARc[0] << 10);
+	sr = (sr >> 6) | (s->LARc[1] << 10);
+	*c++ = sr >> 4;
+	sr = (sr >> 5) | (s->LARc[2] << 11);
+	*c++ = sr >> 7;
+	sr = (sr >> 5) | (s->LARc[3] << 11);
+	sr = (sr >> 4) | (s->LARc[4] << 12);
+	*c++ = sr >> 6;
+	sr = (sr >> 4) | (s->LARc[5] << 12);
+	sr = (sr >> 3) | (s->LARc[6] << 13);
+	*c++ = sr >> 7;
+	sr = (sr >> 3) | (s->LARc[7] << 13);
 
-    c = code;
-    if (half)
-        bitstream_init(&bs);
-    bitstream_put(&bs, &c, s->LARc[0], 6);
-    bitstream_put(&bs, &c, s->LARc[1], 6);
-    bitstream_put(&bs, &c, s->LARc[2], 5);
-    bitstream_put(&bs, &c, s->LARc[3], 5);
-    bitstream_put(&bs, &c, s->LARc[4], 4);
-    bitstream_put(&bs, &c, s->LARc[5], 4);
-    bitstream_put(&bs, &c, s->LARc[6], 3);
-    bitstream_put(&bs, &c, s->LARc[7], 3);
     for (i = 0;  i < 4;  i++)
     {
-        bitstream_put(&bs, &c, s->Nc[i], 7);
-        bitstream_put(&bs, &c, s->bc[i], 2);
-        bitstream_put(&bs, &c, s->Mc[i], 2);
-        bitstream_put(&bs, &c, s->xmaxc[i], 6);
-        for (j = 0;  j < 13;  j++)
-            bitstream_put(&bs, &c, s->xMc[i][j], 3);
+    	sr = (sr >> 7) | (s->Nc[i] << 9);
+    	*c++ = sr >> 5;
+    	sr = (sr >> 2) | (s->bc[i] << 14);
+    	sr = (sr >> 2) | (s->Mc[i] << 14);
+    	sr = (sr >> 6) | (s->xmaxc[i] << 10);
+    	*c++ = sr >> 3;
+    	sr = (sr >> 3) | (s->xMc[i][0] << 13);
+    	*c++ = sr >> 8;
+    	sr = (sr >> 3) | (s->xMc[i][1] << 13);
+    	sr = (sr >> 3) | (s->xMc[i][2] << 13);
+        sr = (sr >> 3) | (s->xMc[i][3] << 13);
+        *c++ = sr >> 7;
+        sr = (sr >> 3) | (s->xMc[i][4] << 13);
+        sr = (sr >> 3) | (s->xMc[i][5] << 13);
+        sr = (sr >> 3) | (s->xMc[i][6] << 13);
+        *c++ = sr >> 6;
+        sr = (sr >> 3) | (s->xMc[i][7] << 13);
+        sr = (sr >> 3) | (s->xMc[i][8] << 13);
+        *c++ = sr >> 8;
+        sr = (sr >> 3) | (s->xMc[i][9] << 13);
+        sr = (sr >> 3) | (s->xMc[i][10] << 13);
+        sr = (sr >> 3) | (s->xMc[i][11] << 13);
+        *c++ = sr >> 7;
+        sr = (sr >> 3) | (s->xMc[i][12] << 13);
     }
-    return (half)  ?  32  :  33;
+
+    s++;
+    sr = (sr >> 6) | (s->LARc[0] << 10);
+    *c++ = sr >> 6;
+    sr = (sr >> 6) | (s->LARc[1] << 10);
+    *c++ = sr >> 8;
+    sr = (sr >> 5) | (s->LARc[2] << 11);
+    sr = (sr >> 5) | (s->LARc[3] << 11);
+    *c++ = sr >> 6;
+    sr = (sr >> 4) | (s->LARc[4] << 12);
+    sr = (sr >> 4) | (s->LARc[5] << 12);
+    *c++ = sr >> 6;
+    sr = (sr >> 3) | (s->LARc[6] << 13);
+    sr = (sr >> 3) | (s->LARc[7] << 13);
+    *c++ = sr >> 8;
+
+    for (i = 0;  i < 4;  i++)
+    {
+        sr = (sr >> 7) | (s->Nc[i] << 9);
+        sr = (sr >> 2) | (s->bc[i] << 14);
+        *c++ = sr >> 7;
+        sr = (sr >> 2) | (s->Mc[i] << 14);
+        sr = (sr >> 6) | (s->xmaxc[i] << 10);
+        *c++ = sr >> 7;
+        sr = (sr >> 3) | (s->xMc[i][0] << 13);
+        sr = (sr >> 3) | (s->xMc[i][1] << 13);
+        sr = (sr >> 3) | (s->xMc[i][2] << 13);
+        *c++ = sr >> 6;
+        sr = (sr >> 3) | (s->xMc[i][3] << 13);
+        sr = (sr >> 3) | (s->xMc[i][4] << 13);
+        *c++ = sr >> 8;
+        sr = (sr >> 3) | (s->xMc[i][5] << 13);
+        sr = (sr >> 3) | (s->xMc[i][6] << 13);
+        sr = (sr >> 3) | (s->xMc[i][7] << 13);
+        *c++ = sr >> 7;
+        sr = (sr >> 3) | (s->xMc[i][8] << 13);
+        sr = (sr >> 3) | (s->xMc[i][9] << 13);
+        sr = (sr >> 3) | (s->xMc[i][10] << 13);
+        *c++ = sr >> 6;
+        sr = (sr >> 3) | (s->xMc[i][11] << 13);
+        sr = (sr >> 3) | (s->xMc[i][12] << 13);
+        *c++ = sr >> 8;
+    }
+    return 65;
 }
 /*- End of function --------------------------------------------------------*/
 
-int gsm0610_pack_voip(uint8_t code[], gsm0610_frame_t *s)
+int gsm0610_pack_voip(uint8_t c[33], const gsm0610_frame_t *s)
 {
     int i;
-    int j;
-    uint8_t *c;
-    bitstream_state_t bs;
 
-    c = code;
-    bitstream_init(&bs);
-    bitstream_put2(&bs, &c, GSM0610_MAGIC, 4);
-    bitstream_put2(&bs, &c, s->LARc[0], 6);
-    bitstream_put2(&bs, &c, s->LARc[1], 6);
-    bitstream_put2(&bs, &c, s->LARc[2], 5);
-    bitstream_put2(&bs, &c, s->LARc[3], 5);
-    bitstream_put2(&bs, &c, s->LARc[4], 4);
-    bitstream_put2(&bs, &c, s->LARc[5], 4);
-    bitstream_put2(&bs, &c, s->LARc[6], 3);
-    bitstream_put2(&bs, &c, s->LARc[7], 3);
+    *c++ = ((GSM0610_MAGIC & 0xF) << 4)
+         | ((s->LARc[0] >> 2) & 0xF);
+    *c++ = ((s->LARc[0] & 0x3) << 6)
+         |  (s->LARc[1] & 0x3F);
+    *c++ = ((s->LARc[2] & 0x1F) << 3)
+         | ((s->LARc[3] >> 2) & 0x7);
+    *c++ = ((s->LARc[3] & 0x3) << 6)
+         | ((s->LARc[4] & 0xF) << 2)
+         | ((s->LARc[5] >> 2) & 0x3);
+    *c++ = ((s->LARc[5] & 0x3) << 6)
+         | ((s->LARc[6] & 0x7) << 3)
+         |  (s->LARc[7] & 0x7);
+
     for (i = 0;  i < 4;  i++)
     {
-        bitstream_put2(&bs, &c, s->Nc[i], 7);
-        bitstream_put2(&bs, &c, s->bc[i], 2);
-        bitstream_put2(&bs, &c, s->Mc[i], 2);
-        bitstream_put2(&bs, &c, s->xmaxc[i], 6);
-        for (j = 0;  j < 13;  j++)
-            bitstream_put2(&bs, &c, s->xMc[i][j], 3);
+        *c++ = ((s->Nc[i] & 0x7F) << 1)
+             | ((s->bc[i] >> 1) & 0x1);
+        *c++ = ((s->bc[i] & 0x1) << 7)
+             | ((s->Mc[i] & 0x3) << 5)
+             | ((s->xmaxc[i] >> 1) & 0x1F);
+        *c++ = ((s->xmaxc[i] & 0x1) << 7)
+             | ((s->xMc[i][0] & 0x7) << 4)
+             | ((s->xMc[i][1] & 0x7) << 1)
+             | ((s->xMc[i][2] >> 2) & 0x1);
+        *c++ = ((s->xMc[i][2] & 0x3) << 6)
+             | ((s->xMc[i][3] & 0x7) << 3)
+             |  (s->xMc[i][4] & 0x7);
+        *c++ = ((s->xMc[i][5] & 0x7) << 5)
+             | ((s->xMc[i][6] & 0x7) << 2)
+             | ((s->xMc[i][7] >> 1) & 0x3);
+        *c++ = ((s->xMc[i][7] & 0x1) << 7)
+             | ((s->xMc[i][8] & 0x7) << 4)
+             | ((s->xMc[i][9] & 0x7) << 1)
+             | ((s->xMc[i][10] >> 2) & 0x1);
+        *c++ = ((s->xMc[i][10] & 0x3) << 6)
+             | ((s->xMc[i][11] & 0x7) << 3)
+             |  (s->xMc[i][12] & 0x7);
     }
     return 33;
 }
@@ -216,111 +300,29 @@ int gsm0610_pack_voip(uint8_t code[], gsm0610_frame_t *s)
 
 int gsm0610_encode(gsm0610_state_t *s, uint8_t code[], const int16_t amp[], int quant)
 {
-    gsm0610_frame_t frame;
+    gsm0610_frame_t frame[2];
     uint8_t *c;
     int i;
 
     c = code;
-    if (s->packing == GSM0610_PACKING_WAV49)
-        quant <<= 1;
     for (i = 0;  i < quant;  i++)
     {
-        encode_a_frame(s, &amp[i*GSM0610_FRAME_LEN], &frame);
-        /*  variable    size
-
-            LARc[0]     6
-            LARc[1]     6
-            LARc[2]     5
-            LARc[3]     5
-            LARc[4]     4
-            LARc[5]     4
-            LARc[6]     3
-            LARc[7]     3
-    
-            Nc[0]       7
-            bc[0]       2
-            Mc[0]       2
-            xmaxc[0]    6
-            xMc[0]      3
-            xMc[1]      3
-            xMc[2]      3
-            xMc[3]      3
-            xMc[4]      3
-            xMc[5]      3
-            xMc[6]      3
-            xMc[7]      3
-            xMc[8]      3
-            xMc[9]      3
-            xMc[10]     3
-            xMc[11]     3
-            xMc[12]     3
-
-            Nc[1]       7
-            bc[1]       2
-            Mc[1]       2
-            xmaxc[1]    6
-            xMc[13]     3
-            xMc[14]     3
-            xMc[15]     3
-            xMc[16]     3
-            xMc[17]     3
-            xMc[18]     3
-            xMc[19]     3
-            xMc[20]     3
-            xMc[21]     3
-            xMc[22]     3
-            xMc[23]     3
-            xMc[24]     3
-            xMc[25]     3
-
-            Nc[2]       7
-            bc[2]       2
-            Mc[2]       2
-            xmaxc[2]    6
-            xMc[26]     3
-            xMc[27]     3
-            xMc[28]     3
-            xMc[29]     3
-            xMc[30]     3
-            xMc[31]     3
-            xMc[32]     3
-            xMc[33]     3
-            xMc[34]     3
-            xMc[35]     3
-            xMc[36]     3
-            xMc[37]     3
-            xMc[38]     3
-
-            Nc[3]       7
-            bc[3]       2
-            Mc[3]       2
-            xmaxc[3]    6
-            xMc[39]     3
-            xMc[40]     3
-            xMc[41]     3
-            xMc[42]     3
-            xMc[43]     3
-            xMc[44]     3
-            xMc[45]     3
-            xMc[46]     3
-            xMc[47]     3
-            xMc[48]     3
-            xMc[49]     3
-            xMc[50]     3
-            xMc[51]     3
-        */
-
+        encode_a_frame(s, frame, amp);
         switch (s->packing)
         {
         case GSM0610_PACKING_NONE:
-            c += gsm0610_pack_none(c, &frame);
+            c += gsm0610_pack_none(c, frame);
+            amp += GSM0610_FRAME_LEN;
             break;
         case GSM0610_PACKING_WAV49:
-            s->frame_index = !s->frame_index;
-            c += gsm0610_pack_wav49(c, &frame, s->frame_index);
+            amp += GSM0610_FRAME_LEN;
+            encode_a_frame(s, frame + 1, amp);
+            amp += GSM0610_FRAME_LEN;
+            c += gsm0610_pack_wav49(c, frame);
             break;
         case GSM0610_PACKING_VOIP:
-            c += gsm0610_pack_voip(c, &frame);
+            c += gsm0610_pack_voip(c, frame);
+            amp += GSM0610_FRAME_LEN;
             break;
         }
         /*endswitch*/

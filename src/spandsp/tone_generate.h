@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.h,v 1.28 2007/04/05 19:20:50 steveu Exp $
+ * $Id: tone_generate.h,v 1.29 2007/04/08 08:16:18 steveu Exp $
  */
 
 /*! \file */
@@ -79,7 +79,7 @@ typedef struct
     int current_position;
 } tone_gen_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -113,7 +113,7 @@ void tone_gen_init(tone_gen_state_t *s, tone_gen_descriptor_t *t);
 
 int tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

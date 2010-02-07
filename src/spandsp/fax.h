@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.h,v 1.22 2007/04/05 19:20:49 steveu Exp $
+ * $Id: fax.h,v 1.24 2007/05/15 13:22:43 steveu Exp $
  */
 
 /*! \file */
@@ -91,14 +91,12 @@ struct fax_state_s
     /*! \brief A V.21 FSK modem context used when receiving HDLC over V.21
                messages. */
     fsk_rx_state_t v21rx;
-#if defined(ENABLE_V17)
     /*! \brief A V.17 modem context used when sending FAXes at 7200bps, 9600bps
                12000bps or 14400bps*/
     v17_tx_state_t v17tx;
     /*! \brief A V.29 modem context used when receiving FAXes at 7200bps, 9600bps
                12000bps or 14400bps*/
     v17_rx_state_t v17rx;
-#endif
     /*! \brief A V.27ter modem context used when sending FAXes at 2400bps or
                4800bps */
     v27ter_tx_state_t v27ter_tx;
@@ -133,7 +131,7 @@ struct fax_state_s
     logging_state_t logging;
 };
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -181,16 +179,16 @@ void fax_set_tep_mode(fax_state_t *s, int use_tep);
     \param s The FAX context.
     \param calling_party TRUE if the context is for a calling party. FALSE if the
            context is for an answering party.
-    \return 0 for OK, else -1.
+    \return A pointer to the FAX context, or NULL if there was a problem.
 */
-int fax_init(fax_state_t *s, int calling_party);
+fax_state_t *fax_init(fax_state_t *s, int calling_party);
 
 /*! Release a FAX context.
     \brief Release a FAX context.
     \param s The FAX context. */
 int fax_release(fax_state_t *s);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

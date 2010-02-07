@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.c,v 1.20 2006/11/30 15:41:47 steveu Exp $
+ * $Id: v8.c,v 1.22 2007/06/25 12:55:22 steveu Exp $
  */
  
 /*! \file */
@@ -50,9 +50,9 @@
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
 #include "spandsp/super_tone_rx.h"
-#include "spandsp/modem_connect_tones.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/fsk.h"
+#include "spandsp/modem_connect_tones.h"
 #include "spandsp/v8.h"
 
 #define ms_to_samples(t)    (((t)*SAMPLE_RATE)/1000)
@@ -505,7 +505,7 @@ static int get_bit(void *user_data)
     uint8_t bit;
 
     s = user_data;
-    if (queue_read(&s->tx_queue, &bit, 1) <= 0)
+    if (queue_read(s->tx_queue, &bit, 1) <= 0)
         bit = 1;
     return bit;
 }
@@ -524,7 +524,7 @@ static void v8_put_byte(v8_state_t *s, int data)
         data >>= 1;
     }
     bits[9] = 1;
-    queue_write(&s->tx_queue, bits, 10);
+    queue_write(s->tx_queue, bits, 10);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -538,7 +538,7 @@ static void send_cm_jm(v8_state_t *s, int mod_mask)
     };
 
     /* Send a CM, or a JM as appropriate */
-    queue_write(&s->tx_queue, preamble, 20);
+    queue_write(s->tx_queue, preamble, 20);
     
     /* Data call */
     v8_put_byte(s, (V8_CALL_V_SERIES << 5) | 0x01);
@@ -655,14 +655,14 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int len)
         for (i = 0;  i < 4;  i++)
         {
             /* 10 1's (0x3FF), then CI sync (0x001) */
-            queue_write(&s->tx_queue, preamble, 20);
+            queue_write(s->tx_queue, preamble, 20);
             v8_put_byte(s, (V8_CALL_V_SERIES << 5) | 0x01);
         }
         s->state = V8_CI_ON;
         break;
     case V8_CI_ON:
         residual_samples = modem_connect_tones_rx(&s->ec_dis_rx, amp, len);
-        if (queue_empty(&s->tx_queue))
+        if (queue_empty(s->tx_queue))
         {
             s->state = V8_CI_OFF;
             s->ci_timer = ms_to_samples(500);
@@ -714,7 +714,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int len)
                before finishing the V.8 analysis. */
             s->negotiated_modulation = select_modulation(s->far_end_modulations);
 
-            queue_flush(&s->tx_queue);
+            queue_flush(s->tx_queue);
             for (i = 0;  i < 9;  i++)
                 v8_put_byte(s, 0);
             s->state = V8_CJ_ON;
@@ -727,7 +727,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int len)
             if (s->result_handler)
                 s->result_handler(s->result_handler_user_data, NULL);
         }
-        if (queue_empty(&s->tx_queue))
+        if (queue_empty(s->tx_queue))
         {
             /* Send CM again */
             send_cm_jm(s, s->available_modulations);
@@ -735,7 +735,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int len)
         break;
     case V8_CJ_ON:
         residual_samples = fsk_rx(&s->v21rx, amp, len);
-        if (queue_empty(&s->tx_queue))
+        if (queue_empty(s->tx_queue))
         {
             s->negotiation_timer = ms_to_samples(75);
             s->state = V8_SIGC;
@@ -810,7 +810,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int len)
                 s->result_handler(s->result_handler_user_data, NULL);
             break;
         }
-        if (queue_empty(&s->tx_queue))
+        if (queue_empty(s->tx_queue))
         {
             /* Send JM */
             send_cm_jm(s, s->common_modulations);
@@ -866,7 +866,7 @@ v8_state_t *v8_init(v8_state_t *s,
         s->state = V8_WAIT_200MS;
         s->negotiation_timer = ms_to_samples(200);
     }
-    if (queue_create(&s->tx_queue, 1024, 0))
+    if ((s->tx_queue = queue_create(1024, 0)) == NULL)
         return NULL;
     return s;
 }
@@ -874,7 +874,7 @@ v8_state_t *v8_init(v8_state_t *s,
 
 int v8_release(v8_state_t *s)
 {
-    return queue_delete(&s->tx_queue);
+    return queue_delete(s->tx_queue);
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

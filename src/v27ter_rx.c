@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.75 2006/11/28 16:59:57 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.81 2007/08/25 02:35:02 steveu Exp $
  */
 
 /*! \file */
@@ -93,6 +93,603 @@ static const complexf_t v27ter_constellation[8] =
     { 1.0f,   -1.0f}        /* 315deg */
 };
 
+#if defined(SPANDSP_USE_FIXED_POINT)
+/* Raised root cosine pulse shaping filter set; beta 0.5; sample rate 8000; 8 phase steps;
+   baud rate 1600; shifted to centre at 1800Hz; complex. */
+#define PULSESHAPER_4800_GAIN           32768.0f
+#define PULSESHAPER_4800_COEFF_SETS     8
+static const complexi16_t pulseshaper_4800[PULSESHAPER_4800_COEFF_SETS][V27TER_RX_4800_FILTER_STEPS] =
+{
+    {
+        {   -33,    -16},   /* Filter 0 */
+        {     1,     -4},
+        {   -42,     -6},
+        {     0,     37},
+        {   -39,      6},
+        {    30,     93},
+        {   -17,      9},
+        {    74,    103},
+        {   105,   -105},
+        {   141,    103},
+        {   343,   -674},
+        {   661,    215},
+        {   411,  -2595},
+        {  6763,      0},
+        {  1058,   6680},
+        { -2499,    812},
+        {   316,    620},
+        {  -612,    445},
+        {   123,    123},
+        {   -87,    121},
+        {   113,     57},
+        {     6,    -18},
+        {    97,     15},
+        {     0,    -40},
+        {    37,     -5},
+        {   -13,    -41},
+        {    -3,      1},
+    },
+    {
+        {   -12,     -6},   /* Filter 1 */
+        {    -1,      5},
+        {   -38,     -6},
+        {     0,     48},
+        {   -24,      3},
+        {    33,    101},
+        {     7,     -3},
+        {    69,     95},
+        {   137,   -137},
+        {    82,     59},
+        {   395,   -776},
+        {   443,    144},
+        {   502,  -3169},
+        {  7061,      0},
+        {  1000,   6314},
+        { -1963,    637},
+        {   393,    772},
+        {  -508,    369},
+        {   162,    162},
+        {   -59,     82},
+        {   114,     58},
+        {    14,    -43},
+        {    85,     13},
+        {     0,    -52},
+        {    24,     -3},
+        {   -13,    -42},
+        {   -12,      6},
+    },
+    {
+        {   -19,    -10},   /* Filter 2 */
+        {    -4,     14},
+        {   -32,     -5},
+        {     0,     57},
+        {    -7,      1},
+        {    34,    104},
+        {    32,    -16},
+        {    57,     79},
+        {   164,   -164},
+        {     7,      5},
+        {   437,   -859},
+        {   167,     54},
+        {   593,  -3749},
+        {  7278,      0},
+        {   932,   5884},
+        { -1453,    472},
+        {   445,    874},
+        {  -398,    289},
+        {   186,    186},
+        {   -31,     42},
+        {   108,     55},
+        {    21,    -65},
+        {    69,     10},
+        {     0,    -60},
+        {    11,     -1},
+        {   -13,    -40},
+        {   -19,     10},
+    },
+    {
+        {   -26,    -13},   /* Filter 3 */
+        {    -7,     23},
+        {   -23,     -3},
+        {     0,     63},
+        {    11,     -1},
+        {    33,    102},
+        {    56,    -28},
+        {    41,     57},
+        {   185,   -185},
+        {   -80,    -58},
+        {   467,   -916},
+        {  -162,    -52},
+        {   684,  -4322},
+        {  7411,      0},
+        {   855,   5402},
+        {  -978,    317},
+        {   473,    930},
+        {  -287,    208},
+        {   197,    197},
+        {    -3,      5},
+        {    96,     49},
+        {    26,    -82},
+        {    51,      8},
+        {     0,    -65},
+        {    -1,      0},
+        {   -11,    -36},
+        {   -26,     13},
+    },
+    {
+        {   -31,    -15},   /* Filter 4 */
+        {   -10,     30},
+        {   -13,     -2},
+        {     0,     66},
+        {    31,     -5},
+        {    30,     95},
+        {    78,    -39},
+        {    20,     28},
+        {   196,   -196},
+        {  -180,   -130},
+        {   480,   -942},
+        {  -546,   -177},
+        {   772,  -4877},
+        {  7456,      0},
+        {   772,   4877},
+        {  -546,    177},
+        {   480,    942},
+        {  -180,    130},
+        {   196,    196},
+        {    20,    -28},
+        {    78,     39},
+        {    30,    -95},
+        {    31,      5},
+        {     0,    -66},
+        {   -13,      2},
+        {   -10,    -30},
+        {   -31,     15},
+    },
+    {
+        {   -34,    -17},   /* Filter 5 */
+        {   -11,     36},
+        {    -1,      0},
+        {     0,     65},
+        {    51,     -8},
+        {    26,     82},
+        {    96,    -49},
+        {    -3,     -5},
+        {   197,   -197},
+        {  -287,   -208},
+        {   473,   -930},
+        {  -978,   -317},
+        {   855,  -5402},
+        {  7411,      0},
+        {   684,   4322},
+        {  -162,     52},
+        {   467,    916},
+        {   -80,     58},
+        {   185,    185},
+        {    41,    -57},
+        {    56,     28},
+        {    33,   -102},
+        {    11,      1},
+        {     0,    -63},
+        {   -23,      3},
+        {    -7,    -23},
+        {   -34,     17},
+    },
+    {
+        {   -35,    -18},   /* Filter 6 */
+        {   -13,     40},
+        {    11,      1},
+        {     0,     60},
+        {    69,    -10},
+        {    21,     65},
+        {   108,    -55},
+        {   -31,    -42},
+        {   186,   -186},
+        {  -398,   -289},
+        {   445,   -874},
+        { -1453,   -472},
+        {   932,  -5884},
+        {  7278,      0},
+        {   593,   3749},
+        {   167,    -54},
+        {   437,    859},
+        {     7,     -5},
+        {   164,    164},
+        {    57,    -79},
+        {    32,     16},
+        {    34,   -104},
+        {    -7,     -1},
+        {     0,    -57},
+        {   -32,      5},
+        {    -4,    -14},
+        {   -35,     18},
+    },
+    {
+        {   -35,    -17},   /* Filter 7 */
+        {   -13,     42},
+        {    24,      3},
+        {     0,     52},
+        {    85,    -13},
+        {    14,     43},
+        {   114,    -58},
+        {   -59,    -82},
+        {   162,   -162},
+        {  -508,   -369},
+        {   393,   -772},
+        { -1963,   -637},
+        {  1000,  -6314},
+        {  7061,      0},
+        {   502,   3169},
+        {   443,   -144},
+        {   395,    776},
+        {    82,    -59},
+        {   137,    137},
+        {    69,    -95},
+        {     7,      3},
+        {    33,   -101},
+        {   -24,     -3},
+        {     0,    -48},
+        {   -38,      6},
+        {    -1,     -5},
+        {   -35,     17},
+    }
+};
+
+/* Raised root cosine pulse shaping filter set; beta 0.5; sample rate 8000; 12 phase steps;
+   baud rate 1200; shifted to centre at 1800Hz; complex. */
+#define PULSESHAPER_2400_GAIN           32768.0f
+#define PULSESHAPER_2400_COEFF_SETS     12
+static const complexi16_t pulseshaper_2400[PULSESHAPER_2400_COEFF_SETS][V27TER_RX_2400_FILTER_STEPS] =
+{
+    {
+        {    53,     27},   /* Filter 0 */
+        {     5,    -17},
+        {    71,     11},
+        {     0,    -91},
+        {   -40,      6},
+        {   -32,    -99},
+        {  -206,    105},
+        {    29,     40},
+        {  -135,    135},
+        {   493,    358},
+        {   293,   -576},
+        {  2177,    707},
+        {   629,  -3976},
+        { 14800,      0},
+        {  2315,  14618},
+        { -3829,   1244},
+        {  1039,   2040},
+        {  -523,    380},
+        {   431,    431},
+        {   112,   -155},
+        {    44,     22},
+        {    71,   -220},
+        {  -103,    -16},
+        {     0,    -41},
+        {   -90,     14},
+        {    22,     69},
+        {   -16,      8},
+    },
+    {
+        {    -4,     -2},   /* Filter 1 */
+        {     9,    -29},
+        {    61,      9},
+        {     0,    -96},
+        {   -62,      9},
+        {   -25,    -78},
+        {  -216,    110},
+        {    56,     78},
+        {   -99,     99},
+        {   509,    369},
+        {   396,   -778},
+        {  2048,    665},
+        {   774,  -4888},
+        { 15380,      0},
+        {  2210,  13959},
+        { -2990,    971},
+        {  1072,   2104},
+        {  -346,    252},
+        {   405,    405},
+        {   137,   -188},
+        {     1,      0},
+        {    66,   -204},
+        {  -121,    -19},
+        {     0,    -19},
+        {   -82,     13},
+        {    24,     76},
+        {    -4,      2},
+    },
+    {
+        {     7,      3},   /* Filter 2 */
+        {    13,    -42},
+        {    49,      7},
+        {     0,    -98},
+        {   -82,     13},
+        {   -17,    -53},
+        {  -220,    112},
+        {    83,    115},
+        {   -56,     56},
+        {   508,    369},
+        {   501,   -985},
+        {  1853,    602},
+        {   923,  -5831},
+        { 15866,      0},
+        {  2094,  13223},
+        { -2198,    714},
+        {  1078,   2116},
+        {  -181,    132},
+        {   369,    369},
+        {   154,   -213},
+        {   -39,    -20},
+        {    59,   -183},
+        {  -134,    -21},
+        {     0,      2},
+        {   -71,     11},
+        {    26,     82},
+        {     7,     -3},
+    },
+    {
+        {    18,      9},   /* Filter 3 */
+        {    17,    -53},
+        {    35,      5},
+        {     0,    -97},
+        {  -101,     16},
+        {    -8,    -25},
+        {  -217,    110},
+        {   108,    149},
+        {    -7,      7},
+        {   489,    355},
+        {   606,  -1190},
+        {  1590,    516},
+        {  1076,  -6796},
+        { 16251,      0},
+        {  1967,  12420},
+        { -1460,    474},
+        {  1060,   2081},
+        {   -30,     22},
+        {   325,    325},
+        {   165,   -228},
+        {   -79,    -40},
+        {    51,   -158},
+        {  -142,    -22},
+        {     0,     23},
+        {   -58,      9},
+        {    27,     84},
+        {    18,     -9},
+    },
+    {
+        {    28,     14},   /* Filter 4 */
+        {    20,    -63},
+        {    20,      3},
+        {     0,    -92},
+        {  -117,     18},
+        {     1,      4},
+        {  -209,    106},
+        {   129,    178},
+        {    46,    -46},
+        {   452,    328},
+        {   707,  -1389},
+        {  1257,    408},
+        {  1231,  -7772},
+        { 16529,      0},
+        {  1830,  11560},
+        {  -782,    254},
+        {  1020,   2003},
+        {   104,    -75},
+        {   274,    274},
+        {   170,   -234},
+        {  -115,    -58},
+        {    42,   -130},
+        {  -146,    -23},
+        {     0,     42},
+        {   -44,      7},
+        {    27,     85},
+        {    28,    -14},
+    },
+    {
+        {    37,     19},   /* Filter 5 */
+        {    23,    -72},
+        {     3,      0},
+        {     0,    -84},
+        {  -130,     20},
+        {    11,     36},
+        {  -194,     99},
+        {   147,    203},
+        {   103,   -103},
+        {   395,    287},
+        {   802,  -1575},
+        {   853,    277},
+        {  1385,  -8748},
+        { 16698,      0},
+        {  1687,  10653},
+        {  -168,     54},
+        {   962,   1888},
+        {   221,   -160},
+        {   218,    218},
+        {   168,   -232},
+        {  -146,    -74},
+        {    32,   -100},
+        {  -145,    -23},
+        {     0,     59},
+        {   -28,      4},
+        {    27,     83},
+        {    37,    -19},
+    },
+    {
+        {    45,     23},   /* Filter 6 */
+        {    25,    -78},
+        {   -12,     -1},
+        {     0,    -73},
+        {  -140,     22},
+        {    22,     68},
+        {  -173,     88},
+        {   160,    221},
+        {   161,   -161},
+        {   318,    231},
+        {   888,  -1744},
+        {   377,    122},
+        {  1538,  -9712},
+        { 16754,      0},
+        {  1538,   9712},
+        {   377,   -122},
+        {   888,   1744},
+        {   318,   -231},
+        {   161,    161},
+        {   160,   -221},
+        {  -173,    -88},
+        {    22,    -68},
+        {  -140,    -22},
+        {     0,     73},
+        {   -12,      1},
+        {    25,     78},
+        {    45,    -23},
+    },
+    {
+        {    51,     26},   /* Filter 7 */
+        {    27,    -83},
+        {   -28,     -4},
+        {     0,    -59},
+        {  -145,     23},
+        {    32,    100},
+        {  -146,     74},
+        {   168,    232},
+        {   218,   -218},
+        {   221,    160},
+        {   962,  -1888},
+        {  -168,    -54},
+        {  1687, -10653},
+        { 16698,      0},
+        {  1385,   8748},
+        {   853,   -277},
+        {   802,   1575},
+        {   395,   -287},
+        {   103,    103},
+        {   147,   -203},
+        {  -194,    -99},
+        {    11,    -36},
+        {  -130,    -20},
+        {     0,     84},
+        {     3,      0},
+        {    23,     72},
+        {    51,    -26},
+    },
+    {
+        {    55,     28},   /* Filter 8 */
+        {    27,    -85},
+        {   -44,     -7},
+        {     0,    -42},
+        {  -146,     23},
+        {    42,    130},
+        {  -115,     58},
+        {   170,    234},
+        {   274,   -274},
+        {   104,     75},
+        {  1020,  -2003},
+        {  -782,   -254},
+        {  1830, -11560},
+        { 16529,      0},
+        {  1231,   7772},
+        {  1257,   -408},
+        {   707,   1389},
+        {   452,   -328},
+        {    46,     46},
+        {   129,   -178},
+        {  -209,   -106},
+        {     1,     -4},
+        {  -117,    -18},
+        {     0,     92},
+        {    20,     -3},
+        {    20,     63},
+        {    55,    -28},
+    },
+    {
+        {    57,     29},   /* Filter 9 */
+        {    27,    -84},
+        {   -58,     -9},
+        {     0,    -23},
+        {  -142,     22},
+        {    51,    158},
+        {   -79,     40},
+        {   165,    228},
+        {   325,   -325},
+        {   -30,    -22},
+        {  1060,  -2081},
+        { -1460,   -474},
+        {  1967, -12420},
+        { 16251,      0},
+        {  1076,   6796},
+        {  1590,   -516},
+        {   606,   1190},
+        {   489,   -355},
+        {    -7,     -7},
+        {   108,   -149},
+        {  -217,   -110},
+        {    -8,     25},
+        {  -101,    -16},
+        {     0,     97},
+        {    35,     -5},
+        {    17,     53},
+        {    57,    -29},
+    },
+    {
+        {    57,     29},   /* Filter 10 */
+        {    26,    -82},
+        {   -71,    -11},
+        {     0,     -2},
+        {  -134,     21},
+        {    59,    183},
+        {   -39,     20},
+        {   154,    213},
+        {   369,   -369},
+        {  -181,   -132},
+        {  1078,  -2116},
+        { -2198,   -714},
+        {  2094, -13223},
+        { 15866,      0},
+        {   923,   5831},
+        {  1853,   -602},
+        {   501,    985},
+        {   508,   -369},
+        {   -56,    -56},
+        {    83,   -115},
+        {  -220,   -112},
+        {   -17,     53},
+        {   -82,    -13},
+        {     0,     98},
+        {    49,     -7},
+        {    13,     42},
+        {    57,    -29},
+    },
+    {
+        {    56,     28},   /* Filter 11 */
+        {    24,    -76},
+        {   -82,    -13},
+        {     0,     19},
+        {  -121,     19},
+        {    66,    204},
+        {     1,      0},
+        {   137,    188},
+        {   405,   -405},
+        {  -346,   -252},
+        {  1072,  -2104},
+        { -2990,   -971},
+        {  2210, -13959},
+        { 15380,      0},
+        {   774,   4888},
+        {  2048,   -665},
+        {   396,    778},
+        {   509,   -369},
+        {   -99,    -99},
+        {    56,    -78},
+        {  -216,   -110},
+        {   -25,     78},
+        {   -62,     -9},
+        {     0,     96},
+        {    61,     -9},
+        {     9,     29},
+        {    56,    -28},
+    }
+};
+#else
 /* Raised root cosine pulse shaping filter set; beta 0.5; sample rate 8000; 8 phase steps;
    baud rate 1600; shifted to centre at 1800Hz; complex. */
 #define PULSESHAPER_4800_GAIN           (2.4975f*2.0f)
@@ -330,7 +927,7 @@ static const complexf_t pulseshaper_4800[PULSESHAPER_4800_COEFF_SETS][V27TER_RX_
         {-0.0059141931f,  0.0009367162f},
         {-0.0002684621f, -0.0008262413f},
         {-0.0053826099f,  0.0027425768f},
-    },
+    }
 };
 
 /* Raised root cosine pulse shaping filter set; beta 0.5; sample rate 8000; 12 phase steps;
@@ -686,8 +1283,9 @@ static const complexf_t pulseshaper_2400[PULSESHAPER_2400_COEFF_SETS][V27TER_RX_
         { 0.0041797109f, -0.0006620012f},
         { 0.0006588563f,  0.0020277512f},
         { 0.0038399827f, -0.0019565689f},
-    },
+    }
 };
+#endif
 
 float v27ter_rx_carrier_frequency(v27ter_rx_state_t *s)
 {
@@ -706,7 +1304,7 @@ float v27ter_rx_symbol_timing_correction(v27ter_rx_state_t *s)
 
 float v27ter_rx_signal_power(v27ter_rx_state_t *s)
 {
-    return power_meter_dbm0(&s->power);
+    return power_meter_current_dbm0(&s->power);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -828,7 +1426,7 @@ static __inline__ int descramble(v27ter_rx_state_t *s, int in_bit)
     }
     else
     {
-        if (s->in_training > TRAINING_STAGE_NORMAL_OPERATION  &&  s->in_training < TRAINING_STAGE_TEST_ONES)
+        if (s->training_stage > TRAINING_STAGE_NORMAL_OPERATION  &&  s->training_stage < TRAINING_STAGE_TEST_ONES)
         {
             s->scrambler_pattern_count = 0;
         }
@@ -841,7 +1439,7 @@ static __inline__ int descramble(v27ter_rx_state_t *s, int in_bit)
         }
     }
     s->scramble_reg <<= 1;
-    if (s->in_training > TRAINING_STAGE_NORMAL_OPERATION  &&  s->in_training < TRAINING_STAGE_TEST_ONES)
+    if (s->training_stage > TRAINING_STAGE_NORMAL_OPERATION  &&  s->training_stage < TRAINING_STAGE_TEST_ONES)
         s->scramble_reg |= out_bit;
     else
         s->scramble_reg |= in_bit;
@@ -859,7 +1457,7 @@ static __inline__ void put_bit(v27ter_rx_state_t *s, int bit)
 
     /* We need to strip the last part of the training before we let data
        go to the application. */
-    if (s->in_training == TRAINING_STAGE_NORMAL_OPERATION)
+    if (s->training_stage == TRAINING_STAGE_NORMAL_OPERATION)
     {
         s->put_bit(s->user_data, out_bit);
     }
@@ -896,7 +1494,7 @@ static __inline__ int find_octant(complexf_t *z)
     /* Are we near an axis or a diagonal? */
     abs_re = fabsf(z->re);
     abs_im = fabsf(z->im);
-    if (abs_im > abs_re*0.4142136  &&  abs_im < abs_re*2.4142136)
+    if (abs_im > abs_re*0.4142136f  &&  abs_im < abs_re*2.4142136f)
     {
         /* Split the space along the two axes. */
         b1 = (z->re < 0.0);
@@ -1015,7 +1613,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
     z = equalizer_get(s);
 
     //span_log(&s->logging, SPAN_LOG_FLOW, "Equalized symbol - %15.5f %15.5f\n", z.re, z.im);
-    switch (s->in_training)
+    switch (s->training_stage)
     {
     case TRAINING_STAGE_NORMAL_OPERATION:
         decode_baud(s, &z);
@@ -1028,7 +1626,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
         if (++s->training_count >= 30)
         {
             s->gardner_step = 32;
-            s->in_training = TRAINING_STAGE_LOG_PHASE;
+            s->training_stage = TRAINING_STAGE_LOG_PHASE;
             s->angles[0] =
             s->start_angles[0] = arctan2(z.im, z.re);
         }
@@ -1039,7 +1637,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
         s->angles[1] =
         s->start_angles[1] = angle;
         s->training_count = 1;
-        s->in_training = TRAINING_STAGE_WAIT_FOR_HOP;
+        s->training_stage = TRAINING_STAGE_WAIT_FOR_HOP;
         break;
     case TRAINING_STAGE_WAIT_FOR_HOP:
         angle = arctan2(z.im, z.re);
@@ -1075,7 +1673,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
             {
                span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (sequence failed)\n");
                /* Park this modem */
-               s->in_training = TRAINING_STAGE_PARKED;
+               s->training_stage = TRAINING_STAGE_PARKED;
                s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
                break;
             }
@@ -1096,7 +1694,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
             descramble(s, 1);
             descramble(s, 1);
             s->training_count = 1;
-            s->in_training = TRAINING_STAGE_TRAIN_ON_ABAB;
+            s->training_stage = TRAINING_STAGE_TRAIN_ON_ABAB;
         }
         else if (++s->training_count > V27TER_TRAINING_SEG_3_LEN)
         {
@@ -1104,7 +1702,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
                of a real training sequence. */
             span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (sequence failed)\n");
             /* Park this modem */
-            s->in_training = TRAINING_STAGE_PARKED;
+            s->training_stage = TRAINING_STAGE_PARKED;
             s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
         }
         break;
@@ -1121,7 +1719,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
         {
             s->constellation_state = (s->bit_rate == 4800)  ?  4  :  2;
             s->training_count = 0;
-            s->in_training = TRAINING_STAGE_TEST_ONES;
+            s->training_stage = TRAINING_STAGE_TEST_ONES;
             s->carrier_track_i = 400.0;
             s->carrier_track_p = 1000000.0;
         }
@@ -1145,8 +1743,8 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
                 s->put_bit(s->user_data, PUTBIT_TRAINING_SUCCEEDED);
                 /* Apply some lag to the carrier off condition, to ensure the last few bits get pushed through
                    the processing. */
-                s->carrier_present = (s->bit_rate == 4800)  ?  90  :  120;
-                s->in_training = TRAINING_STAGE_NORMAL_OPERATION;
+                s->signal_present = (s->bit_rate == 4800)  ?  90  :  120;
+                s->training_stage = TRAINING_STAGE_NORMAL_OPERATION;
                 equalizer_save(s);
                 s->carrier_phase_rate_save = s->carrier_phase_rate;
                 s->agc_scaling_save = s->agc_scaling;
@@ -1156,7 +1754,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
                 /* Training has failed */
                 span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (constellation mismatch %f)\n", s->training_error);
                 /* Park this modem */
-                s->in_training = TRAINING_STAGE_PARKED;
+                s->training_stage = TRAINING_STAGE_PARKED;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
             }
         }
@@ -1181,9 +1779,13 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
     int i;
     int j;
     int step;
+    int16_t x;
     complexf_t z;
     complexf_t zz;
-    complexf_t samplex;
+    complexf_t sample;
+#if defined(SPANDSP_USE_FIXED_POINT)
+    complexi_t zi;
+#endif
     int32_t power;
 
     if (s->bit_rate == 4800)
@@ -1198,15 +1800,16 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
             /* There should be no DC in the signal, but sometimes there is.
                We need to measure the power with the DC blocked, but not using
                a slow to respond DC blocker. Use the most elementary HPF. */
-            power = power_meter_update(&(s->power), (amp[i] - s->last_sample) >> 1);
-            s->last_sample = amp[i];
-            //span_log(&s->logging, SPAN_LOG_FLOW, "Power = %f\n", power_meter_dbm0(&(s->power)));
-            if (s->carrier_present)
+            x = amp[i] >> 1;
+            power = power_meter_update(&(s->power), x - s->last_sample);
+            s->last_sample = x;
+            //span_log(&s->logging, SPAN_LOG_FLOW, "Power = %f\n", power_meter_current_dbm0(&(s->power)));
+            if (s->signal_present)
             {
                 /* Look for power below turnoff threshold to turn the carrier off */
                 if (power < s->carrier_off_power)
                 {
-                    if (--s->carrier_present <= 0)
+                    if (--s->signal_present <= 0)
                     {
                         /* Count down a short delay, to ensure we push the last
                            few bits through the filters before stopping. */
@@ -1221,48 +1824,59 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                 /* Look for power exceeding turnon threshold to turn the carrier on */
                 if (power < s->carrier_on_power)
                     continue;
-                s->carrier_present = 1;
+                s->signal_present = 1;
                 s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
             }
-            if (s->in_training != TRAINING_STAGE_PARKED)
-            {
-                /* Only spend effort processing this data if the modem is not
-                   parked, after training failure. */
-                z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
+            if (s->training_stage == TRAINING_STAGE_PARKED)
+                continue;
+            /* Only spend effort processing this data if the modem is not
+               parked, after training failure. */
+            z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
         
-                /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
-                   will fiddle the step to align this with the symbols. */
-                if ((s->eq_put_step -= PULSESHAPER_4800_COEFF_SETS) <= 0)
+            /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
+               will fiddle the step to align this with the symbols. */
+            if ((s->eq_put_step -= PULSESHAPER_4800_COEFF_SETS) <= 0)
+            {
+                if (s->training_stage == TRAINING_STAGE_SYMBOL_ACQUISITION)
                 {
-                    if (s->in_training == TRAINING_STAGE_SYMBOL_ACQUISITION)
-                    {
-                        /* Only AGC during the initial training */
-                        s->agc_scaling = (1.0f/PULSESHAPER_4800_GAIN)*1.414f/sqrtf(power);
-                    }
-                    /* Pulse shape while still at the carrier frequency, using a quadrature
-                       pair of filters. This results in a properly bandpass filtered complex
-                       signal, which can be brought directly to bandband by complex mixing.
-                       No further filtering, to remove mixer harmonics, is needed. */
-                    step = -s->eq_put_step;
-                    if (step > PULSESHAPER_4800_COEFF_SETS - 1)
-                        step = PULSESHAPER_4800_COEFF_SETS - 1;
-                    s->eq_put_step += PULSESHAPER_4800_COEFF_SETS*5/2;
-                    zz.re = pulseshaper_4800[step][0].re*s->rrc_filter[s->rrc_filter_step];
-                    zz.im = pulseshaper_4800[step][0].im*s->rrc_filter[s->rrc_filter_step];
-                    for (j = 1;  j < V27TER_RX_4800_FILTER_STEPS;  j++)
-                    {
-                        zz.re += pulseshaper_4800[step][j].re*s->rrc_filter[j + s->rrc_filter_step];
-                        zz.im += pulseshaper_4800[step][j].im*s->rrc_filter[j + s->rrc_filter_step];
-                    }
-                    samplex.re = zz.re*s->agc_scaling;
-                    samplex.im = zz.im*s->agc_scaling;
-                    /* Shift to baseband - since this is done in a full complex form, the
-                       result is clean, and requires no further filtering, apart from the
-                       equalizer. */
-                    zz.re = samplex.re*z.re - samplex.im*z.im;
-                    zz.im = -samplex.re*z.im - samplex.im*z.re;
-                    process_half_baud(s, &zz);
+                    /* Only AGC during the initial training */
+                    s->agc_scaling = (1.0f/PULSESHAPER_4800_GAIN)*1.414f/sqrtf(power);
                 }
+                /* Pulse shape while still at the carrier frequency, using a quadrature
+                   pair of filters. This results in a properly bandpass filtered complex
+                   signal, which can be brought directly to baseband by complex mixing.
+                   No further filtering, to remove mixer harmonics, is needed. */
+                step = -s->eq_put_step;
+                if (step > PULSESHAPER_4800_COEFF_SETS - 1)
+                    step = PULSESHAPER_4800_COEFF_SETS - 1;
+                s->eq_put_step += PULSESHAPER_4800_COEFF_SETS*5/2;
+#if defined(SPANDSP_USE_FIXED_POINT)
+                zi.re = (int32_t) pulseshaper_4800[step][0].re*(int32_t) s->rrc_filter[s->rrc_filter_step];
+                zi.im = (int32_t) pulseshaper_4800[step][0].im*(int32_t) s->rrc_filter[s->rrc_filter_step];
+                for (j = 1;  j < V27TER_RX_4800_FILTER_STEPS;  j++)
+                {
+                    zi.re += (int32_t) pulseshaper_4800[step][j].re*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
+                    zi.im += (int32_t) pulseshaper_4800[step][j].im*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
+                }
+                sample.re = zi.re*s->agc_scaling;
+                sample.im = zi.im*s->agc_scaling;
+#else
+                zz.re = pulseshaper_4800[step][0].re*s->rrc_filter[s->rrc_filter_step];
+                zz.im = pulseshaper_4800[step][0].im*s->rrc_filter[s->rrc_filter_step];
+                for (j = 1;  j < V27TER_RX_4800_FILTER_STEPS;  j++)
+                {
+                    zz.re += pulseshaper_4800[step][j].re*s->rrc_filter[j + s->rrc_filter_step];
+                    zz.im += pulseshaper_4800[step][j].im*s->rrc_filter[j + s->rrc_filter_step];
+                }
+                sample.re = zz.re*s->agc_scaling;
+                sample.im = zz.im*s->agc_scaling;
+#endif
+                /* Shift to baseband - since this is done in a full complex form, the
+                   result is clean, and requires no further filtering, apart from the
+                   equalizer. */
+                zz.re = sample.re*z.re - sample.im*z.im;
+                zz.im = -sample.re*z.im - sample.im*z.re;
+                process_half_baud(s, &zz);
             }
         }
     }
@@ -1278,15 +1892,16 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
             /* There should be no DC in the signal, but sometimes there is.
                We need to measure the power with the DC blocked, but not using
                a slow to respond DC blocker. Use the most elementary HPF. */
-            power = power_meter_update(&(s->power), (amp[i] - s->last_sample) >> 1);
-            s->last_sample = amp[i];
-            //span_log(&s->logging, SPAN_LOG_FLOW, "Power = %f\n", power_meter_dbm0(&(s->power)));
-            if (s->carrier_present)
+            x = amp[i] >> 1;
+            power = power_meter_update(&(s->power), x - s->last_sample);
+            s->last_sample = x;
+            //span_log(&s->logging, SPAN_LOG_FLOW, "Power = %f\n", power_meter_current_dbm0(&(s->power)));
+            if (s->signal_present)
             {
                 /* Look for power below turnoff threshold to turn the carrier off */
                 if (power < s->carrier_off_power)
                 {
-                    if (--s->carrier_present <= 0)
+                    if (--s->signal_present <= 0)
                     {
                         /* Count down a short delay, to ensure we push the last
                            few bits through the filters before stopping. */
@@ -1301,48 +1916,59 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                 /* Look for power exceeding turnon threshold to turn the carrier on */
                 if (power < s->carrier_on_power)
                     continue;
-                s->carrier_present = 1;
+                s->signal_present = 1;
                 s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
             }
-            if (s->in_training != TRAINING_STAGE_PARKED)
-            {
-                /* Only spend effort processing this data if the modem is not
-                   parked, after training failure. */
-                z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
+            if (s->training_stage == TRAINING_STAGE_PARKED)
+                continue;
+            /* Only spend effort processing this data if the modem is not
+               parked, after training failure. */
+            z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
         
-                /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
-                   will fiddle the step to align this with the symbols. */
-                if ((s->eq_put_step -= PULSESHAPER_2400_COEFF_SETS) <= 0)
+            /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
+               will fiddle the step to align this with the symbols. */
+            if ((s->eq_put_step -= PULSESHAPER_2400_COEFF_SETS) <= 0)
+            {
+                if (s->training_stage == TRAINING_STAGE_SYMBOL_ACQUISITION)
                 {
-                    if (s->in_training == TRAINING_STAGE_SYMBOL_ACQUISITION)
-                    {
-                        /* Only AGC during the initial training */
-                        s->agc_scaling = (1.0f/PULSESHAPER_2400_GAIN)*1.414f/sqrtf(power);
-                    }
-                    /* Pulse shape while still at the carrier frequency, using a quadrature
-                       pair of filters. This results in a properly bandpass filtered complex
-                       signal, which can be brought directly to bandband by complex mixing.
-                       No further filtering, to remove mixer harmonics, is needed. */
-                    step = -s->eq_put_step;
-                    if (step > PULSESHAPER_2400_COEFF_SETS - 1)
-                        step = PULSESHAPER_2400_COEFF_SETS - 1;
-                    s->eq_put_step += PULSESHAPER_2400_COEFF_SETS*20/(3*2);
-                    zz.re = pulseshaper_2400[step][0].re*s->rrc_filter[s->rrc_filter_step];
-                    zz.im = pulseshaper_2400[step][0].im*s->rrc_filter[s->rrc_filter_step];
-                    for (j = 1;  j < V27TER_RX_2400_FILTER_STEPS;  j++)
-                    {
-                        zz.re += pulseshaper_2400[step][j].re*s->rrc_filter[j + s->rrc_filter_step];
-                        zz.im += pulseshaper_2400[step][j].im*s->rrc_filter[j + s->rrc_filter_step];
-                    }
-                    samplex.re = zz.re*s->agc_scaling;
-                    samplex.im = zz.im*s->agc_scaling;
-                    /* Shift to baseband - since this is done in a full complex form, the
-                       result is clean, and requires no further filtering apart from the
-                       equalizer. */
-                    zz.re = samplex.re*z.re - samplex.im*z.im;
-                    zz.im = -samplex.re*z.im - samplex.im*z.re;
-                    process_half_baud(s, &zz);
+                    /* Only AGC during the initial training */
+                    s->agc_scaling = (1.0f/PULSESHAPER_2400_GAIN)*1.414f/sqrtf(power);
                 }
+                /* Pulse shape while still at the carrier frequency, using a quadrature
+                   pair of filters. This results in a properly bandpass filtered complex
+                   signal, which can be brought directly to bandband by complex mixing.
+                   No further filtering, to remove mixer harmonics, is needed. */
+                step = -s->eq_put_step;
+                if (step > PULSESHAPER_2400_COEFF_SETS - 1)
+                    step = PULSESHAPER_2400_COEFF_SETS - 1;
+                s->eq_put_step += PULSESHAPER_2400_COEFF_SETS*20/(3*2);
+#if defined(SPANDSP_USE_FIXED_POINT)
+                zi.re = (int32_t) pulseshaper_2400[step][0].re*(int32_t) s->rrc_filter[s->rrc_filter_step];
+                zi.im = (int32_t) pulseshaper_2400[step][0].im*(int32_t) s->rrc_filter[s->rrc_filter_step];
+                for (j = 1;  j < V27TER_RX_2400_FILTER_STEPS;  j++)
+                {
+                    zi.re += (int32_t) pulseshaper_2400[step][j].re*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
+                    zi.im += (int32_t) pulseshaper_2400[step][j].im*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
+                }
+                sample.re = zi.re*s->agc_scaling;
+                sample.im = zi.im*s->agc_scaling;
+#else
+                zz.re = pulseshaper_2400[step][0].re*s->rrc_filter[s->rrc_filter_step];
+                zz.im = pulseshaper_2400[step][0].im*s->rrc_filter[s->rrc_filter_step];
+                for (j = 1;  j < V27TER_RX_2400_FILTER_STEPS;  j++)
+                {
+                    zz.re += pulseshaper_2400[step][j].re*s->rrc_filter[j + s->rrc_filter_step];
+                    zz.im += pulseshaper_2400[step][j].im*s->rrc_filter[j + s->rrc_filter_step];
+                }
+                sample.re = zz.re*s->agc_scaling;
+                sample.im = zz.im*s->agc_scaling;
+#endif
+                /* Shift to baseband - since this is done in a full complex form, the
+                   result is clean, and requires no further filtering apart from the
+                   equalizer. */
+                zz.re = sample.re*z.re - sample.im*z.im;
+                zz.im = -sample.re*z.im - sample.im*z.re;
+                process_half_baud(s, &zz);
             }
         }
     }
@@ -1364,20 +1990,22 @@ int v27ter_rx_restart(v27ter_rx_state_t *s, int rate, int old_train)
         return -1;
     s->bit_rate = rate;
 
+#if defined(SPANDSP_USE_FIXED_POINT)
+    memset(s->rrc_filter, 0, sizeof(s->rrc_filter));
+#else
     vec_zerof(s->rrc_filter, sizeof(s->rrc_filter)/sizeof(s->rrc_filter[0]));
+#endif
     s->rrc_filter_step = 0;
 
     s->scramble_reg = 0x3C;
     s->scrambler_pattern_count = 0;
-    s->in_training = TRAINING_STAGE_SYMBOL_ACQUISITION;
+    s->training_stage = TRAINING_STAGE_SYMBOL_ACQUISITION;
     s->training_bc = 0;
     s->training_count = 0;
     s->training_error = 0.0f;
-    s->carrier_present = 0;
+    s->signal_present = 0;
 
     s->carrier_phase = 0;
-    //s->carrier_track_i = 100000.0f;
-    //s->carrier_track_p = 20000000.0f;
     s->carrier_track_i = 200000.0f;
     s->carrier_track_p = 10000000.0f;
     power_meter_init(&(s->power), 4);
@@ -1393,7 +2021,7 @@ int v27ter_rx_restart(v27ter_rx_state_t *s, int rate, int old_train)
     else
     {
         s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
-        s->agc_scaling = 0.0005f;
+        s->agc_scaling = 0.005f/PULSESHAPER_4800_GAIN;
         equalizer_reset(s);
     }
     s->eq_skip = 0;

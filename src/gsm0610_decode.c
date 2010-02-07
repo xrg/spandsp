@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_decode.c,v 1.12 2006/11/30 15:41:47 steveu Exp $
+ * $Id: gsm0610_decode.c,v 1.14 2007/08/21 14:25:54 steveu Exp $
  */
 
 /*! \file */
@@ -46,8 +46,8 @@
 #include <memory.h>
 
 #include "spandsp/telephony.h"
-#include "spandsp/dc_restore.h"
 #include "spandsp/bitstream.h"
+#include "spandsp/dc_restore.h"
 #include "spandsp/gsm0610.h"
 
 #include "gsm0610_local.h"
@@ -122,66 +122,188 @@ int gsm0610_unpack_none(gsm0610_frame_t *s, const uint8_t c[])
 }
 /*- End of function --------------------------------------------------------*/
 
-int gsm0610_unpack_wav49(gsm0610_frame_t *s, const uint8_t code[], int half)
+int gsm0610_unpack_wav49(gsm0610_frame_t *s, const uint8_t c[])
 {
+    uint16_t sr;
     int i;
-    int j;
-    static bitstream_state_t bs;
-    const uint8_t *c;
 
-    c = code;
-    if (half)
-        bitstream_init(&bs);
-    s->LARc[0] = (int16_t) bitstream_get(&bs, &c, 6);
-    s->LARc[1] = (int16_t) bitstream_get(&bs, &c, 6);
-    s->LARc[2] = (int16_t) bitstream_get(&bs, &c, 5);
-    s->LARc[3] = (int16_t) bitstream_get(&bs, &c, 5);
-    s->LARc[4] = (int16_t) bitstream_get(&bs, &c, 4);
-    s->LARc[5] = (int16_t) bitstream_get(&bs, &c, 4);
-    s->LARc[6] = (int16_t) bitstream_get(&bs, &c, 3);
-    s->LARc[7] = (int16_t) bitstream_get(&bs, &c, 3);
+    sr = *c++;
+    s->LARc[0] = sr & 0x3F;
+    sr >>= 6;
+    sr |= (uint16_t) *c++ << 2;
+    s->LARc[1] = sr & 0x3F;
+    sr >>= 6;
+    sr |= (uint16_t) *c++ << 4;
+    s->LARc[2] = sr & 0x1F;
+    sr >>= 5;
+    s->LARc[3] = sr & 0x1F;
+    sr >>= 5;
+    sr |= (uint16_t) *c++ << 2;
+    s->LARc[4] = sr & 0xF;
+    sr >>= 4;
+    s->LARc[5] = sr & 0xF;
+    sr >>= 4;
+    sr |= (uint16_t) *c++ << 2;
+    s->LARc[6] = sr & 0x7;
+    sr >>= 3;
+    s->LARc[7] = sr & 0x7;
+    sr >>= 3;
+
     for (i = 0;  i < 4;  i++)
     {
-        s->Nc[i] = (int16_t) bitstream_get(&bs, &c, 7);
-        s->bc[i] = (int16_t) bitstream_get(&bs, &c, 2);
-        s->Mc[i] = (int16_t) bitstream_get(&bs, &c, 2);
-        s->xmaxc[i] = (int16_t) bitstream_get(&bs, &c, 6);
-        for (j = 0;  j < 13;  j++)
-            s->xMc[i][j] = (int16_t) bitstream_get(&bs, &c, 3);
+        sr |= (uint16_t) *c++ << 4;
+        s->Nc[i] = sr & 0x7F;
+        sr >>= 7;
+        s->bc[i] = sr & 0x3;
+        sr >>= 2;
+        s->Mc[i] = sr & 0x3;
+        sr >>= 2;
+        sr |= (uint16_t) *c++ << 1;
+        s->xmaxc[i] = sr & 0x3F;
+        sr >>= 6;
+        s->xMc[i][0] = sr & 0x7;
+        sr >>= 3;
+        sr = *c++;
+        s->xMc[i][1] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][2] = sr & 0x7;
+        sr >>= 3;
+        sr |= (uint16_t) *c++ << 2;
+        s->xMc[i][3] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][4] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][5] = sr & 0x7;
+        sr >>= 3;
+        sr |= (uint16_t) *c++ << 1;
+        s->xMc[i][6] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][7] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][8] = sr & 0x7;
+        sr >>= 3;
+        sr = *c++;
+        s->xMc[i][9] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][10] = sr & 0x7;
+        sr >>= 3;
+        sr |= (uint16_t) *c++ << 2;
+        s->xMc[i][11] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][12] = sr & 0x7;
+        sr >>= 3;
     }
-    return (half)  ?  33  :  32;
+
+    s++;
+    sr |= (uint16_t) *c++ << 4;
+    s->LARc[0] = sr & 0x3F;
+    sr >>= 6;
+    s->LARc[1] = sr & 0x3F;
+    sr >>= 6;
+    sr = *c++;
+    s->LARc[2] = sr & 0x1F;
+    sr >>= 5;
+    sr |= (uint16_t) *c++ << 3;
+    s->LARc[3] = sr & 0x1F;
+    sr >>= 5;
+    s->LARc[4] = sr & 0xF;
+    sr >>= 4;
+    sr |= (uint16_t) *c++ << 2;
+    s->LARc[5] = sr & 0xF;
+    sr >>= 4;
+    s->LARc[6] = sr & 0x7;
+    sr >>= 3;
+    s->LARc[7] = sr & 0x7;
+    sr >>= 3;
+
+    for (i = 0;  i < 4;  i++)
+    {
+        sr = *c++;
+        s->Nc[i] = sr & 0x7F;
+        sr >>= 7;
+        sr |= (uint16_t) *c++ << 1;
+        s->bc[i] = sr & 0x3;
+        sr >>= 2;
+        s->Mc[i] = sr & 0x3;
+        sr >>= 2;
+        sr |= (uint16_t) *c++ << 5;
+        s->xmaxc[i] = sr & 0x3F;
+        sr >>= 6;
+        s->xMc[i][0] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][1] = sr & 0x7;
+        sr >>= 3;
+        sr |= (uint16_t) *c++ << 1;
+        s->xMc[i][2] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][3] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][4] = sr & 0x7;
+        sr >>= 3;
+        sr = *c++;
+        s->xMc[i][5] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][6] = sr & 0x7;
+        sr >>= 3;
+        sr |= (uint16_t) *c++ << 2;
+        s->xMc[i][7] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][8] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][9] = sr & 0x7;
+        sr >>= 3;
+        sr |= (uint16_t) *c++ << 1;
+        s->xMc[i][10] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][11] = sr & 0x7;
+        sr >>= 3;
+        s->xMc[i][12] = sr & 0x7;
+        sr >>= 3;
+    }
+    return 65;
 }
 /*- End of function --------------------------------------------------------*/
 
-int gsm0610_unpack_voip(gsm0610_frame_t *s, const uint8_t code[])
+int gsm0610_unpack_voip(gsm0610_frame_t *s, const uint8_t c[33])
 {
     int i;
-    int j;
-    const uint8_t *c;
-    unsigned int magic;
-    bitstream_state_t bs;
 
-    c = code;
-    bitstream_init(&bs);
-    magic = bitstream_get2(&bs, &c, 4);
-    if (magic != GSM0610_MAGIC)
-        return -1;
-    s->LARc[0] = (int16_t) bitstream_get2(&bs, &c, 6);
-    s->LARc[1] = (int16_t) bitstream_get2(&bs, &c, 6);
-    s->LARc[2] = (int16_t) bitstream_get2(&bs, &c, 5);
-    s->LARc[3] = (int16_t) bitstream_get2(&bs, &c, 5);
-    s->LARc[4] = (int16_t) bitstream_get2(&bs, &c, 4);
-    s->LARc[5] = (int16_t) bitstream_get2(&bs, &c, 4);
-    s->LARc[6] = (int16_t) bitstream_get2(&bs, &c, 3);
-    s->LARc[7] = (int16_t) bitstream_get2(&bs, &c, 3);
+    s->LARc[0]  = (*c++ & 0xF) << 2;
+    s->LARc[0] |= (*c >> 6) & 0x3;
+    s->LARc[1]  = *c++ & 0x3F;
+    s->LARc[2]  = (*c >> 3) & 0x1F;
+    s->LARc[3]  = (*c++ & 0x7) << 2;
+    s->LARc[3] |= (*c >> 6) & 0x3;
+    s->LARc[4]  = (*c >> 2) & 0xF;
+    s->LARc[5]  = (*c++ & 0x3) << 2;
+    s->LARc[5] |= (*c >> 6) & 0x3;
+    s->LARc[6]  = (*c >> 3) & 0x7;
+    s->LARc[7]  = *c++ & 0x7;
+
     for (i = 0;  i < 4;  i++)
     {
-        s->Nc[i] = (int16_t) bitstream_get2(&bs, &c, 7);
-        s->bc[i] = (int16_t) bitstream_get2(&bs, &c, 2);
-        s->Mc[i] = (int16_t) bitstream_get2(&bs, &c, 2);
-        s->xmaxc[i] = (int16_t) bitstream_get2(&bs, &c, 6);
-        for (j = 0;  j < 13;  j++)
-            s->xMc[i][j] = (int16_t) bitstream_get2(&bs, &c, 3);
+        s->Nc[i]       = (*c >> 1) & 0x7F;
+        s->bc[i]       = (*c++ & 0x1) << 1;
+        s->bc[i]      |= (*c >> 7) & 0x1;
+        s->Mc[i]       = (*c >> 5) & 0x3;
+        s->xmaxc[i]    = (*c++ & 0x1F) << 1;
+        s->xmaxc[i]   |= (*c >> 7) & 0x1;
+        s->xMc[i][0]   = (*c >> 4) & 0x7;
+        s->xMc[i][1]   = (*c >> 1) & 0x7;
+        s->xMc[i][2]   = (*c++ & 0x1) << 2;
+        s->xMc[i][2]  |= (*c >> 6) & 0x3;
+        s->xMc[i][3]   = (*c >> 3) & 0x7;
+        s->xMc[i][4]   = *c++ & 0x7;
+        s->xMc[i][5]   = (*c >> 5) & 0x7;
+        s->xMc[i][6]   = (*c >> 2) & 0x7;
+        s->xMc[i][7]   = (*c++ & 0x3) << 1;
+        s->xMc[i][7]  |= (*c >> 7) & 0x1;
+        s->xMc[i][8]   = (*c >> 4) & 0x7;
+        s->xMc[i][9]   = (*c >> 1) & 0x7;
+        s->xMc[i][10]  = (*c++ & 0x1) << 2;
+        s->xMc[i][10] |= (*c >> 6) & 0x3;
+        s->xMc[i][11]  = (*c >> 3) & 0x7;
+        s->xMc[i][12]  = *c++ & 0x7;
     }
     return 33;
 }
@@ -189,13 +311,11 @@ int gsm0610_unpack_voip(gsm0610_frame_t *s, const uint8_t code[])
 
 int gsm0610_decode(gsm0610_state_t *s, int16_t amp[], const uint8_t code[], int quant)
 {
-    gsm0610_frame_t frame;
+    gsm0610_frame_t frame[2];
     const uint8_t *c;
     int bytes;
     int i;
 
-    if (s->packing == GSM0610_PACKING_WAV49)
-        quant <<= 1;
     c = code;
     for (i = 0;  i < quant;  i++)
     {
@@ -203,22 +323,33 @@ int gsm0610_decode(gsm0610_state_t *s, int16_t amp[], const uint8_t code[], int 
         {
         default:
         case GSM0610_PACKING_NONE:
-            bytes = gsm0610_unpack_none(&frame, c);
+            if ((bytes = gsm0610_unpack_none(frame, c)) >= 0)
+            {
+                decode_a_frame(s, amp, frame);
+                amp += GSM0610_FRAME_LEN;
+            }
             break;
         case GSM0610_PACKING_WAV49:
-            s->frame_index = !s->frame_index;
-            bytes = gsm0610_unpack_wav49(&frame, c, s->frame_index);
+            if ((bytes = gsm0610_unpack_wav49(frame, c)) >= 0)
+            {
+                decode_a_frame(s, amp, frame);
+                amp += GSM0610_FRAME_LEN;
+                decode_a_frame(s, amp, frame + 1);
+                amp += GSM0610_FRAME_LEN;
+            }
             break;
         case GSM0610_PACKING_VOIP:
-            bytes = gsm0610_unpack_voip(&frame, c);
+            if ((bytes = gsm0610_unpack_voip(frame, c)) >= 0)
+            {
+                decode_a_frame(s, amp, frame);
+                amp += GSM0610_FRAME_LEN;
+            }
             break;
         }
         /*endswitch*/
         if (bytes < 0)
             return 0;
-        decode_a_frame(s, amp, &frame);
         c += bytes;
-        amp += GSM0610_FRAME_LEN;
     }
     /*endwhile*/
     return quant*GSM0610_FRAME_LEN;

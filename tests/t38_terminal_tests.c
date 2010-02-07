@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_tests.c,v 1.40 2007/03/29 12:28:37 steveu Exp $
+ * $Id: t38_terminal_tests.c,v 1.42 2007/08/14 14:57:37 steveu Exp $
  */
 
 /*! \file */
@@ -43,6 +43,7 @@ These tests exercise the path
 #endif
 
 #include <inttypes.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -67,7 +68,8 @@ These tests exercise the path
 #include <tiffio.h>
 
 #include "spandsp.h"
-#include "g1050.h"
+#include "spandsp-sim.h"
+
 #if defined(ENABLE_GUI)
 #include "media_monitor.h"
 #endif
@@ -218,7 +220,6 @@ int main(int argc, char *argv[])
     int msg_len;
     uint8_t msg[1024];
     int t38_version;
-    int i;
     int seq_no;
     int use_ecm;
     int without_pacing;
@@ -228,6 +229,7 @@ int main(int argc, char *argv[])
     double tx_when;
     double rx_when;
     int use_gui;
+    int opt;
 
     t38_version = 1;
     without_pacing = FALSE;
@@ -237,47 +239,34 @@ int main(int argc, char *argv[])
     model_no = 0;
     speed_pattern_no = 1;
     use_gui = FALSE;
-    for (i = 1;  i < argc;  i++)
+    while ((opt = getopt(argc, argv, "egi:Im:ps:tv:")) != -1)
     {
-        if (strcmp(argv[i], "-e") == 0)
+        switch (opt)
         {
+        case 'e':
             use_ecm = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-g") == 0)
-        {
+            break;
+        case 'g':
             use_gui = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-i") == 0)
-        {
-            input_file_name = argv[++i];
-            continue;
-        }
-        if (strcmp(argv[i], "-I") == 0)
-        {
+            break;
+        case 'i':
+            input_file_name = optarg;
+            break;
+        case 'I':
             simulate_incrementing_repeats = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-m") == 0)
-        {
-            model_no = argv[++i][0] - 'A' + 1;
-            continue;
-        }
-        if (strcmp(argv[i], "-p") == 0)
-        {
+            break;
+        case 'm':
+            model_no = optarg[0] - 'A' + 1;
+            break;
+        case 'p':
             without_pacing = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-s") == 0)
-        {
-            speed_pattern_no = atoi(argv[++i]);
-            continue;
-        }
-        if (strcmp(argv[i], "-v") == 0)
-        {
-            t38_version = atoi(argv[++i]);
-            continue;
+            break;
+        case 's':
+            speed_pattern_no = atoi(optarg);
+            break;
+        case 'v':
+            t38_version = atoi(optarg);
+            break;
         }
     }
 
@@ -367,7 +356,7 @@ int main(int argc, char *argv[])
             if (use_gui)
                 media_monitor_rx(seq_no, tx_when, rx_when);
 #endif
-            t38_core_rx_ifp_packet(&t38_state_b.t38, seq_no, msg, msg_len);
+            t38_core_rx_ifp_packet(&t38_state_b.t38, msg, msg_len, seq_no);
         }
         while ((msg_len = g1050_get(path_b_to_a, msg, 1024, when, &seq_no, &tx_when, &rx_when)) >= 0)
         {
@@ -375,7 +364,7 @@ int main(int argc, char *argv[])
             if (use_gui)
                 media_monitor_rx(seq_no, tx_when, rx_when);
 #endif
-            t38_core_rx_ifp_packet(&t38_state_a.t38, seq_no, msg, msg_len);
+            t38_core_rx_ifp_packet(&t38_state_a.t38, msg, msg_len, seq_no);
         }
         if (done[0]  &&  done[1])
             break;

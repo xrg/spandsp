@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g1050.c,v 1.9 2007/03/29 12:28:37 steveu Exp $
+ * $Id: g1050.c,v 1.1 2007/04/03 12:59:32 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,9 +46,9 @@
 #include <math.h>
 #endif
 
-#include "spandsp.h"
+#include "../src/spandsp.h"
 
-#include "g1050.h"
+#include "spandsp/g1050.h"
 
 #define PACKET_LOSS_TIME    -1
 

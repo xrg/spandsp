@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.68 2007/04/05 19:20:50 steveu Exp $
+ * $Id: t30.h,v 1.79 2007/08/11 13:36:16 steveu Exp $
  */
 
 /*! \file */
@@ -129,6 +129,7 @@ There are many other commonly encountered variations between machines, including
 
 #define T30_MAX_DIS_DTC_DCS_LEN     22
 #define T30_MAX_IDENT_LEN           21
+#define T30_MAX_LOCAL_NSF_LEN       100
 
 typedef struct t30_state_s t30_state_t;
 
@@ -194,36 +195,34 @@ enum
 {
     T30_ERR_OK = 0,         /*! OK */
 
-    /* External problems */
+    /* Link problems */
     T30_ERR_CEDTONE,        /*! The CED tone exceeded 5s */
-    T30_ERR_T0EXPIRED,      /*! Timed out waiting for initial communication */
-    T30_ERR_T1EXPIRED,      /*! Timed out waiting for the first message */
-    T30_ERR_T3EXPIRED,      /*! Timed out waiting for procedural interrupt */
-    T30_ERR_HDLCCARR,       /*! The HDLC carrier did not stop in a timely manner */
-    T30_ERR_CANNOTTRAIN,    /*! Failed to train with any of the compatible modems */
+    T30_ERR_T0_EXPIRED,     /*! Timed out waiting for initial communication */
+    T30_ERR_T1_EXPIRED,     /*! Timed out waiting for the first message */
+    T30_ERR_T3_EXPIRED,     /*! Timed out waiting for procedural interrupt */
+    T30_ERR_HDLC_CARRIER,   /*! The HDLC carrier did not stop in a timely manner */
+    T30_ERR_CANNOT_TRAIN,   /*! Failed to train with any of the compatible modems */
     T30_ERR_OPERINTFAIL,    /*! Operator intervention failed */
     T30_ERR_INCOMPATIBLE,   /*! Far end is not compatible */
-    T30_ERR_NOTRXCAPABLE,   /*! Far end is not receive capable */
-    T30_ERR_NOTTXCAPABLE,   /*! Far end is not transmit capable */
-    T30_ERR_UNEXPECTED,     /*! Unexpected message received */
+    T30_ERR_RX_INCAPABLE,   /*! Far end is not able to receive */
+    T30_ERR_TX_INCAPABLE,   /*! Far end is not able to transmit */
     T30_ERR_NORESSUPPORT,   /*! Far end cannot receive at the resolution of the image */
     T30_ERR_NOSIZESUPPORT,  /*! Far end cannot receive at the size of image */
+    T30_ERR_UNEXPECTED,     /*! Unexpected message received */
 
-    /* Internal problems */
+    /* TIFF file problems */
     T30_ERR_FILEERROR,      /*! TIFF/F file cannot be opened */
     T30_ERR_NOPAGE,         /*! TIFF/F page not found */
     T30_ERR_BADTIFF,        /*! TIFF/F format is not compatible */
-    T30_ERR_UNSUPPORTED,    /*! Unsupported feature */
 
     /* Phase E status values returned to a transmitter */
     T30_ERR_BADDCSTX,       /*! Received bad response to DCS or training */
     T30_ERR_BADPGTX,        /*! Received a DCN from remote after sending a page */
     T30_ERR_ECMPHDTX,       /*! Invalid ECM response received from receiver */
-    T30_ERR_ECMRNRTX,       /*! Timer T5 expired, receiver not ready */
+    T30_ERR_T5_EXPIRED,     /*! Timed out waiting for receiver ready (ECM mode) */
     T30_ERR_GOTDCNTX,       /*! Received a DCN while waiting for a DIS */
     T30_ERR_INVALRSPTX,     /*! Invalid response after sending a page */
     T30_ERR_NODISTX,        /*! Received other than DIS while waiting for DIS */
-    T30_ERR_NXTCMDTX,       /*! Timed out waiting for next send_page command from driver */
     T30_ERR_PHBDEADTX,      /*! Received no response to DCS, training or TCF */
     T30_ERR_PHDDEADTX,      /*! No response after sending a page */
 
@@ -234,7 +233,6 @@ enum
     T30_ERR_NOCARRIERRX,    /*! Carrier lost during fax receive */
     T30_ERR_NOEOLRX,        /*! Timed out while waiting for EOL (end Of line) */
     T30_ERR_NOFAXRX,        /*! Timed out while waiting for first line */
-    T30_ERR_NXTCMDRX,       /*! Timed out waiting for next receive page command */
     T30_ERR_T2EXPDCNRX,     /*! Timer T2 expired while waiting for DCN */
     T30_ERR_T2EXPDRX,       /*! Timer T2 expired while waiting for phase D */
     T30_ERR_T2EXPFAXRX,     /*! Timer T2 expired while waiting for fax page */
@@ -251,16 +249,9 @@ enum
     T30_ERR_BADPAGE,        /*! TIFF/F page number tag missing */
     T30_ERR_BADTAG,         /*! Incorrect values for TIFF/F tags */
     T30_ERR_BADTIFFHDR,     /*! Bad TIFF/F header - incorrect values in fields */
-    T30_ERR_BADPARM,        /*! Invalid value for fax parameter */
-    T30_ERR_BADSTATE,       /*! Invalid initial state value specified */
-    T30_ERR_CMDDATA,        /*! Last command contained invalid data */
-    T30_ERR_DISCONNECT,     /*! Fax call disconnected by the other station */
-    T30_ERR_INVALARG,       /*! Illegal argument to function */
-    T30_ERR_INVALFUNC,      /*! Illegal call to function */
     T30_ERR_NODATA,         /*! Data requested is not available (NSF, DIS, DCS) */
     T30_ERR_NOMEM,          /*! Cannot allocate memory for more pages */
     T30_ERR_NOPOLL,         /*! Poll not accepted */
-    T30_ERR_NOSTATE,        /*! Initial state value not set */
     T30_ERR_RETRYDCN,       /*! Disconnected after permitted retries */
     T30_ERR_CALLDROPPED     /*! The call dropped prematurely */
 };
@@ -284,6 +275,18 @@ enum
     T30_MODEM_V17_12000,
     T30_MODEM_V17_14400,
     T30_MODEM_DONE
+};
+
+enum
+{
+    T30_FRONT_END_SEND_STEP_COMPLETE = 0,
+    T30_FRONT_END_SEND_COMPLETE,
+    /*! The current receive has completed. This is only needed to report an
+        unexpected end of the receive operation, as might happen with T.38
+        dying. */
+    T30_FRONT_END_RECEIVE_COMPLETE,
+    T30_FRONT_END_SIGNAL_PRESENT,
+    T30_FRONT_END_SIGNAL_ABSENT
 };
 
 enum
@@ -363,6 +366,66 @@ enum
 };
 
 /*!
+    Exact widths in PELs for the difference resolutions, and page widths.
+    Note:
+        The A4 widths also apply to North American letter and legal.
+        The R4 resolution widths are not supported in recent versions of T.30
+        Only images of exactly these widths are acceptable for FAX transmisson.
+
+    R4    864 pels/215mm for ISO A4, North American Letter and Legal
+    R4   1024 pels/255mm for ISO B4
+    R4   1216 pels/303mm for ISO A3
+    R8   1728 pels/215mm for ISO A4, North American Letter and Legal
+    R8   2048 pels/255mm for ISO B4
+    R8   2432 pels/303mm for ISO A3
+    R16  3456 pels/215mm for ISO A4, North American Letter and Legal
+    R16  4096 pels/255mm for ISO B4
+    R16  4864 pels/303mm for ISO A3
+*/
+typedef enum
+{
+    T30_WIDTH_R4_A4 = 864,
+    T30_WIDTH_R4_B4 = 1024,
+    T30_WIDTH_R4_A3 = 1216,
+    T30_WIDTH_R8_A4 = 1728,
+    T30_WIDTH_R8_B4 = 2048,
+    T30_WIDTH_R8_A3 = 2432,
+    T30_WIDTH_R16_A4 = 3456,
+    T30_WIDTH_R16_B4 = 4096,
+    T30_WIDTH_R16_A3 = 4864
+} t30_image_width_t;
+
+/*!
+    Length of the various supported paper sizes, in pixels at the various Y resolutions.
+    Paper sizes are
+        A4 (297mm x 215mm)
+        B4 (364mm x 255mm)
+        A3 (303mm x ???mm)
+        North American Letter (215.9mm x 279.4mm)
+        North American Legal (215.9mm x 355.6mm)
+        Unlimited
+*/
+enum
+{
+    /* A4 is 297mm long */
+    T30_LENGTH_STANDARD_A4 = 1143,
+    T30_LENGTH_FINE_A4 = 2286,
+    T30_LENGTH_SUPERFINE_A4 = 4573,
+    /* B4 is 364mm long */
+    T30_LENGTH_STANDARD_B4 = 1401,
+    T30_LENGTH_FINE_B4 = 2802,
+    T30_LENGTH_SUPERFINE_B4 = 5605,
+    /* North American letter is 279.4mm long */
+    T30_LENGTH_STANDARD_US_LETTER = 1075,
+    T30_LENGTH_FINE_US_LETTER = 2151,
+    T30_LENGTH_SUPERFINE_US_LETTER = 4302,
+    /* North American legal is 355.6mm long */
+    T30_LENGTH_STANDARD_US_LEGAL = 1369,
+    T30_LENGTH_FINE_US_LEGAL = 2738,
+    T30_LENGTH_SUPERFINE_US_LEGAL = 5476
+};
+
+/*!
     T.30 FAX channel descriptor. This defines the state of a single working
     instance of a T.30 FAX channel.
 */
@@ -372,9 +435,13 @@ struct t30_state_s
        to reliably as the structures change over time. */
     t4_state_t t4;
 
-    /*! \brief TRUE is behaving as the calling party */
+    /*! \brief TRUE if behaving as the calling party */
     int calling_party;
 
+
+    /*! \brief The received DCS, formatted as an ASCII string, for inclusion
+               in the TIFF file. */
+    char rx_dcs_string[T30_MAX_DIS_DTC_DCS_LEN*3 + 1];
     /*! \brief The local identifier string. */
     char local_ident[T30_MAX_IDENT_LEN];
     /*! \brief The identifier string supplied by the remote FAX machine. */
@@ -400,7 +467,7 @@ struct t30_state_s
     const char *vendor;
     /*! \brief The model of the remote machine, if known, else NULL. */
     const char *model;
-    uint8_t local_nsf[100];
+    uint8_t local_nsf[T30_MAX_LOCAL_NSF_LEN];
     int local_nsf_len;
 
     /*! \brief A pointer to a callback routine to be called when phase B events
@@ -495,13 +562,16 @@ struct t30_state_s
     int local_interrupt_pending;
     int crp_enabled;
     int line_encoding;
-    int min_row_bits;
+    int output_encoding;
+    uint8_t min_scan_time_code;
     int x_resolution;
     int y_resolution;
-    int image_width;
+    t30_image_width_t image_width;
     int retries;
+    /*! \brief TRUE if error correcting mode is used. */
     int error_correcting_mode;
     int ppr_count;
+    int receiver_not_ready_count;
     int octets_per_ecm_frame;
     uint8_t ecm_data[256][260];
     int16_t ecm_len[256];
@@ -534,7 +604,12 @@ struct t30_state_s
     int supported_resolutions;
     int supported_image_sizes;
     int supported_polling_features;
+    int support_fnv;
     int ecm_allowed;
+    
+    int last_pps_fcf2;
+    int ecm_first_bad_frame;
+
     /*! \brief Error and flow logging control */
     logging_state_t logging;
 };
@@ -547,6 +622,8 @@ typedef struct
     int error_correcting_mode;
     /*! \brief The number of pages transferred so far. */
     int pages_transferred;
+    /*! \brief The number of pages in the file (<0 if not known). */
+    int pages_in_file;
     /*! \brief The number of horizontal pixels in the most recent page. */
     int width;
     /*! \brief The number of vertical pixels in the most recent page. */
@@ -567,7 +644,7 @@ typedef struct
     int current_status;
 } t30_stats_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -775,32 +852,54 @@ void t30_set_tx_file(t30_state_t *s, const char *file, int start_page, int stop_
 /*! Specify which modem types are supported by a T.30 context.
     \brief Specify supported modems.
     \param s The T.30 context.
-    \param supported_modems Bit field list of the supported modems. */
-void t30_set_supported_modems(t30_state_t *s, int supported_modems);
+    \param supported_modems Bit field list of the supported modems.
+    \return 0 if OK, else -1. */
+int t30_set_supported_modems(t30_state_t *s, int supported_modems);
+
+/*! Specify a period of responding with receiver not ready.
+    \brief Specify a period of responding with receiver not ready.
+    \param s The T.30 context.
+    \param count The number of times to report receiver not ready.
+    \return 0 if OK, else -1. */
+int t30_set_receiver_not_ready(t30_state_t *s, int count);
 
 /*! Specify which compression types are supported by a T.30 context.
     \brief Specify supported compression types.
     \param s The T.30 context.
-    \param supported_compressions Bit field list of the supported compression types. */
-void t30_set_supported_compressions(t30_state_t *s, int supported_compressions);
+    \param supported_compressions Bit field list of the supported compression types.
+    \return 0 if OK, else -1. */
+int t30_set_supported_compressions(t30_state_t *s, int supported_compressions);
 
 /*! Specify which resolutions are supported by a T.30 context.
     \brief Specify supported resolutions.
     \param s The T.30 context.
-    \param supported_compressions Bit field list of the supported resolutions. */
-void t30_set_supported_resolutions(t30_state_t *s, int supported_resolutions);
+    \param supported_compressions Bit field list of the supported resolutions.
+    \return 0 if OK, else -1. */
+int t30_set_supported_resolutions(t30_state_t *s, int supported_resolutions);
 
 /*! Specify which images sizes are supported by a T.30 context.
     \brief Specify supported image sizes.
     \param s The T.30 context.
-    \param supported_image_sizes Bit field list of the supported widths and lengths. */
-void t30_set_supported_image_sizes(t30_state_t *s, int supported_image_sizes);
+    \param supported_image_sizes Bit field list of the supported widths and lengths.
+    \return 0 if OK, else -1. */
+int t30_set_supported_image_sizes(t30_state_t *s, int supported_image_sizes);
 
 /*! Specify if error correction mode (ECM) is allowed by a T.30 context.
     \brief Select ECM capability.
     \param s The T.30 context.
-    \param enabled TRUE for ECM capable, FALSE for not ECM capable. */
-void t30_set_ecm_capability(t30_state_t *s, int enabled);
+    \param enabled TRUE for ECM capable, FALSE for not ECM capable.
+    \return 0 if OK, else -1. */
+int t30_set_ecm_capability(t30_state_t *s, int enabled);
+
+/*! Specify the output encoding for TIFF files created during FAX reception.
+    \brief Specify the output encoding for TIFF files created during FAX reception.
+    \param s The T.30 context.
+    \param encoding. The coding required. The options are T4_COMPRESSION_ITU_T4_1D,
+           T4_COMPRESSION_ITU_T4_2D, T4_COMPRESSION_ITU_T6. T6 is usually the
+           densest option, but support for it is broken in a number of software
+           packages.
+    \return 0 if OK, else -1. */
+int t30_set_rx_encoding(t30_state_t *s, int encoding);
 
 /*! Request a local interrupt of FAX exchange.
     \brief Request a local interrupt of FAX exchange.
@@ -808,17 +907,11 @@ void t30_set_ecm_capability(t30_state_t *s, int enabled);
     \param state TRUE to enable interrupt request, else FALSE. */
 void t30_local_interrupt_request(t30_state_t *s, int state);
 
-/*! Inform the T.30 engine the current transmission has completed.
-    \brief Inform the T.30 engine the current transmission has completed.
-    \param s The T.30 context. */
-void t30_send_complete(void *user_data);
-
-/*! Inform the T.30 engine the current receive has completed. This is
-    only needed to report an unexpected end of the receive operation, as
-    might happen with T.38 dying.
-    \brief Inform the T.30 engine the current receive has completed.
-    \param s The T.30 context. */
-void t30_receive_complete(void *user_data);
+/*! Inform the T.30 engine of a status change in the front end (end of tx, rx signal change, etc.).
+    \brief Inform the T.30 engine of a status change in the front end (end of tx, rx signal change, etc.).
+    \param user_data The T.30 context.
+    \param status The type of status change which occured. */
+void t30_front_end_status(void *user_data, int status);
 
 /*! Get a bit of received non-ECM image data.
     \brief Get a bit of received non-ECM image data.
@@ -862,10 +955,10 @@ void t30_non_ecm_put_chunk(void *user_data, const uint8_t buf[], int len);
 /*! Process a received HDLC frame.
     \brief Process a received HDLC frame.
     \param s The T.30 context.
-    \param ok TRUE if the frame was received without error.
     \param msg The HDLC message.
-    \param int The length of the message, in octets. */
-void t30_hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len);
+    \param int The length of the message, in octets.
+    \param ok TRUE if the frame was received without error. */
+void t30_hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok);
 
 /*! Report the passage of time to the T.30 engine.
     \brief Report the passage of time to the T.30 engine.
@@ -873,7 +966,7 @@ void t30_hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len);
     \param samples The time change in 1/8000th second steps. */
 void t30_timer_update(t30_state_t *s, int samples);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

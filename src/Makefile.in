@@ -42,41 +42,42 @@ noinst_PROGRAMS = at_dictionary_gen$(EXEEXT)
 subdir = src
 DIST_COMMON = $(nobase_include_HEADERS) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(top_srcdir)/config-h.in
+	$(srcdir)/spandsp.h.in $(top_srcdir)/config-h.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = spandsp.h
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
     *) f=$$p;; \
   esac;
 am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
-am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)"
+am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)" \
+	"$(DESTDIR)$(includedir)"
 libLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libspandsp_la_LIBADD =
 am_libspandsp_la_OBJECTS = adsi.lo async.lo at_interpreter.lo awgn.lo \
 	bell_r2_mf.lo bert.lo bit_operations.lo bitstream.lo \
-	complex_dds.lo complex_filters.lo complex_vector_float.lo \
-	dds.lo dtmf.lo echo.lo fax.lo fsk.lo g711.lo g722_encode.lo \
-	g722_decode.lo g726.lo gsm0610_decode.lo gsm0610_encode.lo \
-	gsm0610_long_term.lo gsm0610_lpc.lo gsm0610_preprocess.lo \
-	gsm0610_rpe.lo gsm0610_short_term.lo hdlc.lo ima_adpcm.lo \
-	logging.lo lpc10_analyse.lo lpc10_decode.lo lpc10_encode.lo \
-	lpc10_placev.lo lpc10_voicing.lo modem_echo.lo \
-	modem_connect_tones.lo noise.lo oki_adpcm.lo playout.lo plc.lo \
-	power_meter.lo queue.lo schedule.lo sig_tone.lo silence_gen.lo \
-	super_tone_rx.lo super_tone_tx.lo t4.lo t30.lo t31.lo t35.lo \
-	t38_core.lo t38_gateway.lo t38_terminal.lo testcpuid.lo \
-	time_scale.lo tone_detect.lo tone_generate.lo v17rx.lo \
-	v17tx.lo v22bis_rx.lo v22bis_tx.lo v27ter_rx.lo v27ter_tx.lo \
-	v29rx.lo v29tx.lo v42.lo v42bis.lo v8.lo vector_float.lo \
-	vector_int.lo
+	complex_filters.lo complex_vector_float.lo crc.lo dds_float.lo \
+	dds_int.lo dtmf.lo echo.lo fax.lo fsk.lo g711.lo \
+	g722_encode.lo g722_decode.lo g726.lo gsm0610_decode.lo \
+	gsm0610_encode.lo gsm0610_long_term.lo gsm0610_lpc.lo \
+	gsm0610_preprocess.lo gsm0610_rpe.lo gsm0610_short_term.lo \
+	hdlc.lo ima_adpcm.lo logging.lo lpc10_analyse.lo \
+	lpc10_decode.lo lpc10_encode.lo lpc10_placev.lo \
+	lpc10_voicing.lo modem_echo.lo modem_connect_tones.lo noise.lo \
+	oki_adpcm.lo playout.lo plc.lo power_meter.lo queue.lo \
+	schedule.lo sig_tone.lo silence_gen.lo super_tone_rx.lo \
+	super_tone_tx.lo t4.lo t30.lo t31.lo t35.lo t38_core.lo \
+	t38_gateway.lo t38_terminal.lo testcpuid.lo time_scale.lo \
+	tone_detect.lo tone_generate.lo v17rx.lo v17tx.lo v22bis_rx.lo \
+	v22bis_tx.lo v27ter_rx.lo v27ter_tx.lo v29rx.lo v29tx.lo \
+	v42.lo v42bis.lo v8.lo vector_float.lo vector_int.lo
 libspandsp_la_OBJECTS = $(am_libspandsp_la_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
 at_dictionary_gen_SOURCES = at_dictionary_gen.c
@@ -96,7 +97,9 @@ LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 SOURCES = $(libspandsp_la_SOURCES) at_dictionary_gen.c
 DIST_SOURCES = $(libspandsp_la_SOURCES) at_dictionary_gen.c
 nobase_includeHEADERS_INSTALL = $(install_sh_DATA)
-HEADERS = $(nobase_include_HEADERS) $(noinst_HEADERS)
+nodist_includeHEADERS_INSTALL = $(INSTALL_HEADER)
+HEADERS = $(nobase_include_HEADERS) $(nodist_include_HEADERS) \
+	$(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -167,6 +170,7 @@ SHELL = @SHELL@
 SPANDSP_LT_AGE = @SPANDSP_LT_AGE@
 SPANDSP_LT_CURRENT = @SPANDSP_LT_CURRENT@
 SPANDSP_LT_REVISION = @SPANDSP_LT_REVISION@
+SPANDSP_USE_FIXED_POINT = @SPANDSP_USE_FIXED_POINT@
 STRIP = @STRIP@
 TESTLIBS = @TESTLIBS@
 VERSION = @VERSION@
@@ -225,10 +229,11 @@ libspandsp_la_SOURCES = adsi.c \
                         bert.c \
                         bit_operations.c \
                         bitstream.c \
-                        complex_dds.c \
                         complex_filters.c \
                         complex_vector_float.c \
-                        dds.c \
+                        crc.c \
+                        dds_float.c \
+                        dds_int.c \
                         dtmf.c \
                         echo.c \
                         fax.c \
@@ -301,6 +306,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/biquad.h \
                         spandsp/bit_operations.h \
                         spandsp/bitstream.h \
+                        spandsp/crc.h \
                         spandsp/complex.h \
                         spandsp/complex_filters.h \
                         spandsp/complex_vector_float.h \
@@ -358,12 +364,18 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/v8.h \
                         spandsp/vector_float.h \
                         spandsp/vector_int.h \
-                        spandsp.h
+                        spandsp/version.h
 
+nodist_include_HEADERS = spandsp.h
 noinst_HEADERS = faxfont.h \
                         gsm0610_local.h \
                         lpc10_encdecs.h \
-                        t4states.h
+                        t4_states.h \
+                        v17rx_constellation_maps.h \
+                        v17rx_fixed_rrc.h \
+                        v17rx_floating_rrc.h \
+                        v29rx_fixed_rrc.h \
+                        v29rx_floating_rrc.h
 
 DSP = libspandsp.dsp
 VCPROJ = libspandsp.vcproj
@@ -422,6 +434,8 @@ $(top_srcdir)/config-h.in:  $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
+spandsp.h: $(top_builddir)/config.status $(srcdir)/spandsp.h.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-libLTLIBRARIES: $(lib_LTLIBRARIES)
 	@$(NORMAL_INSTALL)
 	test -z "$(libdir)" || $(mkdir_p) "$(DESTDIR)$(libdir)"
@@ -474,10 +488,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bert.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bit_operations.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bitstream.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_dds.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_filters.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_vector_float.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dds.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/crc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dds_float.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dds_int.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dtmf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/echo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fax.Plo@am__quote@
@@ -588,6 +603,23 @@ uninstall-nobase_includeHEADERS:
 	  echo " rm -f '$(DESTDIR)$(includedir)/$$f'"; \
 	  rm -f "$(DESTDIR)$(includedir)/$$f"; \
 	done
+install-nodist_includeHEADERS: $(nodist_include_HEADERS)
+	@$(NORMAL_INSTALL)
+	test -z "$(includedir)" || $(mkdir_p) "$(DESTDIR)$(includedir)"
+	@list='$(nodist_include_HEADERS)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(am__strip_dir) \
+	  echo " $(nodist_includeHEADERS_INSTALL) '$$d$$p' '$(DESTDIR)$(includedir)/$$f'"; \
+	  $(nodist_includeHEADERS_INSTALL) "$$d$$p" "$(DESTDIR)$(includedir)/$$f"; \
+	done
+
+uninstall-nodist_includeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(nodist_include_HEADERS)'; for p in $$list; do \
+	  f=$(am__strip_dir) \
+	  echo " rm -f '$(DESTDIR)$(includedir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(includedir)/$$f"; \
+	done
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -665,11 +697,14 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
+	$(MAKE) $(AM_MAKEFLAGS) \
+	  top_distdir="$(top_distdir)" distdir="$(distdir)" \
+	  dist-hook
 check-am: all-am
 check: check-am
 all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(HEADERS) config.h
 installdirs:
-	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)" "$(DESTDIR)$(includedir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: install-am
@@ -718,7 +753,8 @@ info: info-am
 
 info-am:
 
-install-data-am: install-nobase_includeHEADERS
+install-data-am: install-nobase_includeHEADERS \
+	install-nodist_includeHEADERS
 
 install-exec-am: install-libLTLIBRARIES
 
@@ -747,21 +783,24 @@ ps: ps-am
 ps-am:
 
 uninstall-am: uninstall-info-am uninstall-libLTLIBRARIES \
-	uninstall-nobase_includeHEADERS
+	uninstall-nobase_includeHEADERS \
+	uninstall-nodist_includeHEADERS
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
 	clean-libLTLIBRARIES clean-libtool clean-noinstPROGRAMS ctags \
-	distclean distclean-compile distclean-generic distclean-hdr \
-	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-data \
-	install-data-am install-exec install-exec-am install-info \
-	install-info-am install-libLTLIBRARIES install-man \
-	install-nobase_includeHEADERS install-strip installcheck \
+	dist-hook distclean distclean-compile distclean-generic \
+	distclean-hdr distclean-libtool distclean-tags distdir dvi \
+	dvi-am html html-am info info-am install install-am \
+	install-data install-data-am install-exec install-exec-am \
+	install-info install-info-am install-libLTLIBRARIES \
+	install-man install-nobase_includeHEADERS \
+	install-nodist_includeHEADERS install-strip installcheck \
 	installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags uninstall uninstall-am uninstall-info-am \
-	uninstall-libLTLIBRARIES uninstall-nobase_includeHEADERS
+	uninstall-libLTLIBRARIES uninstall-nobase_includeHEADERS \
+	uninstall-nodist_includeHEADERS
 
 
 # We need to run at_dictionary_gen, so it generates the at_interpreter_dictionary.h file
@@ -809,6 +848,18 @@ $(VCPROJ): msvc/vc8proj.head msvc/vc8proj.foot Makefile.am
 		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT); \
 	done; \
 	cat $(srcdir)/msvc/vc8proj.foot $(VCPROJOUT) )
+
+spandsp/version.h:
+	NOWDATE=`date --utc +"%Y%m%d"` ; \
+	NOWTIME=`date --utc +"%H%M%S"` ; \
+	sed 's/$$SPANDSP_RELEASE_DATE/'$$NOWDATE'/;s/$$SPANDSP_RELEASE_TIME/'$$NOWTIME'/' \
+		<spandsp/version.h.in >spandsp/version.h
+
+dist-hook:
+	NOWDATE=`date --utc +"%Y%m%d"` ; \
+	NOWTIME=`date --utc +"%H%M%S"` ; \
+	sed 's/$$SPANDSP_RELEASE_DATE/'$$NOWDATE'/;s/$$SPANDSP_RELEASE_TIME/'$$NOWTIME'/' \
+		<spandsp/version.h.in >spandsp/version.h
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

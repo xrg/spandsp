@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc.h,v 1.14 2007/04/05 19:20:49 steveu Exp $
+ * $Id: plc.h,v 1.15 2007/04/08 08:16:18 steveu Exp $
  */
 
 /*! \file */
@@ -128,7 +128,7 @@ typedef struct
 } plc_state_t;
 
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -160,7 +160,7 @@ plc_state_t *plc_init(plc_state_t *s);
     \return 0 for OK. */
 int plc_release(plc_state_t *s);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

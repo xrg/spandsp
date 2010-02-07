@@ -22,11 +22,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter.h,v 1.10 2007/04/05 19:20:49 steveu Exp $
+ * $Id: power_meter.h,v 1.12 2007/04/10 16:12:20 steveu Exp $
  */
 
-#if !defined(_SPANDSP_POWER_METER_H_)
-#define _SPANDSP_POWER_METER_H_
+#if !defined(_POWER_METER_H_)
+#define _POWER_METER_H_
 
 /*! \page power_meter_page Power metering
 
@@ -80,17 +80,23 @@ power_meter_t *power_meter_damping(power_meter_t *s, int shift);
     \return The current power meter reading. */
 int32_t power_meter_update(power_meter_t *s, int16_t amp);
 
+/*! Get the current power meter reading.
+    \brief Get the current power meter reading.
+    \param s The power meter context.
+    \return The current power meter reading. */
+int32_t power_meter_current(power_meter_t *s);
+
 /*! Get the current power meter reading, in dBm0.
     \brief Get the current power meter reading, in dBm0.
     \param s The power meter context.
     \return The current power meter reading, in dBm0. */
-float power_meter_dbm0(power_meter_t *s);
+float power_meter_current_dbm0(power_meter_t *s);
 
 /*! Get the current power meter reading, in dBOv.
     \brief Get the current power meter reading, in dBOv.
     \param s The power meter context.
     \return The current power meter reading, in dBOv. */
-float power_meter_dbov(power_meter_t *s);
+float power_meter_current_dbov(power_meter_t *s);
 
 /*! Get the power meter reading which represents a specified power level in dBm0.
     \brief Get the current power meter reading, in dBm0.

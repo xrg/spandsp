@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.64 2007/02/10 11:54:57 steveu Exp $
+## $Id: Makefile.am,v 1.76 2007/08/17 00:50:14 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -34,10 +34,11 @@ libspandsp_la_SOURCES = adsi.c \
                         bert.c \
                         bit_operations.c \
                         bitstream.c \
-                        complex_dds.c \
                         complex_filters.c \
                         complex_vector_float.c \
-                        dds.c \
+                        crc.c \
+                        dds_float.c \
+                        dds_int.c \
                         dtmf.c \
                         echo.c \
                         fax.c \
@@ -111,6 +112,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/biquad.h \
                         spandsp/bit_operations.h \
                         spandsp/bitstream.h \
+                        spandsp/crc.h \
                         spandsp/complex.h \
                         spandsp/complex_filters.h \
                         spandsp/complex_vector_float.h \
@@ -168,12 +170,19 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/v8.h \
                         spandsp/vector_float.h \
                         spandsp/vector_int.h \
-                        spandsp.h
+                        spandsp/version.h
+
+nodist_include_HEADERS = spandsp.h
 
 noinst_HEADERS =        faxfont.h \
                         gsm0610_local.h \
                         lpc10_encdecs.h \
-                        t4states.h
+                        t4_states.h \
+                        v17rx_constellation_maps.h \
+                        v17rx_fixed_rrc.h \
+                        v17rx_floating_rrc.h \
+                        v29rx_fixed_rrc.h \
+                        v29rx_floating_rrc.h
 
 noinst_PROGRAMS =       at_dictionary_gen
 
@@ -231,3 +240,15 @@ $(VCPROJ): msvc/vc8proj.head msvc/vc8proj.foot Makefile.am
 		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT); \
 	done; \
 	cat $(srcdir)/msvc/vc8proj.foot $(VCPROJOUT) )
+
+spandsp/version.h:
+	NOWDATE=`date --utc +"%Y%m%d"` ; \
+	NOWTIME=`date --utc +"%H%M%S"` ; \
+	sed 's/$$SPANDSP_RELEASE_DATE/'$$NOWDATE'/;s/$$SPANDSP_RELEASE_TIME/'$$NOWTIME'/' \
+		<spandsp/version.h.in >spandsp/version.h
+
+dist-hook:
+	NOWDATE=`date --utc +"%Y%m%d"` ; \
+	NOWTIME=`date --utc +"%H%M%S"` ; \
+	sed 's/$$SPANDSP_RELEASE_DATE/'$$NOWDATE'/;s/$$SPANDSP_RELEASE_TIME/'$$NOWTIME'/' \
+		<spandsp/version.h.in >spandsp/version.h

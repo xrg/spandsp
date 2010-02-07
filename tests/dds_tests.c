@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds_tests.c,v 1.17 2006/11/19 14:07:26 steveu Exp $
+ * $Id: dds_tests.c,v 1.18 2007/04/10 16:12:20 steveu Exp $
  */
 
 /*! \file */
@@ -111,8 +111,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
-    printf("Level is %fdBOv\n", power_meter_dbov(&meter));
-    if (fabs(power_meter_dbov(&meter) + 3.02) > 0.05)
+    printf("Level is %fdBOv\n", power_meter_current_dbov(&meter));
+    if (fabs(power_meter_current_dbov(&meter) + 3.02) > 0.05)
     {
         printf("Test failed.\n");
         exit(2);
@@ -134,9 +134,9 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
-    printf("Level is %fdBOv\n", power_meter_dbov(&meter));
+    printf("Level is %fdBOv\n", power_meter_current_dbov(&meter));
     /* Use a wider tolerance for this very low frequency - the power meter will ripple */
-    if (fabs(power_meter_dbov(&meter) + 3.02) > 0.2)
+    if (fabs(power_meter_current_dbov(&meter) + 3.02) > 0.2)
     {
         printf("Test failed.\n");
         exit(2);
@@ -158,8 +158,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
-    printf("Level is %fdBOv\n", power_meter_dbov(&meter));
-    if (fabs(power_meter_dbov(&meter) + 3.02) > 0.05)
+    printf("Level is %fdBOv\n", power_meter_current_dbov(&meter));
+    if (fabs(power_meter_current_dbov(&meter) + 3.02) > 0.05)
     {
         printf("Test failed.\n");
         exit(2);
@@ -181,8 +181,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
-    printf("Level is %fdBOv\n", power_meter_dbov(&meter));
-    if (fabs(power_meter_dbov(&meter) + 3.02) > 0.05)
+    printf("Level is %fdBOv\n", power_meter_current_dbov(&meter));
+    if (fabs(power_meter_current_dbov(&meter) + 3.02) > 0.05)
     {
         printf("Test failed.\n");
         exit(2);
@@ -234,10 +234,10 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
-    printf("Level is %fdBOv/%fdBOv\n", power_meter_dbov(&meter_i), power_meter_dbov(&meter_q));
-    if (fabs(power_meter_dbov(&meter_i) + 13.42) > 0.05
+    printf("Level is %fdBOv/%fdBOv\n", power_meter_current_dbov(&meter_i), power_meter_current_dbov(&meter_q));
+    if (fabs(power_meter_current_dbov(&meter_i) + 13.42) > 0.05
         ||
-        fabs(power_meter_dbov(&meter_q) + 13.42) > 0.05)
+        fabs(power_meter_current_dbov(&meter_q) + 13.42) > 0.05)
     {
         printf("Test failed.\n");
         exit(2);

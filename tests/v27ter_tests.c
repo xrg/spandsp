@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tests.c,v 1.72 2007/03/18 09:43:50 steveu Exp $
+ * $Id: v27ter_tests.c,v 1.77 2007/08/14 14:57:37 steveu Exp $
  */
 
 /*! \page v27ter_tests_page V.27ter modem tests
@@ -54,6 +54,7 @@ display of modem status is maintained.
 #endif
 
 #include <inttypes.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -69,8 +70,8 @@ display of modem status is maintained.
 #include <tiffio.h>
 
 #include "spandsp.h"
-#include "test_utils.h"
-#include "line_model.h"
+#include "spandsp-sim.h"
+
 #if defined(ENABLE_GUI)
 #include "modem_monitor.h"
 #include "line_model_monitor.h"
@@ -260,7 +261,6 @@ int main(int argc, char *argv[])
     AFfilesetup filesetup;
     int outframes;
     int samples;
-    int i;
     int tep;
     int test_bps;
     int noise_level;
@@ -272,6 +272,7 @@ int main(int argc, char *argv[])
     int channel_codec;
     int rbs_pattern;
     float x;
+    int opt;
 
     channel_codec = MUNGE_CODEC_NONE;
     rbs_pattern = 0;
@@ -284,61 +285,53 @@ int main(int argc, char *argv[])
     signal_level = -13;
     bits_per_test = 50000;
     log_audio = FALSE;
-    for (i = 1;  i < argc;  i++)
+    while ((opt = getopt(argc, argv, "b:c:d:glm:n:r:s:t")) != -1)
     {
-        if (strcmp(argv[i], "-b") == 0)
+        switch (opt)
         {
-            bits_per_test = atoi(argv[++i]);
-            continue;
-        }
-        if (strcmp(argv[i], "-c") == 0)
-        {
-            channel_codec = atoi(argv[++i]);
-            continue;
-        }
-        if (strcmp(argv[i], "-d") == 0)
-        {
-            decode_test_file = argv[++i];
-            continue;
-        }
-        if (strcmp(argv[i], "-g") == 0)
-        {
+        case 'b':
+            bits_per_test = atoi(optarg);
+            break;
+        case 'c':
+            channel_codec = atoi(optarg);
+            break;
+        case 'd':
+            decode_test_file = optarg;
+            break;
+        case 'g':
             use_gui = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-l") == 0)
-        {
+            break;
+        case 'l':
             log_audio = TRUE;
-            continue;
-        }
-        if (strcmp(argv[i], "-m") == 0)
-        {
-            line_model_no = atoi(argv[++i]);
-            continue;
-        }
-        if (strcmp(argv[i], "-n") == 0)
-        {
-            noise_level = atoi(argv[++i]);
-            continue;
-        }
-        if (strcmp(argv[i], "-s") == 0)
-        {
-            signal_level = atoi(argv[++i]);
-            continue;
-        }
-        if (strcmp(argv[i], "-r") == 0)
-        {
-            rbs_pattern = atoi(argv[++i]);
-            continue;
-        }
-        if (strcmp(argv[i], "-t") == 0)
-        {
+            break;
+        case 'm':
+            line_model_no = atoi(optarg);
+            break;
+        case 'n':
+            noise_level = atoi(optarg);
+            break;
+        case 'r':
+            rbs_pattern = atoi(optarg);
+            break;
+        case 's':
+            signal_level = atoi(optarg);
+            break;
+        case 't':
             tep = TRUE;
-            continue;
+            break;
+        default:
+            //usage();
+            exit(2);
+            break;
         }
-        if (strcmp(argv[i], "4800") == 0)
+    }
+    argc -= optind;
+    argv += optind;
+    if (argc > 0)
+    {
+        if (strcmp(argv[0], "4800") == 0)
             test_bps = 4800;
-        else if (strcmp(argv[i], "2400") == 0)
+        else if (strcmp(argv[0], "2400") == 0)
             test_bps = 2400;
         else
         {
@@ -346,6 +339,7 @@ int main(int argc, char *argv[])
             exit(2);
         }
     }
+
     inhandle = NULL;
     outhandle = NULL;
 
@@ -378,17 +372,17 @@ int main(int argc, char *argv[])
         }
         if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
         {
-            printf("    Unexpected frame size in speech file '%s'\n", decode_test_file);
+            printf("    Unexpected frame size in speech file '%s' (%f)\n", decode_test_file, x);
             exit(2);
         }
         if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
         {
-            printf("    Unexpected sample rate in speech file '%s'\n", decode_test_file);
+            printf("    Unexpected sample rate in speech file '%s' (%f)\n", decode_test_file, x);
             exit(2);
         }
         if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
         {
-            printf("    Unexpected number of channels in speech file '%s'\n", decode_test_file);
+            printf("    Unexpected number of channels in speech file '%s' (%f)\n", decode_test_file, x);
             exit(2);
         }
     }
@@ -514,14 +508,7 @@ int main(int argc, char *argv[])
         if (decode_test_file == NULL  &&  block%500 == 0)
             printf("Noise level is %d\n", noise_level);
     }
-    if (decode_test_file)
-    {
-#if defined(ENABLE_GUI)
-        if (use_gui)
-            qam_wait_to_end(qam_monitor);
-#endif
-    }
-    else
+    if (!decode_test_file)
     {
         bert_result(&bert, &bert_results);
         fprintf(stderr, "At completion:\n");
@@ -536,6 +523,10 @@ int main(int argc, char *argv[])
 
         printf("Tests passed.\n");
     }
+#if defined(ENABLE_GUI)
+    if (use_gui)
+        qam_wait_to_end(qam_monitor);
+#endif
     if (log_audio)
     {
         if (afCloseFile(outhandle))

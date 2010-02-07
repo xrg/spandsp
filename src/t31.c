@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.87 2007/02/23 12:59:45 steveu Exp $
+ * $Id: t31.c,v 1.92 2007/07/29 17:56:41 steveu Exp $
  */
 
 /*! \file */
@@ -69,10 +69,8 @@
 #include "spandsp/v29tx.h"
 #include "spandsp/v27ter_rx.h"
 #include "spandsp/v27ter_tx.h"
-#if defined(ENABLE_V17)
 #include "spandsp/v17rx.h"
 #include "spandsp/v17tx.h"
-#endif
 #include "spandsp/t4.h"
 #include "spandsp/t30.h"
 #include "spandsp/t38_core.h"
@@ -124,10 +122,8 @@ enum
 };
 
 static int restart_modem(t31_state_t *s, int new_modem);
-static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len);
-#if defined(ENABLE_V17)
+static void hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok);
 static int early_v17_rx(void *user_data, const int16_t amp[], int len);
-#endif
 static int early_v27ter_rx(void *user_data, const int16_t amp[], int len);
 static int early_v29_rx(void *user_data, const int16_t amp[], int len);
 static int dummy_rx(void *s, const int16_t amp[], int len);
@@ -249,7 +245,7 @@ static int process_rx_data(t38_core_state_t *s, void *user_data, int data_type, 
         /* Don't deal with zero length frames. Some T.38 implementations send multiple T38_FIELD_HDLC_FCS_OK
            packets, when they have sent no data for the body of the frame. */
         if (t->current_rx_type == T31_V21_RX  &&  t->tx_out_bytes > 0  &&  !t->missing_data)
-            hdlc_accept((void *) t, TRUE, t->hdlc_rx_buf, t->hdlc_rx_len);
+            hdlc_accept((void *) t, t->hdlc_rx_buf, t->hdlc_rx_len, TRUE);
         t->hdlc_rx_len = 0;
         t->missing_data = FALSE;
         break;
@@ -269,8 +265,8 @@ static int process_rx_data(t38_core_state_t *s, void *user_data, int data_type, 
             /* Don't deal with zero length frames. Some T.38 implementations send multiple T38_FIELD_HDLC_FCS_OK
                packets, when they have sent no data for the body of the frame. */
             if (t->tx_out_bytes > 0)
-                hdlc_accept((void *) t, TRUE, t->hdlc_rx_buf, t->hdlc_rx_len);
-            hdlc_accept((void *) t, TRUE, NULL, PUTBIT_CARRIER_DOWN);
+                hdlc_accept((void *) t, t->hdlc_rx_buf, t->hdlc_rx_len, TRUE);
+            hdlc_accept((void *) t, NULL, PUTBIT_CARRIER_DOWN, TRUE);
         }
         t->tx_out_bytes = 0;
         t->missing_data = FALSE;
@@ -282,7 +278,7 @@ static int process_rx_data(t38_core_state_t *s, void *user_data, int data_type, 
             span_log(&t->logging, SPAN_LOG_WARNING, "There is data in a T38_FIELD_HDLC_FCS_BAD_SIG_END!\n");
         span_log(&t->logging, SPAN_LOG_FLOW, "Type %s - CRC bad, sig end (%s)\n", t30_frametype(t->tx_data[2]), (t->missing_data)  ?  "missing octets"  :  "clean");
         if (t->current_rx_type == T31_V21_RX)
-            hdlc_accept((void *) t, TRUE, NULL, PUTBIT_CARRIER_DOWN);
+            hdlc_accept((void *) t, NULL, PUTBIT_CARRIER_DOWN, TRUE);
         t->hdlc_rx_len = 0;
         t->missing_data = FALSE;
         break;
@@ -293,7 +289,7 @@ static int process_rx_data(t38_core_state_t *s, void *user_data, int data_type, 
            i.e. they send T38_FIELD_HDLC_FCS_OK, and then T38_FIELD_HDLC_SIG_END when the carrier actually drops.
            The other is because the HDLC signal drops unexpectedly - i.e. not just after a final frame. */
         if (t->current_rx_type == T31_V21_RX)
-            hdlc_accept((void *) t, TRUE, NULL, PUTBIT_CARRIER_DOWN);
+            hdlc_accept((void *) t, NULL, PUTBIT_CARRIER_DOWN, TRUE);
         t->hdlc_rx_len = 0;
         t->missing_data = FALSE;
         break;
@@ -547,7 +543,6 @@ static int non_ecm_get_bit(void *user_data)
 {
     t31_state_t *s;
     int bit;
-    int fill;
 
     s = (t31_state_t *) user_data;
     if (s->bit_no <= 0)
@@ -555,15 +550,16 @@ static int non_ecm_get_bit(void *user_data)
         if (s->tx_out_bytes != s->tx_in_bytes)
         {
             /* There is real data available to send */
-            s->current_byte = s->tx_data[s->tx_out_bytes];
-            s->tx_out_bytes = (s->tx_out_bytes + 1) & (T31_TX_BUF_LEN - 1);
+            s->current_byte = s->tx_data[s->tx_out_bytes++];
+            if (s->tx_out_bytes > T31_TX_BUF_LEN - 1)
+            {
+                s->tx_out_bytes = T31_TX_BUF_LEN - 1;
+                fprintf(stderr, "End of transmit buffer reached!\n");
+            }
             if (s->tx_holding)
             {
                 /* See if the buffer is approaching empty. It might be time to release flow control. */
-                fill = (s->tx_in_bytes - s->tx_out_bytes);
-                if (s->tx_in_bytes < s->tx_out_bytes)
-                    fill += (T31_TX_BUF_LEN + 1);
-                if (fill < T31_TX_BUF_LOW_TIDE)
+                if (s->tx_out_bytes > 1024)
                 {
                     s->tx_holding = FALSE;
                     /* Tell the application to release further data */
@@ -612,7 +608,7 @@ static void hdlc_tx_underflow(void *user_data)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
+static void hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
 {
     uint8_t buf[256];
     t31_state_t *s;
@@ -659,7 +655,7 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
                 else
                 {
                     buf[0] = AT_RESPONSE_CODE_NO_CARRIER;
-                    queue_write_msg(&(s->rx_queue), buf, 1);
+                    queue_write_msg(s->rx_queue, buf, 1);
                 }
             }
             s->at_state.rx_signal_present = FALSE;
@@ -710,7 +706,7 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
                     else
                     {
                         buf[0] = AT_RESPONSE_CODE_CONNECT;
-                        queue_write_msg(&(s->rx_queue), buf, 1);
+                        queue_write_msg(s->rx_queue, buf, 1);
                     }
                 }
             }
@@ -723,6 +719,20 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
             break;
         }
         return;
+    }
+    if (!s->rx_message_received)
+    {
+        if (s->at_state.dte_is_waiting)
+        {
+            /* Report CONNECT as soon as possible to avoid a timeout. */
+            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
+            s->rx_message_received = TRUE;
+        }
+        else
+        {
+            buf[0] = AT_RESPONSE_CODE_CONNECT;
+            queue_write_msg(s->rx_queue, buf, 1);
+        }
     }
     /* If OK is pending then we just ignore whatever comes in */
     if (!s->at_state.ok_is_pending)
@@ -762,7 +772,7 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
             /* It is safe to look at the two bytes beyond the length of the message,
                and expect to find the FCS there. */
             memcpy(buf + 1, msg, len + 2);
-            queue_write_msg(&(s->rx_queue), buf, len + 3);
+            queue_write_msg(s->rx_queue, buf, len + 3);
         }
     }
     t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
@@ -777,6 +787,7 @@ static void t31_v21_rx(t31_state_t *s)
     s->hdlc_tx_len = 0;
     s->dled = FALSE;
     fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &(s->hdlcrx));
+    fsk_rx_signal_cutoff(&(s->v21rx), -45.5);
     s->at_state.transmit = TRUE;
 }
 /*- End of function --------------------------------------------------------*/
@@ -789,7 +800,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
     span_log(&s->logging, SPAN_LOG_FLOW, "Restart modem %d\n", new_modem);
     if (s->modem == new_modem)
         return 0;
-    queue_flush(&(s->rx_queue));
+    queue_flush(s->rx_queue);
     s->modem = new_modem;
     s->data_final = FALSE;
     s->at_state.rx_signal_present = FALSE;
@@ -882,7 +893,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
         {
             hdlc_tx_init(&(s->hdlctx), FALSE, 2, FALSE, hdlc_tx_underflow, s);
             /* The spec says 1s +-15% of preamble. So, the minimum is 32 octets. */
-            hdlc_tx_preamble(&(s->hdlctx), 32);
+            hdlc_tx_flags(&(s->hdlctx), 32);
             fsk_tx_init(&(s->v21tx), &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &(s->hdlctx));
             s->tx_handler = (span_tx_handler_t *) &fsk_tx;
             s->tx_user_data = &(s->v21tx);
@@ -904,7 +915,6 @@ static int restart_modem(t31_state_t *s, int new_modem)
             t31_v21_rx(s);
         }
         break;
-#if defined(ENABLE_V17)
     case T31_V17_TX:
         if (s->t38_mode)
         {
@@ -948,7 +958,6 @@ static int restart_modem(t31_state_t *s, int new_modem)
         }
         s->at_state.transmit = FALSE;
         break;
-#endif
     case T31_V27TER_TX:
         if (s->t38_mode)
         {
@@ -1070,6 +1079,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
     s->bit_no = 0;
     s->current_byte = 0xFF;
     s->tx_in_bytes = 0;
+    s->tx_out_bytes = 0;
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1119,8 +1129,6 @@ static __inline__ void dle_unstuff_hdlc(t31_state_t *s, const char *stuffed, int
 static __inline__ void dle_unstuff(t31_state_t *s, const char *stuffed, int len)
 {
     int i;
-    int fill;
-    int next;
     
     for (i = 0;  i < len;  i++)
     {
@@ -1139,22 +1147,18 @@ static __inline__ void dle_unstuff(t31_state_t *s, const char *stuffed, int len)
             s->dled = TRUE;
             continue;
         }
-        s->tx_data[s->tx_in_bytes] = stuffed[i];
-        next = (s->tx_in_bytes + 1) & (T31_TX_BUF_LEN - 1);
-        if (next == s->tx_out_bytes)
+        s->tx_data[s->tx_in_bytes++] = stuffed[i];
+        if (s->tx_in_bytes > T31_TX_BUF_LEN - 1)
         {
             /* Oops. We hit the end of the buffer. Give up. Loose stuff. :-( */
+            fprintf(stderr, "No room in buffer for new data!\n");
             return;
         }
-        s->tx_in_bytes = next;
     }
     if (!s->tx_holding)
     {
         /* See if the buffer is approaching full. We might need to apply flow control. */
-        fill = (s->tx_in_bytes - s->tx_out_bytes);
-        if (s->tx_in_bytes < s->tx_out_bytes)
-            fill += (T31_TX_BUF_LEN + 1);
-        if (fill > T31_TX_BUF_HIGH_TIDE)
+        if (s->tx_in_bytes > T31_TX_BUF_LEN - 1024)
         {
             s->tx_holding = TRUE;
             /* Tell the application to hold further data */
@@ -1191,7 +1195,7 @@ static int process_class1_cmd(at_state_t *t, void *user_data, int direction, int
         else
         {
             /* Wait until we have received a specified period of silence. */
-            queue_flush(&(s->rx_queue));
+            queue_flush(s->rx_queue);
             s->silence_awaited = val*80;
             t31_set_at_rx_mode(s, AT_MODE_DELIVERY);
             restart_modem(s, T31_SILENCE_RX);
@@ -1229,9 +1233,9 @@ static int process_class1_cmd(at_state_t *t, void *user_data, int direction, int
             s->rx_message_received = FALSE;
             do
             {
-                if (!queue_empty(&(s->rx_queue)))
+                if (!queue_empty(s->rx_queue))
                 {
-                    len = queue_read_msg(&(s->rx_queue), msg, 256);
+                    len = queue_read_msg(s->rx_queue, msg, 256);
                     if (len > 1)
                     {
                         if (msg[0] == AT_RESPONSE_CODE_OK)
@@ -1282,7 +1286,6 @@ static int process_class1_cmd(at_state_t *t, void *user_data, int direction, int
             s->short_train = FALSE;
             s->bit_rate = 9600;
             break;
-#if defined(ENABLE_V17)
         case 73:
             new_modem = (new_transmit)  ?  T31_V17_TX  :  T31_V17_RX;
             s->short_train = FALSE;
@@ -1323,7 +1326,6 @@ static int process_class1_cmd(at_state_t *t, void *user_data, int direction, int
             s->short_train = TRUE;
             s->bit_rate = 14400;
             break;
-#endif
         default:
             return -1;
         }
@@ -1377,6 +1379,13 @@ int t31_at_rx(t31_state_t *s, const char *t, int len)
         dle_unstuff_hdlc(s, t, len);
         break;
     case AT_MODE_STUFFED:
+        if (s->tx_out_bytes)
+        {
+            /* Make room for new data in existing data buffer. */
+            s->tx_in_bytes = &(s->tx_data[s->tx_in_bytes]) - &(s->tx_data[s->tx_out_bytes]);
+            memmove(&(s->tx_data[0]), &(s->tx_data[s->tx_out_bytes]), s->tx_in_bytes);
+            s->tx_out_bytes = 0;
+        }
         dle_unstuff(s, t, len);
         break;
     }
@@ -1428,7 +1437,6 @@ static int cng_rx(void *user_data, const int16_t amp[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-#if defined(ENABLE_V17)
 static int early_v17_rx(void *user_data, const int16_t amp[], int len)
 {
     t31_state_t *s;
@@ -1458,7 +1466,6 @@ static int early_v17_rx(void *user_data, const int16_t amp[], int len)
     return len;
 }
 /*- End of function --------------------------------------------------------*/
-#endif
 
 static int early_v27ter_rx(void *user_data, const int16_t amp[], int len)
 {
@@ -1620,9 +1627,7 @@ int t31_tx(t31_state_t *s, int16_t amp[], int max_len)
                     t31_set_at_rx_mode(s, AT_MODE_HDLC);
                     break;
                 case T31_V21_TX:
-#if defined(ENABLE_V17)
                 case T31_V17_TX:
-#endif
                 case T31_V27TER_TX:
                 case T31_V29_TX:
                     s->modem = -1;
@@ -1667,10 +1672,8 @@ t31_state_t *t31_init(t31_state_t *s,
 
     s->modem_control_handler = modem_control_handler;
     s->modem_control_user_data = modem_control_user_data;
-#if defined(ENABLE_V17)
     v17_rx_init(&(s->v17rx), 14400, non_ecm_put_bit, s);
     v17_tx_init(&(s->v17tx), 14400, FALSE, non_ecm_get_bit, s);
-#endif
     v29_rx_init(&(s->v29rx), 9600, non_ecm_put_bit, s);
     v29_rx_signal_cutoff(&(s->v29rx), -45.5);
     v29_tx_init(&(s->v29tx), 9600, FALSE, non_ecm_get_bit, s);
@@ -1695,7 +1698,7 @@ t31_state_t *t31_init(t31_state_t *s,
     s->tx_handler = (span_tx_handler_t *) &silence_gen;
     s->tx_user_data = &(s->silence_gen);
 
-    if (queue_create(&(s->rx_queue), 4096, QUEUE_WRITE_ATOMIC | QUEUE_READ_ATOMIC) < 0)
+    if ((s->rx_queue = queue_create(4096, QUEUE_WRITE_ATOMIC | QUEUE_READ_ATOMIC)) == NULL)
         return NULL;
     at_init(&s->at_state, at_tx_handler, at_tx_user_data, t31_modem_control_handler, s);
     at_set_class1_handler(&s->at_state, process_class1_cmd, s);

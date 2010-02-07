@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: arctan2.h,v 1.9 2007/04/05 19:20:49 steveu Exp $
+ * $Id: arctan2.h,v 1.10 2007/04/08 08:16:17 steveu Exp $
  */
 
 /*! \file */
@@ -40,7 +40,7 @@ This is fine for many "where am I" type evaluations in comms. work.
 ???.
 */
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -71,7 +71,7 @@ static __inline__ int32_t arctan2(float y, float x)
 }
 /*- End of function --------------------------------------------------------*/
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: async.h,v 1.8 2007/04/05 19:20:49 steveu Exp $
+ * $Id: async.h,v 1.10 2007/07/29 17:56:41 steveu Exp $
  */
 
 /*! \file */
@@ -74,7 +74,9 @@ enum
     /*! \brief An abort signal (e.g. an HDLC abort) has been received. */
     PUTBIT_ABORT = -8,
     /*! \brief A break signal (e.g. an async break) has been received. */
-    PUTBIT_BREAK = -9
+    PUTBIT_BREAK = -9,
+    /*! \brief Regular octet report for things like HDLC to the MTP standards. */
+    PUTBIT_OCTET_REPORT = -10
 };
 
 /*! Message put function for data pumps */
@@ -95,12 +97,15 @@ typedef void (*put_bit_func_t)(void *user_data, int bit);
 /*! Bit get function for data pumps */
 typedef int (*get_bit_func_t)(void *user_data);
 
-/*! No parity bit should be used */
-#define ASYNC_PARITY_NONE   0
-/*! An even parity bit will exist, after the data bits */
-#define ASYNC_PARITY_EVEN   1
-/*! An odd parity bit will exist, after the data bits */
-#define ASYNC_PARITY_ODD    2
+enum
+{
+    /*! No parity bit should be used */
+    ASYNC_PARITY_NONE = 0,
+    /*! An even parity bit will exist, after the data bits */
+    ASYNC_PARITY_EVEN,
+    /*! An odd parity bit will exist, after the data bits */
+    ASYNC_PARITY_ODD
+};
 
 /*!
     Asynchronous data transmit descriptor. This defines the state of a single
@@ -157,7 +162,7 @@ typedef struct
     int framing_errors;
 } async_rx_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -213,7 +218,7 @@ void async_rx_init(async_rx_state_t *s,
         - PUTBIT_END_OF_DATA */
 void async_rx_put_bit(void *user_data, int bit);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: make_line_models.c,v 1.20 2007/01/30 13:49:35 steveu Exp $
+ * $Id: make_line_models.c,v 1.1 2007/04/03 12:59:32 steveu Exp $
  */
 
 /*! \page make_line_models_page Telephony line model construction
@@ -60,10 +60,12 @@
 # define M_PI           3.14159265358979323846  /* pi */
 #endif
 
-#define SAMPLE_RATE         8000
+#define LINE_MODEL_FILE_NAME    "line_models.c"
 
-#define LINE_FILTER_SIZE    129
-#define FFT_SIZE            1024
+#define SAMPLE_RATE             8000
+
+#define LINE_FILTER_SIZE        129
+#define FFT_SIZE                1024
 
 /* Tabulated medium range telephone line response
    (from p 537, Digital Communication, John G. Proakis */
@@ -1012,7 +1014,7 @@ int main(int argc, char *argv[])
     int i;
     int j;
 
-    if ((outfile = fopen("line_models.h", "w")) == NULL)
+    if ((outfile = fopen(LINE_MODEL_FILE_NAME, "w")) == NULL)
     {
         fprintf(stderr, "Failed to open %s\n", "line_model.txt");
         exit(2);

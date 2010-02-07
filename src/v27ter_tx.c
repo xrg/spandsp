@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.c,v 1.49 2007/01/03 14:15:36 steveu Exp $
+ * $Id: v27ter_tx.c,v 1.54 2007/08/13 13:08:19 steveu Exp $
  */
 
 /*! \file */
@@ -71,6 +71,232 @@
 /* Created with mkshape -r 0.025 0.5 181 -l and then split up */
 #define PULSESHAPER_2400_GAIN           (19.972065748f/20.0f)
 #define PULSESHAPER_2400_COEFF_SETS     20
+
+#if defined(SPANDSP_USE_FIXED_POINT)
+static const int16_t pulseshaper_2400[PULSESHAPER_2400_COEFF_SETS][V27TER_TX_FILTER_STEPS] =
+{
+    {
+          144,      /* Filter 0 */
+          308,
+         -432,
+        -2162,
+        16681,
+        16681,
+        -2162,
+         -432,
+          308
+    },
+    {
+          105,      /* Filter 1 */
+          379,
+         -311,
+        -2761,
+        19232,
+        14102,
+        -1560,
+         -516,
+          228
+    },
+    {
+           58,      /* Filter 2 */
+          434,
+         -155,
+        -3327,
+        21702,
+        11548,
+         -978,
+         -560,
+          140
+    },
+    {
+            4,      /* Filter 3 */
+          470,
+           28,
+        -3830,
+        24037,
+         9071,
+         -439,
+         -566,
+           52
+    },
+    {
+          -52,      /* Filter 4 */
+          484,
+          232,
+        -4238,
+        26183,
+         6715,
+           39,
+         -536,
+          -32
+    },
+    {
+         -110,      /* Filter 5 */
+          474,
+          445,
+        -4521,
+        28093,
+         4521,
+          445,
+         -474,
+         -110
+    },
+    {
+         -164,      /* Filter 6 */
+          439,
+          657,
+        -4647,
+        29721,
+         2524,
+          770,
+         -386,
+         -176
+    },
+    {
+         -213,      /* Filter 7 */
+          381,
+          854,
+        -4587,
+        31029,
+          752,
+         1008,
+         -279,
+         -229
+    },
+    {
+         -252,      /* Filter 8 */
+          300,
+         1023,
+        -4315,
+        31986,
+         -776,
+         1160,
+         -159,
+         -267
+    },
+    {
+         -278,      /* Filter 9 */
+          201,
+         1151,
+        -3811,
+        32570,
+        -2047,
+         1229,
+          -34,
+         -287
+    },
+    {
+         -291,      /* Filter 10 */
+           87,
+         1223,
+        -3058,
+        32767,
+        -3058,
+         1223,
+           87,
+         -291
+    },
+    {
+         -287,      /* Filter 11 */
+          -34,
+         1229,
+        -2047,
+        32570,
+        -3811,
+         1151,
+          201,
+         -278
+    },
+    {
+         -267,      /* Filter 12 */
+         -159,
+         1160,
+         -776,
+        31986,
+        -4315,
+         1023,
+          300,
+         -252
+    },
+    {
+         -229,      /* Filter 13 */
+         -279,
+         1008,
+          752,
+        31029,
+        -4587,
+          854,
+          381,
+         -213
+    },
+    {
+         -176,      /* Filter 14 */
+         -386,
+          770,
+         2524,
+        29721,
+        -4647,
+          657,
+          439,
+         -164
+    },
+    {
+         -110,      /* Filter 15 */
+         -474,
+          445,
+         4521,
+        28093,
+        -4521,
+          445,
+          474,
+         -110
+    },
+    {
+          -32,      /* Filter 16 */
+         -536,
+           39,
+         6715,
+        26183,
+        -4238,
+          232,
+          484,
+          -52
+    },
+    {
+           52,      /* Filter 17 */
+         -566,
+         -439,
+         9071,
+        24037,
+        -3830,
+           28,
+          470,
+            4
+    },
+    {
+          140,      /* Filter 18 */
+         -560,
+         -978,
+        11548,
+        21702,
+        -3327,
+         -155,
+          434,
+           58
+    },
+    {
+          228,      /* Filter 19 */
+         -516,
+        -1560,
+        14102,
+        19232,
+        -2761,
+         -311,
+          379,
+          105
+    }
+};
+#else
 static const float pulseshaper_2400[PULSESHAPER_2400_COEFF_SETS][V27TER_TX_FILTER_STEPS] =
 {
     {
@@ -294,12 +520,74 @@ static const float pulseshaper_2400[PULSESHAPER_2400_COEFF_SETS][V27TER_TX_FILTE
          0.0036624469f
     },
 };
+#endif
 
 /* Raised root cosine pulse shaping; Beta = 0.5; 4 symbols either
    side of the centre. */
 /* Created with mkshape -r 0.1 0.5 45 -l and then split up */
 #define PULSESHAPER_4800_GAIN           (4.9913162900f/5.0f)
 #define PULSESHAPER_4800_COEFF_SETS     5
+
+#if defined(SPANDSP_USE_FIXED_POINT)
+static const int16_t pulseshaper_4800[PULSESHAPER_4800_COEFF_SETS][V27TER_TX_FILTER_STEPS] =
+{
+    {
+           58,      /* Filter 0 */
+          434,
+         -155,
+        -3327,
+        21702,
+        11548,
+         -978,
+         -560,
+          141
+    },
+    {
+         -164,      /* Filter 1 */
+          439,
+          657,
+        -4647,
+        29721,
+         2524,
+          770,
+         -386,
+         -176
+    },
+    {
+         -291,      /* Filter 2 */
+           87,
+         1223,
+        -3058,
+        32767,
+        -3058,
+         1223,
+           87,
+         -291
+    },
+    {
+         -176,      /* Filter 3 */
+         -386,
+          770,
+         2524,
+        29721,
+        -4647,
+          657,
+          439,
+         -164
+    },
+    {
+          141,      /* Filter 4 */
+         -560,
+         -978,
+        11548,
+        21702,
+        -3327,
+         -155,
+          434,
+           58
+    }
+};
+#else
 static const float pulseshaper_4800[PULSESHAPER_4800_COEFF_SETS][V27TER_TX_FILTER_STEPS] =
 {
     {
@@ -358,6 +646,7 @@ static const float pulseshaper_4800[PULSESHAPER_4800_COEFF_SETS][V27TER_TX_FILTE
          0.0020173211f
     },
 };
+#endif
 
 static int fake_get_bit(void *user_data)
 {
@@ -404,7 +693,11 @@ static __inline__ int get_scrambled_bit(v27ter_tx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
+#if defined(SPANDSP_USE_FIXED_POINT)
+static complexi16_t getbaud(v27ter_tx_state_t *s)
+#else
 static complexf_t getbaud(v27ter_tx_state_t *s)
+#endif
 {
     static const int phase_steps_4800[8] =
     {
@@ -414,6 +707,19 @@ static complexf_t getbaud(v27ter_tx_state_t *s)
     {
         0, 2, 6, 4
     };
+#if defined(SPANDSP_USE_FIXED_POINT)
+    static const complexi16_t constellation[8] =
+    {
+        { 1414,    0000},       /*   0deg */
+        { 1000,    1000},       /*  45deg */
+        { 0000,    1414},       /*  90deg */
+        {-1000,    1000},       /* 135deg */
+        {-1414,    0000},       /* 180deg */
+        {-1000,   -1000},       /* 225deg */
+        { 0000,   -1414},       /* 270deg */
+        { 1000,   -1000}        /* 315deg */
+    };
+#else
     static const complexf_t constellation[8] =
     {
         { 1.414f,  0.0f},       /*   0deg */
@@ -425,6 +731,7 @@ static complexf_t getbaud(v27ter_tx_state_t *s)
         { 0.0f,   -1.414f},     /* 270deg */
         { 1.0f,   -1.0f}        /* 315deg */
     };
+#endif
     int bits;
 
     if (s->in_training)
@@ -442,7 +749,11 @@ static complexf_t getbaud(v27ter_tx_state_t *s)
                 if (s->training_step <= V27TER_TRAINING_SEG_3)
                 {
                     /* Segment 2: Silence */
-                    return complex_setf(0.0, 0.0);
+#if defined(SPANDSP_USE_FIXED_POINT)
+                    return complex_seti16(0, 0);
+#else
+                    return complex_setf(0.0f, 0.0f);
+#endif
                 }
                 /* Segment 3: Regular reversals... */
                 s->constellation_state = (s->constellation_state + 4) & 7;
@@ -491,8 +802,13 @@ static complexf_t getbaud(v27ter_tx_state_t *s)
 
 int v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len)
 {
+#if defined(SPANDSP_USE_FIXED_POINT)
+    complexi_t x;
+    complexi_t z;
+#else
     complexf_t x;
     complexf_t z;
+#endif
     int i;
     int sample;
 
@@ -517,8 +833,22 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len)
                     s->rrc_filter_step = 0;
             }
             /* Root raised cosine pulse shaping at baseband */
-            x.re = 0.0f;
-            x.im = 0.0f;
+#if defined(SPANDSP_USE_FIXED_POINT)
+            x = complex_seti(0, 0);
+            for (i = 0;  i < V27TER_TX_FILTER_STEPS;  i++)
+            {
+                x.re += (int32_t) pulseshaper_4800[4 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].re;
+                x.im += (int32_t) pulseshaper_4800[4 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].im;
+            }
+            /* Now create and modulate the carrier */
+            x.re >>= 14;
+            x.im >>= 14;
+            z = dds_complexi(&(s->carrier_phase), s->carrier_phase_rate);
+            /* Don't bother saturating. We should never clip. */
+            i = (x.re*z.re - x.im*z.im) >> 15;
+            amp[sample] = (int16_t) ((i*s->gain_4800) >> 15);
+#else
+            x = complex_setf(0.0f, 0.0f);
             for (i = 0;  i < V27TER_TX_FILTER_STEPS;  i++)
             {
                 x.re += pulseshaper_4800[4 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].re;
@@ -528,6 +858,7 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len)
             z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
             /* Don't bother saturating. We should never clip. */
             amp[sample] = (int16_t) rintf((x.re*z.re - x.im*z.im)*s->gain_4800);
+#endif
         }
     }
     else
@@ -543,8 +874,22 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len)
                     s->rrc_filter_step = 0;
             }
             /* Root raised cosine pulse shaping at baseband */
-            x.re = 0.0f;
-            x.im = 0.0f;
+#if defined(SPANDSP_USE_FIXED_POINT)
+            x = complex_seti(0, 0);
+            for (i = 0;  i < V27TER_TX_FILTER_STEPS;  i++)
+            {
+                x.re += (int32_t) pulseshaper_2400[19 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].re;
+                x.im += (int32_t) pulseshaper_2400[19 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].im;
+            }
+            /* Now create and modulate the carrier */
+            x.re >>= 14;
+            x.im >>= 14;
+            z = dds_complexi(&(s->carrier_phase), s->carrier_phase_rate);
+            /* Don't bother saturating. We should never clip. */
+            i = (x.re*z.re - x.im*z.im) >> 15;
+            amp[sample] = (int16_t) ((i*s->gain_2400) >> 15);
+#else
+            x = complex_setf(0.0f, 0.0f);
             for (i = 0;  i < V27TER_TX_FILTER_STEPS;  i++)
             {
                 x.re += pulseshaper_2400[19 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].re;
@@ -554,6 +899,7 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len)
             z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
             /* Don't bother saturating. We should never clip. */
             amp[sample] = (int16_t) rintf((x.re*z.re - x.im*z.im)*s->gain_2400);
+#endif
         }
     }
     return sample;
@@ -565,8 +911,13 @@ void v27ter_tx_power(v27ter_tx_state_t *s, float power)
     float l;
 
     l = powf(10.0f, (power - DBM0_MAX_POWER)/20.0f)*32768.0f;
+#if defined(SPANDSP_USE_FIXED_POINT)
+    s->gain_2400 = 16.0f*1.024f*(32767.0f/28828.51f)*l/PULSESHAPER_2400_GAIN;
+    s->gain_4800 = 16.0f*1.024f*(32767.0f/28828.46f)*l/PULSESHAPER_4800_GAIN;
+#else
     s->gain_2400 = l/PULSESHAPER_2400_GAIN;
     s->gain_4800 = l/PULSESHAPER_4800_GAIN;
+#endif
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -584,7 +935,11 @@ int v27ter_tx_restart(v27ter_tx_state_t *s, int rate, int tep)
     if (rate != 4800  &&  rate != 2400)
         return -1;
     s->bit_rate = rate;
+#if defined(SPANDSP_USE_FIXED_POINT)
+    memset(s->rrc_filter, 0, sizeof(s->rrc_filter));
+#else
     cvec_zerof(s->rrc_filter, sizeof(s->rrc_filter)/sizeof(s->rrc_filter[0]));
+#endif
     s->rrc_filter_step = 0;
     s->scramble_reg = 0x3C;
     s->scrambler_pattern_count = 0;

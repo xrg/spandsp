@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.h,v 1.20 2007/04/05 19:20:49 steveu Exp $
+ * $Id: fsk.h,v 1.23 2007/06/28 13:10:59 steveu Exp $
  */
 
 /*! \file */
@@ -143,10 +143,13 @@ typedef struct
     put_bit_func_t put_bit;
     void *user_data;
 
-    int min_power;
+    int32_t carrier_on_power;
+    int32_t carrier_off_power;
     power_meter_t power;
-    int carrier_present;
+    /*! \brief The value of the last signal sample, using the a simple HPF for signal power estimation. */
     int16_t last_sample;
+    /*! \brief >0 if a signal above the minimum is present. It may or may not be a V.29 signal. */
+    int signal_present;
 
     int32_t phase_rate[2];
     uint32_t phase_acc[2];
@@ -165,7 +168,7 @@ typedef struct
     int scaling_shift;
 } fsk_rx_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -235,7 +238,7 @@ int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len);
 
 void fsk_rx_set_put_bit(fsk_rx_state_t *s, put_bit_func_t put_bit, void *user_data);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

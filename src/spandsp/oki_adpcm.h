@@ -26,7 +26,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm.h,v 1.15 2007/04/05 19:20:49 steveu Exp $
+ * $Id: oki_adpcm.h,v 1.16 2007/04/08 08:16:18 steveu Exp $
  */
 
 /*! \file */
@@ -64,7 +64,7 @@ typedef struct
     int phase;
 } oki_adpcm_state_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -103,7 +103,7 @@ int oki_adpcm_encode(oki_adpcm_state_t *s,
                      const int16_t amp[],
                      int len);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

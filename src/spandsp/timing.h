@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: timing.h,v 1.10 2007/04/05 19:20:50 steveu Exp $
+ * $Id: timing.h,v 1.11 2007/04/08 08:16:18 steveu Exp $
  */
 
 #if !defined(_SPANDSP_TIMING_H_)
 #define _SPANDSP_TIMING_H_
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -75,7 +75,7 @@ static __inline__ uint64_t rdtscll(void)
 #endif
 #endif
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

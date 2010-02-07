@@ -88,9 +88,6 @@
 /* Define to 1 if you have the `memset' function. */
 #undef HAVE_MEMSET
 
-/* Define to 1 if you have the `pow' function. */
-#undef HAVE_POW
-
 /* Define to 1 if you have the <pthread.h> header file. */
 #undef HAVE_PTHREAD_H
 
@@ -98,17 +95,11 @@
    and to 0 otherwise. */
 #undef HAVE_REALLOC
 
-/* Define to 1 if you have the `rint' function. */
-#undef HAVE_RINT
-
 /* Define to 1 if you have the `select' function. */
 #undef HAVE_SELECT
 
 /* Define to 1 if you have the <socket.h> header file. */
 #undef HAVE_SOCKET_H
-
-/* Define to 1 if you have the `sqrt' function. */
-#undef HAVE_SQRT
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -211,6 +202,9 @@
 
 /* Define to the type of arg 5 for `select'. */
 #undef SELECT_TYPE_ARG5
+
+/* Enable fixed point processing, where possible, instead of floating point */
+#undef SPANDSP_USE_FIXED_POINT
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS

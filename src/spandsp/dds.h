@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds.h,v 1.11 2007/04/05 19:20:49 steveu Exp $
+ * $Id: dds.h,v 1.13 2007/05/07 13:11:47 steveu Exp $
  */
 
 /*! \file */
@@ -32,7 +32,7 @@
 
 #include "complex.h"
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -87,7 +87,7 @@ int16_t dds_mod(uint32_t *phase_acc, int32_t phase_rate, int scale, int32_t phas
     \param phase_rate The phase increment to be applied.
     \return The complex signal amplitude, between -32767 and 32767.
 */
-icomplex_t dds_complex(uint32_t *phase_acc, int32_t phase_rate);
+complexi_t dds_complexi(uint32_t *phase_acc, int32_t phase_rate);
 
 /*! \brief Generate a complex integer tone sample, with modulation.
     \param phase_acc A pointer to a phase accumulator value.
@@ -96,7 +96,7 @@ icomplex_t dds_complex(uint32_t *phase_acc, int32_t phase_rate);
     \param phase The phase offset.
     \return The complex signal amplitude.
 */
-icomplex_t dds_complex_mod(uint32_t *phase_acc, int32_t phase_rate, int scale, int32_t phase);
+complexi_t dds_complexi_mod(uint32_t *phase_acc, int32_t phase_rate, int scale, int32_t phase);
 
 int32_t dds_phase_ratef(float frequency);
 
@@ -138,7 +138,7 @@ complexf_t dds_complexf(uint32_t *phase_acc, int32_t phase_rate);
 */
 complexf_t dds_complex_modf(uint32_t *phase_acc, int32_t phase_rate, float scale, int32_t phase);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

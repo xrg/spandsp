@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.c,v 1.31 2007/01/12 13:59:19 steveu Exp $
+ * $Id: v42.c,v 1.35 2007/07/20 15:30:50 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -66,13 +66,13 @@
 #define T_WAIT_MIN                  2000
 #define T_WAIT_MAX                  10000
 /* Detection phase timer */
-#define T_400                       750
+#define T_400                       750000
 /* Acknowledgement timer - 1 second between SABME's */
-#define T_401                       1000
+#define T_401                       1000000
 /* Replay delay timer (optional) */
-#define T_402                       1000
+#define T_402                       1000000
 /* Inactivity timer (optional). No default - use 10 seconds with no packets */
-#define T_403                       10000
+#define T_403                       10000000
 /* Max retries */
 #define N_400                       3
 /* Max octets in an information field */
@@ -379,7 +379,7 @@ const char *lapm_status_to_str(int status)
 
 int lapm_tx(lapm_state_t *s, const void *buf, int len)
 {
-    return queue_write(&s->tx_queue, buf, len);
+    return queue_write(s->tx_queue, buf, len);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -632,9 +632,9 @@ static void lapm_link_up(lapm_state_t *s)
     if (s->status_callback)
         s->status_callback(s->status_callback_user_data, s->state);
     /*endif*/
-    if (!queue_empty(&(s->tx_queue)))
+    if (!queue_empty(s->tx_queue))
     {
-        if ((len = queue_read(&(s->tx_queue), buf, s->n401)) > 0)
+        if ((len = queue_read(s->tx_queue, buf, s->n401)) > 0)
             lapm_tx_iframe(s, buf, len, TRUE);
         /*endif*/
     }
@@ -704,7 +704,7 @@ fprintf(stderr, "Deleting T403 e %d\n", s->t403_timer);
 }
 /*- End of function --------------------------------------------------------*/
 
-void lapm_receive(void *user_data, int ok, const uint8_t *frame, int len)
+void lapm_receive(void *user_data, const uint8_t *frame, int len, int ok)
 {
     lapm_state_t *s;
     lapm_frame_queue_t *f;
@@ -1075,9 +1075,9 @@ static void lapm_hdlc_underflow(void *user_data)
     span_log(&s->logging, SPAN_LOG_FLOW, "HDLC underflow\n");
     if (s->state == LAPM_DATA)
     {
-        if (!queue_empty(&(s->tx_queue)))
+        if (!queue_empty(s->tx_queue))
         {
-            if ((len = queue_read(&(s->tx_queue), buf, s->n401)) > 0)
+            if ((len = queue_read(s->tx_queue, buf, s->n401)) > 0)
                 lapm_tx_iframe(s, buf, len, TRUE);
             /*endif*/
         }
@@ -1423,7 +1423,7 @@ v42_state_t *v42_init(v42_state_t *s, int caller, int detect, v42_frame_handler_
     s->lapm.t402_timer =
     s->lapm.t403_timer = -1;
 
-    if (queue_create(&(s->lapm.tx_queue), 16384, 0) < 0)
+    if ((s->lapm.tx_queue = queue_create(16384, 0)) == NULL)
         return NULL;
     /*endif*/
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex.h,v 1.10 2007/04/05 19:20:49 steveu Exp $
+ * $Id: complex.h,v 1.13 2007/05/12 12:25:39 steveu Exp $
  */
 
 /*! \file */
@@ -74,7 +74,7 @@ typedef struct
 {
     int re;
     int im;
-} icomplex_t;
+} complexi_t;
 
 /*!
     Complex 16 bit integer type.
@@ -83,7 +83,7 @@ typedef struct
 {
     int16_t re;
     int16_t im;
-} i16complex_t;
+} complexi16_t;
 
 /*!
     Complex 32 bit integer type.
@@ -92,9 +92,9 @@ typedef struct
 {
     int32_t re;
     int32_t im;
-} i32complex_t;
+} complexi32_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -131,9 +131,29 @@ static __inline__ complexl_t complex_setl(long double re, long double im)
 /*- End of function --------------------------------------------------------*/
 #endif
 
-static __inline__ icomplex_t icomplex_set(int re, int im)
+static __inline__ complexi_t complex_seti(int re, int im)
 {
-    icomplex_t z;
+    complexi_t z;
+
+    z.re = re;
+    z.im = im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ complexi16_t complex_seti16(int16_t re, int16_t im)
+{
+    complexi16_t z;
+
+    z.re = re;
+    z.im = im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ complexi32_t complex_seti32(int32_t re, int32_t im)
+{
+    complexi32_t z;
 
     z.re = re;
     z.im = im;
@@ -173,9 +193,29 @@ static __inline__ complexl_t complex_addl(const complexl_t *x, const complexl_t 
 /*- End of function --------------------------------------------------------*/
 #endif
 
-static __inline__ icomplex_t icomplex_add(const icomplex_t *x, const icomplex_t *y)
+static __inline__ complexi_t complex_addi(const complexi_t *x, const complexi_t *y)
 {
-    icomplex_t z;
+    complexi_t z;
+
+    z.re = x->re + y->re;
+    z.im = x->im + y->im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ complexi16_t complex_addi16(const complexi16_t *x, const complexi16_t *y)
+{
+    complexi16_t z;
+
+    z.re = x->re + y->re;
+    z.im = x->im + y->im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ complexi32_t complex_addi32(const complexi32_t *x, const complexi32_t *y)
+{
+    complexi32_t z;
 
     z.re = x->re + y->re;
     z.im = x->im + y->im;
@@ -215,9 +255,29 @@ static __inline__ complexl_t complex_subl(const complexl_t *x, const complexl_t 
 /*- End of function --------------------------------------------------------*/
 #endif
 
-static __inline__ icomplex_t icomplex_sub(const icomplex_t *x, const icomplex_t *y)
+static __inline__ complexi_t complex_subi(const complexi_t *x, const complexi_t *y)
 {
-    icomplex_t z;
+    complexi_t z;
+
+    z.re = x->re - y->re;
+    z.im = x->im - y->im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ complexi16_t complex_subi16(const complexi16_t *x, const complexi16_t *y)
+{
+    complexi16_t z;
+
+    z.re = x->re - y->re;
+    z.im = x->im - y->im;
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ complexi32_t complex_subi32(const complexi32_t *x, const complexi32_t *y)
+{
+    complexi32_t z;
 
     z.re = x->re - y->re;
     z.im = x->im - y->im;
@@ -327,9 +387,9 @@ static __inline__ complexl_t complex_conjl(const complexl_t *x)
 /*- End of function --------------------------------------------------------*/
 #endif
 
-static __inline__ icomplex_t icomplex_conj(const icomplex_t *x)
+static __inline__ complexi_t complexi_conj(const complexi_t *x)
 {
-    icomplex_t z;
+    complexi_t z;
 
     z.re = x->re;
     z.im = -x->im;
@@ -357,7 +417,7 @@ static __inline__ long double powerl(const complexl_t *x)
 /*- End of function --------------------------------------------------------*/
 #endif
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

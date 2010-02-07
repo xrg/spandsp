@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bitstream.c,v 1.7 2007/01/03 14:15:35 steveu Exp $
+ * $Id: bitstream.c,v 1.8 2007/08/20 15:22:21 steveu Exp $
  */
 
 /*! \file */
@@ -51,18 +51,24 @@ void bitstream_put(bitstream_state_t *s, uint8_t **c, unsigned int value, int bi
     while (s->residue >= 8)
     {
         s->residue -= 8;
-        *(*c)++ = (uint8_t)(s->bitstream & 0xFF);
+        *(*c)++ = (uint8_t) (s->bitstream & 0xFF);
         s->bitstream >>= 8;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-void bitstream_flush(bitstream_state_t *s, uint8_t **c)
+void bitstream_put2(bitstream_state_t *s, uint8_t **c, unsigned int value, int bits)
 {
-    if (s->residue > 0)
+    value &= ((1 << bits) - 1);
+    if (s->residue + bits <= 32)
     {
-        *(*c)++ = (uint8_t)((s->bitstream << (8 - s->residue)) & 0xFF);
-        s->residue = 0;
+        s->bitstream = (s->bitstream << bits) | value;
+        s->residue += bits;
+    }
+    while (s->residue >= 8)
+    {
+        s->residue -= 8;
+        *(*c)++ = (uint8_t) ((s->bitstream >> s->residue) & 0xFF);
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -84,32 +90,6 @@ unsigned int bitstream_get(bitstream_state_t *s, const uint8_t **c, int bits)
 }
 /*- End of function --------------------------------------------------------*/
 
-void bitstream_put2(bitstream_state_t *s, uint8_t **c, unsigned int value, int bits)
-{
-    value &= ((1 << bits) - 1);
-    if (s->residue + bits <= 32)
-    {
-        s->bitstream = (s->bitstream << bits) | value;
-        s->residue += bits;
-    }
-    while (s->residue >= 8)
-    {
-        s->residue -= 8;
-        *(*c)++ = (uint8_t) ((s->bitstream >> s->residue) & 0xFF);
-    }
-}
-/*- End of function --------------------------------------------------------*/
-
-void bitstream_flush2(bitstream_state_t *s, uint8_t **c)
-{
-    if (s->residue > 0)
-    {
-        *(*c)++ = (uint8_t) ((s->bitstream << (8 - s->residue)) & 0xFF);
-        s->residue = 0;
-    }
-}
-/*- End of function --------------------------------------------------------*/
-
 unsigned int bitstream_get2(bitstream_state_t *s, const uint8_t **c, int bits)
 {
     unsigned int x;
@@ -126,10 +106,32 @@ unsigned int bitstream_get2(bitstream_state_t *s, const uint8_t **c, int bits)
 }
 /*- End of function --------------------------------------------------------*/
 
+void bitstream_flush(bitstream_state_t *s, uint8_t **c)
+{
+    if (s->residue > 0)
+    {
+        *(*c)++ = (uint8_t) ((s->bitstream << (8 - s->residue)) & 0xFF);
+        s->residue = 0;
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
+void bitstream_flush2(bitstream_state_t *s, uint8_t **c)
+{
+    if (s->residue > 0)
+    {
+        *(*c)++ = (uint8_t) ((s->bitstream << (8 - s->residue)) & 0xFF);
+        s->residue = 0;
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
 bitstream_state_t *bitstream_init(bitstream_state_t *s)
 {
-    if (s)
-        memset(s, 0, sizeof(*s));
+    if (s == NULL)
+        return NULL;
+    s->bitstream = 0;
+    s->residue = 0;
     return s;
 }
 /*- End of function --------------------------------------------------------*/

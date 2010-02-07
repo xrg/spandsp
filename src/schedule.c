@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule.c,v 1.13 2007/01/12 13:59:18 steveu Exp $
+ * $Id: schedule.c,v 1.14 2007/07/09 15:29:49 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,7 +38,7 @@
 #include "spandsp/logging.h"
 #include "spandsp/schedule.h"
 
-int span_schedule_event(span_sched_state_t *s, int ms, span_sched_callback_func_t function, void *user_data)
+int span_schedule_event(span_sched_state_t *s, int us, span_sched_callback_func_t function, void *user_data)
 {
     int i;
 
@@ -58,7 +58,7 @@ int span_schedule_event(span_sched_state_t *s, int ms, span_sched_callback_func_
     if (i >= s->max_to_date)
         s->max_to_date = i + 1;
     /*endif*/
-    s->sched[i].when = s->ticker + ms*SAMPLE_RATE/1000;
+    s->sched[i].when = s->ticker + us;
     s->sched[i].callback = function;
     s->sched[i].user_data = user_data;
     return i;
@@ -88,13 +88,13 @@ uint64_t span_schedule_time(span_sched_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-void span_schedule_update(span_sched_state_t *s, int samples)
+void span_schedule_update(span_sched_state_t *s, int us)
 {
     int i;
     span_sched_callback_func_t callback;
     void *user_data;
 
-    s->ticker += samples;
+    s->ticker += us;
     for (i = 0;  i < s->max_to_date;  i++)
     {
         if (s->sched[i].callback  &&  s->sched[i].when <= s->ticker)

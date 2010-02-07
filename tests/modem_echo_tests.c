@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo_tests.c,v 1.22 2006/11/19 14:07:27 steveu Exp $
+ * $Id: modem_echo_tests.c,v 1.23 2007/04/10 16:12:21 steveu Exp $
  */
 
 /*! \page modem_echo_can_tests_page Line echo cancellation for modems tests
@@ -361,8 +361,8 @@ int main(int argc, char *argv[])
         power_meter_update(&power_before, rx);
         power_meter_update(&power_after, clean);
     }
-    unadapted_output_power = power_meter_dbm0(&power_before);
-    unadapted_echo_power = power_meter_dbm0(&power_after);
+    unadapted_output_power = power_meter_current_dbm0(&power_before);
+    unadapted_echo_power = power_meter_current_dbm0(&power_after);
     printf("Pre-adaption: output power %10.5fdBm0, echo power %10.5fdBm0\n", unadapted_output_power, unadapted_echo_power);
     
     /* Converge the canceller */
@@ -383,7 +383,7 @@ int main(int argc, char *argv[])
         power_meter_update(&power_after, clean);
 #if 0
         if (i%800 == 0)
-            printf("Powers %10.5fdBm0 %10.5fdBm0\n", power_meter_dbm0(&power_before), power_meter_dbm0(&power_after));
+            printf("Powers %10.5fdBm0 %10.5fdBm0\n", power_meter_current_dbm0(&power_before), power_meter_current_dbm0(&power_after));
 #endif
         put_residue(tx, clean);
 #if defined(ENABLE_GUI)
@@ -406,8 +406,8 @@ int main(int argc, char *argv[])
         power_meter_update(&power_before, rx);
         power_meter_update(&power_after, clean);
     }
-    adapted_output_power = power_meter_dbm0(&power_before);
-    adapted_echo_power = power_meter_dbm0(&power_after);
+    adapted_output_power = power_meter_current_dbm0(&power_before);
+    adapted_echo_power = power_meter_current_dbm0(&power_after);
     printf("Post-adaption: output power %10.5fdBm0, echo power %10.5fdBm0\n", adapted_output_power, adapted_echo_power);
     
     if (fabsf(adapted_output_power - unadapted_output_power) > 0.1f
