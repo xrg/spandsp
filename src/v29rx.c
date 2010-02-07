@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.112 2007/12/06 13:35:50 steveu Exp $
+ * $Id: v29rx.c,v 1.114 2008/01/09 13:23:35 steveu Exp $
  */
 
 /*! \file */
@@ -130,7 +130,7 @@ static const uint8_t space_map_9600[20][20] =
     {15, 15, 15, 15, 15, 15,  8,  8,  8,  8,  8,  8,  8,  8,  9,  9,  9,  9,  9,  9}
 };
 
-/* Coefficients for the band edge symbol timing synchroniser */
+/* Coefficients for the band edge symbol timing synchroniser (alpha = 0.99) */
 #define SYNC_LOW_BAND_EDGE_COEFF_0       1.829281f    /* 2*alpha*cos(low_edge) */
 #define SYNC_LOW_BAND_EDGE_COEFF_1      -0.980100f    /* -alpha^2 */
 #define SYNC_HIGH_BAND_EDGE_COEFF_0     -1.285907f    /* 2*alpha*cos(high_edge) */
@@ -755,7 +755,6 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
             step = PULSESHAPER_COEFF_SETS - 1;
         if (step < 0)
             step += PULSESHAPER_COEFF_SETS;
-
 #if defined(SPANDSP_USE_FIXED_POINT)
         zi.re = (int32_t) pulseshaper[step][0].re*(int32_t) s->rrc_filter[s->rrc_filter_step];
         for (j = 1;  j < V29_RX_FILTER_STEPS;  j++)
@@ -785,7 +784,7 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
             if (s->training_stage == TRAINING_STAGE_SYMBOL_ACQUISITION)
             {
                 /* Only AGC during the initial training */
-                s->agc_scaling = (1.0f/PULSESHAPER_GAIN)*5.0f*0.72f/sqrtf(power);
+                s->agc_scaling = (1.0f/PULSESHAPER_GAIN)*5.0f*0.25f/sqrtf(power);
             }
             /* Pulse shape while still at the carrier frequency, using a quadrature
                pair of filters. This results in a properly bandpass filtered complex
@@ -798,20 +797,18 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
             zi.im = (int32_t) pulseshaper[step][0].im*(int32_t) s->rrc_filter[s->rrc_filter_step];
             for (j = 1;  j < V29_RX_FILTER_STEPS;  j++)
                 zi.im += (int32_t) pulseshaper[step][j].im*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
-            sample.re = zi.re*s->agc_scaling;
             sample.im = zi.im*s->agc_scaling;
 #else
             zz.im = pulseshaper[step][0].im*s->rrc_filter[s->rrc_filter_step];
             for (j = 1;  j < V29_RX_FILTER_STEPS;  j++)
                 zz.im += pulseshaper[step][j].im*s->rrc_filter[j + s->rrc_filter_step];
-            sample.re = zz.re*s->agc_scaling;
             sample.im = zz.im*s->agc_scaling;
 #endif
             s->eq_put_step += PULSESHAPER_COEFF_SETS*10/(3*2);
             /* Shift to baseband - since this is done in a full complex form, the
                result is clean, and requires no further filtering, apart from the
                equalizer. */
-            z = dds_complexf(&(s->carrier_phase), 0);
+            z = dds_lookup_complexf(s->carrier_phase);
             zz.re = sample.re*z.re - sample.im*z.im;
             zz.im = -sample.re*z.im - sample.im*z.re;
             process_half_baud(s, &zz);
@@ -883,7 +880,7 @@ int v29_rx_restart(v29_rx_state_t *s, int rate, int old_train)
     else
     {
         s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
-        s->agc_scaling = 0.005f/PULSESHAPER_GAIN;
+        s->agc_scaling = 0.0017f/PULSESHAPER_GAIN;
         equalizer_reset(s);
     }
     s->eq_skip = 0;

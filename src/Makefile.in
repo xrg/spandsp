@@ -38,7 +38,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = at_dictionary_gen$(EXEEXT)
+noinst_PROGRAMS = at_dictionary_gen$(EXEEXT) \
+	make_modem_filter$(EXEEXT)
 subdir = src
 DIST_COMMON = $(nobase_include_HEADERS) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
@@ -83,6 +84,10 @@ PROGRAMS = $(noinst_PROGRAMS)
 at_dictionary_gen_SOURCES = at_dictionary_gen.c
 at_dictionary_gen_OBJECTS = at_dictionary_gen.$(OBJEXT)
 at_dictionary_gen_LDADD = $(LDADD)
+am_make_modem_filter_OBJECTS = make_modem_filter.$(OBJEXT) \
+	filter_tools.$(OBJEXT)
+make_modem_filter_OBJECTS = $(am_make_modem_filter_OBJECTS)
+make_modem_filter_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__depfiles_maybe = depfiles
@@ -94,8 +99,10 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libspandsp_la_SOURCES) at_dictionary_gen.c
-DIST_SOURCES = $(libspandsp_la_SOURCES) at_dictionary_gen.c
+SOURCES = $(libspandsp_la_SOURCES) at_dictionary_gen.c \
+	$(make_modem_filter_SOURCES)
+DIST_SOURCES = $(libspandsp_la_SOURCES) at_dictionary_gen.c \
+	$(make_modem_filter_SOURCES)
 nobase_includeHEADERS_INSTALL = $(install_sh_DATA)
 nodist_includeHEADERS_INSTALL = $(INSTALL_HEADER)
 HEADERS = $(nobase_include_HEADERS) $(nodist_include_HEADERS) \
@@ -372,15 +379,25 @@ nobase_include_HEADERS = spandsp/adsi.h \
 
 nodist_include_HEADERS = spandsp.h
 noinst_HEADERS = faxfont.h \
+                        filter_tools.h \
                         gsm0610_local.h \
                         lpc10_encdecs.h \
                         t4_states.h \
                         v17rx_constellation_maps.h \
                         v17rx_fixed_rrc.h \
                         v17rx_floating_rrc.h \
+                        v22bis_rx_1200_fixed_rrc.h \
+                        v22bis_rx_2400_fixed_rrc.h \
+                        v22bis_rx_1200_floating_rrc.h \
+                        v22bis_rx_2400_floating_rrc.h \
+                        v27ter_rx_2400_fixed_rrc.h \
+                        v27ter_rx_4800_fixed_rrc.h \
+                        v27ter_rx_2400_floating_rrc.h \
+                        v27ter_rx_4800_floating_rrc.h \
                         v29rx_fixed_rrc.h \
                         v29rx_floating_rrc.h
 
+make_modem_filter_SOURCES = make_modem_filter.c filter_tools.c
 DSP = libspandsp.dsp
 VCPROJ = libspandsp.vcproj
 WIN32SOURCES = $(libspandsp_la_SOURCES) msvc/gettimeofday.c
@@ -500,6 +517,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dtmf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/echo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fax.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/filter_tools.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fsk.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g711.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g722_decode.Plo@am__quote@
@@ -520,6 +538,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lpc10_encode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lpc10_placev.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lpc10_voicing.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/make_modem_filter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/modem_connect_tones.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/modem_echo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/noise.Plo@am__quote@
@@ -807,18 +826,137 @@ uninstall-am: uninstall-info-am uninstall-libLTLIBRARIES \
 	uninstall-nodist_includeHEADERS
 
 
-# We need to run at_dictionary_gen, so it generates the at_interpreter_dictionary.h file
-# used by several of the test programs.
+# We need to run at_dictionary_gen, so it generates the
+# at_interpreter_dictionary.h file
 
-at_interpreter.$(OBJEXT): at_dictionary_gen$(EXEEXT) at_interpreter_dictionary.h
+at_interpreter.$(OBJEXT): at_interpreter_dictionary.h
 
-at_interpreter.lo: at_dictionary_gen$(EXEEXT) at_interpreter_dictionary.h
+at_interpreter.lo: at_interpreter_dictionary.h
 
 at_interpreter_dictionary.h: at_dictionary_gen$(EXEEXT)
 	./at_dictionary_gen$(EXEEXT) >at_interpreter_dictionary.h
 
 at_dictionary_gen$(EXEEXT): at_dictionary_gen.c config.h
 	$(CC_FOR_BUILD) -o $@ $<
+
+v17rx.$(OBJEXT): v17rx_fixed_rrc.h v17rx_floating_rrc.h
+
+v17rx.lo: v17rx_fixed_rrc.h v17rx_floating_rrc.h
+
+v17rx_fixed_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.17 -i -r >v17rx_fixed_rrc.h
+
+v17rx_floating_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.17 -r >v17rx_floating_rrc.h
+
+v17tx.$(OBJEXT): v17tx_fixed_rrc.h v17tx_floating_rrc.h
+
+v17tx.lo: v17tx_fixed_rrc.h v17tx_floating_rrc.h
+
+v17tx_fixed_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.17 -i -t >v17tx_fixed_rrc.h
+
+v17tx_floating_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.17 -t >v17tx_floating_rrc.h
+
+v22bis_rx.$(OBJEXT): v22bis_rx_1200_fixed_rrc.h \
+                     v22bis_rx_2400_fixed_rrc.h \
+                     v22bis_rx_1200_floating_rrc.h \
+                     v22bis_rx_2400_floating_rrc.h
+
+v22bis_rx.lo: v22bis_rx_1200_fixed_rrc.h \
+              v22bis_rx_2400_fixed_rrc.h \
+              v22bis_rx_1200_floating_rrc.h \
+              v22bis_rx_2400_floating_rrc.h
+
+v22bis_rx_1200_fixed_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.22bis1200 -i -r >v22bis_rx_1200_fixed_rrc.h
+
+v22bis_rx_2400_fixed_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.22bis2400 -i -r >v22bis_rx_2400_fixed_rrc.h
+
+v22bis_rx_1200_floating_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.22bis1200 -r >v22bis_rx_1200_floating_rrc.h
+
+v22bis_rx_2400_floating_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.22bis2400 -r >v22bis_rx_2400_floating_rrc.h
+
+v22bis_tx.$(OBJEXT): v22bis_tx_fixed_rrc.h v22bis_tx_floating_rrc.h
+
+v22bis_tx.lo: v22bis_tx_fixed_rrc.h v22bis_tx_floating_rrc.h
+
+v22bis_tx_fixed_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.22bis -i -t >v22bis_tx_fixed_rrc.h
+
+v22bis_tx_floating_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.22bis -t >v22bis_tx_floating_rrc.h
+
+v27ter_rx_.$(OBJEXT): v27ter_rx_2400_fixed_rrc.h \
+                      v27ter_rx_4800_fixed_rrc.h \
+                      v27ter_rx_2400_floating_rrc.h \
+                      v27ter_rx_4800_floating_rrc.h
+
+v27ter_rx.lo: v27ter_rx_2400_fixed_rrc.h \
+              v27ter_rx_4800_fixed_rrc.h \
+              v27ter_rx_2400_floating_rrc.h \
+              v27ter_rx_4800_floating_rrc.h
+
+v27ter_rx_2400_fixed_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.27ter2400 -i -r >v27ter_rx_2400_fixed_rrc.h
+
+v27ter_rx_4800_fixed_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.27ter4800 -i -r >v27ter_rx_4800_fixed_rrc.h
+
+v27ter_rx_2400_floating_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.27ter2400 -r >v27ter_rx_2400_floating_rrc.h
+
+v27ter_rx_4800_floating_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.27ter4800 -r >v27ter_rx_4800_floating_rrc.h
+
+v27ter_tx_.$(OBJEXT): v27ter_tx_2400_fixed_rrc.h \
+                      v27ter_tx_4800_fixed_rrc.h \
+                      v27ter_tx_2400_floating_rrc.h \
+                      v27ter_tx_4800_floating_rrc.h
+
+v27ter_tx.lo: v27ter_tx_2400_fixed_rrc.h \
+              v27ter_tx_4800_fixed_rrc.h \
+              v27ter_tx_2400_floating_rrc.h \
+              v27ter_tx_4800_floating_rrc.h
+
+v27ter_tx_2400_fixed_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.27ter2400 -i -t >v27ter_tx_2400_fixed_rrc.h
+
+v27ter_tx_4800_fixed_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.27ter4800 -i -t >v27ter_tx_4800_fixed_rrc.h
+
+v27ter_tx_2400_floating_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.27ter2400 -t >v27ter_tx_2400_floating_rrc.h
+
+v27ter_tx_4800_floating_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.27ter4800 -t >v27ter_tx_4800_floating_rrc.h
+
+v29rx.$(OBJEXT): v29rx_fixed_rrc.h v29rx_floating_rrc.h
+
+v29rx.lo: v29rx_fixed_rrc.h v29rx_floating_rrc.h
+
+v29rx_fixed_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.29 -i -r >v29rx_fixed_rrc.h
+
+v29rx_floating_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.29 -r >v29rx_floating_rrc.h
+
+v29tx.$(OBJEXT): v29tx_fixed_rrc.h v29tx_floating_rrc.h
+
+v29tx.lo: v29tx_fixed_rrc.h v29tx_floating_rrc.h
+
+v29tx_fixed_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.29 -i -t >v29tx_fixed_rrc.h
+
+v29tx_floating_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.29 -t >v29tx_floating_rrc.h
+
+make_modem_filter$(EXEEXT): make_modem_filter.c filter_tools.c filter_tools.h config.h
+	$(CC_FOR_BUILD) -I. -o $@ make_modem_filter.c filter_tools.c -lm
 
 $(DSP): msvc/msvcproj.head msvc/msvcproj.foot Makefile.am
 	echo "creating $(DSP)"

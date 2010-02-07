@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.96 2007/12/13 11:31:32 steveu Exp $
+ * $Id: v17rx.c,v 1.100 2008/01/09 15:17:14 steveu Exp $
  */
 
 /*! \file */
@@ -98,7 +98,7 @@ enum
     TRAINING_STAGE_PARKED
 };
 
-/* Coefficients for the band edge symbol timing synchroniser */
+/* Coefficients for the band edge symbol timing synchroniser (alpha = 0.99) */
 #define SYNC_LOW_BAND_EDGE_COEFF_0       1.764193f    /* 2*alpha*cos(low_edge) */
 #define SYNC_LOW_BAND_EDGE_COEFF_1      -0.980100f    /* -alpha^2 */
 #define SYNC_HIGH_BAND_EDGE_COEFF_0     -1.400072f    /* 2*alpha*cos(high_edge) */
@@ -631,7 +631,7 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
                 ang = (s->angles[j] - s->start_angles[0])/i
                     + (s->angles[j | 0x1] - s->start_angles[1])/i;
                 s->carrier_phase_rate += 3*(ang/20);
-span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angles[j], s->start_angles[0], s->angles[j | 0x1], s->start_angles[1], i);
+                //span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angles[j], s->start_angles[0], s->angles[j | 0x1], s->start_angles[1], i);
 
                 s->start_angles[0] = s->angles[j];
                 s->start_angles[1] = s->angles[j | 0x1];
@@ -1045,7 +1045,7 @@ void v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
         {
             /* Only AGC until we have locked down the setting. */
             if (s->agc_scaling_save == 0.0f)
-                s->agc_scaling = (1.0f/PULSESHAPER_GAIN)*6.5f/sqrtf(power);
+                s->agc_scaling = (1.0f/PULSESHAPER_GAIN)*2.17f/sqrtf(power);
             /* Pulse shape while still at the carrier frequency, using a quadrature
                pair of filters. This results in a properly bandpass filtered complex
                signal, which can be brought directly to baseband by complex mixing.
@@ -1057,20 +1057,18 @@ void v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
             zi.im = (int32_t) pulseshaper[step][0].im*(int32_t) s->rrc_filter[s->rrc_filter_step];
             for (j = 1;  j < V17_RX_FILTER_STEPS;  j++)
                 zi.im += (int32_t) pulseshaper[step][j].im*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
-            sample.re = zi.re*s->agc_scaling;
             sample.im = zi.im*s->agc_scaling;
 #else
             zz.im = pulseshaper[step][0].im*s->rrc_filter[s->rrc_filter_step];
             for (j = 1;  j < V17_RX_FILTER_STEPS;  j++)
                 zz.im += pulseshaper[step][j].im*s->rrc_filter[j + s->rrc_filter_step];
-            sample.re = zz.re*s->agc_scaling;
             sample.im = zz.im*s->agc_scaling;
 #endif
             s->eq_put_step += PULSESHAPER_COEFF_SETS*10/(3*2);
             /* Shift to baseband - since this is done in a full complex form, the
                result is clean, and requires no further filtering, apart from the
                equalizer. */
-            z = dds_complexf(&(s->carrier_phase), 0);
+            z = dds_lookup_complexf(s->carrier_phase);
             zz.re = sample.re*z.re - sample.im*z.im;
             zz.im = -sample.re*z.im - sample.im*z.re;
             process_half_baud(s, &zz);
@@ -1173,7 +1171,7 @@ int v17_rx_restart(v17_rx_state_t *s, int rate, int short_train)
     {
         s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
         s->agc_scaling_save = 0.0f;
-        s->agc_scaling = 0.005f/PULSESHAPER_GAIN;
+        s->agc_scaling = 0.0017f/PULSESHAPER_GAIN;
         equalizer_reset(s);
         s->carrier_track_i = 5000.0f;
         s->carrier_track_p = 40000.0f;
@@ -1210,7 +1208,7 @@ v17_rx_state_t *v17_rx_init(v17_rx_state_t *s, int rate, put_bit_func_t put_bit,
     s->user_data = user_data;
     s->short_train = FALSE;
     v17_rx_signal_cutoff(s, -45.5f);
-    s->agc_scaling = 0.005f/PULSESHAPER_GAIN;
+    s->agc_scaling = 0.0017f/PULSESHAPER_GAIN;
     s->agc_scaling_save = 0.0f;
     s->carrier_phase_rate_save = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
 

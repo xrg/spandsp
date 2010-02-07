@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds_int.c,v 1.4 2007/09/06 12:24:54 steveu Exp $
+ * $Id: dds_int.c,v 1.5 2008/01/06 13:17:10 steveu Exp $
  */
 
 /*! \file */
@@ -216,12 +216,10 @@ int dds_scaling_dbov(float level)
 int16_t dds_lookup(uint32_t phase)
 {
     uint32_t step;
-    uint32_t fred;
     int16_t amp;
 
     phase >>= DDS_SHIFT;
     step = phase & (DDS_STEPS - 1);
-    fred = step;
     if ((phase & DDS_STEPS))
         step = (DDS_STEPS - 1) - step;
     amp = sine_table[step];
@@ -260,6 +258,12 @@ int16_t dds_mod(uint32_t *phase_acc, int32_t phase_rate, int scale, int32_t phas
     amp = (int16_t) ((dds_lookup(*phase_acc + phase)*scale) >> 15);
     *phase_acc += phase_rate;
     return amp;
+}
+/*- End of function --------------------------------------------------------*/
+
+complexi_t dds_lookup_complexi(uint32_t phase)
+{
+    return complex_seti(dds_lookup(phase + (1 << 30)), dds_lookup(phase));
 }
 /*- End of function --------------------------------------------------------*/
 

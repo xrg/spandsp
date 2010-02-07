@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds_float.c,v 1.3 2007/09/06 12:24:54 steveu Exp $
+ * $Id: dds_float.c,v 1.4 2008/01/06 13:17:10 steveu Exp $
  */
 
 /*! \file */
@@ -2141,6 +2141,12 @@ float ddsf(uint32_t *phase_acc, int32_t phase_rate)
 }
 /*- End of function --------------------------------------------------------*/
 
+float dds_lookupf(uint32_t phase)
+{
+    return sine_table[phase >> (32 - SLENK)];
+}
+/*- End of function --------------------------------------------------------*/
+
 float dds_modf(uint32_t *phase_acc, int32_t phase_rate, float scale, int32_t phase)
 {
     float amp;
@@ -2159,6 +2165,13 @@ complexf_t dds_complexf(uint32_t *phase_acc, int32_t phase_rate)
                        sine_table[*phase_acc >> (32 - SLENK)]);
     *phase_acc += phase_rate;
     return amp;
+}
+/*- End of function --------------------------------------------------------*/
+
+complexf_t dds_lookup_complexf(uint32_t phase)
+{
+    return complex_setf(sine_table[(phase + (1 << 30)) >> (32 - SLENK)],
+                        sine_table[phase >> (32 - SLENK)]);
 }
 /*- End of function --------------------------------------------------------*/
 
