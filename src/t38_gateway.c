@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.111 2008/03/05 13:38:23 steveu Exp $
+ * $Id: t38_gateway.c,v 1.113 2008/03/14 14:28:17 steveu Exp $
  */
 
 /*! \file */
@@ -83,6 +83,7 @@
 #define INDICATOR_TX_COUNT          3
 #define DATA_TX_COUNT               1
 #define DATA_END_TX_COUNT           1
+#define HDLC_START_BUFFER_LEVEL     8
 
 enum
 {
@@ -110,6 +111,12 @@ enum
     HDLC_FLAG_CORRUPT_CRC = 0x02,
     HDLC_FLAG_PROCEED_WITH_OUTPUT = 0x04,
     HDLC_FLAG_MISSING_DATA = 0x08
+};
+
+enum
+{
+    FLAG_INDICATOR = 0x100,
+    FLAG_DATA = 0x200
 };
 
 static int restart_rx_modem(t38_gateway_state_t *s);
@@ -237,13 +244,13 @@ static void hdlc_underflow_handler(void *user_data)
         if (++s->hdlc_out >= T38_TX_HDLC_BUFS)
             s->hdlc_out = 0;
         span_log(&s->logging, SPAN_LOG_FLOW, "HDLC next is 0x%X\n", s->hdlc_contents[s->hdlc_out]);
-        if ((s->hdlc_contents[s->hdlc_out] & 0x100))
+        if ((s->hdlc_contents[s->hdlc_out] & FLAG_INDICATOR))
         {
             /* The next thing in the queue is an indicator, so we need to stop this modem. */
             span_log(&s->logging, SPAN_LOG_FLOW, "HDLC shutdown\n");
             hdlc_tx_frame(&s->hdlctx, NULL, 0);
         }
-        else if ((s->hdlc_contents[s->hdlc_out] & 0x200))
+        else if ((s->hdlc_contents[s->hdlc_out] & FLAG_DATA))
         {
             /* Check if we should start sending the next frame */
             if ((s->hdlc_flags[s->hdlc_out] & HDLC_FLAG_PROCEED_WITH_OUTPUT))
@@ -287,7 +294,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     }
     if (s->hdlc_in == s->hdlc_out)
         return FALSE;
-    if ((s->hdlc_contents[s->hdlc_out] & 0x100) == 0)
+    if ((s->hdlc_contents[s->hdlc_out] & FLAG_INDICATOR) == 0)
         return FALSE;
     indicator = (s->hdlc_contents[s->hdlc_out] & 0xFF);
     s->hdlc_len[s->hdlc_out] = 0;
@@ -600,7 +607,7 @@ static void edit_control_messages(t38_gateway_state_t *s, uint8_t *buf, int len,
         {
         case T30_DIS:
             /* We may need to adjust the capabilities, so they do not exceed our own */
-            span_log(&s->logging, SPAN_LOG_FLOW, "Constraining the fast modem\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Applying fast modem type constraints.\n");
             switch (buf[4] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3))
             {
             case 0:
@@ -656,7 +663,7 @@ static void edit_control_messages(t38_gateway_state_t *s, uint8_t *buf, int len,
 
 static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int len, int from_modem)
 {
-    span_log(&s->logging, SPAN_LOG_FLOW, "monitor %s\n", t30_frametype(buf[2]));
+    span_log(&s->logging, SPAN_LOG_FLOW, "Monitoring %s\n", t30_frametype(buf[2]));
     if (len < 3)
         return;
     /* Monitor the control messages, so we can see what is happening to things like
@@ -851,7 +858,7 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
         if (++s->hdlc_in >= T38_TX_HDLC_BUFS)
             s->hdlc_in = 0;
     }
-    s->hdlc_contents[s->hdlc_in] = (indicator | 0x100);
+    s->hdlc_contents[s->hdlc_in] = (indicator | FLAG_INDICATOR);
     if (++s->hdlc_in >= T38_TX_HDLC_BUFS)
         s->hdlc_in = 0;
     span_log(&s->logging,
@@ -879,13 +886,13 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
     {
     case T38_FIELD_HDLC_DATA:
         s->current_rx_field_class = T38_FIELD_CLASS_HDLC;
-        if (s->hdlc_contents[s->hdlc_in] != (data_type | 0x200))
+        if (s->hdlc_contents[s->hdlc_in] != (data_type | FLAG_DATA))
             queue_missing_indicator(s, data_type);
         previous = s->hdlc_len[s->hdlc_in];
         /* Check if this data would overflow the buffer. */
         if (s->hdlc_len[s->hdlc_in] + len > T38_MAX_HDLC_LEN)
             break;
-        s->hdlc_contents[s->hdlc_in] = (data_type | 0x200);
+        s->hdlc_contents[s->hdlc_in] = (data_type | FLAG_DATA);
         if (data_type == T38_DATA_V21)
         {
             /* We need to send out the control messages as they are arriving. They are
@@ -897,7 +904,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             }
             /* Don't start pumping data into the actual output stream until there is
                enough backlog to create some elasticity for jitter tolerance. */
-            if (s->hdlc_len[s->hdlc_in] >= 8)
+            if (s->hdlc_len[s->hdlc_in] >= HDLC_START_BUFFER_LEVEL)
             {
                 if (s->hdlc_in == s->hdlc_out)
                 {
@@ -931,10 +938,10 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             ||
             t->current_rx_field_type != field_type)
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC good\n", t30_frametype(s->hdlc_buf[s->hdlc_in][2]));
-            if (s->hdlc_contents[s->hdlc_in] != (data_type | 0x200))
+            span_log(&s->logging, SPAN_LOG_FLOW, "HDLC frame type %s - CRC good\n", t30_frametype(s->hdlc_buf[s->hdlc_in][2]));
+            if (s->hdlc_contents[s->hdlc_in] != (data_type | FLAG_DATA))
                 queue_missing_indicator(s, data_type);
-            s->hdlc_contents[s->hdlc_in] = (data_type | 0x200);
+            s->hdlc_contents[s->hdlc_in] = (data_type | FLAG_DATA);
             if (data_type == T38_DATA_V21)
             {
                 if ((s->hdlc_flags[s->hdlc_in] & HDLC_FLAG_MISSING_DATA) == 0)
@@ -969,12 +976,12 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             ||
             t->current_rx_field_type != field_type)
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC bad\n", t30_frametype(s->hdlc_buf[s->hdlc_in][2]));
-            if (s->hdlc_contents[s->hdlc_in] != (data_type | 0x200))
+            span_log(&s->logging, SPAN_LOG_FLOW, "HDLC frame type %s - CRC bad\n", t30_frametype(s->hdlc_buf[s->hdlc_in][2]));
+            if (s->hdlc_contents[s->hdlc_in] != (data_type | FLAG_DATA))
                 queue_missing_indicator(s, data_type);
             if (s->hdlc_len[s->hdlc_in] > 0)
             {
-                s->hdlc_contents[s->hdlc_in] = (data_type | 0x200);
+                s->hdlc_contents[s->hdlc_in] = (data_type | FLAG_DATA);
                 pump_out_final_hdlc(s, FALSE);
             }
         }
@@ -997,10 +1004,10 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             ||
             t->current_rx_field_type != field_type)
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC OK, sig end\n", t30_frametype(s->hdlc_buf[s->hdlc_in][2]));
-            if (s->hdlc_contents[s->hdlc_in] != (data_type | 0x200))
+            span_log(&s->logging, SPAN_LOG_FLOW, "HDLC frame type %s - CRC OK, sig end\n", t30_frametype(s->hdlc_buf[s->hdlc_in][2]));
+            if (s->hdlc_contents[s->hdlc_in] != (data_type | FLAG_DATA))
                 queue_missing_indicator(s, data_type);
-            s->hdlc_contents[s->hdlc_in] = (data_type | 0x200);
+            s->hdlc_contents[s->hdlc_in] = (data_type | FLAG_DATA);
             if (data_type == T38_DATA_V21  &&  (s->hdlc_flags[s->hdlc_in] & HDLC_FLAG_MISSING_DATA) == 0)
                 monitor_control_messages(s, s->hdlc_buf[s->hdlc_in], s->hdlc_len[s->hdlc_in], FALSE);
             pump_out_final_hdlc(s, (s->hdlc_flags[s->hdlc_in] & HDLC_FLAG_MISSING_DATA) == 0);
@@ -1027,12 +1034,12 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             ||
             t->current_rx_field_type != field_type)
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC bad, sig end\n", t30_frametype(s->hdlc_buf[s->hdlc_in][2]));
-            if (s->hdlc_contents[s->hdlc_in] != (data_type | 0x200))
+            span_log(&s->logging, SPAN_LOG_FLOW, "HDLC frame type %s - CRC bad, sig end\n", t30_frametype(s->hdlc_buf[s->hdlc_in][2]));
+            if (s->hdlc_contents[s->hdlc_in] != (data_type | FLAG_DATA))
                 queue_missing_indicator(s, data_type);
             if (s->hdlc_len[s->hdlc_in] > 0)
             {
-                s->hdlc_contents[s->hdlc_in] = (data_type | 0x200);
+                s->hdlc_contents[s->hdlc_in] = (data_type | FLAG_DATA);
                 pump_out_final_hdlc(s, FALSE);
             }
             s->hdlc_len[s->hdlc_in] = 0;
@@ -1057,11 +1064,18 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             ||
             t->current_rx_field_type != field_type)
         {
-            if (s->hdlc_contents[s->hdlc_in] != (data_type | 0x200))
+            if (s->hdlc_contents[s->hdlc_in] != (data_type | FLAG_DATA))
                 queue_missing_indicator(s, data_type);
             /* WORKAROUND: At least some Mediatrix boxes have a bug, where they can send this message at the
                            end of non-ECM data. We need to tolerate this. */
-            if (s->current_rx_field_class != T38_FIELD_CLASS_NON_ECM)
+            if (s->current_rx_field_class == T38_FIELD_CLASS_NON_ECM)
+            {
+                span_log(&s->logging, SPAN_LOG_WARNING, "T38_FIELD_HDLC_SIG_END received at the end of non-ECM data!\n");
+                /* Don't flow control the data any more. Just pump out the remainder as fast as we can. */
+                s->non_ecm_tx_latest_eol_ptr = s->non_ecm_tx_in_ptr;
+                s->non_ecm_data_finished = TRUE;
+            }
+            else
             {
                 /* This message is expected under 2 circumstances. One is as an alternative to T38_FIELD_HDLC_FCS_OK_SIG_END - 
                    i.e. they send T38_FIELD_HDLC_FCS_OK, and then T38_FIELD_HDLC_SIG_END when the carrier actually drops.
@@ -1070,13 +1084,6 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
                 s->hdlc_flags[s->hdlc_in] = 0;
                 s->hdlc_contents[s->hdlc_in] = 0;
             }
-            else
-            {
-                span_log(&s->logging, SPAN_LOG_WARNING, "T38_FIELD_HDLC_SIG_END received at the end of non-ECM data!\n");
-                /* Don't flow control the data any more. Just pump out the remainder as fast as we can. */
-                s->non_ecm_tx_latest_eol_ptr = s->non_ecm_tx_in_ptr;
-                s->non_ecm_data_finished = TRUE;
-            }
             queue_missing_indicator(s, T38_DATA_NONE);
             s->current_rx_field_class = T38_FIELD_CLASS_NONE;
         }
@@ -1084,7 +1091,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         break;
     case T38_FIELD_T4_NON_ECM_DATA:
         s->current_rx_field_class = T38_FIELD_CLASS_NON_ECM;
-        if (s->hdlc_contents[s->hdlc_in] != (data_type | 0x200))
+        if (s->hdlc_contents[s->hdlc_in] != (data_type | FLAG_DATA))
             queue_missing_indicator(s, data_type);
         add_to_non_ecm_tx_buffer(s, buf, len);
         s->corrupt_the_frame_from_t38 = FALSE;
@@ -1097,19 +1104,19 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             ||
             t->current_rx_field_type != field_type)
         {
-            if (len > 0)
-            {
-                if (s->hdlc_contents[s->hdlc_in] != (data_type | 0x200))
-                    queue_missing_indicator(s, data_type);
-                add_to_non_ecm_tx_buffer(s, buf, len);
-            }
-            if (s->hdlc_contents[s->hdlc_in] != (data_type | 0x200))
-                queue_missing_indicator(s, data_type);
             /* WORKAROUND: At least some Mediatrix boxes have a bug, where they can send HDLC signal end where
                            they should send non-ECM signal end. It is possible they also do the opposite.
                            We need to tolerate this. */
-            if (s->current_rx_field_class != T38_FIELD_CLASS_HDLC)
+            if (s->current_rx_field_class == T38_FIELD_CLASS_NON_ECM)
             {
+                if (len > 0)
+                {
+                    if (s->hdlc_contents[s->hdlc_in] != (data_type | FLAG_DATA))
+                        queue_missing_indicator(s, data_type);
+                    add_to_non_ecm_tx_buffer(s, buf, len);
+                }
+                if (s->hdlc_contents[s->hdlc_in] != (data_type | FLAG_DATA))
+                    queue_missing_indicator(s, data_type);
                 /* Don't flow control the data any more. Just pump out the remainder as fast as we can. */
                 s->non_ecm_tx_latest_eol_ptr = s->non_ecm_tx_in_ptr;
                 s->non_ecm_data_finished = TRUE;
@@ -1117,6 +1124,8 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             else
             {
                 span_log(&s->logging, SPAN_LOG_WARNING, "T38_FIELD_NON_ECM_SIG_END received at the end of HDLC data!\n");
+                if (s->hdlc_contents[s->hdlc_in] != (data_type | FLAG_DATA))
+                    queue_missing_indicator(s, data_type);
                 s->hdlc_len[s->hdlc_in] = 0;
                 s->hdlc_flags[s->hdlc_in] = 0;
                 s->hdlc_contents[s->hdlc_in] = 0;
@@ -1158,7 +1167,7 @@ static void set_octets_per_data_packet(t38_gateway_state_t *s, int bit_rate)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void announce_training(t38_gateway_state_t *s)
+static int set_packetisation(t38_gateway_state_t *s)
 {
     int ind;
 
@@ -1169,17 +1178,17 @@ static void announce_training(t38_gateway_state_t *s)
         switch (s->fast_bit_rate)
         {
         case 7200:
-            set_octets_per_data_packet(s, s->fast_bit_rate);
+            set_octets_per_data_packet(s, 7200);
             ind = (s->short_train)  ?  T38_IND_V17_7200_SHORT_TRAINING  :  T38_IND_V17_7200_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_7200;
             break;
         case 9600:
-            set_octets_per_data_packet(s, s->fast_bit_rate);
+            set_octets_per_data_packet(s, 9600);
             ind = (s->short_train)  ?  T38_IND_V17_9600_SHORT_TRAINING  :  T38_IND_V17_9600_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_9600;
             break;
         case 12000:
-            set_octets_per_data_packet(s, s->fast_bit_rate);
+            set_octets_per_data_packet(s, 12000);
             ind = (s->short_train)  ?  T38_IND_V17_12000_SHORT_TRAINING  :  T38_IND_V17_12000_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_12000;
             break;
@@ -1195,7 +1204,7 @@ static void announce_training(t38_gateway_state_t *s)
         switch (s->fast_bit_rate)
         {
         case 2400:
-            set_octets_per_data_packet(s, s->fast_bit_rate);
+            set_octets_per_data_packet(s, 2400);
             ind = T38_IND_V27TER_2400_TRAINING;
             s->current_tx_data_type = T38_DATA_V27TER_2400;
             break;
@@ -1211,7 +1220,7 @@ static void announce_training(t38_gateway_state_t *s)
         switch (s->fast_bit_rate)
         {
         case 7200:
-            set_octets_per_data_packet(s, s->fast_bit_rate);
+            set_octets_per_data_packet(s, 7200);
             ind = T38_IND_V29_7200_TRAINING;
             s->current_tx_data_type = T38_DATA_V29_7200;
             break;
@@ -1224,6 +1233,15 @@ static void announce_training(t38_gateway_state_t *s)
         }
         break;
     }
+    return ind;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void announce_training(t38_gateway_state_t *s)
+{
+    int ind;
+
+    ind = set_packetisation(s);
     t38_core_send_indicator(&s->t38, ind, INDICATOR_TX_COUNT);
 }
 /*- End of function --------------------------------------------------------*/
@@ -1520,7 +1538,7 @@ static void rx_flag_or_abort(hdlc_rx_state_t *t)
                     {
                         t->rx_frames++;
                         t->rx_bytes += t->len - 2;
-                        span_log(&s->logging, SPAN_LOG_FLOW, "E Type %s, CRC OK\n", t30_frametype(t->buffer[2]));
+                        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC frame type %s, CRC OK\n", t30_frametype(t->buffer[2]));
                         if (s->current_tx_data_type == T38_DATA_V21)
                         {
                             monitor_control_messages(s, t->buffer, t->len - 2, TRUE);
@@ -1528,7 +1546,8 @@ static void rx_flag_or_abort(hdlc_rx_state_t *t)
                         else
                         {
                             /* Make sure we go back to short training if CTC/CTR has kicked us into
-                               long training. */
+                               long training. Any successful HDLC frame received at a rate other than
+                               V.21 is an adequate indication we should change. */
                             s->short_train = TRUE;
                         }            
                         /* It seems some boxes may not like us sending a _SIG_END here, and then another
@@ -1538,7 +1557,7 @@ static void rx_flag_or_abort(hdlc_rx_state_t *t)
                     else
                     {
                         t->rx_crc_errors++;
-                        span_log(&s->logging, SPAN_LOG_FLOW, "F Type %s, bad CRC\n", t30_frametype(t->buffer[2]));
+                        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC frame type %s, bad CRC\n", t30_frametype(t->buffer[2]));
                         /* It seems some boxes may not like us sending a _SIG_END here, and then another
                            when the carrier actually drops. Lets just send T38_FIELD_HDLC_FCS_OK here. */
                         t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_FCS_BAD, NULL, 0, DATA_TX_COUNT);

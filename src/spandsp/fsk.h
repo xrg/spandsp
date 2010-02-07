@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.h,v 1.24 2007/12/13 11:31:32 steveu Exp $
+ * $Id: fsk.h,v 1.26 2008/03/18 12:53:29 steveu Exp $
  */
 
 /*! \file */
@@ -87,11 +87,17 @@ Two modes of symbol synchronisation are provided:
 */
 typedef struct
 {
+    /*! Short text name for the modem. */
     const char *name;
+    /*! The frequency of the zero bit state, in Hz */
     int freq_zero;
+    /*! The frequency of the one bit state, in Hz */
     int freq_one;
+    /*! The transmit power level, in dBm0 */
     int tx_level;
+    /*! The minimum acceptable receive power level, in dBm0 */
     int min_level;
+    /*! The bit rate of the modem, in units of 1/100th bps */
     int baud_rate;
 } fsk_spec_t;
 
@@ -108,7 +114,7 @@ enum
     FSK_WEITBRECHT,     /* Used for TDD (Telecom Device for the Deaf) */
 };
 
-extern fsk_spec_t preset_fsk_specs[];
+extern const fsk_spec_t preset_fsk_specs[];
 
 /*!
     FSK modem transmit descriptor. This defines the state of a single working
@@ -181,7 +187,7 @@ extern "C"
     \param user_data An opaque pointer.
     \return A pointer to the modem context, or NULL if there was a problem. */
 fsk_tx_state_t *fsk_tx_init(fsk_tx_state_t *s,
-                            fsk_spec_t *spec,
+                            const fsk_spec_t *spec,
                             get_bit_func_t get_bit,
                             void *user_data);
 
@@ -222,7 +228,7 @@ void fsk_rx_signal_cutoff(fsk_rx_state_t *s, float cutoff);
     \param user_data An opaque pointer.
     \return A pointer to the modem context, or NULL if there was a problem. */
 fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
-                            fsk_spec_t *spec,
+                            const fsk_spec_t *spec,
                             int sync_mode,
                             put_bit_func_t put_bit,
                             void *user_data);

@@ -11,19 +11,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.h,v 1.11 2007/12/13 11:31:32 steveu Exp $
+ * $Id: modem_connect_tones.h,v 1.12 2008/03/30 18:33:30 steveu Exp $
  */
  
 /*! \file */
@@ -103,10 +103,14 @@ typedef struct
     int hit;
     /*! \brief A V.21 FSK modem context used when searching for FAX preamble. */
     fsk_rx_state_t v21rx;
-    int one_zero_weight[2];
-    int odd_even;
-    /*! \brief TRUE if V.21 HDLC preamble is being detected. */
-    int preamble_on;
+    /*! \brief The raw (stuffed) bit stream buffer. */
+    unsigned int raw_bit_stream;
+    /*! \brief The current number of bits in byte_in_progress. */
+    int num_bits;
+    /*! \brief TRUE if framing OK has been announced. */
+    int framing_ok_announced;
+    /*! \brief Number of consecutive flags seen so far. */
+    int flags_seen;
 } modem_connect_tones_rx_state_t;
 
 #if defined(__cplusplus)

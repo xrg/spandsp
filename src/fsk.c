@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.35 2007/12/20 12:08:35 steveu Exp $
+ * $Id: fsk.c,v 1.37 2008/03/18 12:53:29 steveu Exp $
  */
 
 /*! \file */
@@ -49,7 +49,7 @@
 #include "spandsp/async.h"
 #include "spandsp/fsk.h"
 
-fsk_spec_t preset_fsk_specs[] =
+const fsk_spec_t preset_fsk_specs[] =
 {
     {
         "V21 ch 1",
@@ -57,7 +57,7 @@ fsk_spec_t preset_fsk_specs[] =
         1080 - 100,
         -14,
         -30,
-        300
+        300*100
     },
     {
         "V21 ch 2",
@@ -65,7 +65,7 @@ fsk_spec_t preset_fsk_specs[] =
         1750 - 100,
         -14,
         -30,
-        300
+        300*100
     },
     {
         "V23 ch 1",
@@ -73,7 +73,7 @@ fsk_spec_t preset_fsk_specs[] =
         1300,
         -14,
         -30,
-        1200
+        1200*100
     },
     {
         "V23 ch 2",
@@ -81,7 +81,7 @@ fsk_spec_t preset_fsk_specs[] =
         390,
         -14,
         -30,
-        75
+        75*100
     },
     {
         "Bell103 ch 1",
@@ -89,7 +89,7 @@ fsk_spec_t preset_fsk_specs[] =
         2125 + 100,
         -14,
         -30,
-        300
+        300*100
     },
     {
         "Bell103 ch 2",
@@ -97,7 +97,7 @@ fsk_spec_t preset_fsk_specs[] =
         1170 + 100,
         -14,
         -30,
-        300
+        300*100
     },
     {
         "Bell202",
@@ -105,20 +105,20 @@ fsk_spec_t preset_fsk_specs[] =
         1200,
         -14,
         -30,
-        1200
+        1200*100
     },
     {
-        "Weitbrecht",   /* Used for TDD (Telecomc Device for the Deaf) */
+        "Weitbrecht",   /* Used for TDD (Telecoms Device for the Deaf) */
         1800,
         1400,
         -14,
         -30,
-         45             /* Actually 45.45 */
+         4545
     }
 };
 
 fsk_tx_state_t *fsk_tx_init(fsk_tx_state_t *s,
-                            fsk_spec_t *spec,
+                            const fsk_spec_t *spec,
                             get_bit_func_t get_bit,
                             void *user_data)
 {
@@ -137,7 +137,7 @@ fsk_tx_state_t *fsk_tx_init(fsk_tx_state_t *s,
     s->scaling = dds_scaling_dbm0((float) spec->tx_level);
     /* Initialise fractional sample baud generation. */
     s->phase_acc = 0;
-    s->baud_inc = (s->baud_rate*0x10000)/SAMPLE_RATE;
+    s->baud_inc = s->baud_rate;
     s->baud_frac = 0;
     s->current_phase_rate = s->phase_rates[1];
     
@@ -159,9 +159,9 @@ int fsk_tx(fsk_tx_state_t *s, int16_t *amp, int len)
        with them, if they care about accurate transition timing. */
     for (sample = 0;  sample < len;  sample++)
     {
-        if ((s->baud_frac += s->baud_inc) >= 0x10000)
+        if ((s->baud_frac += s->baud_inc) >= SAMPLE_RATE*100)
         {
-            s->baud_frac -= 0x10000;
+            s->baud_frac -= SAMPLE_RATE*100;
             if ((bit = s->get_bit(s->user_data)) == PUTBIT_END_OF_DATA)
             {
                 s->shutdown = TRUE;
@@ -210,7 +210,7 @@ void fsk_rx_set_put_bit(fsk_rx_state_t *s, put_bit_func_t put_bit, void *user_da
 /*- End of function --------------------------------------------------------*/
 
 fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
-                            fsk_spec_t *spec,
+                            const fsk_spec_t *spec,
                             int sync_mode,
                             put_bit_func_t put_bit,
                             void *user_data)
@@ -242,7 +242,7 @@ fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
     s->last_sample = 0;
 
     /* The correlation should be over one baud. */
-    s->correlation_span = SAMPLE_RATE/spec->baud_rate;
+    s->correlation_span = SAMPLE_RATE*100/spec->baud_rate;
     /* But limit it for very slow baud rates, so we do not overflow our
        buffer. */
     if (s->correlation_span > FSK_MAX_WINDOW_LEN)
@@ -258,7 +258,7 @@ fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
     }
 
     /* Initialise the baud/bit rate tracking. */
-    s->baud_inc = (s->baud_rate*0x10000)/SAMPLE_RATE;
+    s->baud_inc = s->baud_rate;
     s->baud_pll = 0;
     
     /* Initialise a power detector, so sense when a signal is present. */
@@ -276,7 +276,7 @@ int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
     int j;
     int16_t x;
     int32_t dot;
-    int32_t sum;
+    int32_t sum[2];
     int32_t power;
     complexi_t ph;
 
@@ -332,16 +332,13 @@ int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
 
             s->dot_i[j] += s->window_i[j][buf_ptr];
             s->dot_q[j] += s->window_q[j][buf_ptr];
+
+            dot = s->dot_i[j] >> 15;
+            sum[j] = dot*dot;
+            dot = s->dot_q[j] >> 15;
+            sum[j] += dot*dot;
         }
-        dot = s->dot_i[0] >> 15;
-        sum = dot*dot;
-        dot = s->dot_q[0] >> 15;
-        sum += dot*dot;
-        dot = s->dot_i[1] >> 15;
-        sum -= dot*dot;
-        dot = s->dot_q[1] >> 15;
-        sum -= dot*dot;
-        baudstate = (sum < 0);
+        baudstate = (sum[0] < sum[1]);
 
         if (s->lastbit != baudstate)
         {
@@ -350,7 +347,7 @@ int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
             {
                 /* For synchronous use (e.g. HDLC channels in FAX modems), nudge
                    the baud phase gently, trying to keep it centred on the bauds. */
-                if (s->baud_pll < 0x8000)
+                if (s->baud_pll < (SAMPLE_RATE*50))
                     s->baud_pll += (s->baud_inc >> 3);
                 else
                     s->baud_pll -= (s->baud_inc >> 3);
@@ -363,15 +360,15 @@ int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
                 /* We must now be about half way to a sampling point. We do not do
                    any fractional sample estimation of the transitions, so this is
                    the most accurate baud alignment we can do. */
-                s->baud_pll = 0x8000;
+                s->baud_pll = SAMPLE_RATE*50;
             }
 
         }
-        if ((s->baud_pll += s->baud_inc) >= 0x10000)
+        if ((s->baud_pll += s->baud_inc) >= (SAMPLE_RATE*100))
         {
             /* We should be in the middle of a baud now, so report the current
                state as the next bit */
-            s->baud_pll -= 0x10000;
+            s->baud_pll -= (SAMPLE_RATE*100);
             s->put_bit(s->user_data, baudstate);
         }
         if (++buf_ptr >= s->correlation_span)

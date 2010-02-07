@@ -11,19 +11,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.c,v 1.17 2007/11/30 12:20:33 steveu Exp $
+ * $Id: modem_connect_tones.c,v 1.18 2008/03/30 18:33:26 steveu Exp $
  */
  
 /*! \file */
@@ -52,6 +52,8 @@
 #include "spandsp/async.h"
 #include "spandsp/fsk.h"
 #include "spandsp/modem_connect_tones.h"
+
+#define HDLC_FRAMING_OK_THRESHOLD       5
 
 int modem_connect_tones_tx(modem_connect_tones_tx_state_t *s,
                            int16_t amp[],
@@ -162,7 +164,6 @@ int modem_connect_tones_tx_free(modem_connect_tones_tx_state_t *s)
 static void v21_put_bit(void *user_data, int bit)
 {
     modem_connect_tones_rx_state_t *s;
-    int x;
 
     s = (modem_connect_tones_rx_state_t *) user_data;
     if (bit < 0)
@@ -171,57 +172,65 @@ static void v21_put_bit(void *user_data, int bit)
         switch (bit)
         {
         case PUTBIT_CARRIER_DOWN:
-            if (s->preamble_on)
+            if (s->framing_ok_announced)
             {
                 if (s->tone_callback)
                     s->tone_callback(s->callback_data, FALSE, -99, 0);
             }
             /* Fall through */
         case PUTBIT_CARRIER_UP:
-            s->one_zero_weight[0] = 0;
-            s->one_zero_weight[1] = 0;
-            s->odd_even = 0;
-            s->preamble_on = FALSE;
+            s->raw_bit_stream = 0;
+            s->num_bits = 0;
+            s->flags_seen = 0;
+            s->framing_ok_announced = FALSE;
             break;
         }
         return;
     }
-    /* Look for enough FAX V.21 message preamble (101010...) to be sure we are really
-       seeing preamble, and declare the signal to be present. Do this is a fault tolerant
-       manner, so we don't get problems with one or two bad bits in the stream. */
-    /* We leaky integrate occurances of 010 and 101, and use a threshold such that only a
-       transition density approaching 100% can cause detection to be declared. */
-    x = (bit << 1) - 1;
-    s->one_zero_weight[s->odd_even] += ((x << 12) - s->one_zero_weight[s->odd_even]) >> 5;
-    s->odd_even ^= 1;
-    //printf("Preamble weights %d %d, bit %d\n", s->one_zero_weight[0], s->one_zero_weight[1], bit);
-    if (!s->preamble_on)
+    /* Look for enough FAX V.21 message preamble (back to back HDLC flag octets) to be sure
+       we are really seeing preamble, and declare the signal to be present. Any change from
+       preamble declares the signal to not be present, though it will probably be the body
+       of the messages following the preamble. */
+    s->raw_bit_stream = (s->raw_bit_stream << 1) | ((bit << 8) & 0x100);
+    s->num_bits++;
+    if ((s->raw_bit_stream & 0x7F00) == 0x7E00)
     {
-        /* This threshold turns on after about 50 bits of preamble, starting from zero. This
-           is a short enough delay to give the system responsiveness we need, and long
-           enough to pass our talk-off tests. */
-        /* We want a pair of fairly well balanced responses, in opposite directions */
-        x = abs(s->one_zero_weight[0] - s->one_zero_weight[1]);
-        if (x > 4400  &&  x > 4*abs(s->one_zero_weight[0] + s->one_zero_weight[1]))
+        if ((s->raw_bit_stream & 0x8000))
         {
-            if (s->tone_callback)
-                s->tone_callback(s->callback_data, TRUE, -13, 0);
-            else
-                s->hit = TRUE;
-            s->preamble_on = TRUE;
+            /* Hit HDLC abort */
+            s->flags_seen = 0;
         }
+        else
+        {
+            /* Hit HDLC flag */
+            if (s->flags_seen < HDLC_FRAMING_OK_THRESHOLD)
+            {
+                /* Check the flags are back-to-back when testing for valid preamble. This
+                   greatly reduces the chances of false preamble detection, and anything
+                   which doesn't send them back-to-back is badly broken. */
+                if (s->num_bits != 8)
+                    s->flags_seen = 0;
+                if (++s->flags_seen >= HDLC_FRAMING_OK_THRESHOLD  &&  !s->framing_ok_announced)
+                {
+                    if (s->tone_callback)
+                        s->tone_callback(s->callback_data, TRUE, -13, 0);
+                    s->framing_ok_announced = TRUE;
+                }
+            }
+        }
+        s->num_bits = 0;
     }
     else
     {
-        /* The timing of the end of preamble indication is not too important. This
-           threshold gives a turn off time for random data following the preamble
-           which is not too different from turn on time. */
-        x = abs(s->one_zero_weight[0] - s->one_zero_weight[1]);
-        if (x < 2000  ||  x < 2*abs(s->one_zero_weight[0] + s->one_zero_weight[1]))
+        if (s->flags_seen >= HDLC_FRAMING_OK_THRESHOLD)
         {
-            if (s->tone_callback)
-                s->tone_callback(s->callback_data, FALSE, -99, 0);
-            s->preamble_on = FALSE;
+            if (s->num_bits == 8)
+            {
+                if (s->tone_callback)
+                    s->tone_callback(s->callback_data, FALSE, -99, 0);
+                s->framing_ok_announced = FALSE;
+                s->flags_seen = 0;
+            }
         }
     }
 }
@@ -413,10 +422,10 @@ modem_connect_tones_rx_state_t *modem_connect_tones_rx_init(modem_connect_tones_
     s->z2 = 0.0f;
     fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, v21_put_bit, s);
     fsk_rx_signal_cutoff(&(s->v21rx), -45.5);
-    s->one_zero_weight[0] = 0;
-    s->one_zero_weight[1] = 0;
-    s->odd_even = 0;
-    s->preamble_on = FALSE;
+    s->num_bits = 0;
+    s->flags_seen = 0;
+    s->framing_ok_announced = FALSE;
+    s->raw_bit_stream = 0;
     return s;
 }
 /*- End of function --------------------------------------------------------*/
