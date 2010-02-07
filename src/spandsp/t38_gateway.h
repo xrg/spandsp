@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.34 2007/10/30 12:47:23 steveu Exp $
+ * $Id: t38_gateway.h,v 1.36 2007/11/30 12:20:35 steveu Exp $
  */
 
 /*! \file */
@@ -198,6 +198,8 @@ typedef struct
     int samples_to_timeout;
     /*! \brief TRUE if in image data mode (as opposed to TCF mode). */
     int image_data_mode;
+    /*! \brief TRUE if in image data modem is to use short training. */
+    int short_train;
 
     /*! \brief TRUE if we need to corrupt the HDLC frame in progress, so the receiver cannot
                interpret it. */
@@ -231,6 +233,12 @@ extern "C"
 t38_gateway_state_t *t38_gateway_init(t38_gateway_state_t *s,
                                       t38_tx_packet_handler_t *tx_packet_handler,
                                       void *tx_packet_user_data);
+
+/*! Free a gateway mode T.38 context.
+    \brief Free a T.38 context.
+    \param s The T.38 context.
+    \return 0 for OK, else -1. */
+int t38_gateway_free(t38_gateway_state_t *s);
 
 /*! Process a block of received FAX audio samples.
     \brief Process a block of received FAX audio samples.

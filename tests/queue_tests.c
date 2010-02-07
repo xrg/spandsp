@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: queue_tests.c,v 1.5 2007/11/10 11:14:58 steveu Exp $
+ * $Id: queue_tests.c,v 1.6 2007/11/30 12:20:36 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -152,7 +152,7 @@ static void threaded_stream_tests(void)
 {
     pthread_attr_t attr;
 
-    if ((queue = queue_create(BUF_LEN, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC)) == NULL)
+    if ((queue = queue_init(NULL, BUF_LEN, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC)) == NULL)
     {
         printf("Failed to create the queue\n");
         tests_failed();
@@ -174,7 +174,7 @@ static void threaded_stream_tests(void)
         sleep(5);
         printf("Main thread - %d %d\n", put_oks, got_oks);
     }
-    queue_delete(queue);
+    queue_free(queue);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -259,7 +259,7 @@ static void threaded_message_tests(void)
 {
     pthread_attr_t attr;
 
-    if ((queue = queue_create(BUF_LEN, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC)) == NULL)
+    if ((queue = queue_init(NULL, BUF_LEN, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC)) == NULL)
     {
         printf("Failed to create the queue\n");
         tests_failed();
@@ -281,7 +281,7 @@ static void threaded_message_tests(void)
         sleep(5);
         printf("Main thread - %d %d\n", put_oks, got_oks);
     }
-    queue_delete(queue);
+    queue_free(queue);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -359,7 +359,7 @@ static void functional_stream_tests(void)
 
     for (i = 0;  i < MSG_LEN;  i++)
         buf[i] = i;
-    if ((queue = queue_create(BUF_LEN, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC)) == NULL)
+    if ((queue = queue_init(NULL, BUF_LEN, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC)) == NULL)
     {
         printf("Failed to create the queue\n");
         tests_failed();
@@ -515,7 +515,7 @@ static void functional_stream_tests(void)
         }
     }
     display_queue_pointers();
-    queue_delete(queue);
+    queue_free(queue);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -554,7 +554,7 @@ static void functional_message_tests(void)
 
     for (i = 0;  i < MSG_LEN;  i++)
         buf[i] = i;
-    if ((queue = queue_create(BUF_LEN, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC)) == NULL)
+    if ((queue = queue_init(NULL, BUF_LEN, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC)) == NULL)
     {
         printf("Failed to create the queue\n");
         tests_failed();
@@ -687,7 +687,7 @@ static void functional_message_tests(void)
         }
     }
     display_queue_pointers();
-    queue_delete(queue);
+    queue_free(queue);
 }
 /*- End of function --------------------------------------------------------*/
 

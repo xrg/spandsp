@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.60 2007/10/30 12:47:23 steveu Exp $
+ * $Id: fax.c,v 1.61 2007/11/30 12:20:33 steveu Exp $
  */
 
 /*! \file */
@@ -606,6 +606,14 @@ fax_state_t *fax_init(fax_state_t *s, int calling_party)
 int fax_release(fax_state_t *s)
 {
     t30_release(&s->t30_state);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int fax_free(fax_state_t *s)
+{
+    t30_release(&s->t30_state);
+    free(s);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.95 2007/11/27 14:09:33 steveu Exp $
+ * $Id: t31.c,v 1.96 2007/11/30 12:20:34 steveu Exp $
  */
 
 /*! \file */
@@ -1963,7 +1963,7 @@ t31_state_t *t31_init(t31_state_t *s,
     s->tx_handler = (span_tx_handler_t *) &silence_gen;
     s->tx_user_data = &(s->silence_gen);
 
-    if ((s->rx_queue = queue_create(4096, QUEUE_WRITE_ATOMIC | QUEUE_READ_ATOMIC)) == NULL)
+    if ((s->rx_queue = queue_init(NULL, 4096, QUEUE_WRITE_ATOMIC | QUEUE_READ_ATOMIC)) == NULL)
     {
         if (alloced)
             free(s);

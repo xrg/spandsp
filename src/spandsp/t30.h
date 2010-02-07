@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.84 2007/11/26 13:58:06 steveu Exp $
+ * $Id: t30.h,v 1.85 2007/11/30 12:20:35 steveu Exp $
  */
 
 /*! \file */
@@ -608,19 +608,21 @@ t30_state_t *t30_init(t30_state_t *s,
 
 /*! Release a T.30 context.
     \brief Release a T.30 context.
-    \param s The T.30 context. */
-void t30_release(t30_state_t *s);
+    \param s The T.30 context.
+    \return 0 for OK, else -1. */
+int t30_release(t30_state_t *s);
+
+/*! Free a T.30 context.
+    \brief Free a T.30 context.
+    \param s The T.30 context.
+    \return 0 for OK, else -1. */
+int t30_free(t30_state_t *s);
 
 /*! Restart a T.30 context.
     \brief Restart a T.30 context.
     \param s The T.30 context.
     \return 0 for OK, else -1. */
 int t30_restart(t30_state_t *s);
-
-/*! Free a T.30 context.
-    \brief Free a T.30 context.
-    \param s The T.30 context. */
-void t30_free(t30_state_t *s);
 
 /*! Cleanup a T.30 context if the call terminates.
     \brief Cleanup a T.30 context if the call terminates.

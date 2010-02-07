@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.23 2007/11/29 00:13:29 steveu Exp $
+ * $Id: t38_terminal.h,v 1.24 2007/11/30 12:20:35 steveu Exp $
  */
 
 /*! \file */
@@ -131,8 +131,15 @@ t38_terminal_state_t *t38_terminal_init(t38_terminal_state_t *s,
 
 /*! Release a termination mode T.38 context.
     \brief Release a T.38 context.
-    \param s The T.38 context. */
+    \param s The T.38 context.
+    \return 0 for OK, else -1. */
 int t38_terminal_release(t38_terminal_state_t *s);
+
+/*! Free a a termination mode T.38 context.
+    \brief Free a T.38 context.
+    \param s The T.38 context.
+    \return 0 for OK, else -1. */
+int t38_terminal_free(t38_terminal_state_t *s);
 
 #if defined(__cplusplus)
 }

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.100 2007/11/26 13:28:59 steveu Exp $
+ * $Id: t38_gateway.c,v 1.103 2007/11/30 12:20:34 steveu Exp $
  */
 
 /*! \file */
@@ -386,7 +386,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_7200_SHORT_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 180);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 7200, s->use_tep, s->image_data_mode);
+        v17_tx_restart(&(s->v17tx), 7200, s->use_tep, s->short_train);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -396,7 +396,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_7200_LONG_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 180);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 7200, s->use_tep, s->image_data_mode);
+        v17_tx_restart(&(s->v17tx), 7200, s->use_tep, s->short_train);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -406,7 +406,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_9600_SHORT_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 240);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 9600, s->use_tep, s->image_data_mode);
+        v17_tx_restart(&(s->v17tx), 9600, s->use_tep, s->short_train);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -416,7 +416,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_9600_LONG_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 240);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 9600, s->use_tep, s->image_data_mode);
+        v17_tx_restart(&(s->v17tx), 9600, s->use_tep, s->short_train);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -426,7 +426,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_12000_SHORT_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 300);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 12000, s->use_tep, s->image_data_mode);
+        v17_tx_restart(&(s->v17tx), 12000, s->use_tep, s->short_train);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -436,7 +436,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_12000_LONG_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 300);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 12000, s->use_tep, s->image_data_mode);
+        v17_tx_restart(&(s->v17tx), 12000, s->use_tep, s->short_train);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -446,7 +446,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_14400_SHORT_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 360);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 14400, s->use_tep, s->image_data_mode);
+        v17_tx_restart(&(s->v17tx), 14400, s->use_tep, s->short_train);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -456,7 +456,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_14400_LONG_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 360);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 14400, s->use_tep, s->image_data_mode);
+        v17_tx_restart(&(s->v17tx), 14400, s->use_tep, s->short_train);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -626,8 +626,9 @@ static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int l
         /* We are changing from TCF exchange to image exchange */
         /* Successful training means we should change to short training */
         s->image_data_mode = TRUE;
+        s->short_train = TRUE;
         s->tcf_in_progress = FALSE;
-        span_log(&s->logging, SPAN_LOG_FLOW, "CFR - image mode = %d, ECM = %d\n", s->image_data_mode, s->ecm_mode);
+        span_log(&s->logging, SPAN_LOG_FLOW, "CFR - short train = %d, ECM = %d\n", s->short_train, s->ecm_mode);
         if (!from_modem)
             restart_rx_modem(s);
         break;
@@ -635,11 +636,16 @@ static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int l
     case T30_RTP:
         /* We are going back to the exchange of fresh TCF */
         s->image_data_mode = FALSE;
+        s->short_train = FALSE;
         s->tcf_in_progress = FALSE;
+        break;
+    case T30_CTR:
+        /* T.30 says the first image data after this does full training. */
+        s->short_train = FALSE;
         break;
     case T30_DTC:
     case T30_DCS:
-    case T30_DCS + 1:
+    case T30_DCS | 1:
         /* We need to check which modem type is about to be used. */
         if (len >= 5)
         {
@@ -649,41 +655,49 @@ static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int l
                 s->fast_bit_rate = 2400;
                 s->fast_modem = T38_V27TER_RX;
                 s->image_data_mode = FALSE;
+                s->short_train = FALSE;
                 break;
             case DISBIT4:
                 s->fast_bit_rate = 4800;
                 s->fast_modem = T38_V27TER_RX;
                 s->image_data_mode = FALSE;
+                s->short_train = FALSE;
                 break;
             case DISBIT3:
                 s->fast_bit_rate = 9600;
                 s->fast_modem = T38_V29_RX;
                 s->image_data_mode = FALSE;
+                s->short_train = FALSE;
                 break;
             case (DISBIT4 | DISBIT3):
                 s->fast_bit_rate = 7200;
                 s->fast_modem = T38_V29_RX;
                 s->image_data_mode = FALSE;
+                s->short_train = FALSE;
                 break;
             case DISBIT6:
                 s->fast_bit_rate = 14400;
                 s->fast_modem = T38_V17_RX;
                 s->image_data_mode = FALSE;
+                s->short_train = FALSE;
                 break;
             case (DISBIT6 | DISBIT4):
                 s->fast_bit_rate = 12000;
                 s->fast_modem = T38_V17_RX;
                 s->image_data_mode = FALSE;
+                s->short_train = FALSE;
                 break;
             case (DISBIT6 | DISBIT3):
                 s->fast_bit_rate = 9600;
                 s->fast_modem = T38_V17_RX;
                 s->image_data_mode = FALSE;
+                s->short_train = FALSE;
                 break;
             case (DISBIT6 | DISBIT4 | DISBIT3):
                 s->fast_bit_rate = 7200;
                 s->fast_modem = T38_V17_RX;
                 s->image_data_mode = FALSE;
+                s->short_train = FALSE;
                 break;
             case (DISBIT5 | DISBIT3):
             case (DISBIT5 | DISBIT4 | DISBIT3):
@@ -893,8 +907,19 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             if (s->hdlc_contents[s->hdlc_in] != (data_type | 0x200))
                 queue_missing_indicator(s, data_type);
             s->hdlc_contents[s->hdlc_in] = (data_type | 0x200);
-            if (data_type == T38_DATA_V21  &&  (s->hdlc_flags[s->hdlc_in] & HDLC_FLAG_MISSING_DATA) == 0)
-                monitor_control_messages(s, s->hdlc_buf[s->hdlc_in], s->hdlc_len[s->hdlc_in], FALSE);
+            if (data_type == T38_DATA_V21)
+            {
+                if ((s->hdlc_flags[s->hdlc_in] & HDLC_FLAG_MISSING_DATA) == 0)
+                    monitor_control_messages(s, s->hdlc_buf[s->hdlc_in], s->hdlc_len[s->hdlc_in], FALSE);
+            }
+            else
+            {
+                /* Make sure we go back to short training if CTC/CTR has kicked us into
+                   long training. Theer has to be more than one value HDLC frame in a
+                   chunk of image data, so just setting short training mode heer should
+                   be enough. */
+                s->short_train = TRUE;
+            }
             pump_out_final_hdlc(s, (s->hdlc_flags[s->hdlc_in] & HDLC_FLAG_MISSING_DATA) == 0);
         }
         s->hdlc_len[s->hdlc_in] = 0;
@@ -1117,23 +1142,23 @@ static void announce_training(t38_gateway_state_t *s)
         {
         case 7200:
             set_octets_per_data_packet(s, s->fast_bit_rate);
-            ind = (s->image_data_mode)  ?  T38_IND_V17_7200_SHORT_TRAINING  :  T38_IND_V17_7200_LONG_TRAINING;
+            ind = (s->short_train)  ?  T38_IND_V17_7200_SHORT_TRAINING  :  T38_IND_V17_7200_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_7200;
             break;
         case 9600:
             set_octets_per_data_packet(s, s->fast_bit_rate);
-            ind = (s->image_data_mode)  ?  T38_IND_V17_9600_SHORT_TRAINING  :  T38_IND_V17_9600_LONG_TRAINING;
+            ind = (s->short_train)  ?  T38_IND_V17_9600_SHORT_TRAINING  :  T38_IND_V17_9600_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_9600;
             break;
         case 12000:
             set_octets_per_data_packet(s, s->fast_bit_rate);
-            ind = (s->image_data_mode)  ?  T38_IND_V17_12000_SHORT_TRAINING  :  T38_IND_V17_12000_LONG_TRAINING;
+            ind = (s->short_train)  ?  T38_IND_V17_12000_SHORT_TRAINING  :  T38_IND_V17_12000_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_12000;
             break;
         default:
         case 14400:
             set_octets_per_data_packet(s, 14400);
-            ind = (s->image_data_mode)  ?  T38_IND_V17_14400_SHORT_TRAINING  :  T38_IND_V17_14400_LONG_TRAINING;
+            ind = (s->short_train)  ?  T38_IND_V17_14400_SHORT_TRAINING  :  T38_IND_V17_14400_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_14400;
             break;
         }
@@ -1459,7 +1484,15 @@ static void rx_flag_or_abort(hdlc_rx_state_t *t)
                         t->rx_bytes += t->len - 2;
                         span_log(&s->logging, SPAN_LOG_FLOW, "E Type %s, CRC OK\n", t30_frametype(t->buffer[2]));
                         if (s->current_tx_data_type == T38_DATA_V21)
+                        {
                             monitor_control_messages(s, t->buffer, t->len - 2, TRUE);
+                        }
+                        else
+                        {
+                            /* Make sure we go back to short training if CTC/CTR has kicked us into
+                               long training. */
+                            s->short_train = TRUE;
+                        }            
                         /* It seems some boxes may not like us sending a _SIG_END here, and then another
                            when the carrier actually drops. Lets just send T38_FIELD_HDLC_FCS_OK here. */
                         t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_FCS_OK, NULL, 0, DATA_TX_COUNT);
@@ -1573,7 +1606,7 @@ static int restart_rx_modem(t38_gateway_state_t *s)
     put_bit_func_t put_bit_func;
     void *put_bit_user_data;
 
-    span_log(&s->logging, SPAN_LOG_FLOW, "Restart rx modem - modem = %d, image mode = %d, ECM = %d\n", s->fast_modem, s->image_data_mode, s->ecm_mode);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Restart rx modem - modem = %d, short train = %d, ECM = %d\n", s->fast_modem, s->short_train, s->ecm_mode);
 
     hdlc_rx_init(&(s->hdlcrx), FALSE, TRUE, 5, NULL, s);
     s->crc = 0xFFFF;
@@ -1600,7 +1633,7 @@ static int restart_rx_modem(t38_gateway_state_t *s)
     switch (s->fast_modem)
     {
     case T38_V17_RX:
-        v17_rx_restart(&(s->v17rx), s->fast_bit_rate, 2);
+        v17_rx_restart(&(s->v17rx), s->fast_bit_rate, s->short_train);
         v17_rx_set_put_bit(&(s->v17rx), put_bit_func, put_bit_user_data);
         s->rx_handler = (span_rx_handler_t *) &early_v17_rx;
         s->rx_user_data = s;
@@ -1810,6 +1843,13 @@ t38_gateway_state_t *t38_gateway_init(t38_gateway_state_t *s,
     }
 #endif
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t38_gateway_free(t38_gateway_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

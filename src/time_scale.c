@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.c,v 1.17 2007/11/26 13:28:59 steveu Exp $
+ * $Id: time_scale.c,v 1.18 2007/11/30 12:20:34 steveu Exp $
  */
 
 /*! \file */
@@ -127,8 +127,7 @@ time_scale_state_t *time_scale_init(time_scale_state_t *s, float rate)
     alloced = FALSE;
     if (s == NULL)
     {
-        s = (time_scale_state_t *) malloc(sizeof (*s));
-        if (s == NULL)
+        if ((s = (time_scale_state_t *) malloc(sizeof (*s))) == NULL)
             return  NULL;
         /*endif*/
         alloced = TRUE;
@@ -145,6 +144,13 @@ time_scale_state_t *time_scale_init(time_scale_state_t *s, float rate)
     s->fill = 0;
     s->lcp = 0;
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int time_scale_free(time_scale_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 

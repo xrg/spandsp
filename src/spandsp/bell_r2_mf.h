@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.h,v 1.12 2007/08/31 14:47:11 steveu Exp $
+ * $Id: bell_r2_mf.h,v 1.13 2007/11/30 12:20:35 steveu Exp $
  */
 
 /*! \file */
@@ -197,6 +197,11 @@ size_t bell_mf_tx_put(bell_mf_tx_state_t *s, const char *digits, ssize_t len);
     \return A pointer to the Bell MF generator context.*/
 bell_mf_tx_state_t *bell_mf_tx_init(bell_mf_tx_state_t *s);
 
+/*! \brief Free a Bell MF generator context.
+    \param s The Bell MF generator context.
+    \return 0 for OK, else -1. */
+int bell_mf_tx_free(bell_mf_tx_state_t *s);
+
 /*! \brief Generate a block of R2 MF tones.
     \param s The R2 MF generator context.
     \param amp The buffer for the generated signal.
@@ -210,12 +215,17 @@ int r2_mf_tx(r2_mf_tx_state_t *s, int16_t amp[], int samples);
     \return 0 for OK, or -1 for a bad request. */
 int r2_mf_tx_put(r2_mf_tx_state_t *s, char digit);
 
-/*! \brief Initialise an MFC/R2 tone generator context.
+/*! \brief Initialise an R2 MF tone generator context.
     \param s The R2 MF generator context.
     \param fwd TRUE if the context is for forward signals. FALSE if the
            context is for backward signals.
     \return A pointer to the MFC/R2 generator context.*/
 r2_mf_tx_state_t *r2_mf_tx_init(r2_mf_tx_state_t *s, int fwd);
+
+/*! \brief Free an R2 MF tone generator context.
+    \param s The R2 MF tone generator context.
+    \return 0 for OK, else -1. */
+int r2_mf_tx_free(r2_mf_tx_state_t *s);
 
 /*! Process a block of received Bell MF audio samples.
     \brief Process a block of received Bell MF audio samples.
@@ -244,6 +254,11 @@ bell_mf_rx_state_t *bell_mf_rx_init(bell_mf_rx_state_t *s,
                                     void (*callback)(void *user_data, const char *digits, int len),
                                     void *user_data);
 
+/*! \brief Free a Bell MF receiver context.
+    \param s The Bell MF receiver context.
+    \return 0 for OK, else -1. */
+int bell_mf_rx_free(bell_mf_rx_state_t *s);
+
 /*! Process a block of received R2 MF audio samples.
     \brief Process a block of received R2 MF audio samples.
     \param s The R2 MF receiver context.
@@ -258,6 +273,11 @@ int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t amp[], int samples);
            context is for backward signals.
     \return A pointer to the R2 MF receiver context. */
 r2_mf_rx_state_t *r2_mf_rx_init(r2_mf_rx_state_t *s, int fwd);
+
+/*! \brief Free an R2 MF receiver context.
+    \param s The R2 MF receiver context.
+    \return 0 for OK, else -1. */
+int r2_mf_rx_free(r2_mf_rx_state_t *s);
 
 #if defined(__cplusplus)
 }

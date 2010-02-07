@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.h,v 1.11 2007/11/26 13:28:59 steveu Exp $
+ * $Id: time_scale.h,v 1.12 2007/11/30 12:20:36 steveu Exp $
  */
 
 #if !defined(_SPANDSP_TIME_SCALE_H_)
@@ -73,6 +73,11 @@ extern "C"
     \param rate The ratio between the output speed and the input speed.
     \return A pointer to the context, or NULL if there was a problem. */
 time_scale_state_t *time_scale_init(time_scale_state_t *s, float rate);
+
+/*! \brief Free a time scale context.
+    \param s The time scale context.
+    \return 0 for OK, else -1. */
+int time_scale_free(time_scale_state_t *s);
 
 /*! Change the time scale rate.
     \brief Change the time scale rate.

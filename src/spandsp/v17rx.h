@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.42 2007/10/14 10:12:46 steveu Exp $
+ * $Id: v17rx.h,v 1.43 2007/11/30 12:20:36 steveu Exp $
  */
 
 /*! \file */
@@ -373,11 +373,11 @@ v17_rx_state_t *v17_rx_init(v17_rx_state_t *s, int rate, put_bit_func_t put_bit,
     \return 0 for OK, -1 for bad parameter */
 int v17_rx_restart(v17_rx_state_t *s, int rate, int short_train);
 
-/*! Release a V.17 modem receive context.
-    \brief Release a V.17 modem receive context.
+/*! Free a V.17 modem receive context.
+    \brief Free a V.17 modem receive context.
     \param s The modem context.
     \return 0 for OK */
-int v17_rx_release(v17_rx_state_t *s);
+int v17_rx_free(v17_rx_state_t *s);
 
 /*! Change the put_bit function associated with a V.17 modem receive context.
     \brief Change the put_bit function associated with a V.17 modem receive context.

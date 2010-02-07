@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.h,v 1.46 2007/08/13 13:08:19 steveu Exp $
+ * $Id: v29rx.h,v 1.47 2007/11/30 12:20:36 steveu Exp $
  */
 
 /*! \file */
@@ -243,11 +243,11 @@ v29_rx_state_t *v29_rx_init(v29_rx_state_t *s, int rate, put_bit_func_t put_bit,
     \return 0 for OK, -1 for bad parameter */
 int v29_rx_restart(v29_rx_state_t *s, int rate, int old_train);
 
-/*! Release a V.29 modem receive context.
-    \brief Release a V.29 modem receive context.
+/*! Free a V.29 modem receive context.
+    \brief Free a V.29 modem receive context.
     \param s The modem context.
     \return 0 for OK */
-int v29_rx_release(v29_rx_state_t *s);
+int v29_rx_free(v29_rx_state_t *s);
 
 /*! Change the put_bit function associated with a V.29 modem receive context.
     \brief Change the put_bit function associated with a V.29 modem receive context.

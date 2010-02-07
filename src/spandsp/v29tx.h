@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.h,v 1.29 2007/08/13 13:08:19 steveu Exp $
+ * $Id: v29tx.h,v 1.30 2007/11/30 12:20:36 steveu Exp $
  */
 
 /*! \file */
@@ -186,11 +186,11 @@ v29_tx_state_t *v29_tx_init(v29_tx_state_t *s, int rate, int tep, get_bit_func_t
     \return 0 for OK, -1 for bad parameter */
 int v29_tx_restart(v29_tx_state_t *s, int rate, int tep);
 
-/*! Release a V.29 modem transmit context.
-    \brief Release a V.29 modem transmit context.
+/*! Free a V.29 modem transmit context.
+    \brief Free a V.29 modem transmit context.
     \param s The modem context.
     \return 0 for OK */
-int v29_tx_release(v29_tx_state_t *s);
+int v29_tx_free(v29_tx_state_t *s);
 
 /*! Change the get_bit function associated with a V.29 modem transmit context.
     \brief Change the get_bit function associated with a V.29 modem transmit context.

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.110 2007/11/12 13:30:09 steveu Exp $
+ * $Id: v29rx.c,v 1.111 2007/11/30 12:20:35 steveu Exp $
  */
 
 /*! \file */
@@ -892,7 +892,7 @@ v29_rx_state_t *v29_rx_init(v29_rx_state_t *s, int rate, put_bit_func_t put_bit,
 }
 /*- End of function --------------------------------------------------------*/
 
-int v29_rx_release(v29_rx_state_t *s)
+int v29_rx_free(v29_rx_state_t *s)
 {
     free(s);
     return 0;

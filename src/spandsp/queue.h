@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: queue.h,v 1.11 2007/05/19 18:34:42 steveu Exp $
+ * $Id: queue.h,v 1.12 2007/11/30 12:20:35 steveu Exp $
  */
 
 /*! \file */
@@ -146,14 +146,6 @@ int queue_read_msg(queue_state_t *s, uint8_t *buf, int len);
     \return The number of bytes actually written. */
 int queue_write_msg(queue_state_t *s, const uint8_t *buf, int len);
 
-/*! Create a queue.
-    \brief Create a queue.
-    \param len The length of the queue's buffer.
-    \param flags Flags controlling the operation of the queue.
-           Valid flags are QUEUE_READ_ATOMIC and QUEUE_WRITE_ATOMIC.
-    \return A pointer to the context if created OK, else NULL. */
-queue_state_t *queue_create(int len, int flags);
-
 /*! Initialise a queue.
     \brief Initialise a queue.
     \param s The queue context. If is imperative that the context this
@@ -169,7 +161,7 @@ queue_state_t *queue_init(queue_state_t *s, int len, int flags);
     \brief Delete a queue.
     \param s The queue context.
     \return 0 if deleted OK, else -1. */
-int queue_delete(queue_state_t *s);
+int queue_free(queue_state_t *s);
 
 #if defined(__cplusplus)
 }

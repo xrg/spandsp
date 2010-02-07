@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_tests.c,v 1.56 2007/11/29 00:13:29 steveu Exp $
+ * $Id: t38_gateway_tests.c,v 1.57 2007/11/29 11:45:56 steveu Exp $
  */
 
 /*! \file */
@@ -343,7 +343,7 @@ int main(int argc, char *argv[])
     }
     fax_set_transmit_on_idle(&fax_state_a, use_transmit_on_idle);
     fax_set_tep_mode(&fax_state_a, use_tep);
-    //t30_set_supported_modems(&(fax_state_a.t30_state), T30_SUPPORT_V27TER | T30_SUPPORT_V29);
+    t30_set_supported_modems(&(fax_state_a.t30_state), T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
     t30_set_local_ident(&fax_state_a.t30_state, "11111111");
     t30_set_tx_file(&fax_state_a.t30_state, input_file_name, -1, -1);
     t30_set_phase_b_handler(&fax_state_a.t30_state, phase_b_handler, (void *) (intptr_t) 'A');
@@ -367,7 +367,7 @@ int main(int argc, char *argv[])
         exit(2);
     }
     t38_gateway_set_transmit_on_idle(&t38_state_a, use_transmit_on_idle);
-    //t38_gateway_set_supported_modems(&t38_state_a, T30_SUPPORT_V27TER | T30_SUPPORT_V29);
+    t38_gateway_set_supported_modems(&t38_state_a, T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
     //t38_gateway_set_nsx_suppression(&t38_state_a, FALSE);
     t38_set_t38_version(&t38_state_a.t38, t38_version);
     t38_gateway_set_ecm_capability(&t38_state_a, use_ecm);
@@ -383,7 +383,7 @@ int main(int argc, char *argv[])
         exit(2);
     }
     t38_gateway_set_transmit_on_idle(&t38_state_b, use_transmit_on_idle);
-    //t38_gateway_set_supported_modems(&t38_state_b, T30_SUPPORT_V27TER | T30_SUPPORT_V29);
+    t38_gateway_set_supported_modems(&t38_state_b, T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
     //t38_gateway_set_nsx_suppression(&t38_state_b, FALSE);
     t38_set_t38_version(&t38_state_b.t38, t38_version);
     t38_gateway_set_ecm_capability(&t38_state_b, use_ecm);
@@ -400,6 +400,7 @@ int main(int argc, char *argv[])
     }
     fax_set_transmit_on_idle(&fax_state_b, use_transmit_on_idle);
     fax_set_tep_mode(&fax_state_b, use_tep);
+    t30_set_supported_modems(&(fax_state_b.t30_state), T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
     t30_set_local_ident(&fax_state_b.t30_state, "22222222");
     t30_set_rx_file(&fax_state_b.t30_state, OUTPUT_FILE_NAME, -1);
     t30_set_phase_b_handler(&fax_state_b.t30_state, phase_b_handler, (void *) (intptr_t) 'B');

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.c,v 1.36 2007/11/26 13:28:59 steveu Exp $
+ * $Id: v42.c,v 1.37 2007/11/30 12:20:35 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -1432,7 +1432,7 @@ v42_state_t *v42_init(v42_state_t *s, int caller, int detect, v42_frame_handler_
     s->lapm.t402_timer =
     s->lapm.t403_timer = -1;
 
-    if ((s->lapm.tx_queue = queue_create(16384, 0)) == NULL)
+    if ((s->lapm.tx_queue = queue_init(NULL, 16384, 0)) == NULL)
     {
         if (alloced)
             free(s);

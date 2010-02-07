@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.29 2007/11/26 13:28:59 steveu Exp $
+ * $Id: dtmf.c,v 1.30 2007/11/30 12:20:33 steveu Exp $
  */
  
 /*! \file dtmf.h */
@@ -537,6 +537,13 @@ dtmf_rx_state_t *dtmf_rx_init(dtmf_rx_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
+int dtmf_rx_free(dtmf_rx_state_t *s)
+{
+    free(s);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
 static void dtmf_tx_initialise(void)
 {
     int row;
@@ -625,6 +632,13 @@ dtmf_tx_state_t *dtmf_tx_init(dtmf_tx_state_t *s)
     queue_init(&s->queue, MAX_DTMF_DIGITS, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC);
     s->tones.current_section = -1;
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int dtmf_tx_free(dtmf_tx_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

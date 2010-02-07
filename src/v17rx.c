@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.92 2007/11/12 13:30:09 steveu Exp $
+ * $Id: v17rx.c,v 1.93 2007/11/30 12:20:34 steveu Exp $
  */
 
 /*! \file */
@@ -1150,7 +1150,7 @@ v17_rx_state_t *v17_rx_init(v17_rx_state_t *s, int rate, put_bit_func_t put_bit,
 }
 /*- End of function --------------------------------------------------------*/
 
-int v17_rx_release(v17_rx_state_t *s)
+int v17_rx_free(v17_rx_state_t *s)
 {
     free(s);
     return 0;

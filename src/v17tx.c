@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.c,v 1.52 2007/10/14 10:12:46 steveu Exp $
+ * $Id: v17tx.c,v 1.53 2007/11/30 12:20:35 steveu Exp $
  */
 
 /*! \file */
@@ -895,7 +895,7 @@ v17_tx_state_t *v17_tx_init(v17_tx_state_t *s, int rate, int tep, get_bit_func_t
 }
 /*- End of function --------------------------------------------------------*/
 
-int v17_tx_release(v17_tx_state_t *s)
+int v17_tx_free(v17_tx_state_t *s)
 {
     free(s);
     return 0;

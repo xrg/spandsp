@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.c,v 1.24 2007/11/26 13:28:59 steveu Exp $
+ * $Id: v8.c,v 1.25 2007/11/30 12:20:35 steveu Exp $
  */
  
 /*! \file */
@@ -872,7 +872,7 @@ v8_state_t *v8_init(v8_state_t *s,
         s->state = V8_WAIT_200MS;
         s->negotiation_timer = ms_to_samples(200);
     }
-    if ((s->tx_queue = queue_create(1024, 0)) == NULL)
+    if ((s->tx_queue = queue_init(NULL, 1024, 0)) == NULL)
         return NULL;
     return s;
 }
@@ -880,7 +880,7 @@ v8_state_t *v8_init(v8_state_t *s,
 
 int v8_release(v8_state_t *s)
 {
-    return queue_delete(s->tx_queue);
+    return queue_free(s->tx_queue);
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

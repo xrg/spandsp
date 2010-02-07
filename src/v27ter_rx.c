@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.84 2007/10/14 10:12:46 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.85 2007/11/30 12:20:35 steveu Exp $
  */
 
 /*! \file */
@@ -2057,7 +2057,7 @@ v27ter_rx_state_t *v27ter_rx_init(v27ter_rx_state_t *s, int rate, put_bit_func_t
 }
 /*- End of function --------------------------------------------------------*/
 
-int v27ter_rx_release(v27ter_rx_state_t *s)
+int v27ter_rx_free(v27ter_rx_state_t *s)
 {
     free(s);
     return 0;

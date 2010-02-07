@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.h,v 1.25 2007/10/30 12:47:23 steveu Exp $
+ * $Id: fax.h,v 1.26 2007/11/30 12:20:35 steveu Exp $
  */
 
 /*! \file */
@@ -185,8 +185,15 @@ fax_state_t *fax_init(fax_state_t *s, int calling_party);
 
 /*! Release a FAX context.
     \brief Release a FAX context.
-    \param s The FAX context. */
+    \param s The FAX context.
+    \return 0 for OK, else -1. */
 int fax_release(fax_state_t *s);
+
+/*! Free a FAX context.
+    \brief Free a FAX context.
+    \param s The FAX context.
+    \return 0 for OK, else -1. */
+int fax_free(fax_state_t *s);
 
 #if defined(__cplusplus)
 }

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.c,v 1.18 2007/11/26 13:28:58 steveu Exp $
+ * $Id: bell_r2_mf.c,v 1.19 2007/11/30 12:20:33 steveu Exp $
  */
 
 /*! \file bell_r2_mf.h */
@@ -31,6 +31,7 @@
 #include "config.h"
 #endif
 
+#include <stdlib.h>
 #include <inttypes.h>
 #include <string.h>
 #include <time.h>
@@ -327,6 +328,13 @@ bell_mf_tx_state_t *bell_mf_tx_init(bell_mf_tx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
+int bell_mf_tx_free(bell_mf_tx_state_t *s)
+{
+    free(s);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
 int r2_mf_tx(r2_mf_tx_state_t *s, int16_t amp[], int samples)
 {
     int len;
@@ -414,6 +422,13 @@ r2_mf_tx_state_t *r2_mf_tx_init(r2_mf_tx_state_t *s, int fwd)
     }
     s->fwd = fwd;
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int r2_mf_tx_free(r2_mf_tx_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -676,6 +691,13 @@ bell_mf_rx_state_t *bell_mf_rx_init(bell_mf_rx_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
+int bell_mf_rx_free(bell_mf_rx_state_t *s)
+{
+    free(s);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
 int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t amp[], int samples)
 {
     float energy[6];
@@ -888,6 +910,13 @@ r2_mf_rx_state_t *r2_mf_rx_init(r2_mf_rx_state_t *s, int fwd)
     s->samples = 133;
     s->current_sample = 0;
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int r2_mf_rx_free(r2_mf_rx_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.c,v 1.16 2007/11/26 13:28:59 steveu Exp $
+ * $Id: modem_connect_tones.c,v 1.17 2007/11/30 12:20:33 steveu Exp $
  */
  
 /*! \file */
@@ -149,6 +149,13 @@ modem_connect_tones_tx_state_t *modem_connect_tones_tx_init(modem_connect_tones_
             s->mod_level = 0;
     }
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int modem_connect_tones_tx_free(modem_connect_tones_tx_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -411,6 +418,13 @@ modem_connect_tones_rx_state_t *modem_connect_tones_rx_init(modem_connect_tones_
     s->odd_even = 0;
     s->preamble_on = FALSE;
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int modem_connect_tones_rx_free(modem_connect_tones_rx_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

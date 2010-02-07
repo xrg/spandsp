@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.h,v 1.39 2007/08/13 13:08:19 steveu Exp $
+ * $Id: v27ter_rx.h,v 1.40 2007/11/30 12:20:36 steveu Exp $
  */
 
 /*! \file */
@@ -173,11 +173,11 @@ v27ter_rx_state_t *v27ter_rx_init(v27ter_rx_state_t *s, int rate, put_bit_func_t
     \return 0 for OK, -1 for bad parameter */
 int v27ter_rx_restart(v27ter_rx_state_t *s, int rate, int old_train);
 
-/*! Release a V.27ter modem receive context.
-    \brief Release a V.27ter modem receive context.
+/*! Free a V.27ter modem receive context.
+    \brief Free a V.27ter modem receive context.
     \param s The modem context.
     \return 0 for OK */
-int v27ter_rx_release(v27ter_rx_state_t *s);
+int v27ter_rx_free(v27ter_rx_state_t *s);
 
 /*! Change the put_bit function associated with a V.27ter modem receive context.
     \brief Change the put_bit function associated with a V.27ter modem receive context.

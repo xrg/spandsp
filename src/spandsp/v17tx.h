@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.h,v 1.31 2007/08/13 13:08:19 steveu Exp $
+ * $Id: v17tx.h,v 1.32 2007/11/30 12:20:36 steveu Exp $
  */
 
 /*! \file */
@@ -181,11 +181,11 @@ v17_tx_state_t *v17_tx_init(v17_tx_state_t *s, int rate, int tep, get_bit_func_t
     \return 0 for OK, -1 for parameter error. */
 int v17_tx_restart(v17_tx_state_t *s, int rate, int tep, int short_train);
 
-/*! Release a V.17 modem transmit context.
-    \brief Release a V.17 modem transmit context.
+/*! Free a V.17 modem transmit context.
+    \brief Free a V.17 modem transmit context.
     \param s The modem context.
     \return 0 for OK */
-int v17_tx_release(v17_tx_state_t *s);
+int v17_tx_free(v17_tx_state_t *s);
 
 /*! Change the get_bit function associated with a V.17 modem transmit context.
     \brief Change the get_bit function associated with a V.17 modem transmit context.

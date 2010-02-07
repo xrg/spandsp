@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.h,v 1.15 2007/10/24 13:32:07 steveu Exp $
+ * $Id: dtmf.h,v 1.16 2007/11/30 12:20:35 steveu Exp $
  */
 
 #if !defined(_SPANDSP_DTMF_H_)
@@ -162,6 +162,11 @@ size_t dtmf_tx_put(dtmf_tx_state_t *s, const char *digits, ssize_t len);
     \return A pointer to the DTMF generator context. */
 dtmf_tx_state_t *dtmf_tx_init(dtmf_tx_state_t *s);
 
+/*! \brief Free a DTMF tone generator context.
+    \param s The DTMF tone generator context.
+    \return 0 for OK, else -1. */
+int dtmf_tx_free(dtmf_tx_state_t *s);
+
 /*! Set a optional realtime callback for a DTMF receiver context. This function
     is called immediately a confirmed state change occurs in the received DTMF. It
     is called with the ASCII value for a DTMF tone pair, or zero to indicate no tone
@@ -218,6 +223,11 @@ size_t dtmf_rx_get(dtmf_rx_state_t *s, char *digits, int max);
 dtmf_rx_state_t *dtmf_rx_init(dtmf_rx_state_t *s,
                               dtmf_rx_callback_t callback,
                               void *user_data);
+
+/*! \brief Free a DTMF receiver context.
+    \param s The DTMF receiver context.
+    \return 0 for OK, else -1. */
+int dtmf_rx_free(dtmf_rx_state_t *s);
 
 #if defined(__cplusplus)
 }

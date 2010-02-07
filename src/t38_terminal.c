@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.78 2007/11/29 00:13:29 steveu Exp $
+ * $Id: t38_terminal.c,v 1.80 2007/11/30 12:20:34 steveu Exp $
  */
 
 /*! \file */
@@ -121,7 +121,8 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
         return 0;
     }
     /* In termination mode we don't care very much about indicators telling us training
-       is starting. We only care about the actual data. */
+       is starting. We only care about V.21 preamble starting, for timeout control, and
+       the actual data. */
     switch (indicator)
     {
     case T38_IND_NO_SIGNAL:
@@ -860,6 +861,14 @@ t38_terminal_state_t *t38_terminal_init(t38_terminal_state_t *s,
 int t38_terminal_release(t38_terminal_state_t *s)
 {
     t30_release(&s->t30_state);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t38_terminal_free(t38_terminal_state_t *s)
+{
+    t30_release(&s->t30_state);
+    free(s);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

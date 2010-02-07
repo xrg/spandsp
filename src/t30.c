@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.212 2007/11/26 13:58:05 steveu Exp $
+ * $Id: t30.c,v 1.214 2007/11/30 12:20:34 steveu Exp $
  */
 
 /*! \file */
@@ -900,6 +900,8 @@ static int send_next_ecm_frame(t30_state_t *s)
         frame[1] = 0x03;
         frame[2] = T4_RCP;
         send_frame(s, frame, 3);
+        /* In case we are just after a CTC/CTR exchange, which kicked us back to long training */
+        s->short_train = TRUE;
         return 0;
     }
     return -1;
@@ -2297,6 +2299,8 @@ static void process_rx_fcd(t30_state_t *s, const uint8_t *msg, int len)
             span_log(&s->logging, SPAN_LOG_FLOW, "Storing ECM frame %d, length %d\n", frame_no, len - 4);
             memcpy(&s->ecm_data[frame_no][0], &msg[4], len - 4);
             s->ecm_len[frame_no] = (int16_t) (len - 4);
+            /* In case we are just after a CTC/CTR exchange, which kicked us back to long training */
+            s->short_train = TRUE;
         }
         else
         {
@@ -2986,6 +2990,8 @@ static void process_state_f_doc_ecm(t30_state_t *s, const uint8_t *msg, int len)
         break;
     case T30_CTC:
         send_simple_frame(s, T30_CTR);
+        /* T.30 says we change back to long training here */
+        s->short_train = FALSE;
         break;
     case T30_RR:
         break;
@@ -3760,8 +3766,10 @@ static void process_state_iv_ctc(t30_state_t *s, const uint8_t *msg, int len)
 {
     switch (msg[2] & 0xFE)
     {
-    case T30_CTC:
-        /* Valid response to a CTR received */
+    case T30_CTR:
+        /* Valid response to a CTC received */
+        /* T.30 says we change back to long training here */
+        s->short_train = FALSE;
         break;
     case T30_CRP:
         repeat_last_command(s);
@@ -5713,19 +5721,21 @@ t30_state_t *t30_init(t30_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-void t30_release(t30_state_t *s)
+int t30_release(t30_state_t *s)
 {
     /* Make sure any FAX in progress is tidied up. If the tidying up has
        already happened, repeating it here is harmless. */
     t4_rx_end(&(s->t4));
     t4_tx_end(&(s->t4));
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-void t30_free(t30_state_t *s)
+int t30_free(t30_state_t *s)
 {
     t30_release(s);
     free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
