@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.h,v 1.41 2007/12/06 13:35:51 steveu Exp $
+ * $Id: v27ter_rx.h,v 1.42 2007/12/08 16:25:17 steveu Exp $
  */
 
 /*! \file */
@@ -116,13 +116,20 @@ typedef struct
     int32_t carrier_phase_rate;
     /*! \brief The carrier update rate saved for reuse when using short training. */
     int32_t carrier_phase_rate_save;
+    /*! \brief The proportional part of the carrier tracking filter. */
     float carrier_track_p;
+    /*! \brief The integral part of the carrier tracking filter. */
     float carrier_track_i;
 
+    /*! \brief A power meter, to measure the HPF'ed signal power in the channel. */    
     power_meter_t power;
+    /*! \brief The power meter level at which carrier on is declared. */
     int32_t carrier_on_power;
+    /*! \brief The power meter level at which carrier off is declared. */
     int32_t carrier_off_power;
+    /*! \brief The scaling factor accessed by the AGC algorithm. */
     float agc_scaling;
+    /*! \brief The previous value of agc_scaling, needed to reuse old training. */
     float agc_scaling_save;
 
     int constellation_state;

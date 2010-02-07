@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.h,v 1.48 2007/12/06 13:35:51 steveu Exp $
+ * $Id: v29rx.h,v 1.50 2007/12/10 11:07:04 steveu Exp $
  */
 
 /*! \file */
@@ -164,8 +164,12 @@ typedef struct
     uint8_t training_scramble_reg;
     /*! \brief The section of the training data we are currently in. */
     int training_stage;
+    /*! \brief The current step in the table of CD constellation positions. */
     int training_cd;
+    /*! \brief A count of how far through the current training step we are. */
     int training_count;
+    /*! \brief A measure of how much mismatch there is between the real constellation,
+        and the decoded symbol positions. */
     float training_error;
     /*! \brief The value of the last signal sample, using the a simple HPF for signal power estimation. */
     int16_t last_sample;
@@ -173,7 +177,9 @@ typedef struct
     int signal_present;
     /*! \brief Whether or not a carrier drop was detected and the signal delivery is pending. */
     int carrier_drop_pending;
+    /*! \brief A count of the current consecutive samples below the carrier off threshold. */
     int low_samples;
+    /*! \brief A highest sample seen. */
     int16_t high_sample;
     /*! \brief TRUE if the previous trained values are to be reused. */
     int old_train;
@@ -184,13 +190,20 @@ typedef struct
     int32_t carrier_phase_rate;
     /*! \brief The carrier update rate saved for reuse when using short training. */
     int32_t carrier_phase_rate_save;
+    /*! \brief The proportional part of the carrier tracking filter. */
     float carrier_track_p;
+    /*! \brief The integral part of the carrier tracking filter. */
     float carrier_track_i;
-    
+
+    /*! \brief A power meter, to measure the HPF'ed signal power in the channel. */    
     power_meter_t power;
+    /*! \brief The power meter level at which carrier on is declared. */
     int32_t carrier_on_power;
+    /*! \brief The power meter level at which carrier off is declared. */
     int32_t carrier_off_power;
+    /*! \brief The scaling factor accessed by the AGC algorithm. */
     float agc_scaling;
+    /*! \brief The previous value of agc_scaling, needed to reuse old training. */
     float agc_scaling_save;
 
     int constellation_state;
@@ -207,11 +220,26 @@ typedef struct
 
     /*! \brief The current half of the baud. */
     int baud_half;
-    /*! \brief Band edge symbol sync. filter state. */
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    /*! Low band edge filter for symbol sync. */
+    int32_t symbol_sync_low[2];
+    /*! High band edge filter for symbol sync. */
+    int32_t symbol_sync_high[2];
+    /*! DC filter for symbol sync. */
+    int32_t symbol_sync_dc_filter[2];
+    /*! Baud phase for symbol sync. */
+    int32_t baud_phase;
+#else
+    /*! Low band edge filter for symbol sync. */
     float symbol_sync_low[2];
+    /*! High band edge filter for symbol sync. */
     float symbol_sync_high[2];
+    /*! DC filter for symbol sync. */
     float symbol_sync_dc_filter[2];
+    /*! Baud phase for symbol sync. */
     float baud_phase;
+#endif
+
     /*! \brief The total symbol timing correction since the carrier came up.
                This is only for performance analysis purposes. */
     int total_baud_timing_correction;

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.219 2007/12/08 15:39:36 steveu Exp $
+ * $Id: t30.c,v 1.221 2007/12/10 11:18:02 steveu Exp $
  */
 
 /*! \file */
@@ -1543,7 +1543,14 @@ static int step_fallback_entry(t30_state_t *s)
     while (fallback_sequence[++s->current_fallback].which)
     {
         if ((fallback_sequence[s->current_fallback].which & s->current_permitted_modems))
+        {
+            /* We need to edit the DCS message we will send */
+            /* Set to required modem rate */
+            s->dcs_frame[4] &= ~(DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3);
+            s->dcs_frame[4] |= fallback_sequence[s->current_fallback].dcs_code;
+            /* TODO: T.4 and the DCS also need the minimum row bits controlled properly. */
             return s->current_fallback;
+        }
     }
     return -1;
 }
@@ -1803,8 +1810,6 @@ static void unexpected_frame_length(t30_state_t *s, const uint8_t *msg, int len)
 
 static int process_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
 {
-    uint8_t dis_dtc_frame[T30_MAX_DIS_DTC_DCS_LEN];
-    
     t30_decode_dis_dtc_dcs(s, msg, len);
 
     if (len < 6)
@@ -1817,25 +1822,19 @@ static int process_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
         s->dis_received = TRUE;
     /* Make a local copy of the message, padded to the maximum possible length with zeros. This allows
        us to simply pick out the bits, without worrying about whether they were set from the remote side. */
-    if (len > T30_MAX_DIS_DTC_DCS_LEN)
-    {
-        memcpy(dis_dtc_frame, msg, T30_MAX_DIS_DTC_DCS_LEN);
-    }
-    else
-    {
-        memcpy(dis_dtc_frame, msg, len);
-        if (len < T30_MAX_DIS_DTC_DCS_LEN)
-            memset(dis_dtc_frame + len, 0, T30_MAX_DIS_DTC_DCS_LEN - len);
-    }
-    s->error_correcting_mode = (s->ecm_allowed  &&  (dis_dtc_frame[6] & DISBIT3) != 0);
+    s->far_dis_dtc_len = (len > T30_MAX_DIS_DTC_DCS_LEN)  ?  T30_MAX_DIS_DTC_DCS_LEN  :  len;
+    memcpy(s->far_dis_dtc_frame, msg, s->far_dis_dtc_len);
+    if (s->far_dis_dtc_len < T30_MAX_DIS_DTC_DCS_LEN)
+        memset(s->far_dis_dtc_frame + s->far_dis_dtc_len, 0, T30_MAX_DIS_DTC_DCS_LEN - s->far_dis_dtc_len);
+    s->error_correcting_mode = (s->ecm_allowed  &&  (s->far_dis_dtc_frame[6] & DISBIT3) != 0);
     /* 256 octets per ECM frame */
     s->octets_per_ecm_frame = 256;
     /* Select the compression to use. */
-    if (s->error_correcting_mode  &&  (s->supported_compressions & T30_SUPPORT_T6_COMPRESSION)  &&  test_bit(dis_dtc_frame, 31))
+    if (s->error_correcting_mode  &&  (s->supported_compressions & T30_SUPPORT_T6_COMPRESSION)  &&  test_bit(s->far_dis_dtc_frame, 31))
     {
         s->line_encoding = T4_COMPRESSION_ITU_T6;
     }
-    else if ((s->supported_compressions & T30_SUPPORT_T4_2D_COMPRESSION)  &&  test_bit(dis_dtc_frame, 16))
+    else if ((s->supported_compressions & T30_SUPPORT_T4_2D_COMPRESSION)  &&  test_bit(s->far_dis_dtc_frame, 16))
     {
         s->line_encoding = T4_COMPRESSION_ITU_T4_2D;
     }
@@ -1844,7 +1843,7 @@ static int process_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
         s->line_encoding = T4_COMPRESSION_ITU_T4_1D;
     }
     span_log(&s->logging, SPAN_LOG_FLOW, "Selected compression %d\n", s->line_encoding);
-    switch (dis_dtc_frame[4] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3))
+    switch (s->far_dis_dtc_frame[4] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3))
     {
     case (DISBIT6 | DISBIT4 | DISBIT3):
         if ((s->supported_modems & T30_SUPPORT_V17))
@@ -1892,7 +1891,7 @@ static int process_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
     if (s->tx_file[0])
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Trying to send file '%s'\n", s->tx_file);
-        if (!test_bit(dis_dtc_frame, 10))
+        if (!test_bit(s->far_dis_dtc_frame, 10))
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "%s far end cannot receive\n", t30_frametype(msg[2]));
             s->current_status = T30_ERR_RX_INCAPABLE;
@@ -1918,14 +1917,14 @@ static int process_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
     if (s->rx_file[0])
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Trying to receive file '%s'\n", s->rx_file);
-        if (!test_bit(dis_dtc_frame, 9))
+        if (!test_bit(s->far_dis_dtc_frame, 9))
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "%s far end cannot transmit\n", t30_frametype(msg[2]));
             s->current_status = T30_ERR_TX_INCAPABLE;
             send_dcn(s);
             return -1;
         }
-        if (test_bit(dis_dtc_frame, 50))
+        if (test_bit(s->far_dis_dtc_frame, 50))
             s->password_required = TRUE;
         if (start_receiving_document(s))
         {
@@ -2589,7 +2588,7 @@ static void process_state_d_post_tcf(t30_state_t *s, const uint8_t *msg, int len
             break;
         }
         queue_phase(s, T30_PHASE_B_TX);
-        /* TODO: should be reassess the new DIS message, and possibly adjust the DCS we use? */
+        /* TODO: should we reassess the new DIS message, and possibly adjust the DCS we use? */
         send_dcs_sequence(s);
         break;
     case T30_DCN:
@@ -3243,6 +3242,14 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
             if (s->phase_d_handler)
                 s->phase_d_handler(s, s->phase_d_user_data, T30_RTP);
             /* Send fresh training, and then the next page */
+            if (step_fallback_entry(s) < 0)
+            {
+                /* We have fallen back as far as we can go. Give up. */
+                s->current_fallback = 0;
+                s->current_status = T30_ERR_CANNOT_TRAIN;
+                send_dcn(s);
+                break;
+            }
             queue_phase(s, T30_PHASE_B_TX);
             restart_sending_document(s);
             break;
@@ -3251,6 +3258,14 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
             s->retries = 0;
             if (s->phase_d_handler)
                 s->phase_d_handler(s, s->phase_d_user_data, T30_RTP);
+            if (step_fallback_entry(s) < 0)
+            {
+                /* We have fallen back as far as we can go. Give up. */
+                s->current_fallback = 0;
+                s->current_status = T30_ERR_CANNOT_TRAIN;
+                send_dcn(s);
+                break;
+            }
             /* TODO: should go back to T, and resend */
             set_state(s, T30_STATE_R);
             break;
@@ -3258,7 +3273,7 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
         case T30_PRI_EOP:
             s->retries = 0;
             if (s->phase_d_handler)
-                s->phase_d_handler(s, s->phase_d_user_data, T30_RTN);
+                s->phase_d_handler(s, s->phase_d_user_data, T30_RTP);
             s->current_status = T30_ERR_INVALRSPTX;
             send_dcn(s);
             break;
@@ -3273,6 +3288,14 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
             if (s->phase_d_handler)
                 s->phase_d_handler(s, s->phase_d_user_data, T30_RTN);
             /* Send fresh training, and then repeat the last page */
+            if (step_fallback_entry(s) < 0)
+            {
+                /* We have fallen back as far as we can go. Give up. */
+                s->current_fallback = 0;
+                s->current_status = T30_ERR_CANNOT_TRAIN;
+                send_dcn(s);
+                break;
+            }
             queue_phase(s, T30_PHASE_B_TX);
             restart_sending_document(s);
             break;
@@ -5688,7 +5711,8 @@ int t30_restart(t30_state_t *s)
     s->current_status = T30_ERR_OK;
     s->ppr_count = 0;
     s->receiver_not_ready_count = 0;
-
+    s->far_dis_dtc_len = 0;
+    memset(&s->far_dis_dtc_frame, 0, sizeof(s->far_dis_dtc_frame));
     build_dis_or_dtc(s);
     if (s->calling_party)
     {

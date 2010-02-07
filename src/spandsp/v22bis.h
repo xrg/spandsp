@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.23 2007/04/10 16:12:20 steveu Exp $
+ * $Id: v22bis.h,v 1.24 2007/12/10 11:07:04 steveu Exp $
  */
 
 /*! \file */
@@ -104,12 +104,18 @@ typedef struct
     uint32_t rx_carrier_phase;
     /*! \brief The update rate for the phase of the carrier (i.e. the DDS increment). */
     int32_t rx_carrier_phase_rate;
+    /*! \brief The proportional part of the carrier tracking filter. */
     float carrier_track_p;
+    /*! \brief The integral part of the carrier tracking filter. */
     float carrier_track_i;
 
+    /*! \brief A power meter, to measure the HPF'ed signal power in the channel. */    
     power_meter_t rx_power;
+    /*! \brief The power meter level at which carrier on is declared. */
     int32_t carrier_on_power;
+    /*! \brief The power meter level at which carrier off is declared. */
     int32_t carrier_off_power;
+    /*! \brief The scaling factor accessed by the AGC algorithm. */
     float agc_scaling;
     
     int rx_constellation_state;

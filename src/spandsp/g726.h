@@ -48,7 +48,7 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.h,v 1.16 2007/04/08 08:16:17 steveu Exp $
+ * $Id: g726.h,v 1.17 2007/12/10 11:07:03 steveu Exp $
  */
 
 /*! \file */
@@ -91,7 +91,7 @@ typedef int16_t (*g726_decoder_func_t)(struct g726_state_s *s, uint8_t code);
 
 typedef uint8_t (*g726_encoder_func_t)(struct g726_state_s *s, int16_t amp);
 
-/*
+/*!
  * The following is the definition of the state structure
  * used by the G.726 encoder and decoder to preserve their internal
  * state between successive calls.  The meanings of the majority

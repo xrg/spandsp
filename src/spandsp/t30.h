@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.87 2007/12/08 15:25:29 steveu Exp $
+ * $Id: t30.h,v 1.88 2007/12/10 11:07:04 steveu Exp $
  */
 
 /*! \file */
@@ -410,7 +410,9 @@ struct t30_state_s
     const char *vendor;
     /*! \brief The model of the remote machine, if known, else NULL. */
     const char *model;
+    /*! \brief An NSF frame to be sent to the far end. */
     uint8_t local_nsf[T30_MAX_LOCAL_NSF_LEN];
+    /*! \brief The length of the NSF frame to be sent to the far end. */
     int local_nsf_len;
 
     /*! \brief A pointer to a callback routine to be called when phase B events
@@ -435,23 +437,41 @@ struct t30_state_s
     /*! \brief An opaque pointer supplied in document callbacks. */
     void *document_user_data;
 
+    /*! \brief The handler for changes to the receive mode */
     t30_set_handler_t *set_rx_type_handler;
+    /*! \brief An opaque pointer passed to the handler for changes to the receive mode */
     void *set_rx_type_user_data;
+    /*! \brief The handler for changes to the transmit mode */
     t30_set_handler_t *set_tx_type_handler;
+    /*! \brief An opaque pointer passed to the handler for changes to the transmit mode */
     void *set_tx_type_user_data;
 
+    /*! \brief The transmitted HDLC frame handler. */
     t30_send_hdlc_handler_t *send_hdlc_handler;
+    /*! \brief An opaque pointer passed to the transmitted HDLC frame handler. */
     void *send_hdlc_user_data;
-   
+
+    /*! \brief The current T.30 phase. */
     int phase;
+    /*! \brief The T.30 phase to change to when the current phase ends. */
     int next_phase;
+    /*! \brief The current state of the T.30 state machine. */
     int state;
+    /*! \brief The step in sending a sequence of HDLC frames. */
     int step;
 
+    /*! \brief The preparation buffer for the DCS message to be transmitted. */
     uint8_t dcs_frame[T30_MAX_DIS_DTC_DCS_LEN];
+    /*! \brief The length of the DCS message to be transmitted. */
     int dcs_len;
+    /*! \brief The preparation buffer for DIS or DTC message to be transmitted. */
     uint8_t dis_dtc_frame[T30_MAX_DIS_DTC_DCS_LEN];
+    /*! \brief The length of the DIS or DTC message to be transmitted. */
     int dis_dtc_len;
+    /*! \brief The last DIS or DTC message received form the far end. */
+    uint8_t far_dis_dtc_frame[T30_MAX_DIS_DTC_DCS_LEN];
+    /*! \brief The length of the last DIS or DTC message received form the far end. */
+    int far_dis_dtc_len;
     /*! \brief TRUE if a valid DIS has been received from the far end. */
     int dis_received;
 
@@ -498,11 +518,14 @@ struct t30_state_s
     /*! \brief This is only used in full duplex (e.g. ISDN) modes. */
     int timer_t8;
 
+    /*! \brief TRUE once the far end FAX entity has been detected. */
     int far_end_detected;
 
+    /*! \brief TRUE if a local T.30 interrupt is pending. */
     int local_interrupt_pending;
-    int crp_enabled;
+    /*! \brief The image coding being used on the line. */
     int line_encoding;
+    /*! \brief The image coding being used for output files. */
     int output_encoding;
     uint8_t min_scan_time_code;
     int x_resolution;
@@ -511,41 +534,60 @@ struct t30_state_s
     int retries;
     /*! \brief TRUE if error correcting mode is used. */
     int error_correcting_mode;
+    /*! \brief The current count of consecutive T30_PPR messages. */
     int ppr_count;
+    /*! \brief The current count of consecutive T30_RNR messages. */
     int receiver_not_ready_count;
+    /*! \brief The number of octets to be used per ECM frame. */
     int octets_per_ecm_frame;
+    /*! \brief The ECM partial page buffer. */
     uint8_t ecm_data[256][260];
+    /*! \brief The lengths of the frames in the ECM partial page buffer. */
     int16_t ecm_len[256];
+    /*! \brief A bit map of the OK ECM frames, constructed as a PPR frame. */
     uint8_t ecm_frame_map[3 + 32];
     
     /*! \brief The current page number in ECM mode */
     int ecm_page;
-
     /*! \brief The current block number in ECM mode */
     int ecm_block;
-    
     /*! \brief The number of frames in the current block number in ECM mode */
     int ecm_frames;
-
     /*! \brief The number of frames in the current burst of image transmission in ECM mode */
     int ecm_frames_this_burst;
     int ecm_current_frame;
+    /*! \brief TRUE if we are at the end of an ECM page to se sent - i.e. there are no more
+        partial pages still to come. */
     int ecm_at_page_end;
     int next_tx_step;
     int next_rx_step;
+    /*! \brief Image file name for image reception. */
     char rx_file[256];
+    /*! \brief The last page we are prepared accept for a received image file. -1 means no restriction. */
     int rx_stop_page;
+    /*! \brief Image file name to be sent. */
     char tx_file[256];
+    /*! \brief The first page to be sent from the image file. -1 means no restriction. */
     int tx_start_page;
+    /*! \brief The last page to be sent from the image file. -1 means no restriction. */
     int tx_stop_page;
     int current_status;
+    /*! \brief TRUE if we are operating in T.38 Internet Aware FAX mode. */
     int iaf;
+    /*! \brief A bit mask of the currently supported modem types. */
     int supported_modems;
+    /*! \brief A bit mask of the currently supported image compression modes. */
     int supported_compressions;
+    /*! \brief A bit mask of the currently supported image resolutions. */
     int supported_resolutions;
+    /*! \brief A bit mask of the currently supported image sizes. */
     int supported_image_sizes;
     int supported_polling_features;
+    /*! \brief TRUE is T30_FNV message handling is enabled. */
     int support_fnv;
+    /*! \brief TRUE is T30_CRP message handling is enabled. */
+    int crp_enabled;
+    /*! \brief TRUE is ECM mode handling is enabled. */
     int ecm_allowed;
     
     int last_pps_fcf2;
@@ -553,6 +595,7 @@ struct t30_state_s
 
     /*! \brief A password received from the far end. */
     char received_password[T30_MAX_IDENT_LEN];
+    /*! \brief TRUE if the far end requires that we send a password. */
     int password_required;
 
     /*! \brief Error and flow logging control */
