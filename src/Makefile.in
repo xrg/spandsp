@@ -84,9 +84,9 @@ am_libspandsp_la_OBJECTS = adsi.lo async.lo at_interpreter.lo awgn.lo \
 	t30_logging.lo t31.lo t35.lo t38_core.lo t38_gateway.lo \
 	t38_non_ecm_buffer.lo t38_terminal.lo testcpuid.lo \
 	time_scale.lo tone_detect.lo tone_generate.lo v17rx.lo \
-	v17tx.lo v22bis_rx.lo v22bis_tx.lo v27ter_rx.lo v27ter_tx.lo \
-	v29rx.lo v29tx.lo v42.lo v42bis.lo v8.lo vector_float.lo \
-	vector_int.lo
+	v17tx.lo v18.lo v22bis_rx.lo v22bis_tx.lo v27ter_rx.lo \
+	v27ter_tx.lo v29rx.lo v29tx.lo v42.lo v42bis.lo v8.lo \
+	vector_float.lo vector_int.lo
 libspandsp_la_OBJECTS = $(am_libspandsp_la_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
 make_at_dictionary_SOURCES = make_at_dictionary.c
@@ -360,6 +360,7 @@ libspandsp_la_SOURCES = adsi.c \
                         tone_generate.c \
                         v17rx.c \
                         v17tx.c \
+                        v18.c \
                         v22bis_rx.c \
                         v22bis_tx.c \
                         v27ter_rx.c \
@@ -438,6 +439,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/tone_generate.h \
                          spandsp/v17rx.h \
                          spandsp/v17tx.h \
+                         spandsp/v18.h \
                          spandsp/v22bis.h \
                          spandsp/v27ter_rx.h \
                          spandsp/v27ter_tx.h \
@@ -488,6 +490,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/private/tone_generate.h \
                          spandsp/private/v17rx.h \
                          spandsp/private/v17tx.h \
+                         spandsp/private/v18.h \
                          spandsp/private/v22bis.h \
                          spandsp/private/v27ter_rx.h \
                          spandsp/private/v27ter_tx.h \
@@ -691,6 +694,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tone_generate.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/v17rx.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/v17tx.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/v18.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/v22bis_rx.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/v22bis_tx.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/v27ter_rx.Plo@am__quote@

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.51 2009/03/31 12:49:58 steveu Exp $
+ * $Id: adsi_tests.c,v 1.52 2009/04/01 13:22:40 steveu Exp $
  */
 
 /*! \page adsi_tests_page ADSI tests
@@ -710,6 +710,7 @@ static void mitel_cm7291_side_2_and_bellcore_tests(int standard)
     rx_adsi = adsi_rx_init(NULL, standard, put_adsi_msg, NULL);
     for (j = 0;  bellcore_files[j][0];  j++)
     {
+        printf("Testing with %s\n", bellcore_files[j]);
         if ((inhandle = afOpenFile_telephony_read(bellcore_files[j], 1)) == AF_NULL_FILEHANDLE)
         {
             printf("    Cannot open speech file '%s'\n", bellcore_files[j]);

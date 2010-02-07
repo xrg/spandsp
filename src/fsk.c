@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.57 2009/03/31 12:49:58 steveu Exp $
+ * $Id: fsk.c,v 1.58 2009/04/01 13:22:40 steveu Exp $
  */
 
 /*! \file */
@@ -111,12 +111,20 @@ const fsk_spec_t preset_fsk_specs[] =
         1200*100
     },
     {
-        "Weitbrecht",   /* Used for TDD (Telecoms Device for the Deaf) */
+        "Weitbrecht 45.45", /* Used for TDD (Telecoms Device for the Deaf) */
         1800,
         1400,
         -14,
         -30,
          4545
+    },
+    {
+        "Weitbrecht 50",    /* Used for TDD (Telecoms Device for the Deaf) */
+        1800,
+        1400,
+        -14,
+        -30,
+         5000
     }
 };
 
@@ -140,7 +148,6 @@ SPAN_DECLARE(fsk_tx_state_t *) fsk_tx_init(fsk_tx_state_t *s,
     s->scaling = dds_scaling_dbm0((float) spec->tx_level);
     /* Initialise fractional sample baud generation. */
     s->phase_acc = 0;
-    s->baud_inc = s->baud_rate;
     s->baud_frac = 0;
     s->current_phase_rate = s->phase_rates[1];
     
@@ -175,7 +182,7 @@ SPAN_DECLARE(int) fsk_tx(fsk_tx_state_t *s, int16_t amp[], int len)
        with them, if they care about accurate transition timing. */
     for (sample = 0;  sample < len;  sample++)
     {
-        if ((s->baud_frac += s->baud_inc) >= SAMPLE_RATE*100)
+        if ((s->baud_frac += s->baud_rate) >= SAMPLE_RATE*100)
         {
             s->baud_frac -= SAMPLE_RATE*100;
             if ((bit = s->get_bit(s->get_bit_user_data)) == SIG_STATUS_END_OF_DATA)
@@ -292,7 +299,6 @@ SPAN_DECLARE(fsk_rx_state_t *) fsk_rx_init(fsk_rx_state_t *s,
     }
 
     /* Initialise the baud/bit rate tracking. */
-    s->baud_inc = s->baud_rate;
     s->baud_phase = 0;
     s->frame_state = 0;
     s->frame_bits = 0;
@@ -343,41 +349,6 @@ SPAN_DECLARE(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
 
     for (i = 0;  i < len;  i++)
     {
-        /* If there isn't much signal, don't demodulate - it will only produce
-           useless junk results. */
-        /* There should be no DC in the signal, but sometimes there is.
-           We need to measure the power with the DC blocked, but not using
-           a slow to respond DC blocker. Use the most elementary HPF. */
-        x = amp[i] >> 1;
-        power = power_meter_update(&(s->power), x - s->last_sample);
-        s->last_sample = x;
-        if (s->signal_present)
-        {
-            /* Look for power below turn-off threshold to turn the carrier off */
-            if (power < s->carrier_off_power)
-            {
-                if (--s->signal_present <= 0)
-                {
-                    /* Count down a short delay, to ensure we push the last
-                       few bits through the filters before stopping. */
-                    report_status_change(s, SIG_STATUS_CARRIER_DOWN);
-                    continue;
-                }
-            }
-        }
-        else
-        {
-            /* Look for power exceeding turn-on threshold to turn the carrier on */
-            if (power < s->carrier_on_power)
-                continue;
-            s->signal_present = 1;
-            s->frame_state = 0;
-            report_status_change(s, SIG_STATUS_CARRIER_UP);
-        }
-        /* Non-coherent FSK demodulation by correlation with the target tones
-           over a one baud interval. The slow V.xx specs. are too open ended
-           to allow anything fancier to be used. The dot products are calculated
-           using a sliding window approach, so the compute load is not that great. */
         /* The *totally* asynchronous character to character behaviour of these
            modems, when carrying async. data, seems to force a sample by sample
            approach. */
@@ -398,8 +369,56 @@ SPAN_DECLARE(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
             dot = s->dot[j].im >> 15;
             sum[j] += dot*dot;
         }
-        baudstate = (sum[0] < sum[1]);
+        /* If there isn't much signal, don't demodulate - it will only produce
+           useless junk results. */
+        /* There should be no DC in the signal, but sometimes there is.
+           We need to measure the power with the DC blocked, but not using
+           a slow to respond DC blocker. Use the most elementary HPF. */
+        x = amp[i] >> 1;
+        power = power_meter_update(&(s->power), x - s->last_sample);
+        s->last_sample = x;
+        if (s->signal_present)
+        {
+            /* Look for power below turn-off threshold to turn the carrier off */
+            if (power < s->carrier_off_power)
+            {
+                if (--s->signal_present <= 0)
+                {
+                    /* Count down a short delay, to ensure we push the last
+                       few bits through the filters before stopping. */
+                    report_status_change(s, SIG_STATUS_CARRIER_DOWN);
+                    s->baud_phase = 0;
+                    continue;
+                }
+            }
+        }
+        else
+        {
+            /* Look for power exceeding turn-on threshold to turn the carrier on */
+            if (power < s->carrier_on_power)
+            {
+                s->baud_phase = 0;
+                continue;
+            }
+            if (s->baud_phase < (s->correlation_span >> 1) - 30)
+            {
+                s->baud_phase++;
+                continue;
+            }
+            s->signal_present = 1;
+            /* Initialise the baud/bit rate tracking. */
+            s->baud_phase = 0;
+            s->frame_state = 0;
+            s->frame_bits = 0;
+            s->last_bit = 0;
+            report_status_change(s, SIG_STATUS_CARRIER_UP);
+        }
+        /* Non-coherent FSK demodulation by correlation with the target tones
+           over a one baud interval. The slow V.xx specs. are too open ended
+           to allow anything fancier to be used. The dot products are calculated
+           using a sliding window approach, so the compute load is not that great. */
 
+        baudstate = (sum[0] < sum[1]);
         switch (s->framing_mode)
         {
         case 1:
@@ -411,11 +430,11 @@ SPAN_DECLARE(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
                 /* For synchronous use (e.g. HDLC channels in FAX modems), nudge
                    the baud phase gently, trying to keep it centred on the bauds. */
                 if (s->baud_phase < (SAMPLE_RATE*50))
-                    s->baud_phase += (s->baud_inc >> 3);
+                    s->baud_phase += (s->baud_rate >> 3);
                 else
-                    s->baud_phase -= (s->baud_inc >> 3);
+                    s->baud_phase -= (s->baud_rate >> 3);
             }
-            if ((s->baud_phase += s->baud_inc) >= (SAMPLE_RATE*100))
+            if ((s->baud_phase += s->baud_rate) >= (SAMPLE_RATE*100))
             {
                 /* We should be in the middle of a baud now, so report the current
                    state as the next bit */
@@ -437,7 +456,7 @@ SPAN_DECLARE(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
                    the most accurate baud alignment we can do. */
                 s->baud_phase = SAMPLE_RATE*50;
             }
-            if ((s->baud_phase += s->baud_inc) >= (SAMPLE_RATE*100))
+            if ((s->baud_phase += s->baud_rate) >= (SAMPLE_RATE*100))
             {
                 /* We should be in the middle of a baud now, so report the current
                    state as the next bit */
@@ -470,7 +489,7 @@ SPAN_DECLARE(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
                 }
                 else
                 {
-                    s->baud_phase += s->baud_inc;
+                    s->baud_phase += s->baud_rate;
                     if (s->baud_phase >= SAMPLE_RATE*100)
                     {
                         s->frame_state = 1;
@@ -480,7 +499,7 @@ SPAN_DECLARE(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
             }
             else
             {
-                s->baud_phase += s->baud_inc;
+                s->baud_phase += s->baud_rate;
                 if (s->baud_phase >= SAMPLE_RATE*(100 - 40))
                 {
                     if (s->last_bit < 0)

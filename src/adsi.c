@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.73 2009/03/31 12:49:58 steveu Exp $
+ * $Id: adsi.c,v 1.74 2009/04/01 13:22:40 steveu Exp $
  */
 
 /*! \file */
@@ -330,17 +330,12 @@ static void adsi_tdd_put_async_byte(void *user_data, int byte)
         }
         return;
     }
-    /* Check the extra stop bit (TDD characters have 2 stop bits) */
-    if (byte & 0x20)
+    if ((octet = adsi_decode_baudot(s, (uint8_t) (byte & 0x1F))))
+        s->msg[s->msg_len++] = octet;
+    if (s->msg_len >= 256)
     {
-        byte &= 0x1F;
-        if ((octet = adsi_decode_baudot(s, (uint8_t) byte)))
-            s->msg[s->msg_len++] = octet;
-        if (s->msg_len >= 256)
-        {
-            s->put_msg(s->user_data, s->msg, s->msg_len);
-            s->msg_len = 0;
-        }
+        s->put_msg(s->user_data, s->msg, s->msg_len);
+        s->msg_len = 0;
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -444,7 +439,9 @@ SPAN_DECLARE(adsi_rx_state_t *) adsi_rx_init(adsi_rx_state_t *s,
         dtmf_rx_init(&(s->dtmfrx), adsi_rx_dtmf, s);
         break;
     case ADSI_STANDARD_TDD:
-        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_WEITBRECHT], 8, adsi_tdd_put_async_byte, s);
+        /* TDD uses 5 bit data, no parity and 1.5 stop bits. We scan for the first stop bit, and
+           ride over the fraction. */
+        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_WEITBRECHT], 7, adsi_tdd_put_async_byte, s);
         break;
     }
     s->standard = standard;
