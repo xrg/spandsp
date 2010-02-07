@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.h,v 1.37 2009/03/04 12:15:15 steveu Exp $
+ * $Id: adsi.h,v 1.38 2009/04/02 13:43:49 steveu Exp $
  */
 
 /*! \file */
@@ -398,7 +398,10 @@ extern "C"
     \param user_data An opaque pointer for the callback routine.
     \return A pointer to the initialised context, or NULL if there was a problem.
 */
-SPAN_DECLARE(adsi_rx_state_t *) adsi_rx_init(adsi_rx_state_t *s, int standard, put_msg_func_t put_msg, void *user_data);
+SPAN_DECLARE(adsi_rx_state_t *) adsi_rx_init(adsi_rx_state_t *s,
+                                             int standard,
+                                             put_msg_func_t put_msg,
+                                             void *user_data);
 
 SPAN_DECLARE(int) adsi_rx_release(adsi_rx_state_t *s);
 
@@ -410,7 +413,7 @@ SPAN_DECLARE(int) adsi_rx_free(adsi_rx_state_t *s);
     \param len The number of samples in the buffer.
     \return The number of samples unprocessed.
 */
-SPAN_DECLARE(int) adsi_rx(adsi_rx_state_t *s, const int16_t *amp, int len);
+SPAN_DECLARE(int) adsi_rx(adsi_rx_state_t *s, const int16_t amp[], int len);
 
 /*! \brief Initialise an ADSI transmit context.
     \param s The ADSI transmit context.
@@ -442,7 +445,7 @@ SPAN_DECLARE(void) adsi_tx_set_preamble(adsi_tx_state_t *s,
     \param max_len The number of samples to be generated.
     \return The number of samples actually generated.
 */
-SPAN_DECLARE(int) adsi_tx(adsi_tx_state_t *s, int16_t *amp, int max_len);
+SPAN_DECLARE(int) adsi_tx(adsi_tx_state_t *s, int16_t amp[], int max_len);
 
 /*! \brief Request generation of an ADSI alert tone.
     \param s The ADSI transmit context.

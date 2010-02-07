@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v18.c,v 1.1 2009/04/01 13:22:40 steveu Exp $
+ * $Id: v18.c,v 1.2 2009/04/02 13:43:49 steveu Exp $
  */
  
 /*! \file */
@@ -54,16 +54,24 @@
 #include "spandsp/super_tone_rx.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/fsk.h"
+#include "spandsp/dtmf.h"
 #include "spandsp/modem_connect_tones.h"
 #include "spandsp/v8.h"
 #include "spandsp/v18.h"
 
 #include "spandsp/private/logging.h"
+#include "spandsp/private/queue.h"
+#include "spandsp/private/tone_generate.h"
+#include "spandsp/private/async.h"
 #include "spandsp/private/fsk.h"
+#include "spandsp/private/dtmf.h"
 #include "spandsp/private/modem_connect_tones.h"
 #include "spandsp/private/v18.h"
 
 #include <stdlib.h>
+
+#define BAUDOT_FIGURE_SHIFT     0x1B
+#define BAUDOT_LETTER_SHIFT     0x1F
 
 struct dtmf_to_ascii_s
 {
@@ -286,13 +294,12 @@ static const char *ascii_to_dtmf[128] =
     "*9",       /* y */
     "9",        /* z */
     "#*1",      /* æ (National code) */
-    "#*1",      /* ø (National code) */
+    "#*2",      /* ø (National code) */
     "#*3",      /* å (National code) */
     "0",        /* ~ >> SPACE */
     "*0"        /* DEL >> BACK SPACE */
 };
 
-#if 0
 static int cmp(const void *s, const void *t)
 {
     const char *ss;
@@ -303,77 +310,374 @@ static int cmp(const void *s, const void *t)
     return strncmp(ss, tt->dtmf, strlen(tt->dtmf));
 }
 
-int main(int argc, char *argv[])
+SPAN_DECLARE(int) v18_encode_dtmf(v18_state_t *s, char dtmf[], const char msg[])
 {
-    char a[257];
-    char b[1024];
-    char c[1024];
-    char *s;
-    char *t;
-    const char *u;
-    char *v;
-    struct dtmf_to_ascii_s *ss;
-    int i;
-    int entries;
-    int x;
-    int xl;
-    int xh;
-    int xx;
-    int y;
+    const char *t;
+    char *u;
+    const char *v;
     
-    for (i = 0;  i < 128;  i++)
-        a[i] = i + 1;
-    a[127] = '\0';
-    s = a;
-    t = b;
-    while (*s)
+    t = msg;
+    u = dtmf;
+    while (*t)
     {
-        u = ascii_to_dtmf[*s & 0x7F];
-        while (*u)
-            *t++ = *u++;
-        s++;
+        v = ascii_to_dtmf[*t & 0x7F];
+        while (*v)
+            *u++ = *v++;
+        t++;
     }
-    *t = '\0';
-    printf("%s\n", b);
-    
-    s = b;
-    t = c;
+    *u = '\0';
+
+    return u - dtmf;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) v18_decode_dtmf(v18_state_t *s, char msg[], const char dtmf[])
+{
+    int entries;
+    const char *t;
+    char *u;
+    struct dtmf_to_ascii_s *ss;
+
     entries = sizeof(dtmf_to_ascii)/sizeof(dtmf_to_ascii[0]) - 1;
-    while (*s)
+    t = dtmf;
+    u = msg;
+    while (*t)
     {
-        ss = bsearch(s, dtmf_to_ascii, entries, sizeof(dtmf_to_ascii[0]), cmp);
+        ss = bsearch(t, dtmf_to_ascii, entries, sizeof(dtmf_to_ascii[0]), cmp);
         if (ss)
         {
-            *t++ = ss->ascii;
-            s += strlen(ss->dtmf);
+            t += strlen(ss->dtmf);
+            *u++ = ss->ascii;
         }
         else
         {
             /* Can't match the code. Let's assume this is a code we just don't know, and skip over it */
-            while (*s == '#'  ||  *s == '*')
-                s++;
-            if (*s)
-                s++;
+            while (*t == '#'  ||  *t == '*')
+                t++;
+            if (*t)
+                t++;
         }
     }
-    *t = '\0';
-    printf("%s\n", c);
-    printf("%s\n", a + 30);
-    
+    *u = '\0';
+    return u - msg;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(uint16_t) v18_encode_baudot(v18_state_t *s, uint8_t ch)
+{
+    static const uint8_t conv[128] =
+    {
+        0x00, /* NUL */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0x42, /* LF */
+        0xFF, /*   */
+        0xFF, /*   */
+        0x48, /* CR */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0xFF, /*   */
+        0x44, /*   */
+        0xFF, /* ! */
+        0xFF, /* " */
+        0x94, /* # */
+        0x89, /* $ */
+        0xFF, /* % */
+        0xFF, /* & */
+        0x85, /* ' */
+        0x8F, /* ( */
+        0x92, /* ) */
+        0x8B, /* * */
+        0x91, /* + */
+        0x8C, /* , */
+        0x83, /* - */
+        0x9C, /* . */
+        0x9D, /* / */
+        0x96, /* 0 */
+        0x97, /* 1 */
+        0x93, /* 2 */
+        0x81, /* 3 */
+        0x8A, /* 4 */
+        0x90, /* 5 */
+        0x95, /* 6 */
+        0x87, /* 7 */
+        0x86, /* 8 */
+        0x98, /* 9 */
+        0x8E, /* : */
+        0xFF, /* ; */
+        0xFF, /* < */
+        0x9E, /* = */
+        0xFF, /* > */
+        0x99, /* ? */
+        0xFF, /* @ */
+        0x03, /* A */
+        0x19, /* B */
+        0x0E, /* C */
+        0x09, /* D */
+        0x01, /* E */
+        0x0D, /* F */
+        0x1A, /* G */
+        0x14, /* H */
+        0x06, /* I */
+        0x0B, /* J */
+        0x0F, /* K */
+        0x12, /* L */
+        0x1C, /* M */
+        0x0C, /* N */
+        0x18, /* O */
+        0x16, /* P */
+        0x17, /* Q */
+        0x0A, /* R */
+        0x05, /* S */
+        0x10, /* T */
+        0x07, /* U */
+        0x1E, /* V */
+        0x13, /* W */
+        0x1D, /* X */
+        0x15, /* Y */
+        0x11, /* Z */
+        0xFF, /* [ */
+        0xFF, /* \ */
+        0xFF, /* ] */
+        0x9B, /* ^ */
+        0xFF, /* _ */
+        0xFF, /* ` */
+        0x03, /* a */
+        0x19, /* b */
+        0x0E, /* c */
+        0x09, /* d */
+        0x01, /* e */
+        0x0D, /* f */
+        0x1A, /* g */
+        0x14, /* h */
+        0x06, /* i */
+        0x0B, /* j */
+        0x0F, /* k */
+        0x12, /* l */
+        0x1C, /* m */
+        0x0C, /* n */
+        0x18, /* o */
+        0x16, /* p */
+        0x17, /* q */
+        0x0A, /* r */
+        0x05, /* s */
+        0x10, /* t */
+        0x07, /* u */
+        0x1E, /* v */
+        0x13, /* w */
+        0x1D, /* x */
+        0x15, /* y */
+        0x11, /* z */
+        0xFF, /* { */
+        0xFF, /* | */
+        0xFF, /* } */
+        0xFF, /* ~ */
+        0xFF, /* DEL */
+    };
+    uint16_t shift;
+
+    ch = conv[ch];
+    if (ch == 0xFF)
+        return 0;
+    if ((ch & 0x40))
+        return ch & 0x1F;
+    if ((ch & 0x80))
+    {
+        if (s->baudot_tx_shift == 1)
+            return ch & 0x1F;
+        s->baudot_tx_shift = 1;
+        shift = BAUDOT_FIGURE_SHIFT;
+    }
+    else
+    {
+        if (s->baudot_tx_shift == 0)
+            return ch & 0x1F;
+        s->baudot_tx_shift = 0;
+        shift = BAUDOT_LETTER_SHIFT;
+    }
+    return (shift << 5) | (ch & 0x1F);
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(uint8_t) v18_decode_baudot(v18_state_t *s, uint8_t ch)
+{
+    static const uint8_t conv[2][32] =
+    {
+        {"\000E\nA SIU\rDRJNFCKTZLWHYPQOBG^MXV^"},
+        {"\0003\n- '87\r$4*,*:(5+)2#6019?*^./=^"}
+    };
+
+    switch (ch)
+    {
+    case BAUDOT_FIGURE_SHIFT:
+        s->baudot_rx_shift = 1;
+        break;
+    case BAUDOT_LETTER_SHIFT:
+        s->baudot_rx_shift = 0;
+        break;
+    default:
+        return conv[s->baudot_rx_shift][ch];
+    }
+    /* return 0 if we did not produce a character */
     return 0;
 }
-#endif
+/*- End of function --------------------------------------------------------*/
+
+static void v18_rx_dtmf(void *user_data, const char *digits, int len)
+{
+    v18_state_t *s;
+
+    s = (v18_state_t *) user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int v18_tdd_get_async_byte(void *user_data)
+{
+    v18_state_t *s;
+    int ch;
+    
+    s = (v18_state_t *) user_data;
+    if ((ch = queue_read_byte(&s->queue.queue)) >= 0)
+        return ch;
+    if (s->tx_signal_on)
+    {
+        /* The FSK should now be switched off. */
+        s->tx_signal_on = FALSE;
+        s->msg_len = 0;
+    }
+    return 0x1F;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void v18_tdd_put_async_byte(void *user_data, int byte)
+{
+    v18_state_t *s;
+    uint8_t octet;
+    
+    s = (v18_state_t *) user_data;
+    //printf("Rx bit %x\n", bit);
+    if (byte < 0)
+    {
+        /* Special conditions */
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.18 signal status is %s (%d)\n", signal_status_to_str(byte), byte);
+        switch (byte)
+        {
+        case SIG_STATUS_CARRIER_UP:
+            s->consecutive_ones = 0;
+            s->bit_pos = 0;
+            s->in_progress = 0;
+            s->msg_len = 0;
+            break;
+        case SIG_STATUS_CARRIER_DOWN:
+            if (s->msg_len > 0)
+            {
+                /* Whatever we have to date constitutes the message */
+                s->put_msg(s->user_data, s->msg, s->msg_len);
+                s->msg_len = 0;
+            }
+            break;
+        default:
+            span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected special put byte value - %d!\n", byte);
+            break;
+        }
+        return;
+    }
+    if ((octet = v18_decode_baudot(s, (uint8_t) (byte & 0x1F))))
+        s->msg[s->msg_len++] = octet;
+    if (s->msg_len >= 256)
+    {
+        s->put_msg(s->user_data, s->msg, s->msg_len);
+        s->msg_len = 0;
+    }
+}
 /*- End of function --------------------------------------------------------*/
 
 SPAN_DECLARE(int) v18_tx(v18_state_t *s, int16_t *amp, int max_len)
 {
+    int len;
+    int lenx;
+
+    len = tone_gen(&(s->alert_tone_gen), amp, max_len);
+    if (s->tx_signal_on)
+    {
+        switch (s->mode)
+        {
+        case V18_MODE_DTMF:
+            if (len < max_len)
+                len += dtmf_tx(&(s->dtmftx), amp, max_len - len);
+            break;
+        default:
+            if (len < max_len)
+            {
+                if ((lenx = fsk_tx(&(s->fsktx), amp + len, max_len - len)) <= 0)
+                    s->tx_signal_on = FALSE;
+                len += lenx;
+            }
+            break;
+        }
+    }
+    return len;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) v18_rx(v18_state_t *s, const int16_t amp[], int len)
+{
+    switch (s->mode)
+    {
+    case V18_MODE_DTMF:
+        /* Apply a message timeout. */
+        s->in_progress -= len;
+        if (s->in_progress <= 0)
+            s->msg_len = 0;
+        dtmf_rx(&(s->dtmfrx), amp, len);
+        break;
+    default:
+        fsk_rx(&(s->fskrx), amp, len);
+        break;
+    }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v18_rx(v18_state_t *s, const int16_t *amp, int len)
+SPAN_DECLARE(int) v18_put(v18_state_t *s, const char msg[], int len)
 {
-    return 0;
+    size_t space;
+
+    /* This returns the number of characters that would not fit in the buffer.
+       The buffer will only be loaded if the whole string of digits will fit,
+       in which case zero is returned. */
+    if (len < 0)
+    {
+        if ((len = strlen(msg)) == 0)
+            return 0;
+    }
+    if ((space = queue_free_space(&s->queue.queue)) < (size_t) len)
+        return len - (int) space;
+    if (queue_write(&s->queue.queue, (const uint8_t *) msg, len) >= 0)
+        return 0;
+    return -1;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -385,7 +689,9 @@ SPAN_DECLARE(logging_state_t *) v18_get_logging_state(v18_state_t *s)
 
 SPAN_DECLARE(v18_state_t *) v18_init(v18_state_t *s,
                                      int caller,
-                                     int mode)
+                                     int mode,
+                                     put_msg_func_t put_msg,
+                                     void *user_data)
 {
     if (s == NULL)
     {
@@ -395,7 +701,47 @@ SPAN_DECLARE(v18_state_t *) v18_init(v18_state_t *s,
     memset(s, 0, sizeof(*s));
     s->caller = caller;
     s->mode = mode;
+    s->put_msg = put_msg;
+    s->user_data = user_data;
 
+    switch (s->mode)
+    {
+    case V18_MODE_5BIT_45:
+        fsk_tx_init(&(s->fsktx), &preset_fsk_specs[FSK_WEITBRECHT], async_tx_get_bit, &(s->asynctx));
+        async_tx_init(&(s->asynctx), 5, ASYNC_PARITY_NONE, 2, FALSE, v18_tdd_get_async_byte, s);
+        /* Schedule an explicit shift at the start of baudot transmission */
+        s->baudot_tx_shift = 2;
+        /* TDD uses 5 bit data, no parity and 1.5 stop bits. We scan for the first stop bit, and
+           ride over the fraction. */
+        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_WEITBRECHT], 7, v18_tdd_put_async_byte, s);
+        s->baudot_rx_shift = 2;
+        break;
+    case V18_MODE_5BIT_50:
+        fsk_tx_init(&(s->fsktx), &preset_fsk_specs[FSK_WEITBRECHT50], async_tx_get_bit, &(s->asynctx));
+        async_tx_init(&(s->asynctx), 5, ASYNC_PARITY_NONE, 2, FALSE, v18_tdd_get_async_byte, s);
+        /* Schedule an explicit shift at the start of baudot transmission */
+        s->baudot_tx_shift = 2;
+        /* TDD uses 5 bit data, no parity and 1.5 stop bits. We scan for the first stop bit, and
+           ride over the fraction. */
+        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_WEITBRECHT50], 7, v18_tdd_put_async_byte, s);
+        s->baudot_rx_shift = 2;
+        break;
+    case V18_MODE_DTMF:
+        dtmf_tx_init(&(s->dtmftx));
+        dtmf_rx_init(&(s->dtmfrx), v18_rx_dtmf, s);
+        break;
+    case V18_MODE_EDT:
+        break;
+    case V18_MODE_BELL103:
+        break;
+    case V18_MODE_V23VIDEOTEX:
+        break;
+    case V18_MODE_V21TEXTPHONE:
+        break;
+    case V18_MODE_V18TEXTPHONE:
+        break;
+    }
+    queue_init(&s->queue.queue, 128, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC);
     return s;
 }
 /*- End of function --------------------------------------------------------*/
@@ -410,6 +756,31 @@ SPAN_DECLARE(int) v18_free(v18_state_t *s)
 {
     free(s);
     return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(const char *) v18_mode_to_str(int mode)
+{
+    switch (mode)
+    {
+    case V18_MODE_5BIT_45:
+        return "Weitbrecht TDD (45.45bps)";
+    case V18_MODE_5BIT_50:
+        return "Weitbrecht TDD (50bps)";
+    case V18_MODE_DTMF:
+        return "DTMF";
+    case V18_MODE_EDT:
+        return "EDT";
+    case V18_MODE_BELL103:
+        return "Bell 103";
+    case V18_MODE_V23VIDEOTEX:
+        return "Videotex";
+    case V18_MODE_V21TEXTPHONE:
+        return "V.21";
+    case V18_MODE_V18TEXTPHONE:
+        return "V.18 text telephone";
+    }
+    return "???";
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

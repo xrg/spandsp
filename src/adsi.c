@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.74 2009/04/01 13:22:40 steveu Exp $
+ * $Id: adsi.c,v 1.75 2009/04/02 13:43:49 steveu Exp $
  */
 
 /*! \file */
@@ -191,7 +191,6 @@ static void adsi_rx_put_bit(void *user_data, int bit)
             s->bit_pos = 0;
             s->in_progress = 0;
             s->msg_len = 0;
-            s->baudot_shift = 0;
             break;
         case SIG_STATUS_CARRIER_DOWN:
             break;
@@ -314,7 +313,6 @@ static void adsi_tdd_put_async_byte(void *user_data, int byte)
             s->bit_pos = 0;
             s->in_progress = 0;
             s->msg_len = 0;
-            s->baudot_shift = 0;
             break;
         case SIG_STATUS_CARRIER_DOWN:
             if (s->msg_len > 0)
@@ -393,7 +391,7 @@ static void start_tx(adsi_tx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) adsi_rx(adsi_rx_state_t *s, const int16_t *amp, int len)
+SPAN_DECLARE(int) adsi_rx(adsi_rx_state_t *s, const int16_t amp[], int len)
 {
     switch (s->standard)
     {
@@ -463,7 +461,7 @@ SPAN_DECLARE(int) adsi_rx_free(adsi_rx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) adsi_tx(adsi_tx_state_t *s, int16_t *amp, int max_len)
+SPAN_DECLARE(int) adsi_tx(adsi_tx_state_t *s, int16_t amp[], int max_len)
 {
     int len;
     int lenx;

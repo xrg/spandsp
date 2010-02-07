@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.52 2009/04/01 13:22:40 steveu Exp $
+ * $Id: adsi_tests.c,v 1.54 2009/04/02 13:43:49 steveu Exp $
  */
 
 /*! \page adsi_tests_page ADSI tests
@@ -636,11 +636,11 @@ static void basic_tests(int standard)
     int i;
 
     basic_testing = TRUE;
-    printf("Testing %s\n", adsi_standard_to_str(current_standard));
-    tx_adsi = adsi_tx_init(NULL, current_standard);
+    printf("Testing %s\n", adsi_standard_to_str(standard));
+    tx_adsi = adsi_tx_init(NULL, standard);
     if (short_preamble)
         adsi_tx_set_preamble(tx_adsi, 50, 20, 5, -1);
-    rx_adsi = adsi_rx_init(NULL, current_standard, put_adsi_msg, NULL);
+    rx_adsi = adsi_rx_init(NULL, standard, put_adsi_msg, NULL);
 
    /* Fake an OK condition for the first message test */
     good_message_received = TRUE;
@@ -660,7 +660,7 @@ static void basic_tests(int standard)
             {
                 if (!good_message_received)
                 {
-                    printf("No message received %s (%d)\n", adsi_standard_to_str(current_standard), i);
+                    printf("No message received %s (%d)\n", adsi_standard_to_str(standard), i);
                     exit(2);
                 }
                 good_message_received = FALSE;
@@ -703,10 +703,7 @@ static void mitel_cm7291_side_2_and_bellcore_tests(int standard)
     /* The remainder of the Mitel tape is the talk-off test */
     /* Here we use the Bellcore test tapes (much tougher), in six
        wave files - 1 from each side of the original 3 cassette tapes */
-    /* Bellcore say you should get no more than 470 false detections with
-       a good receiver. Dialogic claim 20. Of course, we can do better than
-       that, eh? */
-    printf("Talk-off tests for %s\n", adsi_standard_to_str(current_standard));
+    printf("Talk-off tests for %s\n", adsi_standard_to_str(standard));
     rx_adsi = adsi_rx_init(NULL, standard, put_adsi_msg, NULL);
     for (j = 0;  bellcore_files[j][0];  j++)
     {
