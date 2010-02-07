@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.73 2007/10/30 12:47:23 steveu Exp $
+ * $Id: t38_terminal.c,v 1.75 2007/11/22 12:58:00 steveu Exp $
  */
 
 /*! \file */
@@ -87,6 +87,7 @@ enum
     T38_TIMED_STEP_NON_ECM_MODEM,
     T38_TIMED_STEP_NON_ECM_MODEM_2,
     T38_TIMED_STEP_NON_ECM_MODEM_3,
+    T38_TIMED_STEP_NON_ECM_MODEM_4,
     T38_TIMED_STEP_HDLC_MODEM,
     T38_TIMED_STEP_HDLC_MODEM_2,
     T38_TIMED_STEP_HDLC_MODEM_3,
@@ -530,13 +531,33 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
            issues. */
         len = t30_non_ecm_get_chunk(&s->t30_state, buf, s->octets_per_data_packet);
         bit_reverse(buf, buf, len);
-        if (len >= s->octets_per_data_packet)
+        if (len < s->octets_per_data_packet)
+        {
+            /* That's the end of the image data. Do a little padding now */
+            memset(buf + len, 0, s->octets_per_data_packet - len);
+            s->trailer_bytes = 3*s->octets_per_data_packet + len;
+            len = s->octets_per_data_packet;
+            s->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_4;
+        }
+        t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_T4_NON_ECM_DATA, buf, len, DATA_TX_COUNT);
+        s->next_tx_samples += ms_to_samples(s->ms_per_tx_chunk);
+        break;
+    case T38_TIMED_STEP_NON_ECM_MODEM_4:
+        /* This pads the end of the data with some zeros. If we just stop abruptly
+           at the end of the EOLs, some ATAs fail to clean up properly before
+           shutting down their transmit modem, and the last few rows of the image
+           get corrupted. */
+        memset(buf, 0, s->octets_per_data_packet);
+        len = s->octets_per_data_packet;
+        s->trailer_bytes -= len;
+        if (s->trailer_bytes > 0)
         {
             t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_T4_NON_ECM_DATA, buf, len, DATA_TX_COUNT);
             s->next_tx_samples += ms_to_samples(s->ms_per_tx_chunk);
         }
         else
         {
+            len += s->trailer_bytes;
             t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_T4_NON_ECM_SIG_END, buf, len, s->data_end_tx_count);
             /* This should not be needed, since the message above indicates the end of the signal, but it
                seems like it can improve compatibility with quirky implementations. */
@@ -718,6 +739,7 @@ static void set_tx_type(void *user_data, int type, int short_train, int use_hdlc
         s->current_tx_data_type = T38_DATA_NONE;
         break;
     case T30_MODEM_V21:
+#if 0
         if (s->current_tx_type > T30_MODEM_V21)
         {
             /* Pause before switching from phase C, as per T.30. If we omit this, the receiver
@@ -728,6 +750,9 @@ static void set_tx_type(void *user_data, int type, int short_train, int use_hdlc
         {
             s->next_tx_samples = s->samples;
         }
+#else
+        s->next_tx_samples = s->samples + ms_to_samples(75);
+#endif
         set_octets_per_data_packet(s, 300);
         s->next_tx_indicator = T38_IND_V21_PREAMBLE;
         s->current_tx_data_type = T38_DATA_V21;

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.c,v 1.36 2007/10/24 13:32:06 steveu Exp $
+ * $Id: tone_generate.c,v 1.37 2007/11/18 08:57:14 steveu Exp $
  */
 
 /*! \file */
@@ -69,22 +69,23 @@ void make_tone_gen_descriptor(tone_gen_descriptor_t *s,
                               int repeat)
 {
     memset(s, 0, sizeof(*s));
-    if (f1 >= 1)
+    if (f1)
     {
-        s->phase_rate[0] = dds_phase_ratef((float) f1);
-        s->gain[0] = dds_scaling_dbm0f((float) l1);
+        s->tone[0].phase_rate = dds_phase_ratef((float) f1);
+        if (f2 < 0)
+            s->tone[0].phase_rate = -s->tone[0].phase_rate;
+        s->tone[0].gain = dds_scaling_dbm0f((float) l1);
     }
-    s->modulate = (f2 < 0);
     if (f2)
     {
-        s->phase_rate[1] = dds_phase_ratef((float) abs(f2));
-        s->gain[1] = (s->modulate)  ?  (float) l2/100.0f  :  dds_scaling_dbm0f((float) l2);
+        s->tone[1].phase_rate = dds_phase_ratef((float) abs(f2));
+        s->tone[1].gain = (f2 < 0)  ?  (float) l2/100.0f  :  dds_scaling_dbm0f((float) l2);
     }
 
-    s->duration[0] = d1*8;
-    s->duration[1] = d2*8;
-    s->duration[2] = d3*8;
-    s->duration[3] = d4*8;
+    s->duration[0] = d1*SAMPLE_RATE/1000;
+    s->duration[1] = d2*SAMPLE_RATE/1000;
+    s->duration[2] = d3*SAMPLE_RATE/1000;
+    s->duration[3] = d4*SAMPLE_RATE/1000;
 
     s->repeat = repeat;
 }
@@ -94,18 +95,15 @@ void tone_gen_init(tone_gen_state_t *s, tone_gen_descriptor_t *t)
 {
     int i;
 
-    s->phase_rate[0] = t->phase_rate[0];
-    s->gain[0] = t->gain[0];
-    s->phase_rate[1] = t->phase_rate[1];
-    s->gain[1] = t->gain[1];
-    s->modulate = t->modulate;
+    for (i = 0;  i < 4;  i++)
+    {
+        s->tone[i] = t->tone[i];
+        s->phase[i] = 0;
+    }
 
     for (i = 0;  i < 4;  i++)
         s->duration[i] = t->duration[i];
     s->repeat = t->repeat;
-
-    s->phase[0] = 0;
-    s->phase[1] = 0;
 
     s->current_section = 0;
     s->current_position = 0;
@@ -118,6 +116,7 @@ int tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples)
     int limit;
     float xamp;
     float yamp;
+    int i;
 
     if (s->current_section < 0)
         return  0;
@@ -137,24 +136,33 @@ int tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples)
         }
         else
         {
-            for (  ;  samples < limit;  samples++)
+            if (s->tone[0].phase_rate < 0)
             {
-                xamp = 0.0f;
-                if (s->phase_rate[0])
-                    xamp = dds_modf(&(s->phase[0]), s->phase_rate[0], s->gain[0], 0);
-                if (s->phase_rate[1])
+                for (  ;  samples < limit;  samples++)
                 {
-                    yamp = dds_modf(&(s->phase[1]), s->phase_rate[1], s->gain[1], 0);
-                    if (s->modulate)
-                        xamp *= (1.0f + yamp);
-                    else
-                        xamp += yamp;
+                    /* There must be two, and only two tones */
+                    xamp = dds_modf(&s->phase[0], -s->tone[0].phase_rate, s->tone[0].gain, 0)
+                         *(1.0f + dds_modf(&s->phase[1], s->tone[1].phase_rate, s->tone[1].gain, 0));
+                    amp[samples] = (int16_t) rintf(xamp);
                 }
-                /* Saturation of the answer is the right thing at this point.
-                   However, we are normally generating well controlled tones,
-                   that cannot clip. So, the overhead of doing saturation is
-                   a waste of valuable time. */
-                amp[samples] = (int16_t) rintf(xamp);
+            }
+            else
+            {
+                for (  ;  samples < limit;  samples++)
+                {
+                    xamp = 0.0f;
+                    for (i = 0;  i < 4;  i++)
+                    {
+                        if (s->tone[i].phase_rate == 0)
+                            break;
+                        xamp += dds_modf(&s->phase[i], s->tone[i].phase_rate, s->tone[i].gain, 0);
+                    }
+                    /* Saturation of the answer is the right thing at this point.
+                       However, we are normally generating well controlled tones,
+                       that cannot clip. So, the overhead of doing saturation is
+                       a waste of valuable time. */
+                    amp[samples] = (int16_t) rintf(xamp);
+                }
             }
         }
         if (s->current_position >= s->duration[s->current_section])

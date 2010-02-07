@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_monitor.cpp,v 1.12 2007/08/04 15:41:37 steveu Exp $
+ * $Id: modem_monitor.cpp,v 1.13 2007/11/20 17:26:53 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,9 +42,9 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Overlay_Window.H>
 #include <FL/Fl_Light_Button.H>
-#include <Fl/Fl_Cartesian.H>
-#include <Fl/Fl_Audio_Meter.H>
-#include <Fl/Fl_Output.H>
+#include <FL/Fl_Cartesian.H>
+#include <FL/Fl_Audio_Meter.H>
+#include <FL/Fl_Output.H>
 #include <FL/fl_draw.H>
 
 #include "../src/spandsp/complex.h"

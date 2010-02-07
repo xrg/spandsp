@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.21 2007/10/30 12:47:23 steveu Exp $
+ * $Id: t38_terminal.h,v 1.22 2007/11/21 18:17:50 steveu Exp $
  */
 
 /*! \file */
@@ -71,6 +71,8 @@ typedef struct
 
     int current_rx_type;
     int current_tx_type;
+    
+    int trailer_bytes;
 
     /*! \brief TRUE is there has been some T.38 data missed (i.e. lost packets) */
     int missing_data;

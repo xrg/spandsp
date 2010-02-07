@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo_monitor.cpp,v 1.10 2006/10/24 13:22:02 steveu Exp $
+ * $Id: echo_monitor.cpp,v 1.11 2007/11/20 17:26:53 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -47,8 +47,8 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Overlay_Window.H>
 #include <FL/Fl_Light_Button.H>
-#include <Fl/Fl_Cartesian.H>
-#include <Fl/Fl_Audio_Meter.H>
+#include <FL/Fl_Cartesian.H>
+#include <FL/Fl_Audio_Meter.H>
 #include <FL/fl_draw.H>
 
 #include "../src/spandsp/complex.h"
