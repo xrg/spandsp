@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_tests.c,v 1.70 2008/05/13 13:17:26 steveu Exp $
+ * $Id: t38_gateway_tests.c,v 1.71 2008/06/16 13:35:48 steveu Exp $
  */
 
 /*! \file */
@@ -119,7 +119,7 @@ static int phase_d_handler(t30_state_t *s, void *user_data, int result)
     printf("%c: Phase D: bad rows %d\n", i, t.bad_rows);
     printf("%c: Phase D: longest bad row run %d\n", i, t.longest_bad_row_run);
     printf("%c: Phase D: coding method %s\n", i, t4_encoding_to_str(t.encoding));
-    printf("%c: Phase D: image size %d\n", i, t.image_size);
+    printf("%c: Phase D: image size %d bytes\n", i, t.image_size);
     if ((u = t30_get_tx_ident(s)))
         printf("%c: Phase D: local ident '%s'\n", i, u);
     if ((u = t30_get_rx_ident(s)))
@@ -247,6 +247,7 @@ int main(int argc, char *argv[])
     int speed_pattern_no;
     double tx_when;
     double rx_when;
+    int supported_modems;
     int use_gui;
     int opt;
     t38_stats_t stats;
@@ -262,7 +263,8 @@ int main(int argc, char *argv[])
     use_tep = FALSE;
     feedback_audio = FALSE;
     use_transmit_on_idle = TRUE;
-    while ((opt = getopt(argc, argv, "efgi:Ilm:s:tv:")) != -1)
+    supported_modems = T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17;
+    while ((opt = getopt(argc, argv, "efgi:Ilm:M:s:tv:")) != -1)
     {
         switch (opt)
         {
@@ -290,6 +292,9 @@ int main(int argc, char *argv[])
             log_audio = TRUE;
             break;
         case 'm':
+            supported_modems = atoi(optarg);
+            break;
+        case 'M':
             model_no = optarg[0] - 'A' + 1;
             break;
         case 's':
@@ -352,7 +357,7 @@ int main(int argc, char *argv[])
     }
     fax_set_transmit_on_idle(&fax_state_a, use_transmit_on_idle);
     fax_set_tep_mode(&fax_state_a, use_tep);
-    t30_set_supported_modems(&(fax_state_a.t30_state), T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
+    t30_set_supported_modems(&(fax_state_a.t30_state), supported_modems);
     t30_set_tx_ident(&fax_state_a.t30_state, "11111111");
     t30_set_tx_nsf(&fax_state_a.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
     t30_set_tx_file(&fax_state_a.t30_state, input_file_name, -1, -1);
@@ -376,7 +381,7 @@ int main(int argc, char *argv[])
         exit(2);
     }
     t38_gateway_set_transmit_on_idle(&t38_state_a, use_transmit_on_idle);
-    t38_gateway_set_supported_modems(&t38_state_a, T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
+    t38_gateway_set_supported_modems(&t38_state_a, supported_modems);
     //t38_gateway_set_nsx_suppression(&t38_state_a, FALSE);
     t38_set_t38_version(&t38_state_a.t38, t38_version);
     t38_gateway_set_ecm_capability(&t38_state_a, use_ecm);
@@ -392,7 +397,7 @@ int main(int argc, char *argv[])
         exit(2);
     }
     t38_gateway_set_transmit_on_idle(&t38_state_b, use_transmit_on_idle);
-    t38_gateway_set_supported_modems(&t38_state_b, T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
+    t38_gateway_set_supported_modems(&t38_state_b, supported_modems);
     //t38_gateway_set_nsx_suppression(&t38_state_b, FALSE);
     t38_set_t38_version(&t38_state_b.t38, t38_version);
     t38_gateway_set_ecm_capability(&t38_state_b, use_ecm);
@@ -409,7 +414,7 @@ int main(int argc, char *argv[])
     }
     fax_set_transmit_on_idle(&fax_state_b, use_transmit_on_idle);
     fax_set_tep_mode(&fax_state_b, use_tep);
-    t30_set_supported_modems(&(fax_state_b.t30_state), T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
+    t30_set_supported_modems(&(fax_state_b.t30_state), supported_modems);
     t30_set_tx_ident(&fax_state_b.t30_state, "22222222");
     t30_set_tx_nsf(&fax_state_b.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
     t30_set_rx_file(&fax_state_b.t30_state, OUTPUT_FILE_NAME, -1);

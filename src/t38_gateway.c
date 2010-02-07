@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.121 2008/05/16 12:31:22 steveu Exp $
+ * $Id: t38_gateway.c,v 1.122 2008/06/16 13:35:48 steveu Exp $
  */
 
 /*! \file */
@@ -529,14 +529,16 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     default:
         break;
     }
-    if (s->non_ecm_in_octets)
+    if (s->non_ecm_in_octets  ||  s->non_ecm_out_octets)
     {
-        span_log(&s->logging, SPAN_LOG_FLOW, "%d incoming non-ECM octets, %d rows\n", s->non_ecm_in_octets, s->non_ecm_in_rows);
+        span_log(&s->logging,
+                 SPAN_LOG_FLOW,
+                 "%d incoming non-ECM octets, %d rows.  %d outgoing non-ECM octets, %d rows\n",
+                 s->non_ecm_in_octets,
+                 s->non_ecm_in_rows,
+                 s->non_ecm_out_octets,
+                 s->non_ecm_out_rows);
         s->non_ecm_in_octets = 0;
-    }
-    if (s->non_ecm_out_octets)
-    {
-        span_log(&s->logging, SPAN_LOG_FLOW, "%d outgoing non-ECM octets, %d rows\n", s->non_ecm_out_octets, s->non_ecm_out_rows);
         s->non_ecm_out_octets = 0;
     }
     s->non_ecm_in_rows = 0;

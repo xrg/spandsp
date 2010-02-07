@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.50 2008/05/02 14:26:39 steveu Exp $
+ * $Id: v17rx.h,v 1.51 2008/06/16 13:35:48 steveu Exp $
  */
 
 /*! \file */
@@ -350,7 +350,7 @@ typedef struct
     int32_t angles[16];
     /*! \brief A pointer to the current constellation. */
 #if defined(SPANDSP_USE_FIXED_POINTx)
-    const complexi_t *constellation;
+    const complexi16_t *constellation;
 #else
     const complexf_t *constellation;
 #endif

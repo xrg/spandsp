@@ -24,7 +24,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.109 2008/05/05 12:42:06 steveu Exp $
+ * $Id: t4.c,v 1.110 2008/06/16 13:56:06 steveu Exp $
  */
 
 /*
@@ -800,6 +800,7 @@ static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
 
     /* We decompress bit by bit, as the data stream is received. We need to
        scan continuously for EOLs, so we might as well work this way. */
+    s->line_image_size += quantity;
     s->rx_bitstream |= (bit_string << s->rx_bits);
     if ((s->rx_bits += quantity) < 13)
         return FALSE;
@@ -1169,6 +1170,7 @@ int t4_rx_start_page(t4_state_t *s)
     s->tx_bitstream = 0;
     s->tx_bits = 8;
     s->image_size = 0;
+    s->line_image_size = 0;
     s->last_row_starts_at = 0;
 
     s->row_len = 0;
@@ -1868,6 +1870,7 @@ int t4_tx_start_page(t4_state_t *s)
     put_encoded_bits(s, 0, 7);
     s->bit_pos = 7;
     s->bit_ptr = 0;
+    s->line_image_size = s->image_size*8;
 
     return 0;
 }
@@ -2050,7 +2053,7 @@ void t4_get_transfer_statistics(t4_state_t *s, t4_stats_t *t)
     t->x_resolution = s->x_resolution;
     t->y_resolution = s->y_resolution;
     t->encoding = s->line_encoding;
-    t->image_size = s->image_size;
+    t->line_image_size = s->line_image_size/8;
 }
 /*- End of function --------------------------------------------------------*/
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.86 2008/05/13 13:17:25 steveu Exp $
+ * $Id: fax_tests.c,v 1.87 2008/06/16 13:35:48 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -110,7 +110,7 @@ static int phase_d_handler(t30_state_t *s, void *user_data, int result)
     printf("%d: Phase D: bad rows %d\n", i, t.bad_rows);
     printf("%d: Phase D: longest bad row run %d\n", i, t.longest_bad_row_run);
     printf("%d: Phase D: compression type %d\n", i, t.encoding);
-    printf("%d: Phase D: image size %d\n", i, t.image_size);
+    printf("%d: Phase D: image size %d bytes\n", i, t.image_size);
     if ((u = t30_get_tx_ident(s)))
         printf("%d: Phase D: local ident '%s'\n", i, u);
     if ((u = t30_get_rx_ident(s)))
@@ -214,6 +214,7 @@ int main(int argc, char *argv[])
     int polled_mode;
     int reverse_flow;
     int use_page_limits;
+    int supported_modems;
     time_t start_time;
     time_t end_time;
     char *page_header_info;
@@ -231,7 +232,8 @@ int main(int argc, char *argv[])
     use_transmit_on_idle = TRUE;
     use_receiver_not_ready = FALSE;
     use_page_limits = FALSE;
-    while ((opt = getopt(argc, argv, "ehH:i:I:lprRtTw:")) != -1)
+    supported_modems = T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17;
+    while ((opt = getopt(argc, argv, "ehH:i:I:lm:prRtTw:")) != -1)
     {
         switch (opt)
         {
@@ -252,6 +254,9 @@ int main(int argc, char *argv[])
             break;
         case 'l':
             log_audio = TRUE;
+            break;
+        case 'm':
+            supported_modems = atoi(optarg);
             break;
         case 'p':
             polled_mode = TRUE;
@@ -359,7 +364,7 @@ int main(int argc, char *argv[])
                                     | T30_SUPPORT_300_600_RESOLUTION
                                     | T30_SUPPORT_400_800_RESOLUTION
                                     | T30_SUPPORT_600_1200_RESOLUTION);
-        //t30_set_supported_modems(&mc->fax.t30_state, T30_SUPPORT_V27TER);
+        t30_set_supported_modems(&mc->fax.t30_state, supported_modems);
         if (use_ecm)
             t30_set_supported_compressions(&mc->fax.t30_state, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
         if ((mc->chan & 1))

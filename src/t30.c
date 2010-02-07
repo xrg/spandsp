@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.245 2008/05/29 17:26:55 steveu Exp $
+ * $Id: t30.c,v 1.246 2008/06/16 13:56:06 steveu Exp $
  */
 
 /*! \file */
@@ -5369,7 +5369,7 @@ void t30_get_transfer_statistics(t30_state_t *s, t30_stats_t *t)
     t->x_resolution = stats.x_resolution;
     t->y_resolution = stats.y_resolution;
     t->encoding = stats.encoding;
-    t->image_size = stats.image_size;
+    t->image_size = stats.line_image_size;
     t->current_status = s->current_status;
 }
 /*- End of function --------------------------------------------------------*/

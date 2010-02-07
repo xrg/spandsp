@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.106 2008/05/13 13:17:24 steveu Exp $
+ * $Id: v17rx.c,v 1.108 2008/06/16 13:35:48 steveu Exp $
  */
 
 /*! \file */
@@ -108,7 +108,7 @@ enum
 
 float v17_rx_carrier_frequency(v17_rx_state_t *s)
 {
-    return dds_frequency(s->carrier_phase_rate);
+    return dds_frequencyf(s->carrier_phase_rate);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1019,9 +1019,9 @@ int v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
         if (step < 0)
             step += RX_PULSESHAPER_COEFF_SETS;
 #if defined(SPANDSP_USE_FIXED_POINT)
-        zi.re = (int32_t) pulseshaper[step][0].re*(int32_t) s->rrc_filter[s->rrc_filter_step];
+        zi.re = (int32_t) rx_pulseshaper[step][0].re*(int32_t) s->rrc_filter[s->rrc_filter_step];
         for (j = 1;  j < V17_RX_FILTER_STEPS;  j++)
-            zi.re += (int32_t) pulseshaper[step][j].re*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
+            zi.re += (int32_t) rx_pulseshaper[step][j].re*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
         sample.re = zi.re*s->agc_scaling;
 #else
         zz.re = rx_pulseshaper[step][0].re*s->rrc_filter[s->rrc_filter_step];

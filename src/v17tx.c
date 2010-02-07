@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.c,v 1.59 2008/05/13 13:17:24 steveu Exp $
+ * $Id: v17tx.c,v 1.60 2008/06/16 13:35:48 steveu Exp $
  */
 
 /*! \file */
@@ -52,6 +52,10 @@
 #include "spandsp/power_meter.h"
 
 #include "spandsp/v17tx.h"
+
+#if defined(SPANDSP_USE_FIXED_POINT)
+#define SPANDSP_USE_FIXED_POINTx
+#endif
 
 #include "v17tx_constellation_maps.h"
 #if defined(SPANDSP_USE_FIXED_POINT)

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.50 2008/05/05 12:42:06 steveu Exp $
+ * $Id: t4.h,v 1.51 2008/06/16 13:56:06 steveu Exp $
  */
 
 /*! \file */
@@ -224,6 +224,8 @@ typedef struct
     int bytes_per_row;
     /*! \brief The size of the image in the image buffer, in bytes. */
     int image_size;
+    /*! \brief The size of the compressed image on the line side, in bits. */
+    int line_image_size;
     /*! \brief The current size of the image buffer. */
     int image_buffer_size;
     /*! \brief A point to the image buffer. */
@@ -361,8 +363,8 @@ typedef struct
     int y_resolution;
     /*! \brief The type of compression used between the FAX machines */
     int encoding;
-    /*! \brief The size of the image, in bytes */
-    int image_size;
+    /*! \brief The size of the image on the line, in bytes */
+    int line_image_size;
 } t4_stats_t;
     
 #if defined(__cplusplus)

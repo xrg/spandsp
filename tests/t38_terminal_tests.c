@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_tests.c,v 1.58 2008/05/13 13:17:26 steveu Exp $
+ * $Id: t38_terminal_tests.c,v 1.59 2008/06/16 13:35:48 steveu Exp $
  */
 
 /*! \file */
@@ -111,7 +111,7 @@ static int phase_d_handler(t30_state_t *s, void *user_data, int result)
     printf("%c: Phase D: bad rows %d\n", i, t.bad_rows);
     printf("%c: Phase D: longest bad row run %d\n", i, t.longest_bad_row_run);
     printf("%c: Phase D: coding method %s\n", i, t4_encoding_to_str(t.encoding));
-    printf("%c: Phase D: image size %d\n", i, t.image_size);
+    printf("%c: Phase D: image size %d bytes\n", i, t.image_size);
     if ((u = t30_get_tx_ident(s)))
         printf("%c: Phase D: local ident '%s'\n", i, u);
     if ((u = t30_get_rx_ident(s)))
@@ -225,6 +225,7 @@ int main(int argc, char *argv[])
     double tx_when;
     double rx_when;
     int use_gui;
+    int supported_modems;
     int opt;
 
     t38_version = 1;
@@ -236,7 +237,8 @@ int main(int argc, char *argv[])
     model_no = 0;
     speed_pattern_no = 1;
     use_gui = FALSE;
-    while ((opt = getopt(argc, argv, "efgi:Im:ps:tv:")) != -1)
+    supported_modems = T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17;
+    while ((opt = getopt(argc, argv, "efgi:Im:M:ps:tv:")) != -1)
     {
         switch (opt)
         {
@@ -258,6 +260,9 @@ int main(int argc, char *argv[])
             simulate_incrementing_repeats = TRUE;
             break;
         case 'm':
+            supported_modems = atoi(optarg);
+            break;
+        case 'M':
             model_no = optarg[0] - 'A' + 1;
             break;
         case 'p':
@@ -310,6 +315,7 @@ int main(int argc, char *argv[])
     span_log_set_level(&t38_state_a.t30_state.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t38_state_a.t30_state.logging, "T.38-A");
 
+    t30_set_supported_modems(&(t38_state_a.t30_state), supported_modems);
     t30_set_tx_ident(&t38_state_a.t30_state, "11111111");
     t30_set_tx_nsf(&t38_state_a.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
     t30_set_tx_file(&t38_state_a.t30_state, input_file_name, -1, -1);
@@ -335,6 +341,7 @@ int main(int argc, char *argv[])
     span_log_set_level(&t38_state_b.t30_state.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t38_state_b.t30_state.logging, "T.38-B");
 
+    t30_set_supported_modems(&(t38_state_b.t30_state), supported_modems);
     t30_set_tx_ident(&t38_state_b.t30_state, "22222222");
     t30_set_tx_nsf(&t38_state_b.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
     t30_set_rx_file(&t38_state_b.t30_state, OUTPUT_FILE_NAME, -1);
