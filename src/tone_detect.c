@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect.c,v 1.40 2008/02/11 12:31:50 steveu Exp $
+ * $Id: tone_detect.c,v 1.43 2008/04/27 10:34:54 steveu Exp $
  */
  
 /*! \file tone_detect.h */
@@ -69,14 +69,16 @@ void make_goertzel_descriptor(goertzel_descriptor_t *t, float freq, int samples)
 goertzel_state_t *goertzel_init(goertzel_state_t *s,
                                 goertzel_descriptor_t *t)
 {
-    if (s  ||  (s = malloc(sizeof(goertzel_state_t))))
+    if (s == NULL)
     {
-        s->v2 =
-        s->v3 = 0.0;
-        s->fac = t->fac;
-        s->samples = t->samples;
-        s->current_sample = 0;
+        if ((s = (goertzel_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
     }
+    s->v2 =
+    s->v3 = 0.0;
+    s->fac = t->fac;
+    s->samples = t->samples;
+    s->current_sample = 0;
     return s;
 }
 /*- End of function --------------------------------------------------------*/

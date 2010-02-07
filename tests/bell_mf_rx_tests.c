@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_mf_rx_tests.c,v 1.7 2007/11/10 11:14:57 steveu Exp $
+ * $Id: bell_mf_rx_tests.c,v 1.11 2008/04/26 13:39:16 steveu Exp $
  */
 
 /*! \file */
@@ -183,28 +183,26 @@ static void digit_delivery(void *data, const char *digits, int len)
     const char *s = ALL_POSSIBLE_DIGITS;
     const char *t;
 
-    if (data == (void *) 0x12345678)
-    {
-        callback_ok = TRUE;
-        t = s + callback_roll;
-        seg = 15 - callback_roll;
-        for (i = 0;  i < len;  i += seg, seg = 15)
-        {
-            if (i + seg > len)
-                seg = len - i;
-            if (memcmp(digits + i, t, seg))
-            {
-                callback_ok = FALSE;
-                printf("Fail at %d %d\n", i, seg);
-                break;
-            }
-            t = s;
-            callback_roll = (callback_roll + seg)%15;
-        }
-    }
-    else
+    if (data != (void *) 0x12345678)
     {
         callback_ok = FALSE;
+        return;
+    }
+    callback_ok = TRUE;
+    t = s + callback_roll;
+    seg = 15 - callback_roll;
+    for (i = 0;  i < len;  i += seg, seg = 15)
+    {
+        if (i + seg > len)
+            seg = len - i;
+        if (memcmp(digits + i, t, seg))
+        {
+            callback_ok = FALSE;
+            printf("Fail at %d %d\n", i, seg);
+            break;
+        }
+        t = s;
+        callback_roll = (callback_roll + seg)%15;
     }
 }
 /*- End of function --------------------------------------------------------*/

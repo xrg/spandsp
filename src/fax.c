@@ -11,19 +11,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.64 2008/02/11 12:39:10 steveu Exp $
+ * $Id: fax.c,v 1.68 2008/04/17 14:26:56 steveu Exp $
  */
 
 /*! \file */
@@ -72,8 +72,12 @@
 #include "spandsp/t30_fcf.h"
 #include "spandsp/t35.h"
 #include "spandsp/t30.h"
+#include "spandsp/t30_api.h"
+#include "spandsp/t30_logging.h"
 
 #include "spandsp/fax.h"
+
+#define HDLC_FRAMING_OK_THRESHOLD       5
 
 static void fax_send_hdlc(void *user_data, const uint8_t *msg, int len)
 {
@@ -256,7 +260,7 @@ static void fax_set_rx_type(void *user_data, int type, int short_train, int use_
     {
         put_bit_func = (put_bit_func_t) hdlc_rx_put_bit;
         put_bit_user_data = (void *) &(s->hdlcrx);
-        hdlc_rx_init(&(s->hdlcrx), FALSE, FALSE, 5, t30_hdlc_accept, &(s->t30_state));
+        hdlc_rx_init(&(s->hdlcrx), FALSE, FALSE, HDLC_FRAMING_OK_THRESHOLD, t30_hdlc_accept, &(s->t30_state));
     }
     else
     {
@@ -551,7 +555,7 @@ fax_state_t *fax_init(fax_state_t *s, int calling_party)
              (void *) s);
     t30_set_supported_modems(&(s->t30_state),
                              T30_SUPPORT_V27TER | T30_SUPPORT_V29);
-    hdlc_rx_init(&(s->hdlcrx), FALSE, FALSE, 5, t30_hdlc_accept, &(s->t30_state));
+    hdlc_rx_init(&(s->hdlcrx), FALSE, FALSE, HDLC_FRAMING_OK_THRESHOLD, t30_hdlc_accept, &(s->t30_state));
     fsk_rx_init(&(s->v21_rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &(s->hdlcrx));
     fsk_rx_signal_cutoff(&(s->v21_rx), -45.5);
     hdlc_tx_init(&(s->hdlctx), FALSE, 2, FALSE, hdlc_underflow_handler, &(s->t30_state));

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tests.c,v 1.81 2007/12/29 04:16:29 steveu Exp $
+ * $Id: v27ter_tests.c,v 1.85 2008/04/26 13:39:18 steveu Exp $
  */
 
 /*! \page v27ter_tests_page V.27ter modem tests
@@ -140,6 +140,9 @@ static void v27terputbit(void *user_data, int bit)
         case PUTBIT_TRAINING_FAILED:
             printf("Training failed\n");
             break;
+        case PUTBIT_TRAINING_IN_PROGRESS:
+            printf("Training in progress\n");
+            break;
         case PUTBIT_TRAINING_SUCCEEDED:
             printf("Training succeeded\n");
             break;
@@ -150,7 +153,7 @@ static void v27terputbit(void *user_data, int bit)
             printf("Carrier down\n");
             break;
         default:
-            printf("Eh!\n");
+            printf("Eh! - %d\n", bit);
             break;
         }
         return;

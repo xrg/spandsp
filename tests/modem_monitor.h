@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_monitor.h,v 1.12 2007/08/04 15:41:37 steveu Exp $
+ * $Id: modem_monitor.h,v 1.15 2008/04/26 13:39:17 steveu Exp $
  */
 
 /*! \page constel_page Modem performance monitoring

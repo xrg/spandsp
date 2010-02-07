@@ -9,6 +9,10 @@ The software has been designed to avoid intellectual property issues, using
 mature techniques where all relevant patents have expired. See the file
 DueDiligence for important information about these intellectual property issues.
 
+The library is licenced under the LGPL 2.1 licence. The test suite, and some support
+programs are licenced under the GPL 2 licence. The full text of these licences can
+be found in the file COPYING.
+
 Dependencies
 ------------
 

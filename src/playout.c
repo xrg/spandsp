@@ -17,19 +17,19 @@
  * compatible with the GPL licence used here.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: playout.c,v 1.10 2006/10/24 13:45:26 steveu Exp $
+ * $Id: playout.c,v 1.13 2008/04/27 10:34:54 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -238,7 +238,7 @@ int playout_put(playout_state_t *s, void *data, int type, timestamp_t sender_len
     }
     else
     {
-        if ((frame = (playout_frame_t *) malloc(sizeof(playout_frame_t))) == NULL)
+        if ((frame = (playout_frame_t *) malloc(sizeof(*frame))) == NULL)
             return PLAYOUT_ERROR;
     }
 

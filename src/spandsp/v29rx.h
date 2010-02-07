@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.h,v 1.51 2007/12/13 11:31:33 steveu Exp $
+ * $Id: v29rx.h,v 1.54 2008/05/02 14:26:39 steveu Exp $
  */
 
 /*! \file */
@@ -271,19 +271,19 @@ extern "C"
 /*! Initialise a V.29 modem receive context.
     \brief Initialise a V.29 modem receive context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
+    \param bit_rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
     \param put_bit The callback routine used to put the received data.
     \param user_data An opaque pointer passed to the put_bit routine.
     \return A pointer to the modem context, or NULL if there was a problem. */
-v29_rx_state_t *v29_rx_init(v29_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data);
+v29_rx_state_t *v29_rx_init(v29_rx_state_t *s, int bit_rate, put_bit_func_t put_bit, void *user_data);
 
 /*! Reinitialise an existing V.29 modem receive context.
     \brief Reinitialise an existing V.29 modem receive context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
+    \param bit_rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
     \param old_train TRUE if a previous trained values are to be reused.
     \return 0 for OK, -1 for bad parameter */
-int v29_rx_restart(v29_rx_state_t *s, int rate, int old_train);
+int v29_rx_restart(v29_rx_state_t *s, int bit_rate, int old_train);
 
 /*! Free a V.29 modem receive context.
     \brief Free a V.29 modem receive context.

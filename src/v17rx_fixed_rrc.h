@@ -1,6 +1,6 @@
-#define PULSESHAPER_GAIN        32767.000000f
-#define PULSESHAPER_COEFF_SETS  192
-static const complexi16_t pulseshaper[PULSESHAPER_COEFF_SETS][27] =
+#define RX_PULSESHAPER_GAIN        32767.000000f
+#define RX_PULSESHAPER_COEFF_SETS  192
+static const complexi16_t rx_pulseshaper[RX_PULSESHAPER_COEFF_SETS][27] =
 {
     {
         {       0,        0},     /* Filter 0 */

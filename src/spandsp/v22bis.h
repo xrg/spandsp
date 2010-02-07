@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * v22bis.h - ITU V.22bis modem receive part
+ * v22bis.h - ITU V.22bis modem
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.25 2007/12/13 11:31:33 steveu Exp $
+ * $Id: v22bis.h,v 1.28 2008/05/02 14:26:39 steveu Exp $
  */
 
 /*! \file */
@@ -58,8 +58,8 @@ or 1200bps if one or both ends to not acknowledge that 2400bps is OK.
 #define V22BIS_RX_FILTER_STEPS  37
 
 /*!
-    V.22bis modem receive side descriptor. This defines the working state for a
-    single instance of a V.22bis modem receiver.
+    V.22bis modem descriptor. This defines the working state for a single instance
+    of a V.22bis modem.
 */
 typedef struct
 {
@@ -75,120 +75,127 @@ typedef struct
     void *user_data;
 
     /* RECEIVE SECTION */
+    struct
+    {
+        /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
+        float rrc_filter[2*V22BIS_RX_FILTER_STEPS];
+        /*! \brief Current offset into the RRC pulse shaping filter buffer. */
+        int rrc_filter_step;
 
-    /*! \brief A callback function which may be enabled to report every symbol's
-               constellation position. */
-    qam_report_handler_t *qam_report;
-    /*! \brief A user specified opaque pointer passed to the qam_report callback
-               routine. */
-    void *qam_user_data;
+        /*! \brief The register for the data scrambler. */
+        unsigned int scramble_reg;
+        /*! \brief A counter for the number of consecutive bits of repeating pattern through
+                   the scrambler. */
+        int scrambler_pattern_count;
 
-    /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
-    float rx_rrc_filter[2*V22BIS_RX_FILTER_STEPS];
-    /*! \brief Current offset into the RRC pulse shaping filter buffer. */
-    int rx_rrc_filter_step;
+        /*! \brief 0 if receiving user data. A training stage value during training */
+        int training;
+        /*! \brief A count of how far through the current training step we are. */
+        int training_count;
 
-    /*! \brief The register for the data scrambler. */
-    unsigned int rx_scramble_reg;
-    /*! \brief A counter for the number of consecutive bits of repeating pattern through
-               the scrambler. */
-    int rx_scrambler_pattern_count;
-    /*! \brief 0 if receiving user data. A training stage value during training */
-    int rx_training;
-    /*! \brief A count of how far through the current training step we are. */
-    int rx_training_count;
-    /*! \brief A measure of how much mismatch there is between the real constellation,
-        and the decoded symbol positions. */
-    float training_error;
-    /*! \brief >0 if a signal above the minimum is present. It may or may not be a V.22bis signal. */
-    int signal_present;
+        /*! \brief >0 if a signal above the minimum is present. It may or may not be a V.22bis signal. */
+        int signal_present;
 
-    /*! \brief The current phase of the carrier (i.e. the DDS parameter). */
-    uint32_t rx_carrier_phase;
-    /*! \brief The update rate for the phase of the carrier (i.e. the DDS increment). */
-    int32_t rx_carrier_phase_rate;
-    /*! \brief The proportional part of the carrier tracking filter. */
-    float carrier_track_p;
-    /*! \brief The integral part of the carrier tracking filter. */
-    float carrier_track_i;
+        /*! \brief A measure of how much mismatch there is between the real constellation,
+            and the decoded symbol positions. */
+        float training_error;
 
-    /*! \brief A power meter, to measure the HPF'ed signal power in the channel. */    
-    power_meter_t rx_power;
-    /*! \brief The power meter level at which carrier on is declared. */
-    int32_t carrier_on_power;
-    /*! \brief The power meter level at which carrier off is declared. */
-    int32_t carrier_off_power;
-    /*! \brief The scaling factor accessed by the AGC algorithm. */
-    float agc_scaling;
+        /*! \brief The current phase of the carrier (i.e. the DDS parameter). */
+        uint32_t carrier_phase;
+        /*! \brief The update rate for the phase of the carrier (i.e. the DDS increment). */
+        int32_t carrier_phase_rate;
+        /*! \brief The proportional part of the carrier tracking filter. */
+        float carrier_track_p;
+        /*! \brief The integral part of the carrier tracking filter. */
+        float carrier_track_i;
+
+        /*! \brief A callback function which may be enabled to report every symbol's
+                   constellation position. */
+        qam_report_handler_t *qam_report;
+        /*! \brief A user specified opaque pointer passed to the qam_report callback
+                   routine. */
+        void *qam_user_data;
+
+        /*! \brief A power meter, to measure the HPF'ed signal power in the channel. */    
+        power_meter_t rx_power;
+        /*! \brief The power meter level at which carrier on is declared. */
+        int32_t carrier_on_power;
+        /*! \brief The power meter level at which carrier off is declared. */
+        int32_t carrier_off_power;
+        /*! \brief The scaling factor accessed by the AGC algorithm. */
+        float agc_scaling;
     
-    int rx_constellation_state;
+        int constellation_state;
 
-    /*! \brief The current delta factor for updating the equalizer coefficients. */
-    float eq_delta;
+        /*! \brief The current delta factor for updating the equalizer coefficients. */
+        float eq_delta;
 #if defined(SPANDSP_USE_FIXED_POINTx)
-    /*! \brief The adaptive equalizer coefficients. */
-    complexi_t eq_coeff[2*V22BIS_EQUALIZER_LEN + 1];
-    /*! \brief The equalizer signal buffer. */
-    complexi_t eq_buf[V22BIS_EQUALIZER_MASK + 1];
+        /*! \brief The adaptive equalizer coefficients. */
+        complexi_t eq_coeff[2*V22BIS_EQUALIZER_LEN + 1];
+        /*! \brief The equalizer signal buffer. */
+        complexi_t eq_buf[V22BIS_EQUALIZER_MASK + 1];
 #else
-    complexf_t eq_coeff[2*V22BIS_EQUALIZER_LEN + 1];
-    complexf_t eq_buf[V22BIS_EQUALIZER_MASK + 1];
+        complexf_t eq_coeff[2*V22BIS_EQUALIZER_LEN + 1];
+        complexf_t eq_buf[V22BIS_EQUALIZER_MASK + 1];
 #endif
-    /*! \brief Current offset into the equalizer buffer. */
-    int eq_step;
-    /*! \brief Current write offset into the equalizer buffer. */
-    int eq_put_step;
+        /*! \brief Current offset into the equalizer buffer. */
+        int eq_step;
+        /*! \brief Current write offset into the equalizer buffer. */
+        int eq_put_step;
 
-    /*! \brief Integration variable for damping the Gardner algorithm tests. */
-    int gardner_integrate;
-    /*! \brief Current step size of Gardner algorithm integration. */
-    int gardner_step;
-    /*! \brief The total symbol timing correction since the carrier came up.
-               This is only for performance analysis purposes. */
-    int total_baud_timing_correction;
-    /*! \brief The current fractional phase of the baud timing. */
-    int rx_baud_phase;
+        /*! \brief Integration variable for damping the Gardner algorithm tests. */
+        int gardner_integrate;
+        /*! \brief Current step size of Gardner algorithm integration. */
+        int gardner_step;
+        /*! \brief The total symbol timing correction since the carrier came up.
+                   This is only for performance analysis purposes. */
+        int total_baud_timing_correction;
+        /*! \brief The current fractional phase of the baud timing. */
+        int baud_phase;
     
-    int sixteen_way_decisions;
+        int sixteen_way_decisions;
+    } rx;
 
     /* TRANSMIT SECTION */
+    struct
+    {
+        /*! \brief The gain factor needed to achieve the specified output power. */
+        float gain;
 
-    /*! \brief The gain factor needed to achieve the specified output power. */
-    float tx_gain;
+        /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
+        complexf_t rrc_filter[2*V22BIS_TX_FILTER_STEPS];
+        /*! \brief Current offset into the RRC pulse shaping filter buffer. */
+        int rrc_filter_step;
 
-    /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
-    complexf_t tx_rrc_filter[2*V22BIS_TX_FILTER_STEPS];
-    /*! \brief Current offset into the RRC pulse shaping filter buffer. */
-    int tx_rrc_filter_step;
+        /*! \brief The register for the data scrambler. */
+        unsigned int scramble_reg;
+        /*! \brief A counter for the number of consecutive bits of repeating pattern through
+                   the scrambler. */
+        int scrambler_pattern_count;
 
-    /*! \brief The register for the data scrambler. */
-    unsigned int tx_scramble_reg;
-    /*! \brief A counter for the number of consecutive bits of repeating pattern through
-               the scrambler. */
-    int tx_scrambler_pattern_count;
-    /*! \brief 0 if transmitting user data. A training stage value during training */
-    int tx_training;
-    /*! \brief A counter used to track progress through sending the training sequence. */
-    int tx_training_count;
+        /*! \brief 0 if transmitting user data. A training stage value during training */
+        int training;
+        /*! \brief A counter used to track progress through sending the training sequence. */
+        int training_count;
+        /*! \brief The current phase of the carrier (i.e. the DDS parameter). */
+        uint32_t carrier_phase;
+        /*! \brief The update rate for the phase of the carrier (i.e. the DDS increment). */
+        int32_t carrier_phase_rate;
+        /*! \brief The current phase of the guard tone (i.e. the DDS parameter). */
+        uint32_t guard_phase;
+        /*! \brief The update rate for the phase of the guard tone (i.e. the DDS increment). */
+        int32_t guard_phase_rate;
+        float guard_level;
+        /*! \brief The current fractional phase of the baud timing. */
+        int baud_phase;
+        /*! \brief The code number for the current position in the constellation. */
+        int constellation_state;
+        /*! \brief An indicator to mark that we are tidying up to stop transmission. */
+        int shutdown;
+        /*! \brief The get_bit function in use at any instant. */
+        get_bit_func_t current_get_bit;
+    } tx;
 
-    /*! \brief The current phase of the carrier (i.e. the DDS parameter). */
-    uint32_t tx_carrier_phase;
-    /*! \brief The update rate for the phase of the carrier (i.e. the DDS increment). */
-    int32_t tx_carrier_phase_rate;
-    /*! \brief The current phase of the guard tone (i.e. the DDS parameter). */
-    uint32_t guard_phase;
-    /*! \brief The update rate for the phase of the guard tone (i.e. the DDS increment). */
-    int32_t guard_phase_rate;
-    float guard_level;
-    /*! \brief The current fractional phase of the baud timing. */
-    int tx_baud_phase;
-    /*! \brief The code number for the current position in the constellation. */
-    int tx_constellation_state;
-    /*! \brief An indicator to mark that we are tidying up to stop transmission. */
-    int shutdown;
-    /*! \brief The get_bit function in use at any instant. */
-    get_bit_func_t current_get_bit;
-    
     int detected_unscrambled_ones;
     int detected_unscrambled_zeros;
 
@@ -227,7 +234,7 @@ int v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len);
     \brief Get a snapshot of the current equalizer coefficients.
     \param coeffs The vector of complex coefficients.
     \return The number of coefficients in the vector. */
-int v22bis_rx_equalizer_state(v22bis_state_t *s, complexf_t **coeffs);
+int v22bis_equalizer_state(v22bis_state_t *s, complexf_t **coeffs);
 
 /*! Get the current received carrier frequency.
     \param s The modem context.
@@ -237,7 +244,7 @@ float v22bis_rx_carrier_frequency(v22bis_state_t *s);
 /*! Get the current symbol timing correction since startup.
     \param s The modem context.
     \return The correction. */
-float v22bis_rx_symbol_timing_correction(v22bis_state_t *s);
+float v22bis_symbol_timing_correction(v22bis_state_t *s);
 
 /*! Get a current received signal power.
     \param s The modem context.
@@ -248,7 +255,7 @@ float v22bis_rx_signal_power(v22bis_state_t *s);
     \param s The modem context.
     \param handler The handler routine.
     \param user_data An opaque pointer passed to the handler routine. */
-void v22bis_rx_set_qam_report_handler(v22bis_state_t *s, qam_report_handler_t *handler, void *user_data);
+void v22bis_set_qam_report_handler(v22bis_state_t *s, qam_report_handler_t *handler, void *user_data);
 
 /*! Generate a block of V.22bis modem audio samples.
     \brief Generate a block of V.22bis modem audio samples.
@@ -290,14 +297,20 @@ v22bis_state_t *v22bis_init(v22bis_state_t *s,
                             put_bit_func_t put_bit,
                             void *user_data);
 
-/*! Change the get_bit function associated with a V.2bis modem context.
+/*! Free a V.22bis modem receive context.
+    \brief Free a V.22bis modem receive context.
+    \param s The modem context.
+    \return 0 for OK */
+int v22bis_free(v22bis_state_t *s);
+
+/*! Change the get_bit function associated with a V.22bis modem context.
     \brief Change the get_bit function associated with a V.22bis modem context.
     \param s The modem context.
     \param get_bit The callback routine used to get the data to be transmitted.
     \param user_data An opaque pointer. */
 void v22bis_set_get_bit(v22bis_state_t *s, get_bit_func_t get_bit, void *user_data);
 
-/*! Change the get_bit function associated with a V.2bis modem context.
+/*! Change the get_bit function associated with a V.22bis modem context.
     \brief Change the put_bit function associated with a V.22bis modem context.
     \param s The modem context.
     \param put_bit The callback routine used to process the data received.

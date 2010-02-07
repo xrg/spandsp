@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: gsm0610_tests.c,v 1.11 2008/02/12 12:27:48 steveu Exp $
+ * $Id: gsm0610_tests.c,v 1.14 2008/04/26 13:39:17 steveu Exp $
  */
 
 /*! \file */

@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.h,v 1.32 2007/11/30 12:20:36 steveu Exp $
+ * $Id: v27ter_tx.h,v 1.35 2008/05/02 14:26:39 steveu Exp $
  */
 
 /*! \file */
@@ -138,20 +138,20 @@ void v27ter_tx_power(v27ter_tx_state_t *s, float power);
 /*! Initialise a V.27ter modem transmit context.
     \brief Initialise a V.27ter modem transmit context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 2400 and 4800.
+    \param bit_rate The bit rate of the modem. Valid values are 2400 and 4800.
     \param tep TRUE is the optional TEP tone is to be transmitted.
     \param get_bit The callback routine used to get the data to be transmitted.
     \param user_data An opaque pointer.
     \return A pointer to the modem context, or NULL if there was a problem. */
-v27ter_tx_state_t *v27ter_tx_init(v27ter_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data);
+v27ter_tx_state_t *v27ter_tx_init(v27ter_tx_state_t *s, int bit_rate, int tep, get_bit_func_t get_bit, void *user_data);
 
 /*! Reinitialise an existing V.27ter modem transmit context, so it may be reused.
     \brief Reinitialise an existing V.27ter modem transmit context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 2400 and 4800.
+    \param bit_rate The bit rate of the modem. Valid values are 2400 and 4800.
     \param tep TRUE is the optional TEP tone is to be transmitted.
     \return 0 for OK, -1 for bad parameter */
-int v27ter_tx_restart(v27ter_tx_state_t *s, int rate, int tep);
+int v27ter_tx_restart(v27ter_tx_state_t *s, int bit_rate, int tep);
 
 /*! Free a V.27ter modem transmit context.
     \brief Free a V.27ter modem transmit context.

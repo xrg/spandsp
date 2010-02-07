@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.h,v 1.18 2007/12/20 11:11:16 steveu Exp $
+ * $Id: dtmf.h,v 1.24 2008/04/27 11:58:07 steveu Exp $
  */
 
 #if !defined(_SPANDSP_DTMF_H_)
@@ -43,6 +43,8 @@ the detector in an IVR application you will need proper echo cancellation to
 get good performance in the presence of speech prompts, so dial tone will not
 exist. If you do need good dial tone tolerance, a dial tone filter can be
 enabled in the detector.
+
+The DTMF receiver's design assumes the channel is free of any DC component.
 
 \section dtmf_rx_page_sec_2 How does it work?
 Like most other DSP based DTMF detector's, this one uses the Goertzel algorithm
@@ -73,7 +75,7 @@ repertoire of 16 DTMF dual tones.
 
 #define MAX_DTMF_DIGITS 128
 
-typedef void (*dtmf_rx_callback_t)(void *user_data, const char *digits, int len);
+typedef void (*digits_rx_callback_t)(void *user_data, const char *digits, int len);
 
 /*!
     DTMF generator state descriptor. This defines the state of a single
@@ -82,7 +84,10 @@ typedef void (*dtmf_rx_callback_t)(void *user_data, const char *digits, int len)
 typedef struct
 {
     tone_gen_state_t tones;
-    int current_sample;
+    float low_level;
+    float high_level;
+    int on_time;
+    int off_time;
     /* The queue structure MUST be followed immediately by the buffer */
     queue_state_t queue;
     char digits[MAX_DTMF_DIGITS + 1];
@@ -94,9 +99,9 @@ typedef struct
 typedef struct
 {
     /*! Optional callback funcion to deliver received digits. */
-    dtmf_rx_callback_t callback;
+    digits_rx_callback_t digits_callback;
     /*! An opaque pointer passed to the callback function. */
-    void *callback_data;
+    void *digits_callback_data;
     /*! Optional callback funcion to deliver real time digit state changes. */
     tone_report_func_t realtime_callback;
     /*! An opaque pointer passed to the real time callback function. */
@@ -162,6 +167,12 @@ size_t dtmf_tx_put(dtmf_tx_state_t *s, const char *digits, ssize_t len);
     \param twist The twist, in dB. */
 void dtmf_tx_set_level(dtmf_tx_state_t *s, int level, int twist);
 
+/*! \brief Change the transmit on and off time for a DTMF tone generator context.
+    \param s The DTMF generator context.
+    \param on-time The on time, in ms.
+    \param off_time The off time, in ms. */
+void dtmf_tx_set_timing(dtmf_tx_state_t *s, int on_time, int off_time);
+
 /*! \brief Initialise a DTMF tone generator context.
     \param s The DTMF generator context.
     \return A pointer to the DTMF generator context. */
@@ -226,7 +237,7 @@ size_t dtmf_rx_get(dtmf_rx_state_t *s, char *digits, int max);
            and supplied in callbacks.
     \return A pointer to the DTMF receiver context. */
 dtmf_rx_state_t *dtmf_rx_init(dtmf_rx_state_t *s,
-                              dtmf_rx_callback_t callback,
+                              digits_rx_callback_t callback,
                               void *user_data);
 
 /*! \brief Free a DTMF receiver context.

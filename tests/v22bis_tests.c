@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tests.c,v 1.44 2007/12/29 04:16:29 steveu Exp $
+ * $Id: v22bis_tests.c,v 1.49 2008/05/02 14:26:39 steveu Exp $
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
@@ -113,9 +113,12 @@ static void v22bis_putbit(void *user_data, int bit)
         case PUTBIT_TRAINING_FAILED:
             printf("Training failed\n");
             break;
+        case PUTBIT_TRAINING_IN_PROGRESS:
+            printf("Training in progress\n");
+            break;
         case PUTBIT_TRAINING_SUCCEEDED:
             printf("Training succeeded\n");
-            len = v22bis_rx_equalizer_state(s, &coeffs);
+            len = v22bis_equalizer_state(s, &coeffs);
             printf("Equalizer:\n");
             for (i = 0;  i < len;  i++)
                 printf("%3d (%15.5f, %15.5f) -> %15.5f\n", i, coeffs[i].re, coeffs[i].im, powerf(&coeffs[i]));
@@ -127,7 +130,7 @@ static void v22bis_putbit(void *user_data, int bit)
             printf("Carrier down\n");
             break;
         default:
-            printf("Eh!\n");
+            printf("Eh! - %d\n", bit);
             break;
         }
         return;
@@ -185,7 +188,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
         {
             qam_monitor_update_constel(s->qam_monitor, constel);
             qam_monitor_update_carrier_tracking(s->qam_monitor, v22bis_rx_carrier_frequency(s->s));
-            qam_monitor_update_symbol_tracking(s->qam_monitor, v22bis_rx_symbol_timing_correction(s->s));
+            qam_monitor_update_symbol_tracking(s->qam_monitor, v22bis_symbol_timing_correction(s->s));
         }
 #endif
         fpower = (constel->re - target->re)*(constel->re - target->re)
@@ -205,7 +208,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
     else
     {
         printf("Gardner step %d\n", symbol);
-        len = v22bis_rx_equalizer_state(s->s, &coeffs);
+        len = v22bis_equalizer_state(s->s, &coeffs);
         printf("Equalizer A:\n");
         for (i = 0;  i < len;  i++)
             printf("%3d (%15.5f, %15.5f) -> %15.5f\n", i, coeffs[i].re, coeffs[i].im, powerf(&coeffs[i]));
@@ -318,12 +321,12 @@ int main(int argc, char *argv[])
     v22bis_init(&caller, test_bps, 2, TRUE, v22bis_getbit, v22bis_putbit, &caller);
     v22bis_tx_power(&caller, signal_level);
     /* Move the carrier off a bit */
-    caller.tx_carrier_phase_rate = dds_phase_ratef(1207.0f);
+    caller.tx.carrier_phase_rate = dds_phase_ratef(1207.0f);
     v22bis_init(&answerer, test_bps, 2, FALSE, v22bis_getbit, v22bis_putbit, &answerer);
     v22bis_tx_power(&answerer, signal_level);
-    answerer.tx_carrier_phase_rate = dds_phase_ratef(2407.0f);
-    v22bis_rx_set_qam_report_handler(&caller, qam_report, (void *) &qam_caller);
-    v22bis_rx_set_qam_report_handler(&answerer, qam_report, (void *) &qam_answerer);
+    answerer.tx.carrier_phase_rate = dds_phase_ratef(2407.0f);
+    v22bis_set_qam_report_handler(&caller, qam_report, (void *) &qam_caller);
+    v22bis_set_qam_report_handler(&answerer, qam_report, (void *) &qam_answerer);
     span_log_set_level(&caller.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);
     span_log_set_tag(&caller.logging, "caller");
     span_log_set_level(&answerer.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);

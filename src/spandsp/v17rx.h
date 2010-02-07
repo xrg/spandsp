@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.47 2007/12/13 11:31:33 steveu Exp $
+ * $Id: v17rx.h,v 1.50 2008/05/02 14:26:39 steveu Exp $
  */
 
 /*! \file */
@@ -385,19 +385,19 @@ extern "C"
 /*! Initialise a V.17 modem receive context.
     \brief Initialise a V.17 modem receive context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
+    \param bit_rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
     \param put_bit The callback routine used to put the received data.
     \param user_data An opaque pointer passed to the put_bit routine.
     \return A pointer to the modem context, or NULL if there was a problem. */
-v17_rx_state_t *v17_rx_init(v17_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data);
+v17_rx_state_t *v17_rx_init(v17_rx_state_t *s, int bit_rate, put_bit_func_t put_bit, void *user_data);
 
 /*! Reinitialise an existing V.17 modem receive context.
     \brief Reinitialise an existing V.17 modem receive context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
+    \param bit_rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
     \param short_train TRUE if a short training sequence is expected.
     \return 0 for OK, -1 for bad parameter */
-int v17_rx_restart(v17_rx_state_t *s, int rate, int short_train);
+int v17_rx_restart(v17_rx_state_t *s, int bit_rate, int short_train);
 
 /*! Free a V.17 modem receive context.
     \brief Free a V.17 modem receive context.
@@ -417,8 +417,9 @@ void v17_rx_set_put_bit(v17_rx_state_t *s, put_bit_func_t put_bit, void *user_da
     \param s The modem context.
     \param amp The audio sample buffer.
     \param len The number of samples in the buffer.
+    \return The number of samples unprocessed.
 */
-void v17_rx(v17_rx_state_t *s, const int16_t amp[], int len);
+int v17_rx(v17_rx_state_t *s, const int16_t amp[], int len);
 
 /*! Get a snapshot of the current equalizer coefficients.
     \brief Get a snapshot of the current equalizer coefficients.

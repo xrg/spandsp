@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8_tests.c,v 1.20 2007/11/10 11:14:59 steveu Exp $
+ * $Id: v8_tests.c,v 1.24 2008/04/26 13:39:18 steveu Exp $
  */
 
 /*! \page v8_tests_page V.8 tests
@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <string.h>
 #include <audiofile.h>
 
@@ -89,22 +90,26 @@ int main(int argc, char *argv[])
     int remnant;
     int caller_available_modulations;
     int answerer_available_modulations;
+    AFfilehandle inhandle;
     AFfilehandle outhandle;
     AFfilesetup filesetup;
+    int opt;
+    char *decode_test_file;
+    float x;
     
-    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
+    decode_test_file = NULL;
+    while ((opt = getopt(argc, argv, "d:")) != -1)
     {
-        fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
-    }
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
-    if ((outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
-    {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
-        exit(2);
+        switch (opt)
+        {
+        case 'd':
+            decode_test_file = optarg;
+            break;
+        default:
+            //usage();
+            exit(2);
+            break;
+        }
     }
 
     caller_available_modulations = V8_MOD_V17
@@ -135,63 +140,123 @@ int main(int argc, char *argv[])
                                    | V8_MOD_V34
                                    | V8_MOD_V90
                                    | V8_MOD_V92;
-
-    v8_init(&v8_caller, TRUE, caller_available_modulations, handler, (void *) "caller");
-    v8_init(&v8_answerer, FALSE, answerer_available_modulations, handler, (void *) "answerer");
-    span_log_set_level(&v8_caller.logging, SPAN_LOG_FLOW | SPAN_LOG_SHOW_TAG);
-    span_log_set_tag(&v8_caller.logging, "caller");
-    span_log_set_level(&v8_answerer.logging, SPAN_LOG_FLOW | SPAN_LOG_SHOW_TAG);
-    span_log_set_tag(&v8_answerer.logging, "answerer");
-    for (i = 0;  i < 1000;  i++)
+    
+    if (decode_test_file == NULL)
     {
-        samples = v8_tx(&v8_caller, amp, SAMPLES_PER_CHUNK);
-        if (samples < SAMPLES_PER_CHUNK)
+        if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
         {
-            memset(amp + samples, 0, sizeof(int16_t)*(SAMPLES_PER_CHUNK - samples));
-            samples = SAMPLES_PER_CHUNK;
-        }
-        remnant = v8_rx(&v8_answerer, amp, samples);
-        for (i = 0;  i < samples;  i++)
-            out_amp[2*i] = amp[i];
-        
-        samples = v8_tx(&v8_answerer, amp, SAMPLES_PER_CHUNK);
-        if (samples < SAMPLES_PER_CHUNK)
-        {
-            memset(amp + samples, 0, sizeof(int16_t)*(SAMPLES_PER_CHUNK - samples));
-            samples = SAMPLES_PER_CHUNK;
-        }
-        if (v8_rx(&v8_caller, amp, samples)  &&  remnant)
-            break;
-        for (i = 0;  i < samples;  i++)
-            out_amp[2*i + 1] = amp[i];
-
-        outframes = afWriteFrames(outhandle,
-                                  AF_DEFAULT_TRACK,
-                                  out_amp,
-                                  samples);
-        if (outframes != samples)
-        {
-            fprintf(stderr, "    Error writing wave file\n");
+            fprintf(stderr, "    Failed to create file setup\n");
             exit(2);
         }
+        afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
+        afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
+        afInitFileFormat(filesetup, AF_FILE_WAVE);
+        afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
+        if ((outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
+        {
+            fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
+            exit(2);
+        }
+    
+        v8_init(&v8_caller, TRUE, caller_available_modulations, handler, (void *) "caller");
+        v8_init(&v8_answerer, FALSE, answerer_available_modulations, handler, (void *) "answerer");
+        span_log_set_level(&v8_caller.logging, SPAN_LOG_FLOW | SPAN_LOG_SHOW_TAG);
+        span_log_set_tag(&v8_caller.logging, "caller");
+        span_log_set_level(&v8_answerer.logging, SPAN_LOG_FLOW | SPAN_LOG_SHOW_TAG);
+        span_log_set_tag(&v8_answerer.logging, "answerer");
+        for (i = 0;  i < 1000;  i++)
+        {
+            samples = v8_tx(&v8_caller, amp, SAMPLES_PER_CHUNK);
+            if (samples < SAMPLES_PER_CHUNK)
+            {
+                memset(amp + samples, 0, sizeof(int16_t)*(SAMPLES_PER_CHUNK - samples));
+                samples = SAMPLES_PER_CHUNK;
+            }
+            remnant = v8_rx(&v8_answerer, amp, samples);
+            for (i = 0;  i < samples;  i++)
+                out_amp[2*i] = amp[i];
+            
+            samples = v8_tx(&v8_answerer, amp, SAMPLES_PER_CHUNK);
+            if (samples < SAMPLES_PER_CHUNK)
+            {
+                memset(amp + samples, 0, sizeof(int16_t)*(SAMPLES_PER_CHUNK - samples));
+                samples = SAMPLES_PER_CHUNK;
+            }
+            if (v8_rx(&v8_caller, amp, samples)  &&  remnant)
+                break;
+            for (i = 0;  i < samples;  i++)
+                out_amp[2*i + 1] = amp[i];
+    
+            outframes = afWriteFrames(outhandle,
+                                      AF_DEFAULT_TRACK,
+                                      out_amp,
+                                      samples);
+            if (outframes != samples)
+            {
+                fprintf(stderr, "    Error writing wave file\n");
+                exit(2);
+            }
+        }
+        if (afCloseFile(outhandle))
+        {
+            fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
+            exit(2);
+        }
+        afFreeFileSetup(filesetup);
+        
+        v8_release(&v8_caller);
+        v8_release(&v8_answerer);
+        
+        if (negotiations_ok != 2)
+        {
+            printf("Tests failed.\n");
+            exit(2);
+        }
+        printf("Tests passed.\n");
     }
-    if (afCloseFile(outhandle))
+    else
     {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
-        exit(2);
+        printf("Decode file '%s'\n", decode_test_file);
+        v8_init(&v8_answerer, FALSE, answerer_available_modulations, handler, (void *) "answerer");
+        span_log_set_level(&v8_answerer.logging, SPAN_LOG_FLOW | SPAN_LOG_SHOW_TAG);
+        span_log_set_tag(&v8_answerer.logging, "decoder");
+        if ((inhandle = afOpenFile(decode_test_file, "r", 0)) == AF_NULL_FILEHANDLE)
+        {
+            fprintf(stderr, "    Cannot open speech file '%s'\n", decode_test_file);
+            exit (2);
+        }
+        /*endif*/
+        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
+        {
+            fprintf(stderr, "    Unexpected frame size in speech file '%s'\n", decode_test_file);
+            exit (2);
+        }
+        /*endif*/
+        if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
+        {
+            fprintf(stderr, "    Unexpected sample rate in speech file '%s'\n", decode_test_file);
+            exit(2);
+        }
+        /*endif*/
+        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
+        {
+            fprintf(stderr, "    Unexpected number of channels in speech file '%s'\n", decode_test_file);
+            exit(2);
+        }
+        /*endif*/
+        while ((samples = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, SAMPLES_PER_CHUNK)))
+        {
+            remnant = v8_rx(&v8_answerer, amp, samples);
+        }
+        /*endwhile*/
+        v8_release(&v8_answerer);
+        if (afCloseFile(inhandle) != 0)
+        {
+            fprintf(stderr, "    Cannot close speech file '%s'\n", decode_test_file);
+            exit(2);
+        }
+        /*endif*/
     }
-    afFreeFileSetup(filesetup);
-    
-    v8_release(&v8_caller);
-    v8_release(&v8_answerer);
-    
-    if (negotiations_ok != 2)
-    {
-        printf("Tests failed.\n");
-        exit(2);
-    }
-    
-    printf("Tests passed.\n");
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.c,v 1.38 2007/12/13 11:31:32 steveu Exp $
+ * $Id: v42.c,v 1.41 2008/04/27 10:34:54 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -408,7 +408,7 @@ int lapm_tx_iframe(lapm_state_t *s, const void *buf, int len, int cr)
 {
     lapm_frame_queue_t *f;
 
-    if ((f = malloc(sizeof(lapm_frame_queue_t) + len + 4)) == NULL)
+    if ((f = malloc(sizeof(*f) + len + 4)) == NULL)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Out of memory\n");
         return -1;

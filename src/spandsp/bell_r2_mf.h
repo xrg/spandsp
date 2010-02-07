@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.h,v 1.14 2007/12/13 11:31:32 steveu Exp $
+ * $Id: bell_r2_mf.h,v 1.17 2008/04/17 14:26:59 steveu Exp $
  */
 
 /*! \file */
@@ -125,9 +125,9 @@ typedef struct
 typedef struct
 {
     /*! Optional callback funcion to deliver received digits. */
-    void (*callback)(void *data, const char *digits, int len);
+    digits_rx_callback_t digits_callback;
     /*! An opaque pointer passed to the callback function. */
-    void *callback_data;
+    void *digits_callback_data;
     /*! Tone detector working states */
     goertzel_state_t out[6];
     /*! Short term history of results from the tone detection, using in persistence checking */
@@ -161,12 +161,18 @@ typedef struct
 */
 typedef struct
 {
+    /*! Optional callback funcion to deliver received digits. */
+    tone_report_func_t callback;
+    /*! An opaque pointer passed to the callback function. */
+    void *callback_data;
     /*! TRUE is we are detecting forward tones. FALSE if we are detecting backward tones */
     int fwd;
     /*! Tone detector working states */
     goertzel_state_t out[6];
     /*! The current sample number within a processing block. */
     int current_sample;
+    /*! The currently detected digit. */
+    int current_digit;
 } r2_mf_rx_state_t;
 
 #if defined(__cplusplus)
@@ -250,7 +256,7 @@ size_t bell_mf_rx_get(bell_mf_rx_state_t *s, char *buf, int max);
            and supplied in callbacks.
     \return A pointer to the Bell MF receiver context.*/
 bell_mf_rx_state_t *bell_mf_rx_init(bell_mf_rx_state_t *s,
-                                    void (*callback)(void *user_data, const char *digits, int len),
+                                    digits_rx_callback_t callback,
                                     void *user_data);
 
 /*! \brief Free a Bell MF receiver context.
@@ -266,12 +272,25 @@ int bell_mf_rx_free(bell_mf_rx_state_t *s);
     \return The number of samples unprocessed. */
 int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t amp[], int samples);
 
+/*! \brief Get the current digit from an R2 MF receiver.
+    \param s The R2 MF receiver context.
+    \return The number digits being received. */
+int r2_mf_rx_get(r2_mf_rx_state_t *s);
+
 /*! \brief Initialise an R2 MF receiver context.
     \param s The R2 MF receiver context.
     \param fwd TRUE if the context is for forward signals. FALSE if the
            context is for backward signals.
+    \param callback An optional callback routine, used to report received digits. If
+           no callback routine is set, digits may be collected, using the r2_mf_rx_get()
+           function.
+    \param user_data An opaque pointer which is associated with the context,
+           and supplied in callbacks.
     \return A pointer to the R2 MF receiver context. */
-r2_mf_rx_state_t *r2_mf_rx_init(r2_mf_rx_state_t *s, int fwd);
+r2_mf_rx_state_t *r2_mf_rx_init(r2_mf_rx_state_t *s,
+                                int fwd,
+                                tone_report_func_t callback,
+                                void *user_data);
 
 /*! \brief Free an R2 MF receiver context.
     \param s The R2 MF receiver context.

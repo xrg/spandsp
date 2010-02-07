@@ -1,6 +1,6 @@
-#define PULSESHAPER_GAIN        1.000000f
-#define PULSESHAPER_COEFF_SETS  48
-static const complexf_t pulseshaper[PULSESHAPER_COEFF_SETS][27] =
+#define RX_PULSESHAPER_GAIN        1.000000f
+#define RX_PULSESHAPER_COEFF_SETS  48
+static const complexf_t rx_pulseshaper[RX_PULSESHAPER_COEFF_SETS][27] =
 {
     {
         {  -0.0002255872f,   -0.0028663575f},     /* Filter 0 */

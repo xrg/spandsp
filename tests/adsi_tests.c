@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.37 2007/11/10 11:14:57 steveu Exp $
+ * $Id: adsi_tests.c,v 1.40 2008/04/26 13:39:16 steveu Exp $
  */
 
 /*! \page adsi_tests_page ADSI tests

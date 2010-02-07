@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.h,v 1.26 2008/03/18 12:53:29 steveu Exp $
+ * $Id: fsk.h,v 1.29 2008/04/17 14:27:00 steveu Exp $
  */
 
 /*! \file */
@@ -162,10 +162,8 @@ typedef struct
 
     int correlation_span;
 
-    int32_t window_i[2][FSK_MAX_WINDOW_LEN];
-    int32_t window_q[2][FSK_MAX_WINDOW_LEN];
-    int32_t dot_i[2];
-    int32_t dot_q[2];
+    complexi32_t window[2][FSK_MAX_WINDOW_LEN];
+    complexi32_t dot[2];
     int buf_ptr;
 
     int baud_inc;

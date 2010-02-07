@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: generate_sized_pages.c,v 1.6 2007/12/13 11:31:30 steveu Exp $
+ * $Id: generate_sized_pages.c,v 1.9 2008/04/26 13:39:15 steveu Exp $
  */
 
 /*! \file */

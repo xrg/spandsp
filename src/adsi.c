@@ -11,19 +11,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.54 2007/11/26 13:28:58 steveu Exp $
+ * $Id: adsi.c,v 1.57 2008/04/17 14:26:55 steveu Exp $
  */
 
 /*! \file */
@@ -384,7 +384,7 @@ static void start_tx(adsi_tx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-void adsi_rx(adsi_rx_state_t *s, const int16_t *amp, int len)
+int adsi_rx(adsi_rx_state_t *s, const int16_t *amp, int len)
 {
     switch (s->standard)
     {
@@ -399,6 +399,7 @@ void adsi_rx(adsi_rx_state_t *s, const int16_t *amp, int len)
         fsk_rx(&(s->fskrx), amp, len);
         break;
     }
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 

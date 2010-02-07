@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.h,v 1.32 2007/11/30 12:20:36 steveu Exp $
+ * $Id: v17tx.h,v 1.35 2008/05/02 14:26:39 steveu Exp $
  */
 
 /*! \file */
@@ -175,11 +175,11 @@ v17_tx_state_t *v17_tx_init(v17_tx_state_t *s, int rate, int tep, get_bit_func_t
 /*! Reinitialise an existing V.17 modem transmit context, so it may be reused.
     \brief Reinitialise an existing V.17 modem transmit context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
+    \param bit_rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
     \param tep TRUE is the optional TEP tone is to be transmitted.
     \param short_train TRUE if the short training sequence should be used.
     \return 0 for OK, -1 for parameter error. */
-int v17_tx_restart(v17_tx_state_t *s, int rate, int tep, int short_train);
+int v17_tx_restart(v17_tx_state_t *s, int bit_rate, int tep, int short_train);
 
 /*! Free a V.17 modem transmit context.
     \brief Free a V.17 modem transmit context.

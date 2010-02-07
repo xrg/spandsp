@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.88 2008/02/06 09:17:15 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.91 2008/05/02 14:26:39 steveu Exp $
  */
 
 /*! \file */
@@ -111,7 +111,7 @@ float v27ter_rx_symbol_timing_correction(v27ter_rx_state_t *s)
 {
     int steps_per_symbol;
     
-    steps_per_symbol = (s->bit_rate == 4800)  ?  PULSESHAPER_4800_COEFF_SETS*5  :  PULSESHAPER_2400_COEFF_SETS*20/3;
+    steps_per_symbol = (s->bit_rate == 4800)  ?  RX_PULSESHAPER_4800_COEFF_SETS*5  :  RX_PULSESHAPER_2400_COEFF_SETS*20/3;
     return (float) s->total_baud_timing_correction/(float) steps_per_symbol;
 }
 /*- End of function --------------------------------------------------------*/
@@ -148,7 +148,7 @@ static void equalizer_restore(v27ter_rx_state_t *s)
     cvec_copyf(s->eq_coeff, s->eq_coeff_save, V27TER_EQUALIZER_PRE_LEN + 1 + V27TER_EQUALIZER_POST_LEN);
     cvec_zerof(s->eq_buf, V27TER_EQUALIZER_MASK);
 
-    s->eq_put_step = (s->bit_rate == 4800)  ?  PULSESHAPER_4800_COEFF_SETS*5/2  :  PULSESHAPER_2400_COEFF_SETS*20/(3*2);
+    s->eq_put_step = (s->bit_rate == 4800)  ?  RX_PULSESHAPER_4800_COEFF_SETS*5/2  :  RX_PULSESHAPER_2400_COEFF_SETS*20/(3*2);
     s->eq_step = 0;
     s->eq_delta = EQUALIZER_DELTA/(V27TER_EQUALIZER_PRE_LEN + 1 + V27TER_EQUALIZER_POST_LEN);
 }
@@ -161,7 +161,7 @@ static void equalizer_reset(v27ter_rx_state_t *s)
     s->eq_coeff[V27TER_EQUALIZER_PRE_LEN] = complex_setf(1.414f, 0.0f);
     cvec_zerof(s->eq_buf, V27TER_EQUALIZER_MASK);
 
-    s->eq_put_step = (s->bit_rate == 4800)  ?  PULSESHAPER_4800_COEFF_SETS*5/2  :  PULSESHAPER_2400_COEFF_SETS*20/(3*2);
+    s->eq_put_step = (s->bit_rate == 4800)  ?  RX_PULSESHAPER_4800_COEFF_SETS*5/2  :  RX_PULSESHAPER_2400_COEFF_SETS*20/(3*2);
     s->eq_step = 0;
     s->eq_delta = EQUALIZER_DELTA/(V27TER_EQUALIZER_PRE_LEN + 1 + V27TER_EQUALIZER_POST_LEN);
 }
@@ -682,38 +682,38 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
         
             /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
                will fiddle the step to align this with the symbols. */
-            if ((s->eq_put_step -= PULSESHAPER_4800_COEFF_SETS) <= 0)
+            if ((s->eq_put_step -= RX_PULSESHAPER_4800_COEFF_SETS) <= 0)
             {
                 if (s->training_stage == TRAINING_STAGE_SYMBOL_ACQUISITION)
                 {
                     /* Only AGC during the initial training */
-                    s->agc_scaling = (1.0f/PULSESHAPER_4800_GAIN)*1.414f/sqrtf(power);
+                    s->agc_scaling = (1.0f/RX_PULSESHAPER_4800_GAIN)*1.414f/sqrtf(power);
                 }
                 /* Pulse shape while still at the carrier frequency, using a quadrature
                    pair of filters. This results in a properly bandpass filtered complex
                    signal, which can be brought directly to baseband by complex mixing.
                    No further filtering, to remove mixer harmonics, is needed. */
                 step = -s->eq_put_step;
-                if (step > PULSESHAPER_4800_COEFF_SETS - 1)
-                    step = PULSESHAPER_4800_COEFF_SETS - 1;
-                s->eq_put_step += PULSESHAPER_4800_COEFF_SETS*5/2;
+                if (step > RX_PULSESHAPER_4800_COEFF_SETS - 1)
+                    step = RX_PULSESHAPER_4800_COEFF_SETS - 1;
+                s->eq_put_step += RX_PULSESHAPER_4800_COEFF_SETS*5/2;
 #if defined(SPANDSP_USE_FIXED_POINT)
-                zi.re = (int32_t) pulseshaper_4800[step][0].re*(int32_t) s->rrc_filter[s->rrc_filter_step];
-                zi.im = (int32_t) pulseshaper_4800[step][0].im*(int32_t) s->rrc_filter[s->rrc_filter_step];
+                zi.re = (int32_t) rx_pulseshaper_4800[step][0].re*(int32_t) s->rrc_filter[s->rrc_filter_step];
+                zi.im = (int32_t) rx_pulseshaper_4800[step][0].im*(int32_t) s->rrc_filter[s->rrc_filter_step];
                 for (j = 1;  j < V27TER_RX_4800_FILTER_STEPS;  j++)
                 {
-                    zi.re += (int32_t) pulseshaper_4800[step][j].re*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
-                    zi.im += (int32_t) pulseshaper_4800[step][j].im*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
+                    zi.re += (int32_t) rx_pulseshaper_4800[step][j].re*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
+                    zi.im += (int32_t) rx_pulseshaper_4800[step][j].im*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
                 }
                 sample.re = zi.re*s->agc_scaling;
                 sample.im = zi.im*s->agc_scaling;
 #else
-                zz.re = pulseshaper_4800[step][0].re*s->rrc_filter[s->rrc_filter_step];
-                zz.im = pulseshaper_4800[step][0].im*s->rrc_filter[s->rrc_filter_step];
+                zz.re = rx_pulseshaper_4800[step][0].re*s->rrc_filter[s->rrc_filter_step];
+                zz.im = rx_pulseshaper_4800[step][0].im*s->rrc_filter[s->rrc_filter_step];
                 for (j = 1;  j < V27TER_RX_4800_FILTER_STEPS;  j++)
                 {
-                    zz.re += pulseshaper_4800[step][j].re*s->rrc_filter[j + s->rrc_filter_step];
-                    zz.im += pulseshaper_4800[step][j].im*s->rrc_filter[j + s->rrc_filter_step];
+                    zz.re += rx_pulseshaper_4800[step][j].re*s->rrc_filter[j + s->rrc_filter_step];
+                    zz.im += rx_pulseshaper_4800[step][j].im*s->rrc_filter[j + s->rrc_filter_step];
                 }
                 sample.re = zz.re*s->agc_scaling;
                 sample.im = zz.im*s->agc_scaling;
@@ -807,38 +807,38 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
         
             /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
                will fiddle the step to align this with the symbols. */
-            if ((s->eq_put_step -= PULSESHAPER_2400_COEFF_SETS) <= 0)
+            if ((s->eq_put_step -= RX_PULSESHAPER_2400_COEFF_SETS) <= 0)
             {
                 if (s->training_stage == TRAINING_STAGE_SYMBOL_ACQUISITION)
                 {
                     /* Only AGC during the initial training */
-                    s->agc_scaling = (1.0f/PULSESHAPER_2400_GAIN)*1.414f/sqrtf(power);
+                    s->agc_scaling = (1.0f/RX_PULSESHAPER_2400_GAIN)*1.414f/sqrtf(power);
                 }
                 /* Pulse shape while still at the carrier frequency, using a quadrature
                    pair of filters. This results in a properly bandpass filtered complex
                    signal, which can be brought directly to bandband by complex mixing.
                    No further filtering, to remove mixer harmonics, is needed. */
                 step = -s->eq_put_step;
-                if (step > PULSESHAPER_2400_COEFF_SETS - 1)
-                    step = PULSESHAPER_2400_COEFF_SETS - 1;
-                s->eq_put_step += PULSESHAPER_2400_COEFF_SETS*20/(3*2);
+                if (step > RX_PULSESHAPER_2400_COEFF_SETS - 1)
+                    step = RX_PULSESHAPER_2400_COEFF_SETS - 1;
+                s->eq_put_step += RX_PULSESHAPER_2400_COEFF_SETS*20/(3*2);
 #if defined(SPANDSP_USE_FIXED_POINT)
-                zi.re = (int32_t) pulseshaper_2400[step][0].re*(int32_t) s->rrc_filter[s->rrc_filter_step];
-                zi.im = (int32_t) pulseshaper_2400[step][0].im*(int32_t) s->rrc_filter[s->rrc_filter_step];
+                zi.re = (int32_t) rx_pulseshaper_2400[step][0].re*(int32_t) s->rrc_filter[s->rrc_filter_step];
+                zi.im = (int32_t) rx_pulseshaper_2400[step][0].im*(int32_t) s->rrc_filter[s->rrc_filter_step];
                 for (j = 1;  j < V27TER_RX_2400_FILTER_STEPS;  j++)
                 {
-                    zi.re += (int32_t) pulseshaper_2400[step][j].re*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
-                    zi.im += (int32_t) pulseshaper_2400[step][j].im*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
+                    zi.re += (int32_t) rx_pulseshaper_2400[step][j].re*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
+                    zi.im += (int32_t) rx_pulseshaper_2400[step][j].im*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
                 }
                 sample.re = zi.re*s->agc_scaling;
                 sample.im = zi.im*s->agc_scaling;
 #else
-                zz.re = pulseshaper_2400[step][0].re*s->rrc_filter[s->rrc_filter_step];
-                zz.im = pulseshaper_2400[step][0].im*s->rrc_filter[s->rrc_filter_step];
+                zz.re = rx_pulseshaper_2400[step][0].re*s->rrc_filter[s->rrc_filter_step];
+                zz.im = rx_pulseshaper_2400[step][0].im*s->rrc_filter[s->rrc_filter_step];
                 for (j = 1;  j < V27TER_RX_2400_FILTER_STEPS;  j++)
                 {
-                    zz.re += pulseshaper_2400[step][j].re*s->rrc_filter[j + s->rrc_filter_step];
-                    zz.im += pulseshaper_2400[step][j].im*s->rrc_filter[j + s->rrc_filter_step];
+                    zz.re += rx_pulseshaper_2400[step][j].re*s->rrc_filter[j + s->rrc_filter_step];
+                    zz.im += rx_pulseshaper_2400[step][j].im*s->rrc_filter[j + s->rrc_filter_step];
                 }
                 sample.re = zz.re*s->agc_scaling;
                 sample.im = zz.im*s->agc_scaling;
@@ -865,12 +865,12 @@ void v27ter_rx_set_put_bit(v27ter_rx_state_t *s, put_bit_func_t put_bit, void *u
 }
 /*- End of function --------------------------------------------------------*/
 
-int v27ter_rx_restart(v27ter_rx_state_t *s, int rate, int old_train)
+int v27ter_rx_restart(v27ter_rx_state_t *s, int bit_rate, int old_train)
 {
     span_log(&s->logging, SPAN_LOG_FLOW, "Restarting V.27ter\n");
-    if (rate != 4800  &&  rate != 2400)
+    if (bit_rate != 4800  &&  bit_rate != 2400)
         return -1;
-    s->bit_rate = rate;
+    s->bit_rate = bit_rate;
 
 #if defined(SPANDSP_USE_FIXED_POINT)
     memset(s->rrc_filter, 0, sizeof(s->rrc_filter));
@@ -908,7 +908,7 @@ int v27ter_rx_restart(v27ter_rx_state_t *s, int rate, int old_train)
     else
     {
         s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
-        s->agc_scaling = 0.005f/PULSESHAPER_4800_GAIN;
+        s->agc_scaling = 0.005f/RX_PULSESHAPER_4800_GAIN;
         equalizer_reset(s);
     }
     s->eq_skip = 0;
@@ -923,7 +923,7 @@ int v27ter_rx_restart(v27ter_rx_state_t *s, int rate, int old_train)
 }
 /*- End of function --------------------------------------------------------*/
 
-v27ter_rx_state_t *v27ter_rx_init(v27ter_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data)
+v27ter_rx_state_t *v27ter_rx_init(v27ter_rx_state_t *s, int bit_rate, put_bit_func_t put_bit, void *user_data)
 {
     if (s == NULL)
     {
@@ -937,7 +937,7 @@ v27ter_rx_state_t *v27ter_rx_init(v27ter_rx_state_t *s, int rate, put_bit_func_t
     s->put_bit = put_bit;
     s->user_data = user_data;
 
-    v27ter_rx_restart(s, rate, FALSE);
+    v27ter_rx_restart(s, bit_rate, FALSE);
     return s;
 }
 /*- End of function --------------------------------------------------------*/

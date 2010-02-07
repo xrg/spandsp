@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.h,v 1.30 2007/11/30 12:20:36 steveu Exp $
+ * $Id: v29tx.h,v 1.33 2008/05/02 14:26:39 steveu Exp $
  */
 
 /*! \file */
@@ -171,20 +171,20 @@ void v29_tx_power(v29_tx_state_t *s, float power);
     use of the context, to initialise its contents.
     \brief Initialise a V.29 modem transmit context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
+    \param bit_rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
     \param tep TRUE is the optional TEP tone is to be transmitted.
     \param get_bit The callback routine used to get the data to be transmitted.
     \param user_data An opaque pointer.
     \return A pointer to the modem context, or NULL if there was a problem. */
-v29_tx_state_t *v29_tx_init(v29_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data);
+v29_tx_state_t *v29_tx_init(v29_tx_state_t *s, int bit_rate, int tep, get_bit_func_t get_bit, void *user_data);
 
 /*! Reinitialise an existing V.29 modem transmit context, so it may be reused.
     \brief Reinitialise an existing V.29 modem transmit context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
+    \param bit_rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
     \param tep TRUE is the optional TEP tone is to be transmitted.
     \return 0 for OK, -1 for bad parameter */
-int v29_tx_restart(v29_tx_state_t *s, int rate, int tep);
+int v29_tx_restart(v29_tx_state_t *s, int bit_rate, int tep);
 
 /*! Free a V.29 modem transmit context.
     \brief Free a V.29 modem transmit context.

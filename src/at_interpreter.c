@@ -13,19 +13,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.c,v 1.23 2008/01/31 13:32:20 steveu Exp $
+ * $Id: at_interpreter.c,v 1.26 2008/04/27 10:34:54 steveu Exp $
  */
 
 /*! \file */
@@ -323,11 +323,17 @@ void at_reset_call_info(at_state_t *s)
 
 void at_set_call_info(at_state_t *s, char const *id, char const *value)
 {
-    struct at_call_id *new_call_id = malloc(sizeof(struct at_call_id));
-    struct at_call_id *call_id = s->call_id;
+    struct at_call_id *new_call_id;
+    struct at_call_id *call_id;
 
-    new_call_id->id = id ? strdup(id) : NULL;
-    new_call_id->value = value ? strdup(value) : NULL;
+    /* TODO: We should really not merely ignore a failure to malloc */
+    if ((new_call_id = (struct at_call_id *) malloc(sizeof(*new_call_id))) == NULL)
+        return;
+    call_id = s->call_id;
+    /* If these strdups fail its pretty harmless. We just appear to not
+       have the relevant field. */
+    new_call_id->id = (id)  ?  strdup(id)  :  NULL;
+    new_call_id->value = (value)  ?  strdup(value)  :  NULL;
     new_call_id->next = NULL;
 
     if (call_id)
@@ -4711,7 +4717,7 @@ static const char *at_cmd_plus_VSID(at_state_t *s, const char *t)
     switch (*t)
     {
     case '=':
-        switch (*(t+1))
+        switch (*(t + 1))
         {
         case '?':
             /* Show possible values */
@@ -4719,6 +4725,7 @@ static const char *at_cmd_plus_VSID(at_state_t *s, const char *t)
             break;
         default:
             /* Set value */
+            /* If this strdup failes, it should be harmless */
             s->local_id = strdup(t + 1);
             if (at_modem_control(s, AT_MODEM_CONTROL_SETID, s->local_id) < 0)
                 return NULL;

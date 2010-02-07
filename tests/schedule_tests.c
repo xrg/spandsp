@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule_tests.c,v 1.15 2007/11/10 11:14:58 steveu Exp $
+ * $Id: schedule_tests.c,v 1.18 2008/04/26 13:39:17 steveu Exp $
  */
 
 /*! \page schedule_tests_page Event scheduler tests

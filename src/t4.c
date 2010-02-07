@@ -12,19 +12,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.105 2008/03/05 13:38:23 steveu Exp $
+ * $Id: t4.c,v 1.108 2008/04/17 14:26:58 steveu Exp $
  */
 
 /*
@@ -63,12 +63,12 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
+#include <stdlib.h>
 #include <inttypes.h>
 #include <limits.h>
-#include <unistd.h>
+#include <stdio.h>
 #include <fcntl.h>
-#include <stdlib.h>
+#include <unistd.h>
 #include <time.h>
 #include <memory.h>
 #include <string.h>
@@ -395,7 +395,13 @@ static int close_tiff_output_file(t4_state_t *s)
     TIFFClose(s->tiff_file);
     s->tiff_file = NULL;
     if (s->file)
+    {
+        /* Try not to leave a file behind, if we didn't receive any pages to
+           put in it. */
+        if (s->pages_transferred == 0)
+            remove(s->file);
         free((char *) s->file);
+    }
     s->file = NULL;
     return 0;
 }

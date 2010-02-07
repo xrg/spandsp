@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_to_terminal_tests.c,v 1.47 2007/12/20 10:56:11 steveu Exp $
+ * $Id: t38_gateway_to_terminal_tests.c,v 1.54 2008/04/26 13:39:17 steveu Exp $
  */
 
 /*! \file */
@@ -87,20 +87,21 @@ int succeeded[2] = {FALSE, FALSE};
 
 int simulate_incrementing_repeats = FALSE;
 
-static void phase_b_handler(t30_state_t *s, void *user_data, int result)
+static int phase_b_handler(t30_state_t *s, void *user_data, int result)
 {
     int i;
     
     i = (int) (intptr_t) user_data;
     printf("%c: Phase B handler on channel %c - (0x%X) %s\n", i, i, result, t30_frametype(result));
+    return T30_ERR_OK;
 }
 /*- End of function --------------------------------------------------------*/
 
-static void phase_d_handler(t30_state_t *s, void *user_data, int result)
+static int phase_d_handler(t30_state_t *s, void *user_data, int result)
 {
     int i;
     t30_stats_t t;
-    char ident[21];
+    const char *u;
 
     i = (int) (intptr_t) user_data;
     printf("%c: Phase D handler on channel %c - (0x%X) %s\n", i, i, result, t30_frametype(result));
@@ -114,12 +115,12 @@ static void phase_d_handler(t30_state_t *s, void *user_data, int result)
     printf("%c: Phase D: longest bad row run %d\n", i, t.longest_bad_row_run);
     printf("%c: Phase D: coding method %s\n", i, t4_encoding_to_str(t.encoding));
     printf("%c: Phase D: image size %d\n", i, t.image_size);
-    t30_get_local_ident(s, ident);
-    printf("%c: Phase D: local ident '%s'\n", i, ident);
-    t30_get_far_ident(s, ident);
-    printf("%c: Phase D: remote ident '%s'\n", i, ident);
-
+    if ((u = t30_get_tx_ident(s)))
+        printf("%d: Phase D: local ident '%s'\n", i, u);
+    if ((u = t30_get_rx_ident(s)))
+        printf("%d: Phase D: remote ident '%s'\n", i, u);
     printf("%c: Phase D: bits per row - min %d, max %d\n", i, s->t4.min_row_bits, s->t4.max_row_bits);
+    return T30_ERR_OK;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -127,7 +128,7 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
 {
     int i;
     t30_stats_t t;
-    char ident[21];
+    const char *u;
     
     i = (int) (intptr_t) user_data;
     printf("%c: Phase E handler on channel %c - (%d) %s\n", i, i, result, t30_completion_code_to_str(result));
@@ -141,10 +142,10 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
     printf("%c: Phase E: longest bad row run %d\n", i, t.longest_bad_row_run);
     printf("%c: Phase E: coding method %s\n", i, t4_encoding_to_str(t.encoding));
     printf("%c: Phase E: image size %d bytes\n", i, t.image_size);
-    t30_get_local_ident(s, ident);
-    printf("%c: Phase E: local ident '%s'\n", i, ident);
-    t30_get_far_ident(s, ident);
-    printf("%c: Phase E: remote ident '%s'\n", i, ident);
+    if ((u = t30_get_tx_ident(s)))
+        printf("%d: Phase E: local ident '%s'\n", i, u);
+    if ((u = t30_get_rx_ident(s)))
+        printf("%d: Phase E: remote ident '%s'\n", i, u);
     succeeded[i - 'A'] = (result == T30_ERR_OK)  &&  (t.pages_transferred == 12);
     done[i - 'A'] = TRUE;
 }
@@ -338,12 +339,12 @@ int main(int argc, char *argv[])
     }
     fax_set_transmit_on_idle(&fax_state_a, use_transmit_on_idle);
     fax_set_tep_mode(&fax_state_a, use_tep);
-    t30_set_local_ident(&fax_state_a.t30_state, "11111111");
+    t30_set_tx_ident(&fax_state_a.t30_state, "11111111");
+    t30_set_tx_nsf(&fax_state_a.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
     t30_set_tx_file(&fax_state_a.t30_state, input_file_name, -1, -1);
     t30_set_phase_b_handler(&fax_state_a.t30_state, phase_b_handler, (void *) (intptr_t) 'A');
     t30_set_phase_d_handler(&fax_state_a.t30_state, phase_d_handler, (void *) (intptr_t) 'A');
     t30_set_phase_e_handler(&fax_state_a.t30_state, phase_e_handler, (void *) (intptr_t) 'A');
-    t30_set_local_nsf(&fax_state_a.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
     t30_set_ecm_capability(&fax_state_a.t30_state, use_ecm);
     if (use_ecm)
         t30_set_supported_compressions(&fax_state_a.t30_state, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
@@ -380,7 +381,7 @@ int main(int argc, char *argv[])
     span_log_set_level(&t38_state_b.t30_state.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t38_state_b.t30_state.logging, "T.38-B");
 
-    t30_set_local_ident(&t38_state_b.t30_state, "22222222");
+    t30_set_tx_ident(&t38_state_b.t30_state, "22222222");
     t30_set_rx_file(&t38_state_b.t30_state, OUTPUT_FILE_NAME, -1);
     t30_set_phase_b_handler(&t38_state_b.t30_state, phase_b_handler, (void *) (intptr_t) 'B');
     t30_set_phase_d_handler(&t38_state_b.t30_state, phase_d_handler, (void *) (intptr_t) 'B');

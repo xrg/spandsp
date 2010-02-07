@@ -10,20 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, or
- * the Lesser GNU General Public License version 2.1, as published by
- * the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g711.h,v 1.9 2008/02/09 15:32:26 steveu Exp $
+ * $Id: g711.h,v 1.13 2008/05/02 14:26:39 steveu Exp $
  */
 
 /*! \file */
@@ -52,6 +51,22 @@ specification by other means.
 
 #if !defined(_SPANDSP_G711_H_)
 #define _SPANDSP_G711_H_
+
+/* The usual values to use on idle channels, to emulate silence */
+#define G711_ALAW_IDLE_OCTET        0x5D
+#define G711_ULAW_IDLE_OCTET        0x7F
+
+enum
+{
+    G711_ALAW = 0,
+    G711_ULAW
+};
+
+typedef struct
+{
+    /*! One of the G.711_xxx options */
+    int mode;
+} g711_state_t;
 
 #if defined(__cplusplus)
 extern "C"
@@ -247,6 +262,32 @@ uint8_t alaw_to_ulaw(uint8_t alaw);
     \return The best matching A-law value.
 */
 uint8_t ulaw_to_alaw(uint8_t ulaw);
+
+int g711_decode(g711_state_t *s,
+                int16_t amp[],
+                const uint8_t g711_data[],
+                int g711_bytes);
+
+int g711_encode(g711_state_t *s,
+                uint8_t g711_data[],
+                const int16_t amp[],
+                int len);
+
+int g711_transcode(g711_state_t *s,
+                   uint8_t g711_out[],
+                   const uint8_t g711_in[],
+                   int g711_bytes);
+
+/*! Initialise a G.711 encode or decode context.
+    \param s The G.711 context.
+    \param mode The G.711 mode.
+    \return A pointer to the G.711 context, or NULL for error. */
+g711_state_t *g711_init(g711_state_t *s, int mode);
+
+/*! Free a G.711 encode or decode context.
+    \param s The G.711 context.
+    \return 0 for OK. */
+int g711_release(g711_state_t *s);
 
 #if defined(__cplusplus)
 }

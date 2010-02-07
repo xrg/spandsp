@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g1050_tests.c,v 1.12 2007/12/20 11:11:16 steveu Exp $
+ * $Id: g1050_tests.c,v 1.15 2008/04/26 13:39:16 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H

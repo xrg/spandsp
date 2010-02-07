@@ -13,19 +13,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.103 2008/02/06 09:17:15 steveu Exp $
+ * $Id: t31.c,v 1.106 2008/04/17 14:26:57 steveu Exp $
  */
 
 /*! \file */
@@ -89,6 +89,7 @@
 /* Backstop timeout if reception of packets stops in the middle of a burst */
 #define MID_RX_TIMEOUT                  15000
 
+#define HDLC_FRAMING_OK_THRESHOLD       5
 
 typedef const char *(*at_cmd_service_t)(t31_state_t *s, const char *cmd);
 
@@ -968,7 +969,7 @@ static void hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
 
 static void t31_v21_rx(t31_state_t *s)
 {
-    hdlc_rx_init(&(s->hdlcrx), FALSE, TRUE, 5, hdlc_accept, s);
+    hdlc_rx_init(&(s->hdlcrx), FALSE, TRUE, HDLC_FRAMING_OK_THRESHOLD, hdlc_accept, s);
     s->at_state.ok_is_pending = FALSE;
     s->hdlc_final = FALSE;
     s->hdlc_tx_len = 0;

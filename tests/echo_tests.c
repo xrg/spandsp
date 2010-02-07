@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo_tests.c,v 1.29 2007/11/10 11:14:58 steveu Exp $
+ * $Id: echo_tests.c,v 1.32 2008/04/26 13:39:16 steveu Exp $
  */
 
 /*! \page echo_can_tests_page Line echo cancellation for voice tests

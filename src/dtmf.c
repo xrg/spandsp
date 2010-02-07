@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.32 2007/12/20 11:11:16 steveu Exp $
+ * $Id: dtmf.c,v 1.37 2008/04/27 11:58:07 steveu Exp $
  */
  
 /*! \file dtmf.h */
@@ -47,6 +47,7 @@
 #include "spandsp/telephony.h"
 #include "spandsp/queue.h"
 #include "spandsp/complex.h"
+#include "spandsp/dds.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
 #include "spandsp/super_tone_rx.h"
@@ -401,9 +402,9 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
                         {
                             s->digits[s->current_digits++] = (char) hit;
                             s->digits[s->current_digits] = '\0';
-                            if (s->callback)
+                            if (s->digits_callback)
                             {
-                                s->callback(s->callback_data, s->digits, s->current_digits);
+                                s->digits_callback(s->digits_callback_data, s->digits, s->current_digits);
                                 s->current_digits = 0;
                             }
                         }
@@ -426,9 +427,9 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
         s->energy = 0.0f;
         s->current_sample = 0;
     }
-    if (s->current_digits  &&  s->callback)
+    if (s->current_digits  &&  s->digits_callback)
     {
-        s->callback(s->callback_data, s->digits, s->current_digits);
+        s->digits_callback(s->digits_callback_data, s->digits, s->current_digits);
         s->digits[0] = '\0';
         s->current_digits = 0;
     }
@@ -491,7 +492,7 @@ void dtmf_rx_parms(dtmf_rx_state_t *s,
 /*- End of function --------------------------------------------------------*/
 
 dtmf_rx_state_t *dtmf_rx_init(dtmf_rx_state_t *s,
-                              dtmf_rx_callback_t callback,
+                              digits_rx_callback_t callback,
                               void *user_data)
 {
     int i;
@@ -499,12 +500,11 @@ dtmf_rx_state_t *dtmf_rx_init(dtmf_rx_state_t *s,
 
     if (s == NULL)
     {
-        s = (dtmf_rx_state_t *) malloc(sizeof (*s));
-        if (s == NULL)
+        if ((s = (dtmf_rx_state_t *) malloc(sizeof (*s))) == NULL)
             return  NULL;
     }
-    s->callback = callback;
-    s->callback_data = user_data;
+    s->digits_callback = callback;
+    s->digits_callback_data = user_data;
     s->realtime_callback = NULL;
     s->realtime_callback_data = NULL;
     s->filter_dialtone = FALSE;
@@ -591,6 +591,10 @@ int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples)
         if ((cp = strchr(dtmf_positions, digit)) == NULL)
             continue;
         tone_gen_init(&(s->tones), &dtmf_digit_tones[cp - dtmf_positions]);
+        s->tones.tone[0].gain = s->low_level;
+        s->tones.tone[1].gain = s->high_level;
+        s->tones.duration[0] = s->on_time;
+        s->tones.duration[1] = s->off_time;
         len += tone_gen(&(s->tones), amp + len, max_samples - len);
     }
     return len;
@@ -619,7 +623,15 @@ size_t dtmf_tx_put(dtmf_tx_state_t *s, const char *digits, ssize_t len)
 
 void dtmf_tx_set_level(dtmf_tx_state_t *s, int level, int twist)
 {
-    /* TODO: */
+    s->low_level = dds_scaling_dbm0f((float) level);
+    s->high_level = dds_scaling_dbm0f((float) (level + twist));
+}
+/*- End of function --------------------------------------------------------*/
+
+void dtmf_tx_set_timing(dtmf_tx_state_t *s, int on_time, int off_time)
+{
+    s->on_time = ((on_time >= 0)  ?  on_time  :  DEFAULT_DTMF_TX_ON_TIME)*SAMPLE_RATE/1000;
+    s->off_time = ((off_time >= 0)  ?  off_time  :  DEFAULT_DTMF_TX_OFF_TIME)*SAMPLE_RATE/1000;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -627,14 +639,14 @@ dtmf_tx_state_t *dtmf_tx_init(dtmf_tx_state_t *s)
 {
     if (s == NULL)
     {
-        s = (dtmf_tx_state_t *) malloc(sizeof (*s));
-        if (s == NULL)
+        if ((s = (dtmf_tx_state_t *) malloc(sizeof (*s))) == NULL)
             return  NULL;
     }
     if (!dtmf_tx_inited)
         dtmf_tx_initialise();
     tone_gen_init(&(s->tones), &dtmf_digit_tones[0]);
-    s->current_sample = 0;
+    dtmf_tx_set_level(s, DEFAULT_DTMF_TX_LEVEL, 0);
+    dtmf_tx_set_timing(s, -1, -1);
     queue_init(&s->queue, MAX_DTMF_DIGITS, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC);
     s->tones.current_section = -1;
     return s;

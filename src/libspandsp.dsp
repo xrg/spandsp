@@ -297,6 +297,14 @@ SOURCE=.\t30.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\t30_api.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\t30_logging.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\t31.c
 # End Source File
 # Begin Source File
@@ -571,7 +579,15 @@ SOURCE=.\spandsp/t30.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\spandsp/t30_api.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\spandsp/t30_fcf.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/t30_logging.h
 # End Source File
 # Begin Source File
 

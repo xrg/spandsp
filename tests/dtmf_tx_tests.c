@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_tx_tests.c,v 1.13 2007/11/10 11:14:58 steveu Exp $
+ * $Id: dtmf_tx_tests.c,v 1.17 2008/04/27 11:58:07 steveu Exp $
  */
 
 /*! \file */
@@ -150,7 +150,28 @@ int main(int argc, char *argv[])
     len = dtmf_tx(&gen, amp, 160);
     printf("Generated %d samples\n", len);
     outframes = afWriteFrames(outhandle, AF_DEFAULT_TRACK, amp, len);
-    add_digits = 1;
+
+    /* Try modifying the level and length of the digits */
+    printf("Try different levels and timing\n");
+    dtmf_tx_set_level(&gen, -20, 5);
+    dtmf_tx_set_timing(&gen, 100, 200);
+    if (dtmf_tx_put(&gen, "123", -1))
+        printf("Ooops\n");
+    do
+    {
+        len = dtmf_tx(&gen, amp, 160);
+        printf("Generated %d samples\n", len);
+        if (len > 0)
+            outframes = afWriteFrames(outhandle, AF_DEFAULT_TRACK, amp, len);
+    }
+    while (len > 0);
+    printf("Restore normal levels and timing\n");
+    dtmf_tx_set_level(&gen, -10, 0);
+    dtmf_tx_set_timing(&gen, 50, 55);
+    if (dtmf_tx_put(&gen, "A", -1))
+        printf("Ooops\n");
+
+    add_digits = TRUE;
     do
     {
         len = dtmf_tx(&gen, amp, 160);
@@ -164,7 +185,7 @@ int main(int argc, char *argv[])
             if (dtmf_tx_put(&gen, "1234567890", -1))
             {
                 printf("Digit buffer full\n");
-                add_digits = 0;
+                add_digits = FALSE;
             }
         }
     }

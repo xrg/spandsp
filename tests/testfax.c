@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: testfax.c,v 1.28 2006/10/24 13:45:29 steveu Exp $
+ * $Id: testfax.c,v 1.31 2008/04/26 13:39:18 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H

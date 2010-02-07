@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.c,v 1.20 2007/12/13 11:31:31 steveu Exp $
+ * $Id: bell_r2_mf.c,v 1.23 2008/04/17 14:26:55 steveu Exp $
  */
 
 /*! \file */
@@ -50,6 +50,8 @@
 #include "spandsp/dds.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
+#include "spandsp/super_tone_rx.h"
+#include "spandsp/dtmf.h"
 #include "spandsp/bell_r2_mf.h"
 
 #if !defined(M_PI)
@@ -609,9 +611,9 @@ int bell_mf_rx(bell_mf_rx_state_t *s, const int16_t amp[], int samples)
                 {
                     s->digits[s->current_digits++] = (char) hit;
                     s->digits[s->current_digits] = '\0';
-                    if (s->callback)
+                    if (s->digits_callback)
                     {
-                        s->callback(s->callback_data, s->digits, s->current_digits);
+                        s->digits_callback(s->digits_callback_data, s->digits, s->current_digits);
                         s->current_digits = 0;
                     }
                 }
@@ -631,9 +633,9 @@ int bell_mf_rx(bell_mf_rx_state_t *s, const int16_t amp[], int samples)
             goertzel_reset(&s->out[i]);
         s->current_sample = 0;
     }
-    if (s->current_digits  &&  s->callback)
+    if (s->current_digits  &&  s->digits_callback)
     {
-        s->callback(s->callback_data, s->digits, s->current_digits);
+        s->digits_callback(s->digits_callback_data, s->digits, s->current_digits);
         s->digits[0] = '\0';
         s->current_digits = 0;
     }
@@ -657,7 +659,7 @@ size_t bell_mf_rx_get(bell_mf_rx_state_t *s, char *buf, int max)
 /*- End of function --------------------------------------------------------*/
 
 bell_mf_rx_state_t *bell_mf_rx_init(bell_mf_rx_state_t *s,
-                                    void (*callback)(void *user_data, const char *digits, int len),
+                                    digits_rx_callback_t callback,
                                     void *user_data)
 {
     int i;
@@ -676,8 +678,8 @@ bell_mf_rx_state_t *bell_mf_rx_init(bell_mf_rx_state_t *s,
             make_goertzel_descriptor(&bell_mf_detect_desc[i], bell_mf_frequencies[i], BELL_MF_SAMPLES_PER_BLOCK);
         initialised = TRUE;
     }
-    s->callback = callback;
-    s->callback_data = user_data;
+    s->digits_callback = callback;
+    s->digits_callback_data = user_data;
 
     s->hits[0] = 
     s->hits[1] =
@@ -718,11 +720,11 @@ int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t amp[], int samples)
     int best;
     int second_best;
     int hit;
-    int hit_char;
+    int hit_digit;
     int limit;
 
     hit = 0;
-    hit_char = 0;
+    hit_digit = 0;
     for (sample = 0;  sample < samples;  sample = limit)
     {
         if ((samples - sample) >= (R2_MF_SAMPLES_PER_BLOCK - s->current_sample))
@@ -854,31 +856,38 @@ int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t amp[], int samples)
                 second_best = i;
             }
             best = best*5 + second_best - 1;
-            hit_char = r2_mf_positions[best];
+            hit_digit = r2_mf_positions[best];
         }
         else
         {
-            hit_char = 0;
+            hit_digit = 0;
         }
+        if (s->current_digit != hit_digit  &&  s->callback)
+        {
+            i = (hit_digit)  ?  -99  :  -10;
+            s->callback(s->callback_data, hit_digit, i, 0);
+        }
+        s->current_digit = hit_digit;
 
         /* Reinitialise the detector for the next block */
-        if (s->fwd)
-        {
-            for (i = 0;  i < 6;  i++)
-                goertzel_reset(&s->out[i]);
-        }
-        else
-        {
-            for (i = 0;  i < 6;  i++)
-                goertzel_reset(&s->out[i]);
-        }
+        for (i = 0;  i < 6;  i++)
+            goertzel_reset(&s->out[i]);
         s->current_sample = 0;
     }
-    return hit_char;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-r2_mf_rx_state_t *r2_mf_rx_init(r2_mf_rx_state_t *s, int fwd)
+int r2_mf_rx_get(r2_mf_rx_state_t *s)
+{
+    return s->current_digit;
+}
+/*- End of function --------------------------------------------------------*/
+
+r2_mf_rx_state_t *r2_mf_rx_init(r2_mf_rx_state_t *s,
+                                int fwd,
+                                tone_report_func_t callback,
+                                void *user_data)
 {
     int i;
     static int initialised = FALSE;
@@ -911,6 +920,9 @@ r2_mf_rx_state_t *r2_mf_rx_init(r2_mf_rx_state_t *s, int fwd)
         for (i = 0;  i < 6;  i++)
             goertzel_init(&s->out[i], &mf_back_detect_desc[i]);
     }
+    s->callback = callback;
+    s->callback_data = user_data;
+    s->current_digit = 0;
     s->current_sample = 0;
     return s;
 }

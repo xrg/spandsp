@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.37 2008/03/18 12:53:29 steveu Exp $
+ * $Id: fsk.c,v 1.40 2008/04/17 14:26:56 steveu Exp $
  */
 
 /*! \file */
@@ -323,19 +323,19 @@ int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
            approach. */
         for (j = 0;  j < 2;  j++)
         {
-            s->dot_i[j] -= s->window_i[j][buf_ptr];
-            s->dot_q[j] -= s->window_q[j][buf_ptr];
+            s->dot[j].re -= s->window[j][buf_ptr].re;
+            s->dot[j].im -= s->window[j][buf_ptr].im;
 
             ph = dds_complexi(&(s->phase_acc[j]), s->phase_rate[j]);
-            s->window_i[j][buf_ptr] = (ph.re*amp[i]) >> s->scaling_shift;
-            s->window_q[j][buf_ptr] = (ph.im*amp[i]) >> s->scaling_shift;
+            s->window[j][buf_ptr].re = (ph.re*amp[i]) >> s->scaling_shift;
+            s->window[j][buf_ptr].im = (ph.im*amp[i]) >> s->scaling_shift;
 
-            s->dot_i[j] += s->window_i[j][buf_ptr];
-            s->dot_q[j] += s->window_q[j][buf_ptr];
+            s->dot[j].re += s->window[j][buf_ptr].re;
+            s->dot[j].im += s->window[j][buf_ptr].im;
 
-            dot = s->dot_i[j] >> 15;
+            dot = s->dot[j].re >> 15;
             sum[j] = dot*dot;
-            dot = s->dot_q[j] >> 15;
+            dot = s->dot[j].im >> 15;
             sum[j] += dot*dot;
         }
         baudstate = (sum[0] < sum[1]);

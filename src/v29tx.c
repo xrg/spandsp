@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.c,v 1.69 2008/03/05 13:40:31 steveu Exp $
+ * $Id: v29tx.c,v 1.72 2008/05/02 14:26:39 steveu Exp $
  */
 
 /*! \file */
@@ -289,8 +289,8 @@ int v29_tx(v29_tx_state_t *s, int16_t amp[], int len)
         x = complex_seti(0, 0);
         for (i = 0;  i < V29_TX_FILTER_STEPS;  i++)
         {
-            x.re += (int32_t) pulseshaper[PULSESHAPER_COEFF_SETS - 1 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].re;
-            x.im += (int32_t) pulseshaper[PULSESHAPER_COEFF_SETS - 1 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].im;
+            x.re += (int32_t) tx_pulseshaper[TX_PULSESHAPER_COEFF_SETS - 1 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].re;
+            x.im += (int32_t) tx_pulseshaper[TX_PULSESHAPER_COEFF_SETS - 1 - s->baud_phase][i]*(int32_t) s->rrc_filter[i + s->rrc_filter_step].im;
         }
         /* Now create and modulate the carrier */
         x.re >>= 4;
@@ -303,8 +303,8 @@ int v29_tx(v29_tx_state_t *s, int16_t amp[], int len)
         x = complex_setf(0.0f, 0.0f);
         for (i = 0;  i < V29_TX_FILTER_STEPS;  i++)
         {
-            x.re += pulseshaper[PULSESHAPER_COEFF_SETS - 1 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].re;
-            x.im += pulseshaper[PULSESHAPER_COEFF_SETS - 1 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].im;
+            x.re += tx_pulseshaper[TX_PULSESHAPER_COEFF_SETS - 1 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].re;
+            x.im += tx_pulseshaper[TX_PULSESHAPER_COEFF_SETS - 1 - s->baud_phase][i]*s->rrc_filter[i + s->rrc_filter_step].im;
         }
         /* Now create and modulate the carrier */
         z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
@@ -357,7 +357,7 @@ void v29_tx_power(v29_tx_state_t *s, float power)
     /* The constellation does not maintain constant average power as we change bit rates.
        We need to scale the gain we get here by a bit rate specific scaling factor each
        time we restart the modem. */
-    s->base_gain = powf(10.0f, (power - DBM0_MAX_POWER)/20.0f)*32768.0f/PULSESHAPER_GAIN;
+    s->base_gain = powf(10.0f, (power - DBM0_MAX_POWER)/20.0f)*32768.0f/TX_PULSESHAPER_GAIN;
     set_working_gain(s);
 }
 /*- End of function --------------------------------------------------------*/
@@ -371,10 +371,10 @@ void v29_tx_set_get_bit(v29_tx_state_t *s, get_bit_func_t get_bit, void *user_da
 }
 /*- End of function --------------------------------------------------------*/
 
-int v29_tx_restart(v29_tx_state_t *s, int rate, int tep)
+int v29_tx_restart(v29_tx_state_t *s, int bit_rate, int tep)
 {
     span_log(&s->logging, SPAN_LOG_FLOW, "Restarting V.29\n");
-    s->bit_rate = rate;
+    s->bit_rate = bit_rate;
     set_working_gain(s);
     switch (s->bit_rate)
     {
@@ -408,7 +408,7 @@ int v29_tx_restart(v29_tx_state_t *s, int rate, int tep)
 }
 /*- End of function --------------------------------------------------------*/
 
-v29_tx_state_t *v29_tx_init(v29_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data)
+v29_tx_state_t *v29_tx_init(v29_tx_state_t *s, int bit_rate, int tep, get_bit_func_t get_bit, void *user_data)
 {
     if (s == NULL)
     {
@@ -422,7 +422,7 @@ v29_tx_state_t *v29_tx_init(v29_tx_state_t *s, int rate, int tep, get_bit_func_t
     s->user_data = user_data;
     s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
     v29_tx_power(s, -14.0f);
-    v29_tx_restart(s, rate, tep);
+    v29_tx_restart(s, bit_rate, tep);
     return s;
 }
 /*- End of function --------------------------------------------------------*/

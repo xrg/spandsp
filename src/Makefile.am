@@ -1,22 +1,22 @@
 ##
 ## SpanDSP - a series of DSP components for telephony
 ##
-## Makefile.am -- Process this file with automake to produce Makefile.in
+## Makefile.am - Process this file with automake to produce Makefile.in
 ##
 ## This program is free software; you can redistribute it and/or modify
-## it under the terms of the GNU General Public License version 2, as
-## published by the Free Software Foundation.
+## it under the terms of the GNU Lesser General Public License version 2.1,
+## as published by the Free Software Foundation.
 ##
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU General Public License for more details.
+## GNU Lesser General Public License for more details.
 ##
-## You should have received a copy of the GNU General Public License
-## along with this program; if not, write to the Free Software
+## You should have received a copy of the GNU Lesser General Public
+## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.86 2008/02/07 11:39:14 steveu Exp $
+## $Id: Makefile.am,v 1.90 2008/05/02 14:26:38 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -77,6 +77,8 @@ libspandsp_la_SOURCES = adsi.c \
                         super_tone_tx.c \
                         t4.c \
                         t30.c \
+                        t30_api.c \
+                        t30_logging.c \
                         t31.c \
                         t35.c \
                         t38_core.c \
@@ -103,74 +105,76 @@ libspandsp_la_SOURCES = adsi.c \
 libspandsp_la_LDFLAGS = -version-info @SPANDSP_LT_CURRENT@:@SPANDSP_LT_REVISION@:@SPANDSP_LT_AGE@
 
 nobase_include_HEADERS = spandsp/adsi.h \
-                        spandsp/async.h \
-                        spandsp/arctan2.h \
-                        spandsp/at_interpreter.h \
-                        spandsp/awgn.h \
-                        spandsp/bell_r2_mf.h \
-                        spandsp/bert.h \
-                        spandsp/biquad.h \
-                        spandsp/bit_operations.h \
-                        spandsp/bitstream.h \
-                        spandsp/crc.h \
-                        spandsp/complex.h \
-                        spandsp/complex_filters.h \
-                        spandsp/complex_vector_float.h \
-                        spandsp/dc_restore.h \
-                        spandsp/dds.h \
-                        spandsp/dtmf.h \
-                        spandsp/echo.h \
-                        spandsp/fax.h \
-                        spandsp/fir.h \
-                        spandsp/fsk.h \
-                        spandsp/g168models.h \
-                        spandsp/g711.h \
-                        spandsp/g722.h \
-                        spandsp/g726.h \
-                        spandsp/gsm0610.h \
-                        spandsp/hdlc.h \
-                        spandsp/ima_adpcm.h \
-                        spandsp/logging.h \
-                        spandsp/lpc10.h \
-                        spandsp/modem_echo.h \
-                        spandsp/modem_connect_tones.h \
-                        spandsp/noise.h \
-                        spandsp/oki_adpcm.h \
-                        spandsp/playout.h \
-                        spandsp/plc.h \
-                        spandsp/power_meter.h \
-                        spandsp/queue.h \
-                        spandsp/schedule.h \
-                        spandsp/sig_tone.h \
-                        spandsp/silence_gen.h \
-                        spandsp/super_tone_rx.h \
-                        spandsp/super_tone_tx.h \
-                        spandsp/t4.h \
-                        spandsp/t30.h \
-                        spandsp/t30_fcf.h \
-                        spandsp/t31.h \
-                        spandsp/t35.h \
-                        spandsp/t38_core.h \
-                        spandsp/t38_gateway.h \
-                        spandsp/t38_terminal.h \
-                        spandsp/telephony.h \
-                        spandsp/time_scale.h \
-                        spandsp/timing.h \
-                        spandsp/tone_detect.h \
-                        spandsp/tone_generate.h \
-                        spandsp/v17rx.h \
-                        spandsp/v17tx.h \
-                        spandsp/v22bis.h \
-                        spandsp/v27ter_rx.h \
-                        spandsp/v27ter_tx.h \
-                        spandsp/v29rx.h \
-                        spandsp/v29tx.h \
-                        spandsp/v42.h \
-                        spandsp/v42bis.h \
-                        spandsp/v8.h \
-                        spandsp/vector_float.h \
-                        spandsp/vector_int.h \
-                        spandsp/version.h
+                         spandsp/async.h \
+                         spandsp/arctan2.h \
+                         spandsp/at_interpreter.h \
+                         spandsp/awgn.h \
+                         spandsp/bell_r2_mf.h \
+                         spandsp/bert.h \
+                         spandsp/biquad.h \
+                         spandsp/bit_operations.h \
+                         spandsp/bitstream.h \
+                         spandsp/crc.h \
+                         spandsp/complex.h \
+                         spandsp/complex_filters.h \
+                         spandsp/complex_vector_float.h \
+                         spandsp/dc_restore.h \
+                         spandsp/dds.h \
+                         spandsp/dtmf.h \
+                         spandsp/echo.h \
+                         spandsp/fax.h \
+                         spandsp/fir.h \
+                         spandsp/fsk.h \
+                         spandsp/g168models.h \
+                         spandsp/g711.h \
+                         spandsp/g722.h \
+                         spandsp/g726.h \
+                         spandsp/gsm0610.h \
+                         spandsp/hdlc.h \
+                         spandsp/ima_adpcm.h \
+                         spandsp/logging.h \
+                         spandsp/lpc10.h \
+                         spandsp/modem_echo.h \
+                         spandsp/modem_connect_tones.h \
+                         spandsp/noise.h \
+                         spandsp/oki_adpcm.h \
+                         spandsp/playout.h \
+                         spandsp/plc.h \
+                         spandsp/power_meter.h \
+                         spandsp/queue.h \
+                         spandsp/schedule.h \
+                         spandsp/sig_tone.h \
+                         spandsp/silence_gen.h \
+                         spandsp/super_tone_rx.h \
+                         spandsp/super_tone_tx.h \
+                         spandsp/t4.h \
+                         spandsp/t30.h \
+                         spandsp/t30_api.h \
+                         spandsp/t30_fcf.h \
+                         spandsp/t30_logging.h \
+                         spandsp/t31.h \
+                         spandsp/t35.h \
+                         spandsp/t38_core.h \
+                         spandsp/t38_gateway.h \
+                         spandsp/t38_terminal.h \
+                         spandsp/telephony.h \
+                         spandsp/time_scale.h \
+                         spandsp/timing.h \
+                         spandsp/tone_detect.h \
+                         spandsp/tone_generate.h \
+                         spandsp/v17rx.h \
+                         spandsp/v17tx.h \
+                         spandsp/v22bis.h \
+                         spandsp/v27ter_rx.h \
+                         spandsp/v27ter_tx.h \
+                         spandsp/v29rx.h \
+                         spandsp/v29tx.h \
+                         spandsp/v42.h \
+                         spandsp/v42bis.h \
+                         spandsp/v8.h \
+                         spandsp/vector_float.h \
+                         spandsp/vector_int.h \
+                         spandsp/version.h
 
 nodist_include_HEADERS = spandsp.h
 
@@ -178,20 +182,32 @@ noinst_HEADERS =        faxfont.h \
                         filter_tools.h \
                         gsm0610_local.h \
                         lpc10_encdecs.h \
+                        t30_local.h \
                         t4_states.h \
                         v17rx_constellation_maps.h \
                         v17rx_fixed_rrc.h \
                         v17rx_floating_rrc.h \
+                        v17tx_constellation_maps.h \
+                        v17tx_fixed_rrc.h \
+                        v17tx_floating_rrc.h \
                         v22bis_rx_1200_fixed_rrc.h \
                         v22bis_rx_2400_fixed_rrc.h \
                         v22bis_rx_1200_floating_rrc.h \
                         v22bis_rx_2400_floating_rrc.h \
+                        v22bis_tx_fixed_rrc.h \
+                        v22bis_tx_floating_rrc.h \
                         v27ter_rx_2400_fixed_rrc.h \
                         v27ter_rx_4800_fixed_rrc.h \
                         v27ter_rx_2400_floating_rrc.h \
                         v27ter_rx_4800_floating_rrc.h \
+                        v27ter_tx_2400_fixed_rrc.h \
+                        v27ter_tx_4800_fixed_rrc.h \
+                        v27ter_tx_2400_floating_rrc.h \
+                        v27ter_tx_4800_floating_rrc.h \
                         v29rx_fixed_rrc.h \
-                        v29rx_floating_rrc.h
+                        v29rx_floating_rrc.h \
+                        v29tx_fixed_rrc.h \
+                        v29tx_floating_rrc.h
 
 noinst_PROGRAMS = at_dictionary_gen \
                   make_modem_filter

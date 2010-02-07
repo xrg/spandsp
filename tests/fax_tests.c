@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.76 2007/12/29 05:35:32 steveu Exp $
+ * $Id: fax_tests.c,v 1.84 2008/04/26 13:39:16 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -68,24 +68,39 @@ int use_receiver_not_ready = FALSE;
 int test_local_interrupt = FALSE;
 int t30_state_to_wreck = -1;
 
-static void phase_b_handler(t30_state_t *s, void *user_data, int result)
+static int phase_b_handler(t30_state_t *s, void *user_data, int result)
 {
     int i;
+    const char *u;
     
     i = (intptr_t) user_data;
+    if ((u = t30_get_rx_ident(s)))
+        printf("%d: Phase B: remote ident '%s'\n", i, u);
+    if ((u = t30_get_rx_sub_address(s)))
+        printf("%d: Phase B: remote sub-address '%s'\n", i, u);
+    if ((u = t30_get_rx_polled_sub_address(s)))
+        printf("%d: Phase B: remote polled sub-address '%s'\n", i, u);
+    if ((u = t30_get_rx_selective_polling_address(s)))
+        printf("%d: Phase B: remote selective polling address '%s'\n", i, u);
+    if ((u = t30_get_rx_sender_ident(s)))
+        printf("%d: Phase B: remote sender ident '%s'\n", i, u);
+    if ((u = t30_get_rx_password(s)))
+        printf("%d: Phase B: remote password '%s'\n", i, u);
     printf("%d: Phase B handler on channel %d - (0x%X) %s\n", i, i, result, t30_frametype(result));
+    return T30_ERR_OK;
 }
 /*- End of function --------------------------------------------------------*/
 
-static void phase_d_handler(t30_state_t *s, void *user_data, int result)
+static int phase_d_handler(t30_state_t *s, void *user_data, int result)
 {
     int i;
     t30_stats_t t;
-    char ident[21];
+    const char *u;
 
     i = (intptr_t) user_data;
-    printf("%d: Phase D handler on channel %d - (0x%X) %s\n", i, i, result, t30_frametype(result));
     t30_get_transfer_statistics(s, &t);
+
+    printf("%d: Phase D handler on channel %d - (0x%X) %s\n", i, i, result, t30_frametype(result));
     printf("%d: Phase D: bit rate %d\n", i, t.bit_rate);
     printf("%d: Phase D: ECM %s\n", i, (t.error_correcting_mode)  ?  "on"  :  "off");
     printf("%d: Phase D: pages transferred %d\n", i, t.pages_transferred);
@@ -96,11 +111,10 @@ static void phase_d_handler(t30_state_t *s, void *user_data, int result)
     printf("%d: Phase D: longest bad row run %d\n", i, t.longest_bad_row_run);
     printf("%d: Phase D: compression type %d\n", i, t.encoding);
     printf("%d: Phase D: image size %d\n", i, t.image_size);
-    t30_get_local_ident(s, ident);
-    printf("%d: Phase D: local ident '%s'\n", i, ident);
-    t30_get_far_ident(s, ident);
-    printf("%d: Phase D: remote ident '%s'\n", i, ident);
-
+    if ((u = t30_get_tx_ident(s)))
+        printf("%d: Phase D: local ident '%s'\n", i, u);
+    if ((u = t30_get_rx_ident(s)))
+        printf("%d: Phase D: remote ident '%s'\n", i, u);
     printf("%d: Phase D: bits per row - min %d, max %d\n", i, s->t4.min_row_bits, s->t4.max_row_bits);
 
     if (use_receiver_not_ready)
@@ -129,6 +143,7 @@ static void phase_d_handler(t30_state_t *s, void *user_data, int result)
             }
         }
     }
+    return T30_ERR_OK;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -137,7 +152,6 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
     int i;
     t30_stats_t t;
     const char *u;
-    char ident[21];
     
     i = (intptr_t) user_data;
     printf("%d: Phase E handler on channel %d - (%d) %s\n", i, i, result, t30_completion_code_to_str(result));    
@@ -152,15 +166,14 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
     printf("%d: Phase E: longest bad row run %d\n", i, t.longest_bad_row_run);
     printf("%d: Phase E: coding method %s\n", i, t4_encoding_to_str(t.encoding));
     printf("%d: Phase E: image size %d bytes\n", i, t.image_size);
-    t30_get_local_ident(s, ident);
-    printf("%d: Phase E: local ident '%s'\n", i, ident);
-    t30_get_far_ident(s, ident);
-    printf("%d: Phase E: remote ident '%s'\n", i, ident);
-    if ((u = t30_get_far_country(s)))
+    //printf("%d: Phase E: local ident '%s'\n", i, info->ident);
+    if ((u = t30_get_rx_ident(s)))
+        printf("%d: Phase E: remote ident '%s'\n", i, u);
+    if ((u = t30_get_rx_country(s)))
         printf("%d: Phase E: Remote was made in '%s'\n", i, u);
-    if ((u = t30_get_far_vendor(s)))
+    if ((u = t30_get_rx_vendor(s)))
         printf("%d: Phase E: Remote was made by '%s'\n", i, u);
-    if ((u = t30_get_far_model(s)))
+    if ((u = t30_get_rx_model(s)))
         printf("%d: Phase E: Remote is model '%s'\n", i, u);
     machines[i].succeeded = (result == T30_ERR_OK)  &&  (t.pages_transferred == 12);
     machines[i].done = TRUE;
@@ -310,13 +323,20 @@ int main(int argc, char *argv[])
             fax_init(&mc->fax, (mc->chan & 1)  ?  FALSE  :  TRUE);
         fax_set_transmit_on_idle(&mc->fax, use_transmit_on_idle);
         fax_set_tep_mode(&mc->fax, use_tep);
-        t30_set_local_ident(&mc->fax.t30_state, buf);
-        t30_set_local_sub_address(&mc->fax.t30_state, "1234");
-        t30_set_local_password(&mc->fax.t30_state, "12345678");
-        t30_set_far_password(&mc->fax.t30_state, "12345678");
-        t30_set_header_info(&mc->fax.t30_state, page_header_info);
-        t30_set_local_nsf(&mc->fax.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
+        t30_set_tx_ident(&mc->fax.t30_state, buf);
+        t30_set_tx_sub_address(&mc->fax.t30_state, "Sub-address");
+        t30_set_tx_sender_ident(&mc->fax.t30_state, "Sender ID");
+        t30_set_tx_password(&mc->fax.t30_state, "Password");
+        t30_set_tx_polled_sub_address(&mc->fax.t30_state, "Polled sub-address");
+        t30_set_tx_selective_polling_address(&mc->fax.t30_state, "Sel polling address");
+        t30_set_tx_page_header_info(&mc->fax.t30_state, page_header_info);
+        t30_set_tx_nsf(&mc->fax.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
         t30_set_ecm_capability(&mc->fax.t30_state, use_ecm);
+        t30_set_supported_t30_features(&mc->fax.t30_state,
+                                       T30_SUPPORT_IDENTIFICATION
+                                     | T30_SUPPORT_SELECTIVE_POLLING
+                                     | T30_SUPPORT_SUB_ADDRESSING);
+
         if ((mc->chan & 1))
             mc->fax.t30_state.local_min_scan_time_code = 4;
         t30_set_supported_image_sizes(&mc->fax.t30_state,

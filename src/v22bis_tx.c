@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.38 2008/01/10 14:06:21 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.41 2008/05/02 14:26:39 steveu Exp $
  */
 
 /*! \file */
@@ -282,17 +282,17 @@ static __inline__ int scramble(v22bis_state_t *s, int bit)
 {
     int out_bit;
 
-    out_bit = (bit ^ (s->tx_scramble_reg >> 14) ^ (s->tx_scramble_reg >> 17)) & 1;
-    if (s->tx_scrambler_pattern_count >= 64)
+    out_bit = (bit ^ (s->tx.scramble_reg >> 14) ^ (s->tx.scramble_reg >> 17)) & 1;
+    if (s->tx.scrambler_pattern_count >= 64)
     {
         out_bit ^= 1;
-        s->tx_scrambler_pattern_count = 0;
+        s->tx.scrambler_pattern_count = 0;
     }
     if (out_bit == 1)
-        s->tx_scrambler_pattern_count++;
+        s->tx.scrambler_pattern_count++;
     else
-        s->tx_scrambler_pattern_count = 0;
-    s->tx_scramble_reg = (s->tx_scramble_reg << 1) | out_bit;
+        s->tx.scrambler_pattern_count = 0;
+    s->tx.scramble_reg = (s->tx.scramble_reg << 1) | out_bit;
     return out_bit;
 }
 /*- End of function --------------------------------------------------------*/
@@ -301,12 +301,12 @@ static __inline__ int get_scrambled_bit(v22bis_state_t *s)
 {
     int bit;
 
-    if ((bit = s->current_get_bit(s->user_data)) == PUTBIT_END_OF_DATA)
+    if ((bit = s->tx.current_get_bit(s->user_data)) == PUTBIT_END_OF_DATA)
     {
         /* Fill out this symbol with ones, and prepare to send
            the rest of the shutdown sequence. */
-        s->current_get_bit = fake_get_bit;
-        s->shutdown = 1;
+        s->tx.current_get_bit = fake_get_bit;
+        s->tx.shutdown = 1;
         bit = 1;
     }
     return scramble(s, bit);
@@ -319,11 +319,11 @@ static complexf_t training_get(v22bis_state_t *s)
     int bits;
 
     /* V.22bis training sequence */
-    switch (s->tx_training)
+    switch (s->tx.training)
     {
     case V22BIS_TRAINING_STAGE_INITIAL_SILENCE:
         /* Segment 1: silence */
-        s->tx_constellation_state = 0;
+        s->tx.constellation_state = 0;
         z = complex_setf(0.0f, 0.0f);
         if (s->caller)
         {
@@ -334,41 +334,41 @@ static complexf_t training_get(v22bis_state_t *s)
                 {
                     /* Try to establish at 2400bps */
                     span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting unscrambled 0011 at 1200 (S1)\n");
-                    s->tx_training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_0011;
+                    s->tx.training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_0011;
                 }
                 else
                 {
                     /* Only try at 1200bps */
                     span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting scrambled ones at 1200 (A)\n");
-                    s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
+                    s->tx.training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
                 }
-                s->tx_training_count = 0;
+                s->tx.training_count = 0;
             }
         }
         else
         {
             /* The answerer waits 75ms, then sends unscrambled ones */
-            if (++s->tx_training_count >= ms_to_symbols(75))
+            if (++s->tx.training_count >= ms_to_symbols(75))
             {
                 /* Inital 75ms of silence is over */
                 span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting unscrambled ones at 1200\n");
-                s->tx_training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_ONES;
-                s->tx_training_count = 0;
+                s->tx.training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_ONES;
+                s->tx.training_count = 0;
             }
         }
         break;
     case V22BIS_TRAINING_STAGE_UNSCRAMBLED_ONES:
         /* Segment 2: Continuous unscrambled ones at 1200bps (i.e. reversals). */
         /* Only the answering modem sends unscrambled ones. It is the first thing exchanged between the modems. */
-        s->tx_constellation_state = (s->tx_constellation_state + phase_steps[3]) & 3;
-        z = v22bis_constellation[(s->tx_constellation_state << 2) | 0x01];
+        s->tx.constellation_state = (s->tx.constellation_state + phase_steps[3]) & 3;
+        z = v22bis_constellation[(s->tx.constellation_state << 2) | 0x01];
         if (s->bit_rate == 2400  &&  s->detected_unscrambled_0011_ending)
         {
             /* We are allowed to use 2400bps, and the far end is requesting 2400bps. Result: we are going to
                work at 2400bps */
             span_log(&s->logging, SPAN_LOG_FLOW, "+++ [2400] starting unscrambled 0011 at 1200 (S1)\n");
-            s->tx_training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_0011;
-            s->tx_training_count = 0;
+            s->tx.training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_0011;
+            s->tx.training_count = 0;
             break;
         }
         if (s->detected_scrambled_ones_or_zeros_at_1200bps)
@@ -376,8 +376,8 @@ static complexf_t training_get(v22bis_state_t *s)
             /* We are going to work at 1200bps. */
             span_log(&s->logging, SPAN_LOG_FLOW, "+++ [1200] starting scrambled ones at 1200 (B)\n");
             s->bit_rate = 1200;
-            s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
-            s->tx_training_count = 0;
+            s->tx.training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
+            s->tx.training_count = 0;
             break;
         }
         break;
@@ -385,32 +385,32 @@ static complexf_t training_get(v22bis_state_t *s)
         /* Segment 3: Continuous unscrambled double dibit 00 11 at 1200bps. This is termed the S1 segment in
            the V.22bis spec. It is only sent to request or accept 2400bps mode, and lasts 100+-3ms. After this
            timed burst, we unconditionally change to sending scrambled ones at 1200bps. */
-        s->tx_constellation_state = (s->tx_constellation_state + phase_steps[(s->tx_training_count & 1)  ?  3  :  0]) & 3;
-span_log(&s->logging, SPAN_LOG_FLOW, "U0011 Tx 0x%02x\n", s->tx_constellation_state);
-        z = v22bis_constellation[(s->tx_constellation_state << 2) | 0x01];
-        if (++s->tx_training_count >= ms_to_symbols(100))
+        s->tx.constellation_state = (s->tx.constellation_state + phase_steps[(s->tx.training_count & 1)  ?  3  :  0]) & 3;
+span_log(&s->logging, SPAN_LOG_FLOW, "U0011 Tx 0x%02x\n", s->tx.constellation_state);
+        z = v22bis_constellation[(s->tx.constellation_state << 2) | 0x01];
+        if (++s->tx.training_count >= ms_to_symbols(100))
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting scrambled ones at 1200 (C)\n");
-            s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
-            s->tx_training_count = 0;
+            s->tx.training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
+            s->tx.training_count = 0;
         }
         break;
     case V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200:
         /* Segment 4: Scrambled ones at 1200bps. */
         bits = scramble(s, 1);
         bits = (bits << 1) | scramble(s, 1);
-        s->tx_constellation_state = (s->tx_constellation_state + phase_steps[bits]) & 3;
-        z = v22bis_constellation[(s->tx_constellation_state << 2) | 0x01];
+        s->tx.constellation_state = (s->tx.constellation_state + phase_steps[bits]) & 3;
+        z = v22bis_constellation[(s->tx.constellation_state << 2) | 0x01];
         if (s->caller)
         {
             if (s->detected_unscrambled_0011_ending)
             {
                 /* Continue for a further 600+-10ms */
-                if (++s->tx_training_count >= ms_to_symbols(600))
+                if (++s->tx.training_count >= ms_to_symbols(600))
                 {
                     span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting scrambled ones at 2400 (A)\n");
-                    s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_2400;
-                    s->tx_training_count = 0;
+                    s->tx.training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_2400;
+                    s->tx.training_count = 0;
                 }
             }
             else if (s->detected_scrambled_ones_or_zeros_at_1200bps)
@@ -418,19 +418,19 @@ span_log(&s->logging, SPAN_LOG_FLOW, "U0011 Tx 0x%02x\n", s->tx_constellation_st
                 if (s->bit_rate == 2400)
                 {
                     /* Continue for a further 756+-10ms */
-                    if (++s->tx_training_count >= ms_to_symbols(756))
+                    if (++s->tx.training_count >= ms_to_symbols(756))
                     {
                         span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting scrambled ones at 2400 (B)\n");
-                        s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_2400;
-                        s->tx_training_count = 0;
+                        s->tx.training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_2400;
+                        s->tx.training_count = 0;
                     }
                 }
                 else
                 {
                     span_log(&s->logging, SPAN_LOG_FLOW, "+++ finished\n");
-                    s->tx_training = V22BIS_TRAINING_STAGE_NORMAL_OPERATION;
-                    s->tx_training_count = 0;
-                    s->current_get_bit = s->get_bit;
+                    s->tx.training = V22BIS_TRAINING_STAGE_NORMAL_OPERATION;
+                    s->tx.training_count = 0;
+                    s->tx.current_get_bit = s->get_bit;
                 }
             }
         }
@@ -438,20 +438,20 @@ span_log(&s->logging, SPAN_LOG_FLOW, "U0011 Tx 0x%02x\n", s->tx_constellation_st
         {
             if (s->bit_rate == 2400)
             {
-                if (++s->tx_training_count >= ms_to_symbols(500))
+                if (++s->tx.training_count >= ms_to_symbols(500))
                 {
                     span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting scrambled ones at 2400 (C)\n");
-                    s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_2400;
-                    s->tx_training_count = 0;
+                    s->tx.training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_2400;
+                    s->tx.training_count = 0;
                 }
             }
             else
             {
-                if (++s->tx_training_count >= ms_to_symbols(756))
+                if (++s->tx.training_count >= ms_to_symbols(756))
                 {
                     span_log(&s->logging, SPAN_LOG_FLOW, "+++ finished\n");
-                    s->tx_training = 0;
-                    s->tx_training_count = 0;
+                    s->tx.training = 0;
+                    s->tx.training_count = 0;
                 }
             }
         }
@@ -460,17 +460,17 @@ span_log(&s->logging, SPAN_LOG_FLOW, "U0011 Tx 0x%02x\n", s->tx_constellation_st
         /* Segment 4: Scrambled ones at 2400bps. */
         bits = scramble(s, 1);
         bits = (bits << 1) | scramble(s, 1);
-        s->tx_constellation_state = (s->tx_constellation_state + phase_steps[bits]) & 3;
+        s->tx.constellation_state = (s->tx.constellation_state + phase_steps[bits]) & 3;
         bits = scramble(s, 1);
         bits = (bits << 1) | scramble(s, 1);
-        z = v22bis_constellation[(s->tx_constellation_state << 2) | 0x01];
-        if (++s->tx_training_count >= ms_to_symbols(200))
+        z = v22bis_constellation[(s->tx.constellation_state << 2) | 0x01];
+        if (++s->tx.training_count >= ms_to_symbols(200))
         {
             /* We have completed training. Now handle some real work. */
             span_log(&s->logging, SPAN_LOG_FLOW, "+++ finished\n");
-            s->tx_training = 0;
-            s->tx_training_count = 0;
-            s->current_get_bit = s->get_bit;
+            s->tx.training = 0;
+            s->tx.training_count = 0;
+            s->tx.current_get_bit = s->get_bit;
         }
         break;
     case V22BIS_TRAINING_STAGE_PARKED:
@@ -486,7 +486,7 @@ static complexf_t getbaud(v22bis_state_t *s)
 {
     int bits;
 
-    if (s->tx_training)
+    if (s->tx.training)
     {
         /* Send the training sequence */
         return training_get(s);
@@ -495,15 +495,15 @@ static complexf_t getbaud(v22bis_state_t *s)
     /* There is no graceful shutdown procedure defined for V.22bis. Just
        send some ones, to ensure we get the real data bits through, even
        with bad ISI. */
-    if (s->shutdown)
+    if (s->tx.shutdown)
     {
-        if (++s->shutdown > 10)
+        if (++s->tx.shutdown > 10)
             return complex_setf(0.0f, 0.0f);
     }
     /* The first two bits define the quadrant */
     bits = get_scrambled_bit(s);
     bits = (bits << 1) | get_scrambled_bit(s);
-    s->tx_constellation_state = (s->tx_constellation_state + phase_steps[bits]) & 3;
+    s->tx.constellation_state = (s->tx.constellation_state + phase_steps[bits]) & 3;
     if (s->bit_rate == 1200)
     {
         bits = 0x01;
@@ -514,7 +514,7 @@ static complexf_t getbaud(v22bis_state_t *s)
         bits = get_scrambled_bit(s);
         bits = (bits << 1) | get_scrambled_bit(s);
     }
-    return v22bis_constellation[(s->tx_constellation_state << 2) | bits];
+    return v22bis_constellation[(s->tx.constellation_state << 2) | bits];
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -526,32 +526,32 @@ int v22bis_tx(v22bis_state_t *s, int16_t amp[], int len)
     int sample;
     float famp;
 
-    if (s->shutdown > 10)
+    if (s->tx.shutdown > 10)
         return 0;
     for (sample = 0;  sample < len;  sample++)
     {
-        if ((s->tx_baud_phase += 3) >= 40)
+        if ((s->tx.baud_phase += 3) >= 40)
         {
-            s->tx_baud_phase -= 40;
-            s->tx_rrc_filter[s->tx_rrc_filter_step] =
-            s->tx_rrc_filter[s->tx_rrc_filter_step + V22BIS_TX_FILTER_STEPS] = getbaud(s);
-            if (++s->tx_rrc_filter_step >= V22BIS_TX_FILTER_STEPS)
-                s->tx_rrc_filter_step = 0;
+            s->tx.baud_phase -= 40;
+            s->tx.rrc_filter[s->tx.rrc_filter_step] =
+            s->tx.rrc_filter[s->tx.rrc_filter_step + V22BIS_TX_FILTER_STEPS] = getbaud(s);
+            if (++s->tx.rrc_filter_step >= V22BIS_TX_FILTER_STEPS)
+                s->tx.rrc_filter_step = 0;
         }
         /* Root raised cosine pulse shaping at baseband */
         x = complex_setf(0.0f, 0.0f);
         for (i = 0;  i < V22BIS_TX_FILTER_STEPS;  i++)
         {
-            x.re += pulseshaper[39 - s->tx_baud_phase][i]*s->tx_rrc_filter[i + s->tx_rrc_filter_step].re;
-            x.im += pulseshaper[39 - s->tx_baud_phase][i]*s->tx_rrc_filter[i + s->tx_rrc_filter_step].im;
+            x.re += tx_pulseshaper[39 - s->tx.baud_phase][i]*s->tx.rrc_filter[i + s->tx.rrc_filter_step].re;
+            x.im += tx_pulseshaper[39 - s->tx.baud_phase][i]*s->tx.rrc_filter[i + s->tx.rrc_filter_step].im;
         }
         /* Now create and modulate the carrier */
-        z = dds_complexf(&(s->tx_carrier_phase), s->tx_carrier_phase_rate);
-        famp = (x.re*z.re - x.im*z.im)*s->tx_gain;
-        if (s->guard_phase_rate  &&  (s->tx_rrc_filter[s->tx_rrc_filter_step].re != 0.0f  ||  s->tx_rrc_filter[i + s->tx_rrc_filter_step].im != 0.0f))
+        z = dds_complexf(&(s->tx.carrier_phase), s->tx.carrier_phase_rate);
+        famp = (x.re*z.re - x.im*z.im)*s->tx.gain;
+        if (s->tx.guard_phase_rate  &&  (s->tx.rrc_filter[s->tx.rrc_filter_step].re != 0.0f  ||  s->tx.rrc_filter[i + s->tx.rrc_filter_step].im != 0.0f))
         {
             /* Add the guard tone */
-            famp += dds_modf(&(s->guard_phase), s->guard_phase_rate, s->guard_level, 0);
+            famp += dds_modf(&(s->tx.guard_phase), s->tx.guard_phase_rate, s->tx.guard_level, 0);
         }
         /* Don't bother saturating. We should never clip. */
         amp[sample] = (int16_t) rintf(famp);
@@ -565,25 +565,25 @@ void v22bis_tx_power(v22bis_state_t *s, float power)
     float l;
 
     l = 1.6f*powf(10.0f, (power - DBM0_MAX_POWER)/20.0f);
-    s->tx_gain = l*32768.0f/(PULSESHAPER_GAIN*3.0f);
+    s->tx.gain = l*32768.0f/(TX_PULSESHAPER_GAIN*3.0f);
 }
 /*- End of function --------------------------------------------------------*/
 
 static int v22bis_tx_restart(v22bis_state_t *s, int bit_rate)
 {
     s->bit_rate = bit_rate;
-    cvec_zerof(s->tx_rrc_filter, sizeof(s->tx_rrc_filter)/sizeof(s->tx_rrc_filter[0]));
-    s->tx_rrc_filter_step = 0;
-    s->tx_scramble_reg = 0;
-    s->tx_scrambler_pattern_count = 0;
-    s->tx_training = V22BIS_TRAINING_STAGE_INITIAL_SILENCE;
-    s->tx_training_count = 0;
-    s->tx_carrier_phase = 0;
-    s->guard_phase = 0;
-    s->tx_baud_phase = 0;
-    s->tx_constellation_state = 0;
-    s->current_get_bit = fake_get_bit;
-    s->shutdown = 0;
+    cvec_zerof(s->tx.rrc_filter, sizeof(s->tx.rrc_filter)/sizeof(s->tx.rrc_filter[0]));
+    s->tx.rrc_filter_step = 0;
+    s->tx.scramble_reg = 0;
+    s->tx.scrambler_pattern_count = 0;
+    s->tx.training = V22BIS_TRAINING_STAGE_INITIAL_SILENCE;
+    s->tx.training_count = 0;
+    s->tx.carrier_phase = 0;
+    s->tx.guard_phase = 0;
+    s->tx.baud_phase = 0;
+    s->tx.constellation_state = 0;
+    s->tx.current_get_bit = fake_get_bit;
+    s->tx.shutdown = 0;
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -604,6 +604,8 @@ void v22bis_set_put_bit(v22bis_state_t *s, put_bit_func_t put_bit, void *user_da
 
 int v22bis_restart(v22bis_state_t *s, int bit_rate)
 {
+    if (bit_rate != 2400  &&  bit_rate != 1200)
+        return -1;
     if (v22bis_tx_restart(s, bit_rate))
         return -1;
     return v22bis_rx_restart(s, bit_rate);
@@ -635,28 +637,35 @@ v22bis_state_t *v22bis_init(v22bis_state_t *s,
 
     if (s->caller)
     {
-        s->tx_carrier_phase_rate = dds_phase_ratef(1200.0f);
+        s->tx.carrier_phase_rate = dds_phase_ratef(1200.0f);
     }
     else
     {
-        s->tx_carrier_phase_rate = dds_phase_ratef(2400.0f);
+        s->tx.carrier_phase_rate = dds_phase_ratef(2400.0f);
         if (guard)
         {
             if (guard == 1)
             {
-                s->guard_phase_rate = dds_phase_ratef(550.0f);
-                s->guard_level = 1500.0f;
+                s->tx.guard_phase_rate = dds_phase_ratef(550.0f);
+                s->tx.guard_level = 1500.0f;
             }
             else
             {
-                s->guard_phase_rate = dds_phase_ratef(1800.0f);
-                s->guard_level = 1000.0f;
+                s->tx.guard_phase_rate = dds_phase_ratef(1800.0f);
+                s->tx.guard_level = 1000.0f;
             }
         }
     }
     v22bis_tx_power(s, -10.0f);
     v22bis_restart(s, s->bit_rate);
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int v22bis_free(v22bis_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

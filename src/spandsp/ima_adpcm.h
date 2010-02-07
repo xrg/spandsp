@@ -8,26 +8,25 @@
  *
  * Copyright (C) 2004 Steve Underwood
  *
- * Based on a bit from here, a bit from there, eye of toad,
- * ear of bat, etc - plus, of course, my own 2 cents.
- *
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, or
- * the Lesser GNU General Public License version 2.1, as published by
- * the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm.h,v 1.18 2008/02/09 15:33:40 steveu Exp $
+ * Based on a bit from here, a bit from there, eye of toad,
+ * ear of bat, etc - plus, of course, my own 2 cents.
+ *
+ * $Id: ima_adpcm.h,v 1.20 2008/04/17 14:27:00 steveu Exp $
  */
 
 /*! \file */

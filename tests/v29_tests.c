@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29_tests.c,v 1.92 2007/12/29 04:16:29 steveu Exp $
+ * $Id: v29_tests.c,v 1.96 2008/04/26 13:39:18 steveu Exp $
  */
 
 /*! \page v29_tests_page V.29 modem tests
@@ -145,6 +145,9 @@ static void v29putbit(void *user_data, int bit)
         case PUTBIT_TRAINING_FAILED:
             printf("Training failed\n");
             break;
+        case PUTBIT_TRAINING_IN_PROGRESS:
+            printf("Training in progress\n");
+            break;
         case PUTBIT_TRAINING_SUCCEEDED:
             printf("Training succeeded\n");
             len = v29_rx_equalizer_state(rx, &coeffs);
@@ -159,7 +162,7 @@ static void v29putbit(void *user_data, int bit)
             printf("Carrier down\n");
             break;
         default:
-            printf("Eh!\n");
+            printf("Eh! - %d\n", bit);
             break;
         }
         return;

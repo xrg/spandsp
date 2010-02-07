@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g711_tests.c,v 1.7 2007/11/10 11:14:58 steveu Exp $
+ * $Id: g711_tests.c,v 1.11 2008/04/26 13:39:17 steveu Exp $
  */
 
 /*! \page g711_tests_page A-law and u-law conversion tests
@@ -46,6 +46,8 @@
 #define OUT_FILE_NAME   "g711.wav"
 
 int16_t amp[65536];
+uint8_t ulaw_data[65536];
+uint8_t alaw_data[65536];
 
 const uint8_t alaw_1khz_sine[] = {0x34, 0x21, 0x21, 0x34, 0xB4, 0xA1, 0xA1, 0xB4};
 const uint8_t ulaw_1khz_sine[] = {0x1E, 0x0B, 0x0B, 0x1E, 0x9E, 0x8B, 0x8B, 0x9E};
@@ -66,6 +68,10 @@ int main(int argc, char *argv[])
     float worst_alaw;
     float worst_ulaw;
     float tmp;
+    int len;
+    g711_state_t *encode;
+    g711_state_t *transcode;
+    g711_state_t *decode;
     
     if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
     {
@@ -272,6 +278,49 @@ int main(int argc, char *argv[])
         }
     }
     
+    encode = g711_init(NULL, G711_ALAW);
+    transcode = g711_init(NULL, G711_ALAW);
+    decode = g711_init(NULL, G711_ULAW);
+
+    len = 65536;
+    for (i = 0;  i < len;  i++)
+        amp[i] = i - 32768;
+    len = g711_encode(encode, alaw_data, amp, len);
+    len = g711_transcode(transcode, ulaw_data, alaw_data, len);
+    len = g711_decode(decode, amp, ulaw_data, len);
+    if (len != 65536)
+    {
+        printf("Block coding gave the wrong length - %d instead of %d\n", len, 65536);
+        printf("Test failed\n");
+        exit(2);
+    }
+    for (i = 0;  i < len;  i++)
+    {
+        pre = i - 32768;
+        post = amp[i];
+        if (abs(pre) > 140)
+        {
+            tmp = (float) abs(post - pre)/(float) abs(pre);
+            if (tmp > 0.10)
+            {
+                printf("Block: Excessive error at %d (%d)\n", pre, post);
+                exit(2);
+            }
+        }
+        else
+        {
+            /* Small values need different handling for sensible measurement */
+            if (abs(post - pre) > 15)
+            {
+                printf("Block: Excessive error at %d (%d)\n", pre, post);
+                exit(2);
+            }
+        }
+    }
+    g711_release(encode);
+    g711_release(transcode);
+    g711_release(decode);
+
     if (afCloseFile(outhandle))
     {
         fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);

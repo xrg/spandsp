@@ -10,20 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, or
- * the Lesser GNU General Public License version 2.1, as published by
- * the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g711.c,v 1.6 2008/02/09 15:32:56 steveu Exp $
+ * $Id: g711.c,v 1.9 2008/04/17 14:26:56 steveu Exp $
  */
 
 /*! \file */
@@ -100,6 +99,97 @@ uint8_t alaw_to_ulaw(uint8_t alaw)
 uint8_t ulaw_to_alaw(uint8_t ulaw)
 {
     return ulaw_to_alaw_table[ulaw];
+}
+/*- End of function --------------------------------------------------------*/
+
+int g711_decode(g711_state_t *s,
+                int16_t amp[],
+                const uint8_t g711_data[],
+                int g711_bytes)
+{
+    int i;
+
+    if (s->mode == G711_ALAW)
+    {
+        for (i = 0;  i < g711_bytes;  i++)
+            amp[i] = alaw_to_linear(g711_data[i]);
+        /*endfor*/
+    }
+    else
+    {
+        for (i = 0;  i < g711_bytes;  i++)
+            amp[i] = ulaw_to_linear(g711_data[i]);
+        /*endfor*/
+    }
+    /*endif*/
+    return g711_bytes;
+}
+/*- End of function --------------------------------------------------------*/
+
+int g711_encode(g711_state_t *s,
+                uint8_t g711_data[],
+                const int16_t amp[],
+                int len)
+{
+    int i;
+
+    if (s->mode == G711_ALAW)
+    {
+        for (i = 0;  i < len;  i++)
+            g711_data[i] = linear_to_alaw(amp[i]);
+        /*endfor*/
+    }
+    else
+    {
+        for (i = 0;  i < len;  i++)
+            g711_data[i] = linear_to_ulaw(amp[i]);
+        /*endfor*/
+    }
+    /*endif*/
+    return len;
+}
+/*- End of function --------------------------------------------------------*/
+
+int g711_transcode(g711_state_t *s,
+                   uint8_t g711_out[],
+                   const uint8_t g711_in[],
+                   int g711_bytes)
+{
+    int i;
+
+    if (s->mode == G711_ALAW)
+    {
+        for (i = 0;  i < g711_bytes;  i++)
+            g711_out[i] = alaw_to_ulaw_table[g711_in[i]];
+        /*endfor*/
+    }
+    else
+    {
+        for (i = 0;  i < g711_bytes;  i++)
+            g711_out[i] = ulaw_to_alaw_table[g711_in[i]];
+        /*endfor*/
+    }
+    /*endif*/
+    return g711_bytes;
+}
+/*- End of function --------------------------------------------------------*/
+
+g711_state_t *g711_init(g711_state_t *s, int mode)
+{
+    if (s == NULL)
+    {
+        if ((s = (g711_state_t *) malloc(sizeof(*s))) == NULL)
+            return  NULL;
+    }
+    s->mode = mode;
+    return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int g711_release(g711_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

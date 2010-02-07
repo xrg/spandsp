@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.115 2008/02/06 09:17:16 steveu Exp $
+ * $Id: v29rx.c,v 1.118 2008/05/02 14:26:39 steveu Exp $
  */
 
 /*! \file */
@@ -147,7 +147,7 @@ float v29_rx_carrier_frequency(v29_rx_state_t *s)
 
 float v29_rx_symbol_timing_correction(v29_rx_state_t *s)
 {
-    return (float) s->total_baud_timing_correction/((float) PULSESHAPER_COEFF_SETS*10.0f/3.0f);
+    return (float) s->total_baud_timing_correction/((float) RX_PULSESHAPER_COEFF_SETS*10.0f/3.0f);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -183,7 +183,7 @@ static void equalizer_restore(v29_rx_state_t *s)
     cvec_copyf(s->eq_coeff, s->eq_coeff_save, V29_EQUALIZER_PRE_LEN + 1 + V29_EQUALIZER_POST_LEN);
     cvec_zerof(s->eq_buf, V29_EQUALIZER_MASK);
 
-    s->eq_put_step = PULSESHAPER_COEFF_SETS*10/(3*2) - 1;
+    s->eq_put_step = RX_PULSESHAPER_COEFF_SETS*10/(3*2) - 1;
     s->eq_step = 0;
     s->eq_delta = EQUALIZER_DELTA/(V29_EQUALIZER_PRE_LEN + 1 + V29_EQUALIZER_POST_LEN);
 }
@@ -196,7 +196,7 @@ static void equalizer_reset(v29_rx_state_t *s)
     s->eq_coeff[V29_EQUALIZER_PRE_LEN] = complex_setf(3.0f, 0.0f);
     cvec_zerof(s->eq_buf, V29_EQUALIZER_MASK);
 
-    s->eq_put_step = PULSESHAPER_COEFF_SETS*10/(3*2) - 1;
+    s->eq_put_step = RX_PULSESHAPER_COEFF_SETS*10/(3*2) - 1;
     s->eq_step = 0;
     s->eq_delta = EQUALIZER_DELTA/(V29_EQUALIZER_PRE_LEN + 1 + V29_EQUALIZER_POST_LEN);
 }
@@ -750,21 +750,21 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
             continue;
         /* Only spend effort processing this data if the modem is not
            parked, after training failure. */
-        s->eq_put_step -= PULSESHAPER_COEFF_SETS;
+        s->eq_put_step -= RX_PULSESHAPER_COEFF_SETS;
         step = -s->eq_put_step;
-        if (step > PULSESHAPER_COEFF_SETS - 1)
-            step = PULSESHAPER_COEFF_SETS - 1;
+        if (step > RX_PULSESHAPER_COEFF_SETS - 1)
+            step = RX_PULSESHAPER_COEFF_SETS - 1;
         if (step < 0)
-            step += PULSESHAPER_COEFF_SETS;
+            step += RX_PULSESHAPER_COEFF_SETS;
 #if defined(SPANDSP_USE_FIXED_POINT)
-        zi.re = (int32_t) pulseshaper[step][0].re*(int32_t) s->rrc_filter[s->rrc_filter_step];
+        zi.re = (int32_t) rx_pulseshaper[step][0].re*(int32_t) s->rrc_filter[s->rrc_filter_step];
         for (j = 1;  j < V29_RX_FILTER_STEPS;  j++)
-            zi.re += (int32_t) pulseshaper[step][j].re*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
+            zi.re += (int32_t) rx_pulseshaper[step][j].re*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
         sample.re = zi.re*s->agc_scaling;
 #else
-        zz.re = pulseshaper[step][0].re*s->rrc_filter[s->rrc_filter_step];
+        zz.re = rx_pulseshaper[step][0].re*s->rrc_filter[s->rrc_filter_step];
         for (j = 1;  j < V29_RX_FILTER_STEPS;  j++)
-            zz.re += pulseshaper[step][j].re*s->rrc_filter[j + s->rrc_filter_step];
+            zz.re += rx_pulseshaper[step][j].re*s->rrc_filter[j + s->rrc_filter_step];
         sample.re = zz.re*s->agc_scaling;
 #endif
 
@@ -785,27 +785,27 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
             if (s->training_stage == TRAINING_STAGE_SYMBOL_ACQUISITION)
             {
                 /* Only AGC during the initial training */
-                s->agc_scaling = (1.0f/PULSESHAPER_GAIN)*5.0f*0.25f/sqrtf(power);
+                s->agc_scaling = (1.0f/RX_PULSESHAPER_GAIN)*5.0f*0.25f/sqrtf(power);
             }
             /* Pulse shape while still at the carrier frequency, using a quadrature
                pair of filters. This results in a properly bandpass filtered complex
                signal, which can be brought directly to baseband by complex mixing.
                No further filtering, to remove mixer harmonics, is needed. */
             step = -s->eq_put_step;
-            if (step > PULSESHAPER_COEFF_SETS - 1)
-                step = PULSESHAPER_COEFF_SETS - 1;
+            if (step > RX_PULSESHAPER_COEFF_SETS - 1)
+                step = RX_PULSESHAPER_COEFF_SETS - 1;
 #if defined(SPANDSP_USE_FIXED_POINT)
-            zi.im = (int32_t) pulseshaper[step][0].im*(int32_t) s->rrc_filter[s->rrc_filter_step];
+            zi.im = (int32_t) rx_pulseshaper[step][0].im*(int32_t) s->rrc_filter[s->rrc_filter_step];
             for (j = 1;  j < V29_RX_FILTER_STEPS;  j++)
-                zi.im += (int32_t) pulseshaper[step][j].im*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
+                zi.im += (int32_t) rx_pulseshaper[step][j].im*(int32_t) s->rrc_filter[j + s->rrc_filter_step];
             sample.im = zi.im*s->agc_scaling;
 #else
-            zz.im = pulseshaper[step][0].im*s->rrc_filter[s->rrc_filter_step];
+            zz.im = rx_pulseshaper[step][0].im*s->rrc_filter[s->rrc_filter_step];
             for (j = 1;  j < V29_RX_FILTER_STEPS;  j++)
-                zz.im += pulseshaper[step][j].im*s->rrc_filter[j + s->rrc_filter_step];
+                zz.im += rx_pulseshaper[step][j].im*s->rrc_filter[j + s->rrc_filter_step];
             sample.im = zz.im*s->agc_scaling;
 #endif
-            s->eq_put_step += PULSESHAPER_COEFF_SETS*10/(3*2);
+            s->eq_put_step += RX_PULSESHAPER_COEFF_SETS*10/(3*2);
             /* Shift to baseband - since this is done in a full complex form, the
                result is clean, and requires no further filtering, apart from the
                equalizer. */
@@ -827,9 +827,9 @@ void v29_rx_set_put_bit(v29_rx_state_t *s, put_bit_func_t put_bit, void *user_da
 }
 /*- End of function --------------------------------------------------------*/
 
-int v29_rx_restart(v29_rx_state_t *s, int rate, int old_train)
+int v29_rx_restart(v29_rx_state_t *s, int bit_rate, int old_train)
 {
-    switch (rate)
+    switch (bit_rate)
     {
     case 9600:
         s->training_cd = 0;
@@ -843,7 +843,7 @@ int v29_rx_restart(v29_rx_state_t *s, int rate, int old_train)
     default:
         return -1;
     }
-    s->bit_rate = rate;
+    s->bit_rate = bit_rate;
 
 #if defined(SPANDSP_USE_FIXED_POINT)
     memset(s->rrc_filter, 0, sizeof(s->rrc_filter));
@@ -881,7 +881,7 @@ int v29_rx_restart(v29_rx_state_t *s, int rate, int old_train)
     else
     {
         s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
-        s->agc_scaling = 0.0017f/PULSESHAPER_GAIN;
+        s->agc_scaling = 0.0017f/RX_PULSESHAPER_GAIN;
         equalizer_reset(s);
     }
     s->eq_skip = 0;

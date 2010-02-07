@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31_tests.c,v 1.49 2007/12/20 10:56:11 steveu Exp $
+ * $Id: t31_tests.c,v 1.56 2008/04/26 13:39:17 steveu Exp $
  */
 
 /*! \file */
@@ -190,37 +190,40 @@ int test_seq_ptr = 0;
 
 t31_state_t t31_state;
 
-static void phase_b_handler(t30_state_t *s, void *user_data, int result)
+static int phase_b_handler(t30_state_t *s, void *user_data, int result)
 {
     int i;
     
     i = (intptr_t) user_data;
     printf("Phase B handler on channel %d - (0x%X) %s\n", i, result, t30_frametype(result));
+    return T30_ERR_OK;
 }
 /*- End of function --------------------------------------------------------*/
 
-static void phase_d_handler(t30_state_t *s, void *user_data, int result)
+static int phase_d_handler(t30_state_t *s, void *user_data, int result)
 {
     int i;
     t30_stats_t t;
-    char ident[21];
+    const char *u;
 
-    i = (intptr_t) user_data;
-    printf("Phase D handler on channel %d - (0x%X) %s\n", i, result, t30_frametype(result));
+    i = (int) (intptr_t) user_data;
+    printf("%c: Phase D handler on channel %c - (0x%X) %s\n", i, i, result, t30_frametype(result));
     t30_get_transfer_statistics(s, &t);
-    printf("Phase D: bit rate %d\n", t.bit_rate);
-    printf("Phase D: ECM %s\n", (t.error_correcting_mode)  ?  "on"  :  "off");
-    printf("Phase D: pages transferred %d\n", t.pages_transferred);
-    printf("Phase D: image size %d x %d\n", t.width, t.length);
-    printf("Phase D: image resolution %d x %d\n", t.x_resolution, t.y_resolution);
-    printf("Phase D: bad rows %d\n", t.bad_rows);
-    printf("Phase D: longest bad row run %d\n", t.longest_bad_row_run);
-    printf("Phase D: coding method %d\n", t.encoding);
-    printf("Phase D: image size %d\n", t.image_size);
-    t30_get_local_ident(s, ident);
-    printf("Phase D: local ident '%s'\n", ident);
-    t30_get_far_ident(s, ident);
-    printf("Phase D: remote ident '%s'\n", ident);
+    printf("%c: Phase D: bit rate %d\n", i, t.bit_rate);
+    printf("%c: Phase D: ECM %s\n", i, (t.error_correcting_mode)  ?  "on"  :  "off");
+    printf("%c: Phase D: pages transferred %d\n", i, t.pages_transferred);
+    printf("%c: Phase D: image size %d x %d\n", i, t.width, t.length);
+    printf("%c: Phase D: image resolution %d x %d\n", i, t.x_resolution, t.y_resolution);
+    printf("%c: Phase D: bad rows %d\n", i, t.bad_rows);
+    printf("%c: Phase D: longest bad row run %d\n", i, t.longest_bad_row_run);
+    printf("%c: Phase D: coding method %s\n", i, t4_encoding_to_str(t.encoding));
+    printf("%c: Phase D: image size %d\n", i, t.image_size);
+    if ((u = t30_get_tx_ident(s)))
+        printf("%d: Phase D: local ident '%s'\n", i, u);
+    if ((u = t30_get_rx_ident(s)))
+        printf("%d: Phase D: remote ident '%s'\n", i, u);
+    printf("%c: Phase D: bits per row - min %d, max %d\n", i, s->t4.min_row_bits, s->t4.max_row_bits);
+    return T30_ERR_OK;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -389,8 +392,8 @@ static int t38_tests(int use_gui, int test_sending)
     span_log_set_level(&t38_state.t30_state.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t38_state.t30_state.logging, "T.38-A");
 
-    t30_set_local_ident(&t38_state.t30_state, "11111111");
-    t30_set_local_nsf(&t38_state.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
+    t30_set_tx_ident(&t38_state.t30_state, "11111111");
+    t30_set_tx_nsf(&t38_state.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
     t30_set_tx_file(&t38_state.t30_state, INPUT_FILE_NAME, -1, -1);
     t30_set_phase_b_handler(&t38_state.t30_state, phase_b_handler, (void *) (intptr_t) 'A');
     t30_set_phase_d_handler(&t38_state.t30_state, phase_d_handler, (void *) (intptr_t) 'A');
@@ -540,7 +543,7 @@ static int t30_tests(int log_audio, int test_sending)
         countdown = 250;
     }
     
-    t30_set_local_ident(&fax_state.t30_state, "11111111");
+    t30_set_tx_ident(&fax_state.t30_state, "11111111");
     t30_set_phase_b_handler(&fax_state.t30_state, phase_b_handler, (void *) 0);
     t30_set_phase_d_handler(&fax_state.t30_state, phase_d_handler, (void *) 0);
     t30_set_phase_e_handler(&fax_state.t30_state, phase_e_handler, (void *) 0);
@@ -687,6 +690,7 @@ int main(int argc, char *argv[])
     log_audio = FALSE;
     test_sending = FALSE;
     t38_mode = FALSE;
+    use_gui = FALSE;
     while ((opt = getopt(argc, argv, "d:glrst")) != -1)
     {
         switch (opt)

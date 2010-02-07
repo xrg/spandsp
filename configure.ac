@@ -1,7 +1,7 @@
 #
 # SpanDSP - a series of DSP components for telephony
 #
-# configure.ac -- Process this file with autoconf to produce configure
+# configure.ac - Process this file with autoconf to produce configure
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License version 2.1,
@@ -10,60 +10,20 @@
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.42 2008/03/30 18:33:24 steveu Exp $
+# $Id: configure.ac,v 1.43 2008/04/17 14:26:55 steveu Exp $
 
 # @start 1
 
 AC_INIT
 
-# AC_CHECK_REAL_FILE(FILE, [ACTION-IF-FOUND], [ACTION-IF-NOT-FOUND])
-# ------------------------------------------------------------------
-#
-# Check for the existence of FILE, and make sure it is a real file or
-# directory, and not a symbolic link.
-AC_DEFUN([AC_CHECK_REAL_FILE],
-[AC_DIAGNOSE([cross],
-	     [cannot check for file existence when cross compiling])dnl
-AS_VAR_PUSHDEF([ac_File], [ac_cv_real_file_$1])dnl
-AC_CACHE_CHECK([for $1], ac_File,
-[test "$cross_compiling" = yes &&
-  AC_MSG_ERROR([cannot check for file existence when cross compiling])
-if test -r "$1"
-then
-  if test -h "$1"
-  then
-    AS_VAR_SET(ac_File, no)
-  else
-    AS_VAR_SET(ac_File, yes)
-  fi
-else
-  AS_VAR_SET(ac_File, no)
-fi])
-AS_IF([test AS_VAR_GET(ac_File) = yes], [$2], [$3])[]dnl
-AS_VAR_POPDEF([ac_File])dnl
-])# AC_CHECK_REAL_FILE
-
-AC_DEFUN([AX_COMPILER_VENDOR],
-[
-AC_CACHE_CHECK([for _AC_LANG compiler vendor], ax_cv_[]_AC_LANG_ABBREV[]_compiler_vendor,
- [ax_cv_[]_AC_LANG_ABBREV[]_compiler_vendor=unknown
-  # note: don't check for GCC first, since some other compilers define __GNUC__
-  for ventest in intel:__ICC,__ECC,__INTEL_COMPILER ibm:__xlc__,__xlC__,__IBMC__,__IBMCPP__ gnu:__GNUC__ sun:__SUNPRO_C,__SUNPRO_CC hp:__HP_cc,__HP_aCC dec:__DECC,__DECCXX,__DECC_VER,__DECCXX_VER borland:__BORLANDC__,__TURBOC__ comeau:__COMO__ cray:_CRAYC kai:__KCC lcc:__LCC__ metrowerks:__MWERKS__ sgi:__sgi,sgi microsoft:_MSC_VER watcom:__WATCOMC__ portland:__PGI; do
-    vencpp="defined("`echo $ventest | cut -d: -f2 | sed 's/,/) || defined(/g'`")"
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[
-#if !($vencpp)
-      thisisanerror;
-#endif
-])], [ax_cv_]_AC_LANG_ABBREV[_compiler_vendor=`echo $ventest | cut -d: -f1`; break])
-  done
- ])
-])
+m4_include(config/ax_compiler_vendor.m4)
+m4_include(config/ax_check_real_file.m4)
 
 SPANDSP_MAJOR_VERSION=0
 SPANDSP_MINOR_VERSION=0
@@ -251,7 +211,7 @@ if test "${build}" == "${host}"
 then
     case "${host}" in
     x86_64-*)
-        AC_CHECK_REAL_FILE([${prefix}/lib64], libdir='$(exec_prefix)/lib64')
+        AX_CHECK_REAL_FILE([${prefix}/lib64], libdir='$(exec_prefix)/lib64')
         ;;
     esac
 fi
@@ -263,7 +223,7 @@ then
     case "${host}" in
     x86_64-*)
         # X86_64 Linux machines may have both 64 bit and 32 bit libraries. We need to choose the right set
-        AC_CHECK_REAL_FILE([/usr/X11R6/lib64], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib64"], AC_CHECK_FILE([/usr/X11R6/lib], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib"]))
+        AX_CHECK_REAL_FILE([/usr/X11R6/lib64], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib64"], AC_CHECK_FILE([/usr/X11R6/lib], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib"]))
         ;;
     esac
 fi

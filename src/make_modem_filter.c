@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: make_modem_filter.c,v 1.3 2008/01/31 13:34:40 steveu Exp $
+ * $Id: make_modem_filter.c,v 1.7 2008/05/02 14:26:38 steveu Exp $
  */
  
 #ifdef HAVE_CONFIG_H
@@ -108,9 +108,9 @@ static void make_tx_filter(int coeff_sets,
     
     /* Churn out the data as a C source code header file, which can be directly included by the
        modem code. */
-    printf("#define PULSESHAPER%s_GAIN        %ff\n", tag, gain);
-    printf("#define PULSESHAPER%s_COEFF_SETS  %d\n", tag, coeff_sets);
-    printf("static const %s pulseshaper%s[PULSESHAPER%s_COEFF_SETS][%d] =\n",
+    printf("#define TX_PULSESHAPER%s_GAIN        %ff\n", tag, gain);
+    printf("#define TX_PULSESHAPER%s_COEFF_SETS  %d\n", tag, coeff_sets);
+    printf("static const %s tx_pulseshaper%s[TX_PULSESHAPER%s_COEFF_SETS][%d] =\n",
            (fixed_point)  ?  "int16_t"  :  "float",
            tag,
            tag,
@@ -199,9 +199,9 @@ static void make_rx_filter(int coeff_sets,
 
     /* Churn out the data as a C source code header file, which can be directly included by the
        modem code. */
-    printf("#define PULSESHAPER%s_GAIN        %ff\n", tag, gain);
-    printf("#define PULSESHAPER%s_COEFF_SETS  %d\n", tag, coeff_sets);
-    printf("static const %s pulseshaper%s[PULSESHAPER%s_COEFF_SETS][%d] =\n",
+    printf("#define RX_PULSESHAPER%s_GAIN        %ff\n", tag, gain);
+    printf("#define RX_PULSESHAPER%s_COEFF_SETS  %d\n", tag, coeff_sets);
+    printf("static const %s rx_pulseshaper%s[RX_PULSESHAPER%s_COEFF_SETS][%d] =\n",
            (fixed_point)  ?  "complexi16_t"  :  "complexf_t",
            tag,
            tag,

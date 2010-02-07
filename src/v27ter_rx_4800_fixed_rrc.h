@@ -1,6 +1,6 @@
-#define PULSESHAPER_4800_GAIN        32767.000000f
-#define PULSESHAPER_4800_COEFF_SETS  8
-static const complexi16_t pulseshaper_4800[PULSESHAPER_4800_COEFF_SETS][27] =
+#define RX_PULSESHAPER_4800_GAIN        32767.000000f
+#define RX_PULSESHAPER_4800_COEFF_SETS  8
+static const complexi16_t rx_pulseshaper_4800[RX_PULSESHAPER_4800_COEFF_SETS][27] =
 {
     {
         {       0,        0},     /* Filter 0 */

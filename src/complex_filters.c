@@ -10,19 +10,19 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2, as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU Lesser General Public License version 2.1,
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_filters.c,v 1.9 2007/01/03 14:15:35 steveu Exp $
+ * $Id: complex_filters.c,v 1.12 2008/04/27 10:34:54 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,8 +41,7 @@ filter_t *filter_create(fspec_t *fs)
     int i;
     filter_t *fi;
 
-    fi = (filter_t *) malloc(sizeof (filter_t) + sizeof (float)*(fs->np + 1));
-    if (fi)
+    if ((fi = (filter_t *) malloc(sizeof(*fi) + sizeof(float)*(fs->np + 1))))
     {
         fi->fs = fs;
         fi->sum = 0.0;
@@ -69,10 +68,21 @@ cfilter_t *cfilter_create(fspec_t *fs)
 {
     cfilter_t *cfi;
 
-    cfi = (cfilter_t *) malloc(sizeof (cfilter_t));
-    cfi->ref = filter_create(fs);
-    cfi->imf = filter_create(fs);
-    return  cfi;
+    if ((cfi = (cfilter_t *) malloc(sizeof(*cfi))))
+    {
+        if ((cfi->ref = filter_create(fs)) == NULL)
+        {
+            free(cfi);
+            return NULL;
+        }
+        if ((cfi->imf = filter_create(fs)) == NULL)
+        {
+            free(cfi->ref);
+            free(cfi);
+            return NULL;
+        }
+    }
+    return cfi;
 }
 
 void cfilter_delete(cfilter_t *cfi)
