@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.119 2009/01/03 13:02:31 steveu Exp $
+ * $Id: t30.h,v 1.120 2009/01/19 17:14:10 steveu Exp $
  */
 
 /*! \file */
@@ -336,40 +336,69 @@ enum
 
 enum
 {
+    /*! Support the V.27ter modem (2400, and 4800bps) for image transfer. */
     T30_SUPPORT_V27TER = 0x01,
+    /*! Support the V.29 modem (9600, and 7200bps) for image transfer. */
     T30_SUPPORT_V29 = 0x02,
+    /*! Support the V.17 modem (14400, 12000, 9600 and 7200bps) for image transfer. */
     T30_SUPPORT_V17 = 0x04,
+    /*! Support the V.34 modem (up to 33,600bps) for image transfer. */
     T30_SUPPORT_V34 = 0x08,
+    /*! Support the Internet Aware FAX mode (no bit rate limit) for image transfer. */
     T30_SUPPORT_IAF = 0x10
 };
 
 enum
 {
+    /*! No compression */
     T30_SUPPORT_NO_COMPRESSION = 0x01,
+    /*! T.1 1D compression */
     T30_SUPPORT_T4_1D_COMPRESSION = 0x02,
+    /*! T.4 2D compression */
     T30_SUPPORT_T4_2D_COMPRESSION = 0x04,
+    /*! T.6 2D compression */
     T30_SUPPORT_T6_COMPRESSION = 0x08,
-    T30_SUPPORT_T85_COMPRESSION = 0x10,     /* Monochrome JBIG */
-    T30_SUPPORT_T43_COMPRESSION = 0x20,     /* Colour JBIG */
-    T30_SUPPORT_T45_COMPRESSION = 0x40      /* Run length colour compression */
+    /*! T.85 monochrome JBIG coding */
+    T30_SUPPORT_T85_COMPRESSION = 0x10,
+    /*! T.43 colour JBIG coding */
+    T30_SUPPORT_T43_COMPRESSION = 0x20,
+    /*! T.45 run length colour compression */
+    T30_SUPPORT_T45_COMPRESSION = 0x40,
+    /*! T.81 + T.30 Annex E colour JPEG coding */
+    T30_SUPPORT_T81_COMPRESSION = 0x80,
+    /*! T.81 + T.30 Annex K colour sYCC-JPEG coding */
+    T30_SUPPORT_SYCC_T81_COMPRESSION = 0x100
 };
 
 enum
 {
+    /*! Support standard FAX Y-resolution 98/100dpi */
     T30_SUPPORT_STANDARD_RESOLUTION = 0x01,
+    /*! Support fine FAX Y-resolution 196/200dpi */
     T30_SUPPORT_FINE_RESOLUTION = 0x02,
+    /*! Support super-fine FAX Y-resolution 392/400dpi */
     T30_SUPPORT_SUPERFINE_RESOLUTION = 0x04,
 
+    /*! Support half FAX X-resolution 100/102dpi */
     T30_SUPPORT_R4_RESOLUTION = 0x10000,
+    /*! Support standard FAX X-resolution 200/204dpi */
     T30_SUPPORT_R8_RESOLUTION = 0x20000,
+    /*! Support double FAX X-resolution 400dpi */
     T30_SUPPORT_R16_RESOLUTION = 0x40000,
 
+    /*! Support 300dpi x 300 dpi */
     T30_SUPPORT_300_300_RESOLUTION = 0x100000,
+    /*! Support 400dpi x 400 dpi */
     T30_SUPPORT_400_400_RESOLUTION = 0x200000,
+    /*! Support 600dpi x 600 dpi */
     T30_SUPPORT_600_600_RESOLUTION = 0x400000,
+    /*! Support 1200dpi x 1200 dpi */
     T30_SUPPORT_1200_1200_RESOLUTION = 0x800000,
+    /*! Support 300dpi x 600 dpi */
     T30_SUPPORT_300_600_RESOLUTION = 0x1000000,
+    /*! Support 400dpi x 800 dpi */
     T30_SUPPORT_400_800_RESOLUTION = 0x2000000,
+    /*! Support 600dpi x 1200 dpi */
     T30_SUPPORT_600_1200_RESOLUTION = 0x4000000
 };
 
@@ -388,29 +417,29 @@ enum
 
 enum
 {
-    /*! Enable support of identification, through the SID and/or PWD frames */
+    /*! Enable support of identification, through the SID and/or PWD frames. */
     T30_SUPPORT_IDENTIFICATION = 0x01,
-    /*! Enable support of selective polling, through the SEP frame */
+    /*! Enable support of selective polling, through the SEP frame. */
     T30_SUPPORT_SELECTIVE_POLLING = 0x02,
-    /*! Enable support of polling sub-addressing, through the PSA frame */
+    /*! Enable support of polling sub-addressing, through the PSA frame. */
     T30_SUPPORT_POLLED_SUB_ADDRESSING = 0x04,
-    /*! Enable support of multiple selective polling, through repeated used of the SEP and PSA frames */
+    /*! Enable support of multiple selective polling, through repeated used of the SEP and PSA frames. */
     T30_SUPPORT_MULTIPLE_SELECTIVE_POLLING = 0x08,
-    /*! Enable support of sub-addressing, through the SUB frame */
+    /*! Enable support of sub-addressing, through the SUB frame. */
     T30_SUPPORT_SUB_ADDRESSING = 0x10,
-    /*! Enable support of transmitting subscriber internet address, through the TSA frame */
+    /*! Enable support of transmitting subscriber internet address, through the TSA frame. */
     T30_SUPPORT_TRANSMITTING_SUBSCRIBER_INTERNET_ADDRESS = 0x20,
-    /*! Enable support of internet routing address, through the IRA frame */
+    /*! Enable support of internet routing address, through the IRA frame. */
     T30_SUPPORT_INTERNET_ROUTING_ADDRESS = 0x40,
-    /*! Enable support of calling subscriber internet address, through the CIA frame */
+    /*! Enable support of calling subscriber internet address, through the CIA frame. */
     T30_SUPPORT_CALLING_SUBSCRIBER_INTERNET_ADDRESS = 0x80,
-    /*! Enable support of internet selective polling address, through the ISP frame */
+    /*! Enable support of internet selective polling address, through the ISP frame. */
     T30_SUPPORT_INTERNET_SELECTIVE_POLLING_ADDRESS = 0x100,
-    /*! Enable support of called subscriber internet address, through the CSA frame */
+    /*! Enable support of called subscriber internet address, through the CSA frame. */
     T30_SUPPORT_CALLED_SUBSCRIBER_INTERNET_ADDRESS = 0x200,
-    /*! Enable support of the field not valid (FNV) frame */
+    /*! Enable support of the field not valid (FNV) frame. */
     T30_SUPPORT_FIELD_NOT_VALID = 0x400,
-    /*! Enable support of the command repeat (CRP) frame */
+    /*! Enable support of the command repeat (CRP) frame. */
     T30_SUPPORT_COMMAND_REPEAT = 0x800
 };
 
@@ -429,7 +458,10 @@ enum
         them. */
     T30_IAF_MODE_NO_FILL_BITS = 0x20,
     /*! No indicators means do not send indicator messages when using T.38. */
-    T30_IAF_MODE_NO_INDICATORS = 0x40
+    T30_IAF_MODE_NO_INDICATORS = 0x40,
+    /*! Use relaxed timers for T.38. This is appropriate when using TCP/TPKT for T.38,
+        as there is no point in anything but a long backstop timeout in such a mode. */
+    T30_IAF_MODE_RELAXED_TIMERS = 0x80
 };
 
 typedef struct

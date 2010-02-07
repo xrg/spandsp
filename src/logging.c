@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: logging.c,v 1.28 2009/01/05 13:48:31 steveu Exp $
+ * $Id: logging.c,v 1.29 2009/01/20 04:24:45 steveu Exp $
  */
 
 /*! \file */
@@ -50,7 +50,7 @@
 
 static void default_message_handler(int level, const char *text);
 
-static message_handler_func_t __span_message = *default_message_handler;
+static message_handler_func_t __span_message = &default_message_handler;
 static error_handler_func_t __span_error = NULL;
 
 /* Note that this list *must* match the enum definition in logging.h */

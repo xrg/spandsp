@@ -29042,6 +29042,7 @@ if test "${build}" == "${host}"
 then
     case "${host}" in
     x86_64-*)
+        # X86_64 Linux machines may have both 64 bit and 32 bit libraries. We need to choose the right set
         as_ac_RealFile=`$as_echo "ac_cv_real_file_${prefix}/lib64" | $as_tr_sh`
 { $as_echo "$as_me:$LINENO: checking for ${prefix}/lib64" >&5
 $as_echo_n "checking for ${prefix}/lib64... " >&6; }
@@ -29073,6 +29074,57 @@ if test `eval 'as_val=${'$as_ac_RealFile'}
   libdir='$(exec_prefix)/lib64'
 fi
 
+        { $as_echo "$as_me:$LINENO: checking for /usr/X11R6/lib64" >&5
+$as_echo_n "checking for /usr/X11R6/lib64... " >&6; }
+if test "${ac_cv_real_file__usr_X11R6_lib64+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  { { $as_echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+$as_echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "/usr/X11R6/lib64"
+then
+  if test -h "/usr/X11R6/lib64"
+  then
+    ac_cv_real_file__usr_X11R6_lib64=no
+  else
+    ac_cv_real_file__usr_X11R6_lib64=yes
+  fi
+else
+  ac_cv_real_file__usr_X11R6_lib64=no
+fi
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_real_file__usr_X11R6_lib64" >&5
+$as_echo "$ac_cv_real_file__usr_X11R6_lib64" >&6; }
+if test $ac_cv_real_file__usr_X11R6_lib64 = yes; then
+  TESTLIBS="$TESTLIBS -L/usr/X11R6/lib64"
+else
+  { $as_echo "$as_me:$LINENO: checking for /usr/X11R6/lib" >&5
+$as_echo_n "checking for /usr/X11R6/lib... " >&6; }
+if test "${ac_cv_file__usr_X11R6_lib+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  { { $as_echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+$as_echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "/usr/X11R6/lib"; then
+  ac_cv_file__usr_X11R6_lib=yes
+else
+  ac_cv_file__usr_X11R6_lib=no
+fi
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_file__usr_X11R6_lib" >&5
+$as_echo "$ac_cv_file__usr_X11R6_lib" >&6; }
+if test $ac_cv_file__usr_X11R6_lib = yes; then
+  TESTLIBS="$TESTLIBS -L/usr/X11R6/lib"
+fi
+
+fi
+
+        # The very oldest AMD 64 bit chips support SSE2, SSE and MMX
+        enable_sse2="yes"
         ;;
     esac
 fi
@@ -30336,64 +30388,6 @@ _ACEOF
 
 fi
 
-
-if test "${build}" == "${host}"
-then
-    case "${host}" in
-    x86_64-*)
-        # X86_64 Linux machines may have both 64 bit and 32 bit libraries. We need to choose the right set
-        { $as_echo "$as_me:$LINENO: checking for /usr/X11R6/lib64" >&5
-$as_echo_n "checking for /usr/X11R6/lib64... " >&6; }
-if test "${ac_cv_real_file__usr_X11R6_lib64+set}" = set; then
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  { { $as_echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
-$as_echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
-   { (exit 1); exit 1; }; }
-if test -r "/usr/X11R6/lib64"
-then
-  if test -h "/usr/X11R6/lib64"
-  then
-    ac_cv_real_file__usr_X11R6_lib64=no
-  else
-    ac_cv_real_file__usr_X11R6_lib64=yes
-  fi
-else
-  ac_cv_real_file__usr_X11R6_lib64=no
-fi
-fi
-{ $as_echo "$as_me:$LINENO: result: $ac_cv_real_file__usr_X11R6_lib64" >&5
-$as_echo "$ac_cv_real_file__usr_X11R6_lib64" >&6; }
-if test $ac_cv_real_file__usr_X11R6_lib64 = yes; then
-  TESTLIBS="$TESTLIBS -L/usr/X11R6/lib64"
-else
-  { $as_echo "$as_me:$LINENO: checking for /usr/X11R6/lib" >&5
-$as_echo_n "checking for /usr/X11R6/lib... " >&6; }
-if test "${ac_cv_file__usr_X11R6_lib+set}" = set; then
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  { { $as_echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
-$as_echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
-   { (exit 1); exit 1; }; }
-if test -r "/usr/X11R6/lib"; then
-  ac_cv_file__usr_X11R6_lib=yes
-else
-  ac_cv_file__usr_X11R6_lib=no
-fi
-fi
-{ $as_echo "$as_me:$LINENO: result: $ac_cv_file__usr_X11R6_lib" >&5
-$as_echo "$ac_cv_file__usr_X11R6_lib" >&6; }
-if test $ac_cv_file__usr_X11R6_lib = yes; then
-  TESTLIBS="$TESTLIBS -L/usr/X11R6/lib"
-fi
-
-fi
-
-        ;;
-    esac
-fi
 
 # Checks for libraries.
 

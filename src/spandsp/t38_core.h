@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.h,v 1.31 2008/11/30 13:44:35 steveu Exp $
+ * $Id: t38_core.h,v 1.32 2009/01/19 17:14:10 steveu Exp $
  */
 
 /*! \file */
@@ -223,8 +223,14 @@ int t38_v34rate_to_bps(const uint8_t *data, int len);
     \param s The T.38 context.
     \param indicator The indicator to send.
     \param count The number of copies of the packet to send.
-    \return ??? */
+    \return The delay to allow after this indicator is sent. */
 int t38_core_send_indicator(t38_core_state_t *s, int indicator, int count);
+
+/*! \brief Find the delay to allow for HDLC flags after sending an indicator
+    \param s The T.38 context.
+    \param indicator The indicator to send.
+    \return The delay to allow for initial HDLC flags after this indicator is sent. */
+int t38_core_send_flags_delay(t38_core_state_t *s, int indicator);
 
 /*! \brief Send a data packet
     \param s The T.38 context.
@@ -301,6 +307,12 @@ void t38_set_t38_version(t38_core_state_t *s, int t38_version);
            for no sequence number processing (e.g. for TPKT over TCP transport).
 */
 void t38_set_sequence_number_handling(t38_core_state_t *s, int check);
+
+/*! Set the TEP handling option.
+    \param s The T.38 context.
+    \param allow_for_tep TRUE to allow for TEP playout, else FALSE.
+*/
+void t38_set_tep_handling(t38_core_state_t *s, int allow_for_tep);
 
 /*! Get a pointer to the logging context associated with a T.38 context.
     \brief Get a pointer to the logging context associated with a T.38 context.

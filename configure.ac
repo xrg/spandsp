@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.63 2008/11/28 12:41:25 steveu Exp $
+# $Id: configure.ac,v 1.64 2009/01/17 08:16:08 steveu Exp $
 
 # @start 1
 
@@ -237,7 +237,11 @@ if test "${build}" == "${host}"
 then
     case "${host}" in
     x86_64-*)
+        # X86_64 Linux machines may have both 64 bit and 32 bit libraries. We need to choose the right set
         AX_CHECK_REAL_FILE([${prefix}/lib64], libdir='$(exec_prefix)/lib64')
+        AX_CHECK_REAL_FILE([/usr/X11R6/lib64], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib64"], AC_CHECK_FILE([/usr/X11R6/lib], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib"]))
+        # The very oldest AMD 64 bit chips support SSE2, SSE and MMX
+        enable_sse2="yes"
         ;;
     esac
 fi
@@ -257,16 +261,6 @@ AC_SEARCH_LIBS([powf], [m], AC_DEFINE([HAVE_POWF], [1], [Define to 1 if you have
 AC_SEARCH_LIBS([expf], [m], AC_DEFINE([HAVE_EXPF], [1], [Define to 1 if you have the expf() function.]))
 AC_SEARCH_LIBS([logf], [m], AC_DEFINE([HAVE_LOGF], [1], [Define to 1 if you have the logf() function.]))
 AC_SEARCH_LIBS([log10f], [m], AC_DEFINE([HAVE_LOG10F], [1], [Define to 1 if you have the log10f() function.]))
-
-if test "${build}" == "${host}"
-then
-    case "${host}" in
-    x86_64-*)
-        # X86_64 Linux machines may have both 64 bit and 32 bit libraries. We need to choose the right set
-        AX_CHECK_REAL_FILE([/usr/X11R6/lib64], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib64"], AC_CHECK_FILE([/usr/X11R6/lib], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib"]))
-        ;;
-    esac
-fi
 
 # Checks for libraries.
 AC_CHECK_LIB([tiff], [TIFFOpen], , AC_MSG_ERROR("Can't build without libtiff (does your system require a libtiff-devel package?)"), -lm)

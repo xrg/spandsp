@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.c,v 1.47 2009/01/07 12:50:53 steveu Exp $
+ * $Id: t38_core.c,v 1.48 2009/01/19 17:14:10 steveu Exp $
  */
 
 /*! \file */
@@ -57,6 +57,40 @@
 #include "spandsp/private/t38_core.h"
 
 #define ACCEPTABLE_SEQ_NO_OFFSET    2000
+
+/* The times for training, the optional TEP, and the HDLC preamble, for all the modem options, in ms.
+   Note that the preamble for V.21 is 1s+-15%, and for the other modems is 200ms+100ms. */
+static const struct
+{
+    int tep;
+    int training;
+    int flags;
+} modem_startup_time[] =
+{
+    {      0,   75000,       0},    /* T38_IND_NO_SIGNAL */
+    {      0,       0,       0},    /* T38_IND_CNG */
+    {      0, 3000000,       0},    /* T38_IND_CED */
+    {      0,       0, 1000000},    /* T38_IND_V21_PREAMBLE */ /* TODO: 850ms should be OK for this, but it causes trouble with some ATAs. Why? */
+    { 215000,  943000,  200000},    /* T38_IND_V27TER_2400_TRAINING */
+    { 215000,  708000,  200000},    /* T38_IND_V27TER_4800_TRAINING */
+    { 215000,  234000,  200000},    /* T38_IND_V29_7200_TRAINING */
+    { 215000,  234000,  200000},    /* T38_IND_V29_9600_TRAINING */
+    { 215000,  142000,  200000},    /* T38_IND_V17_7200_SHORT_TRAINING */
+    { 215000, 1393000,  200000},    /* T38_IND_V17_7200_LONG_TRAINING */
+    { 215000,  142000,  200000},    /* T38_IND_V17_9600_SHORT_TRAINING */
+    { 215000, 1393000,  200000},    /* T38_IND_V17_9600_LONG_TRAINING */
+    { 215000,  142000,  200000},    /* T38_IND_V17_12000_SHORT_TRAINING */
+    { 215000, 1393000,  200000},    /* T38_IND_V17_12000_LONG_TRAINING */
+    { 215000,  142000,  200000},    /* T38_IND_V17_14400_SHORT_TRAINING */
+    { 215000, 1393000,  200000},    /* T38_IND_V17_14400_LONG_TRAINING */
+    { 215000,       0,       0},    /* T38_IND_V8_ANSAM */
+    { 215000,       0,       0},    /* T38_IND_V8_SIGNAL */
+    { 215000,       0,       0},    /* T38_IND_V34_CNTL_CHANNEL_1200 */
+    { 215000,       0,       0},    /* T38_IND_V34_PRI_CHANNEL */
+    { 215000,       0,       0},    /* T38_IND_V34_CC_RETRAIN */
+    { 215000,       0,       0},    /* T38_IND_V33_12000_TRAINING */
+    { 215000,       0,       0}     /* T38_IND_V33_14400_TRAINING */
+};
 
 const char *t38_indicator_to_str(int indicator)
 {
@@ -747,22 +781,36 @@ int t38_core_send_indicator(t38_core_state_t *s, int indicator, int count)
 {
     uint8_t buf[100];
     int len;
+    int delay;
 
-    /* Zero is a valid count, to suppress the transmission of indicators when the
-       transport is TCP. */       
-    if (count)
+    delay = 0;
+    if (s->current_tx_indicator != indicator)
     {
-        if ((len = t38_encode_indicator(s, buf, indicator)) < 0)
+        /* Zero is a valid count, to suppress the transmission of indicators when the
+           transport is TCP. */       
+        if (count)
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "T.38 indicator len is %d\n", len);
-            return len;
+            if ((len = t38_encode_indicator(s, buf, indicator)) < 0)
+            {
+                span_log(&s->logging, SPAN_LOG_FLOW, "T.38 indicator len is %d\n", len);
+                return len;
+            }
+            span_log(&s->logging, SPAN_LOG_FLOW, "Tx %5d: indicator %s\n", s->tx_seq_no, t38_indicator_to_str(indicator));
+            s->tx_packet_handler(s, s->tx_packet_user_data, buf, len, count);
+            s->tx_seq_no = (s->tx_seq_no + 1) & 0xFFFF;
+            delay = modem_startup_time[indicator].training;
+            if (s->allow_for_tep)
+                delay += modem_startup_time[indicator].tep;
         }
-        span_log(&s->logging, SPAN_LOG_FLOW, "Tx %5d: indicator %s\n", s->tx_seq_no, t38_indicator_to_str(indicator));
-        s->tx_packet_handler(s, s->tx_packet_user_data, buf, len, count);
-        s->tx_seq_no = (s->tx_seq_no + 1) & 0xFFFF;
+        s->current_tx_indicator = indicator;
     }
-    s->current_tx_indicator = indicator;
-    return 0;
+    return delay;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t38_core_send_flags_delay(t38_core_state_t *s, int indicator)
+{
+    return modem_startup_time[indicator].flags;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -856,6 +904,12 @@ void t38_set_sequence_number_handling(t38_core_state_t *s, int check)
 }
 /*- End of function --------------------------------------------------------*/
 
+void t38_set_tep_handling(t38_core_state_t *s, int allow_for_tep)
+{
+    s->allow_for_tep = allow_for_tep;
+}
+/*- End of function --------------------------------------------------------*/
+
 int t38_get_fastest_image_data_rate(t38_core_state_t *s)
 {
     return s->fastest_image_data_rate;
@@ -899,6 +953,10 @@ t38_core_state_t *t38_core_init(t38_core_state_t *s,
     s->current_rx_indicator = -1;
     s->current_rx_data_type = -1;
     s->current_rx_field_type = -1;
+
+    /* Set the initial current indicator state to something invalid, so the
+       first attempt to send an indicator will work. */
+    s->current_tx_indicator = -1;
 
     s->rx_indicator_handler = rx_indicator_handler;
     s->rx_data_handler = rx_data_handler;

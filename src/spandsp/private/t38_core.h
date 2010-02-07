@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.h,v 1.1 2008/11/30 13:44:35 steveu Exp $
+ * $Id: t38_core.h,v 1.2 2009/01/19 17:14:10 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_T38_CORE_H_)
@@ -90,6 +90,9 @@ struct t38_core_state_s
     /*! This is the version number of ITU-T Rec. T.38. New versions shall be
         compatible with previous versions. */
     int t38_version;
+
+    /*! Allow time for TEP playout */
+    int allow_for_tep;
 
     /*! The fastest data rate supported by the T.38 channel. */
     int fastest_image_data_rate;

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.275 2009/01/05 13:48:31 steveu Exp $
+ * $Id: t30.c,v 1.277 2009/01/22 12:17:46 steveu Exp $
  */
 
 /*! \file */
@@ -2008,7 +2008,7 @@ static int process_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
     }
     if (s->phase_b_handler)
     {
-        new_status = s->phase_b_handler(s, s->phase_d_user_data, msg[2]);
+        new_status = s->phase_b_handler(s, s->phase_b_user_data, msg[2]);
         if (new_status != T30_ERR_OK)
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "Application rejected DIS/DTC - '%s'\n", t30_completion_code_to_str(new_status));
@@ -2183,7 +2183,7 @@ static int process_rx_dcs(t30_state_t *s, const uint8_t *msg, int len)
 
     if (s->phase_b_handler)
     {
-        new_status = s->phase_b_handler(s, s->phase_d_user_data, msg[2]);
+        new_status = s->phase_b_handler(s, s->phase_b_user_data, msg[2]);
         if (new_status != T30_ERR_OK)
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "Application rejected DCS - '%s'\n", t30_completion_code_to_str(new_status));
@@ -5516,7 +5516,7 @@ void t30_front_end_status(void *user_data, int status)
             }
             else
             {
-                /* We just sent the disconnect message. Now it is time to disconnect */
+                /* We just sent the disconnect message. Now it is time to disconnect. */
                 disconnect(s);
             }
             break;
