@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: playout_tests.c,v 1.17 2007/11/10 11:14:58 steveu Exp $
+ * $Id: playout_tests.c,v 1.18 2007/11/26 13:29:00 steveu Exp $
  */
 
 /*! \page playout_tests_page Playout (jitter buffering) tests
@@ -53,7 +53,7 @@ static void dynamic_buffer_tests(void)
     playout_frame_t frame;
     playout_frame_t *p;
     plc_state_t plc;
-    time_scale_t ts;
+    time_scale_state_t ts;
     int16_t *amp;
     int16_t fill[BLOCK_LEN];
     int16_t buf[20*BLOCK_LEN];

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.c,v 1.23 2007/08/29 12:44:36 steveu Exp $
+ * $Id: v8.c,v 1.24 2007/11/26 13:28:59 steveu Exp $
  */
  
 /*! \file */
@@ -850,6 +850,11 @@ v8_state_t *v8_init(v8_state_t *s,
                     v8_result_handler_t *result_handler,
                     void *user_data)
 {
+    if (s == NULL)
+    {
+        if ((s = (v8_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, 0, sizeof(*s));
     s->caller = caller;
     s->available_modulations = available_modulations;

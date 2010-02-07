@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.211 2007/11/12 13:30:08 steveu Exp $
+ * $Id: t30.c,v 1.212 2007/11/26 13:58:05 steveu Exp $
  */
 
 /*! \file */
@@ -1690,7 +1690,7 @@ static int start_sending_document(t30_state_t *s, const uint8_t *msg, int len)
         return -1;
     }
     span_log(&s->logging, SPAN_LOG_FLOW, "Start sending document\n");
-    if (t4_tx_init(&(s->t4), s->tx_file, s->tx_start_page, s->tx_stop_page))
+    if (t4_tx_init(&(s->t4), s->tx_file, s->tx_start_page, s->tx_stop_page) == NULL)
     {
         span_log(&s->logging, SPAN_LOG_WARNING, "Cannot open source TIFF file '%s'\n", s->tx_file);
         s->current_status = T30_ERR_FILEERROR;
@@ -2059,7 +2059,7 @@ static int process_rx_dcs(t30_state_t *s, const uint8_t *msg, int len)
         send_dcn(s);
         return -1;
     }
-    if (!s->in_message  &&  t4_rx_init(&(s->t4), s->rx_file, s->output_encoding))
+    if (!s->in_message  &&  t4_rx_init(&(s->t4), s->rx_file, s->output_encoding) == NULL)
     {
         span_log(&s->logging, SPAN_LOG_WARNING, "Cannot open target TIFF file '%s'\n", s->rx_file);
         s->current_status = T30_ERR_FILEERROR;
@@ -5673,15 +5673,20 @@ int t30_restart(t30_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t30_init(t30_state_t *s,
-             int calling_party,
-             t30_set_handler_t *set_rx_type_handler,
-             void *set_rx_type_user_data,
-             t30_set_handler_t *set_tx_type_handler,
-             void *set_tx_type_user_data,
-             t30_send_hdlc_handler_t *send_hdlc_handler,
-             void *send_hdlc_user_data)
+t30_state_t *t30_init(t30_state_t *s,
+                      int calling_party,
+                      t30_set_handler_t *set_rx_type_handler,
+                      void *set_rx_type_user_data,
+                      t30_set_handler_t *set_tx_type_handler,
+                      void *set_tx_type_user_data,
+                      t30_send_hdlc_handler_t *send_hdlc_handler,
+                      void *send_hdlc_user_data)
 {
+    if (s == NULL)
+    {
+        if ((s = (t30_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, 0, sizeof(*s));
     s->calling_party = calling_party;
     s->set_rx_type_handler = set_rx_type_handler;
@@ -5704,7 +5709,7 @@ int t30_init(t30_state_t *s,
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     span_log_set_protocol(&s->logging, "T.30");
     t30_restart(s);
-    return 0;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -5714,34 +5719,6 @@ void t30_release(t30_state_t *s)
        already happened, repeating it here is harmless. */
     t4_rx_end(&(s->t4));
     t4_tx_end(&(s->t4));
-}
-/*- End of function --------------------------------------------------------*/
-
-t30_state_t *t30_create(int calling_party,
-                        t30_set_handler_t *set_rx_type_handler,
-                        void *set_rx_type_user_data,
-                        t30_set_handler_t *set_tx_type_handler,
-                        void *set_tx_type_user_data,
-                        t30_send_hdlc_handler_t *send_hdlc_handler,
-                        void *send_hdlc_user_data)
-{
-    t30_state_t *s;
-    
-    if ((s = (t30_state_t *) malloc(sizeof(t30_state_t))) == NULL)
-        return NULL;
-    if (t30_init(s,
-                 calling_party,
-                 set_rx_type_handler,
-                 set_rx_type_user_data,
-                 set_tx_type_handler,
-                 set_tx_type_user_data,
-                 send_hdlc_handler,
-                 send_hdlc_user_data))
-    {
-        free(s);
-        return NULL;
-    }
-    return s;
 }
 /*- End of function --------------------------------------------------------*/
 

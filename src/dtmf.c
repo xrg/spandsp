@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.28 2007/11/10 11:14:57 steveu Exp $
+ * $Id: dtmf.c,v 1.29 2007/11/26 13:28:59 steveu Exp $
  */
  
 /*! \file dtmf.h */
@@ -497,6 +497,12 @@ dtmf_rx_state_t *dtmf_rx_init(dtmf_rx_state_t *s,
     int i;
     static int initialised = FALSE;
 
+    if (s == NULL)
+    {
+        s = (dtmf_rx_state_t *) malloc(sizeof (*s));
+        if (s == NULL)
+            return  NULL;
+    }
     s->callback = callback;
     s->callback_data = user_data;
     s->realtime_callback = NULL;
@@ -606,6 +612,12 @@ size_t dtmf_tx_put(dtmf_tx_state_t *s, const char *digits, ssize_t len)
 
 dtmf_tx_state_t *dtmf_tx_init(dtmf_tx_state_t *s)
 {
+    if (s == NULL)
+    {
+        s = (dtmf_tx_state_t *) malloc(sizeof (*s));
+        if (s == NULL)
+            return  NULL;
+    }
     if (!dtmf_tx_inited)
         dtmf_tx_initialise();
     tone_gen_init(&(s->tones), &dtmf_digit_tones[0]);

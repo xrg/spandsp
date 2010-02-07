@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: async.c,v 1.6 2006/11/19 14:07:24 steveu Exp $
+ * $Id: async.c,v 1.7 2007/11/26 13:28:58 steveu Exp $
  */
 
 /*! \file */
@@ -39,14 +39,19 @@
 #include "spandsp/telephony.h"
 #include "spandsp/async.h"
 
-void async_rx_init(async_rx_state_t *s,
-                   int data_bits,
-                   int parity,
-                   int stop_bits,
-                   int use_v14,
-                   put_byte_func_t put_byte,
-                   void *user_data)
+async_rx_state_t *async_rx_init(async_rx_state_t *s,
+                                int data_bits,
+                                int parity,
+                                int stop_bits,
+                                int use_v14,
+                                put_byte_func_t put_byte,
+                                void *user_data)
 {
+    if (s == NULL)
+    {
+        if ((s = (async_rx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     s->data_bits = data_bits;
     s->parity = parity;
     s->stop_bits = stop_bits;
@@ -61,6 +66,7 @@ void async_rx_init(async_rx_state_t *s,
 
     s->parity_errors = 0;
     s->framing_errors = 0;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -144,14 +150,19 @@ void async_rx_put_bit(void *user_data, int bit)
 }
 /*- End of function --------------------------------------------------------*/
 
-void async_tx_init(async_tx_state_t *s,
-                   int data_bits,
-                   int parity,
-                   int stop_bits,
-                   int use_v14,
-                   get_byte_func_t get_byte,
-                   void *user_data)
+async_tx_state_t *async_tx_init(async_tx_state_t *s,
+                                int data_bits,
+                                int parity,
+                                int stop_bits,
+                                int use_v14,
+                                get_byte_func_t get_byte,
+                                void *user_data)
 {
+    if (s == NULL)
+    {
+        if ((s = (async_tx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     /* We have a use_v14 parameter for completeness, but right now V.14 only
        applies to the receive side. We are unlikely to have an application where
        flow control does not exist, so V.14 stuffing is not needed. */
@@ -167,6 +178,7 @@ void async_tx_init(async_tx_state_t *s,
     s->byte_in_progress = 0;
     s->bitpos = 0;
     s->parity_bit = 0;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.h,v 1.26 2007/10/24 13:32:07 steveu Exp $
+ * $Id: adsi.h,v 1.27 2007/11/26 13:28:59 steveu Exp $
  */
 
 /*! \file */
@@ -412,8 +412,9 @@ extern "C"
     \param put_msg A callback routine called to deliver the received messages
            to the application.
     \param user_data An opaque pointer for the callback routine.
+    \return A pointer to the initialised context, or NULL if there was a problem.
 */
-void adsi_rx_init(adsi_rx_state_t *s, int standard, put_msg_func_t put_msg, void *user_data);
+adsi_rx_state_t *adsi_rx_init(adsi_rx_state_t *s, int standard, put_msg_func_t put_msg, void *user_data);
 
 /*! \brief Receive a chunk of ADSI audio.
     \param s The ADSI receive context.
@@ -425,8 +426,9 @@ void adsi_rx(adsi_rx_state_t *s, const int16_t *amp, int len);
 /*! \brief Initialise an ADSI transmit context.
     \param s The ADSI transmit context.
     \param standard The code for the ADSI standard to be used.
+    \return A pointer to the initialised context, or NULL if there was a problem.
 */
-void adsi_tx_init(adsi_tx_state_t *s, int standard);
+adsi_tx_state_t *adsi_tx_init(adsi_tx_state_t *s, int standard);
 
 /*! \brief Adjust the preamble associated with an ADSI transmit context.
     \param s The ADSI transmit context.

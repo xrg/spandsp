@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.44 2007/11/10 05:28:02 steveu Exp $
+ * $Id: t4.h,v 1.45 2007/11/26 13:58:06 steveu Exp $
  */
 
 /*! \file */
@@ -347,19 +347,12 @@ typedef struct
 extern "C" {
 #endif
 
-/*! \brief Allocate a T.4 transmit handling context, and
-           initialise it.
-    \param file The name of the file to be received.
-    \param output_encoding The output encoding.
-    \return The T.4 context, or NULL. */
-t4_state_t *t4_rx_create(const char *file, int output_encoding);
-
 /*! \brief Prepare for reception of a document.
     \param s The T.4 context.
     \param file The name of the file to be received.
     \param output_encoding The output encoding.
-    \return 0 for success, otherwise -1. */
-int t4_rx_init(t4_state_t *s, const char *file, int output_encoding);
+    \return A pointer to the context, or NULL if there was a problem. */
+t4_state_t *t4_rx_init(t4_state_t *s, const char *file, int output_encoding);
 
 /*! \brief Prepare to receive the next page of the current document.
     \param s The T.4 context.
@@ -392,7 +385,7 @@ int t4_rx_end_page(t4_state_t *s);
 
 /*! \brief End reception of a document. Tidy up, close the file and
            free the context. This should be used to end T.4 reception
-           started with t4_rx_create.
+           started with t4_rx_init.
     \param s The T.4 receive context.
     \return 0 for success, otherwise -1. */
 int t4_rx_delete(t4_state_t *s);
@@ -451,20 +444,13 @@ void t4_rx_set_vendor(t4_state_t *s, const char *vendor);
     \param model The model string, or NULL. */
 void t4_rx_set_model(t4_state_t *s, const char *model);
 
-/*! \brief Allocate a T.4 receive handling context, and
-           initialise it.
-    \param s The T.4 context.
-    \param file The name of the file to be sent.
-    \return 0 for success, otherwise -1. */
-t4_state_t *t4_tx_create(const char *file, int start_page, int stop_page);
-
 /*! \brief Prepare for transmission of a document.
     \param s The T.4 context.
     \param file The name of the file to be sent.
     \param start_page The first page to send. -1 for no restriction.
     \param stop_page The last page to send. -1 for no restriction.
-    \return The T.4 context, or NULL. */
-int t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page);
+    \return A pointer to the context, or NULL if there was a problem. */
+t4_state_t *t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page);
 
 /*! \brief Prepare to send the next page of the current document.
     \param s The T.4 context.
@@ -529,7 +515,7 @@ int t4_tx_check_bit(t4_state_t *s);
 
 /*! \brief End the transmission of a document. Tidy up, close the file and
            free the context. This should be used to end T.4 transmission
-           started with t4_tx_create.
+           started with t4_tx_init.
     \param s The T.4 context.
     \return 0 for success, otherwise -1. */
 int t4_tx_delete(t4_state_t *s);

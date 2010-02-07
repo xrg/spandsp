@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.h,v 1.10 2007/04/08 08:16:18 steveu Exp $
+ * $Id: time_scale.h,v 1.11 2007/11/26 13:28:59 steveu Exp $
  */
 
 #if !defined(_SPANDSP_TIME_SCALE_H_)
@@ -59,7 +59,7 @@ typedef struct
     int fill;
     int lcp;
     int16_t buf[TIME_SCALE_BUF_LEN];
-} time_scale_t;
+} time_scale_state_t;
 
 #if defined(__cplusplus)
 extern "C"
@@ -71,15 +71,15 @@ extern "C"
     \brief Initialise a time scale context.
     \param s The time scale context.
     \param rate The ratio between the output speed and the input speed.
-    \return 0 if initialised OK, else -1. */
-int time_scale_init(time_scale_t *s, float rate);
+    \return A pointer to the context, or NULL if there was a problem. */
+time_scale_state_t *time_scale_init(time_scale_state_t *s, float rate);
 
 /*! Change the time scale rate.
     \brief Change the time scale rate.
     \param s The time scale context.
     \param rate The ratio between the output speed and the input speed.
     \return 0 if changed OK, else -1. */
-int time_scale_rate(time_scale_t *s, float rate);
+int time_scale_rate(time_scale_state_t *s, float rate);
 
 /*! Time scale a chunk of audio samples.
     \brief Time scale a chunk of audio samples.
@@ -89,7 +89,7 @@ int time_scale_rate(time_scale_t *s, float rate);
     \param len The number of input samples.
     \return The number of output samples.
 */
-int time_scale(time_scale_t *s, int16_t out[], int16_t in[], int len);
+int time_scale(time_scale_state_t *s, int16_t out[], int16_t in[], int len);
 
 #if defined(__cplusplus)
 }

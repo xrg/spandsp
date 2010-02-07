@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.93 2007/09/18 12:34:37 steveu Exp $
+ * $Id: t31.c,v 1.94 2007/11/26 13:28:59 steveu Exp $
  */
 
 /*! \file */
@@ -1669,9 +1669,19 @@ t31_state_t *t31_init(t31_state_t *s,
                       t38_tx_packet_handler_t *tx_t38_packet_handler,
                       void *tx_t38_packet_user_data)
 {
+    int alloced;
+    
     if (at_tx_handler == NULL  ||  modem_control_handler == NULL)
         return NULL;
 
+    alloced = FALSE;
+    if (s == NULL)
+    {
+        s = (t31_state_t *) malloc(sizeof (*s));
+        if (s == NULL)
+            return  NULL;
+        alloced = TRUE;
+    }
     memset(s, 0, sizeof(*s));
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     span_log_set_protocol(&s->logging, "T.31");
@@ -1705,7 +1715,11 @@ t31_state_t *t31_init(t31_state_t *s,
     s->tx_user_data = &(s->silence_gen);
 
     if ((s->rx_queue = queue_create(4096, QUEUE_WRITE_ATOMIC | QUEUE_READ_ATOMIC)) == NULL)
+    {
+        if (alloced)
+            free(s);
         return NULL;
+    }
     at_init(&s->at_state, at_tx_handler, at_tx_user_data, t31_modem_control_handler, s);
     at_set_class1_handler(&s->at_state, process_class1_cmd, s);
     s->at_state.dte_inactivity_timeout = DEFAULT_DTE_TIMEOUT;

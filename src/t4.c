@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.100 2007/11/10 05:28:02 steveu Exp $
+ * $Id: t4.c,v 1.101 2007/11/26 13:58:06 steveu Exp $
  */
 
 /*
@@ -1052,23 +1052,7 @@ int t4_rx_set_row_write_handler(t4_state_t *s, t4_row_write_handler_t handler, v
 }
 /*- End of function --------------------------------------------------------*/
 
-t4_state_t *t4_rx_create(const char *file, int output_encoding)
-{
-    t4_state_t *s;
-    
-    if ((s = (t4_state_t *) malloc(sizeof(t4_state_t *))))
-    {
-        if (t4_rx_init(s, file, output_encoding))
-        {
-            free(s);
-            return NULL;
-        }
-    }
-    return s;
-}
-/*- End of function --------------------------------------------------------*/
-
-int t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
+t4_state_t *t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
 {
     memset(s, 0, sizeof(*s));
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
@@ -1077,7 +1061,7 @@ int t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
     span_log(&s->logging, SPAN_LOG_FLOW, "Start rx document\n");
 
     if (open_tiff_output_file(s, file) < 0)
-        return -1;
+        return NULL;
 
     /* Save the file name for logging reports. */
     s->file = strdup(file);
@@ -1116,7 +1100,7 @@ int t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
     s->y_resolution = T4_Y_RESOLUTION_FINE;
     s->image_width = T4_WIDTH_R8_A4;
 
-    return 0;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1606,23 +1590,7 @@ int t4_tx_set_row_read_handler(t4_state_t *s, t4_row_read_handler_t handler, voi
 }
 /*- End of function --------------------------------------------------------*/
 
-t4_state_t *t4_tx_create(const char *file, int start_page, int stop_page)
-{
-    t4_state_t *s;
-    
-    if ((s = (t4_state_t *) malloc(sizeof(t4_state_t *))))
-    {
-        if (t4_tx_init(s, file, start_page, stop_page))
-        {
-            free(s);
-            return NULL;
-        }
-    }
-    return s;
-}
-/*- End of function --------------------------------------------------------*/
-
-int t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page)
+t4_state_t *t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page)
 {
     int run_space;
 
@@ -1633,7 +1601,7 @@ int t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page)
     span_log(&s->logging, SPAN_LOG_FLOW, "Start tx document\n");
 
     if (open_tiff_input_file(s, file) < 0)
-        return -1;
+        return NULL;
 
     s->file = strdup(file);
     s->start_page = (start_page >= 0)  ?  start_page  :  0;
@@ -1648,16 +1616,16 @@ int t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page)
 
     run_space = (s->image_width + 4)*sizeof(uint32_t);
     if ((s->cur_runs = (uint32_t *) malloc(run_space)) == NULL)
-        return -1;
+        return NULL;
     if ((s->ref_runs = (uint32_t *) malloc(run_space)) == NULL)
     {
         free_buffers(s);
-        return -1;
+        return NULL;
     }
     if ((s->row_buf = malloc(s->bytes_per_row)) == NULL)
     {
         free_buffers(s);
-        return -1;
+        return NULL;
     }
     s->ref_runs[0] =
     s->ref_runs[1] =
@@ -1665,7 +1633,7 @@ int t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page)
     s->ref_runs[3] = s->image_width;
     s->ref_steps = 1;
     s->image_buffer_size = 0;
-    return 0;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 

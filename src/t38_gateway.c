@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.99 2007/10/30 12:47:23 steveu Exp $
+ * $Id: t38_gateway.c,v 1.100 2007/11/26 13:28:59 steveu Exp $
  */
 
 /*! \file */
@@ -1744,6 +1744,11 @@ t38_gateway_state_t *t38_gateway_init(t38_gateway_state_t *s,
     if (tx_packet_handler == NULL)
         return NULL;
 
+    if (s == NULL)
+    {
+        if ((s = (t38_gateway_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, 0, sizeof(*s));
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     span_log_set_protocol(&s->logging, "T.38G");

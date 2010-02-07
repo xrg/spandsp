@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.c,v 1.16 2007/09/02 14:25:51 steveu Exp $
+ * $Id: time_scale.c,v 1.17 2007/11/26 13:28:59 steveu Exp $
  */
 
 /*! \file */
@@ -95,7 +95,7 @@ static __inline__ void overlap_add(int16_t amp1[], int16_t amp2[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-int time_scale_rate(time_scale_t *s, float rate)
+int time_scale_rate(time_scale_state_t *s, float rate)
 {
     if (rate <= 0.0f)
         return -1;
@@ -120,19 +120,35 @@ int time_scale_rate(time_scale_t *s, float rate)
 }
 /*- End of function --------------------------------------------------------*/
 
-int time_scale_init(time_scale_t *s, float rate)
+time_scale_state_t *time_scale_init(time_scale_state_t *s, float rate)
 {
+    int alloced;
+    
+    alloced = FALSE;
+    if (s == NULL)
+    {
+        s = (time_scale_state_t *) malloc(sizeof (*s));
+        if (s == NULL)
+            return  NULL;
+        /*endif*/
+        alloced = TRUE;
+    }
+    /*endif*/
     if (time_scale_rate(s, rate))
-        return -1;
+    {
+        if (alloced)
+            free(s);
+        return NULL;
+    }
     /*endif*/
     s->rate_nudge = 0.0f;
     s->fill = 0;
     s->lcp = 0;
-    return 0;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
-int time_scale(time_scale_t *s, int16_t out[], int16_t in[], int len)
+int time_scale(time_scale_state_t *s, int16_t out[], int16_t in[], int len)
 {
     double lcpf;
     int pitch;

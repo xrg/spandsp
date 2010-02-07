@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bert.c,v 1.22 2007/03/13 14:10:42 steveu Exp $
+ * $Id: bert.c,v 1.23 2007/11/26 13:28:59 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -362,6 +362,11 @@ bert_state_t *bert_init(bert_state_t *s, int limit, int pattern, int resync_len,
     int i;
     int j;
 
+    if (s == NULL)
+    {
+        if ((s = (bert_state_t *) malloc(sizeof(*s))) == NULL)
+            return  NULL;
+    }
     memset(s, 0, sizeof(*s));
 
     s->pattern = pattern;

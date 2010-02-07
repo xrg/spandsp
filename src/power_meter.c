@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter.c,v 1.19 2007/04/10 16:12:19 steveu Exp $
+ * $Id: power_meter.c,v 1.20 2007/11/26 13:28:59 steveu Exp $
  */
 
 /*! \file */
@@ -51,7 +51,10 @@
 power_meter_t *power_meter_init(power_meter_t *s, int shift)
 {
     if (s == NULL)
-        return NULL;
+    {
+        if ((s = (power_meter_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     s->shift = shift;
     s->reading = 0;
     return s;

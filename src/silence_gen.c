@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: silence_gen.c,v 1.6 2006/11/19 14:07:25 steveu Exp $
+ * $Id: silence_gen.c,v 1.7 2007/11/26 13:35:21 steveu Exp $
  */
 
 /*! \file */
@@ -104,6 +104,11 @@ int silence_gen_generated(silence_gen_state_t *s)
 
 silence_gen_state_t *silence_gen_init(silence_gen_state_t *s, int silent_samples)
 {
+    if (s == NULL)
+    {
+        if ((s = (silence_gen_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, 0, sizeof(*s));
     s->remaining_samples = silent_samples;
     return s;

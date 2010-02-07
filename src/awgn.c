@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn.c,v 1.11 2006/11/19 14:07:24 steveu Exp $
+ * $Id: awgn.c,v 1.12 2007/11/26 13:28:58 steveu Exp $
  */
 
 /*! \file */
@@ -92,16 +92,21 @@ static double ran1(awgn_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-void awgn_init_dbm0(awgn_state_t *s, int idum, float level)
+awgn_state_t *awgn_init_dbm0(awgn_state_t *s, int idum, float level)
 {
-    awgn_init_dbov(s, idum, level - DBM0_MAX_POWER);
+    return awgn_init_dbov(s, idum, level - DBM0_MAX_POWER);
 }
 /*- End of function --------------------------------------------------------*/
 
-void awgn_init_dbov(awgn_state_t *s, int idum, float level)
+awgn_state_t *awgn_init_dbov(awgn_state_t *s, int idum, float level)
 {
     int j;
 
+    if (s == NULL)
+    {
+        if ((s = (awgn_state_t *) malloc(sizeof(*s))) == NULL)
+            return  NULL;
+    }
     if (idum < 0)
         idum = -idum;
 
@@ -121,6 +126,7 @@ void awgn_init_dbov(awgn_state_t *s, int idum, float level)
     }
     s->gset = 0.0;
     s->iset = 0;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 

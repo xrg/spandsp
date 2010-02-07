@@ -26,7 +26,7 @@
  * implementation of the LPC-10 2400 bps Voice Coder. They do not
  * exert copyright claims on their code, and it may be freely used.
  *
- * $Id: lpc10_encode.c,v 1.16 2007/01/03 14:15:35 steveu Exp $
+ * $Id: lpc10_encode.c,v 1.17 2007/11/26 13:28:59 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -271,7 +271,7 @@ lpc10_encode_state_t *lpc10_encode_init(lpc10_encode_state_t *s, int error_corre
 
     if (s == NULL)
     {
-        if ((s = (lpc10_encode_state_t *) malloc(sizeof(lpc10_encode_state_t))) == NULL)
+        if ((s = (lpc10_encode_state_t *) malloc(sizeof(*s))) == NULL)
             return NULL;
     }
 

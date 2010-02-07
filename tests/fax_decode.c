@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_decode.c,v 1.37 2007/11/10 11:14:58 steveu Exp $
+ * $Id: fax_decode.c,v 1.38 2007/11/26 13:58:06 steveu Exp $
  */
 
 /*! \page fax_decode_page FAX decoder
@@ -557,7 +557,7 @@ int main(int argc, char *argv[])
     span_log_set_protocol(&v27ter.logging, "V.27ter");
     span_log_set_level(&v27ter.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);
 
-    if (t4_rx_init(&t4_state, "fax_decode.tif", T4_COMPRESSION_ITU_T4_2D))
+    if (t4_rx_init(&t4_state, "fax_decode.tif", T4_COMPRESSION_ITU_T4_2D) == NULL)
     {
         fprintf(stderr, "Failed to init\n");
         exit(0);

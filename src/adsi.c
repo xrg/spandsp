@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.53 2007/10/24 13:32:06 steveu Exp $
+ * $Id: adsi.c,v 1.54 2007/11/26 13:28:58 steveu Exp $
  */
 
 /*! \file */
@@ -402,11 +402,16 @@ void adsi_rx(adsi_rx_state_t *s, const int16_t *amp, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-void adsi_rx_init(adsi_rx_state_t *s,
-                  int standard,
-                  put_msg_func_t put_msg,
-                  void *user_data)
+adsi_rx_state_t *adsi_rx_init(adsi_rx_state_t *s,
+                              int standard,
+                              put_msg_func_t put_msg,
+                              void *user_data)
 {
+    if (s == NULL)
+    {
+        if ((s = (adsi_rx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, 0, sizeof(*s));
     s->put_msg = put_msg;
     s->user_data = user_data;
@@ -430,6 +435,7 @@ void adsi_rx_init(adsi_rx_state_t *s,
     }
     s->standard = standard;
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -609,8 +615,13 @@ int adsi_tx_put_message(adsi_tx_state_t *s, const uint8_t *msg, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-void adsi_tx_init(adsi_tx_state_t *s, int standard)
+adsi_tx_state_t *adsi_tx_init(adsi_tx_state_t *s, int standard)
 {
+    if (s == NULL)
+    {
+        if ((s = (adsi_tx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, 0, sizeof(*s));
     make_tone_gen_descriptor(&(s->alert_tone_desc),
                              2130,
@@ -626,6 +637,7 @@ void adsi_tx_init(adsi_tx_state_t *s, int standard)
     adsi_tx_set_preamble(s, -1, -1, -1, -1);
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     start_tx(s);
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 

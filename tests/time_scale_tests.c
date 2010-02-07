@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale_tests.c,v 1.15 2007/11/10 11:14:59 steveu Exp $
+ * $Id: time_scale_tests.c,v 1.16 2007/11/26 13:29:00 steveu Exp $
  */
 
 /*! \page time_scale_tests_page Time scaling tests
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     int new_frames;
     int out_frames;
     int count;
-    time_scale_t state;
+    time_scale_state_t state;
     float x;
     float rate;
     int16_t in[BLOCK_LEN];

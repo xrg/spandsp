@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.c,v 1.15 2007/09/01 09:16:57 steveu Exp $
+ * $Id: modem_connect_tones.c,v 1.16 2007/11/26 13:28:59 steveu Exp $
  */
  
 /*! \file */
@@ -99,6 +99,11 @@ modem_connect_tones_tx_state_t *modem_connect_tones_tx_init(modem_connect_tones_
 {
     tone_gen_descriptor_t tone_desc;
 
+    if (s == NULL)
+    {
+        if ((s = (modem_connect_tones_tx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     s->tone_type = tone_type;
     switch (s->tone_type)
     {
@@ -382,6 +387,12 @@ modem_connect_tones_rx_state_t *modem_connect_tones_rx_init(modem_connect_tones_
                                                             tone_report_func_t tone_callback,
                                                             void *user_data)
 {
+    if (s == NULL)
+    {
+        if ((s = (modem_connect_tones_rx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
+
     s->tone_type = tone_type;
     s->channel_level = 0;
     s->notch_level = 0;    

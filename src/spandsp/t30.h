@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.83 2007/10/26 15:06:10 steveu Exp $
+ * $Id: t30.h,v 1.84 2007/11/26 13:58:06 steveu Exp $
  */
 
 /*! \file */
@@ -596,15 +596,15 @@ extern "C"
     \param s The T.30 context.
     \param calling_party TRUE if the context is for a calling party. FALSE if the
            context is for an answering party.
-    \return 0 for OK, else -1. */
-int t30_init(t30_state_t *s,
-             int calling_party,
-             t30_set_handler_t *set_rx_type_handler,
-             void *set_rx_type_user_data,
-             t30_set_handler_t *set_tx_type_handler,
-             void *set_tx_type_user_data,
-             t30_send_hdlc_handler_t *send_hdlc_handler,
-             void *send_hdlc_user_data);
+    \return A pointer to the context, or NULL if there was a problem. */
+t30_state_t *t30_init(t30_state_t *s,
+                      int calling_party,
+                      t30_set_handler_t *set_rx_type_handler,
+                      void *set_rx_type_user_data,
+                      t30_set_handler_t *set_tx_type_handler,
+                      void *set_tx_type_user_data,
+                      t30_send_hdlc_handler_t *send_hdlc_handler,
+                      void *send_hdlc_user_data);
 
 /*! Release a T.30 context.
     \brief Release a T.30 context.
@@ -616,20 +616,6 @@ void t30_release(t30_state_t *s);
     \param s The T.30 context.
     \return 0 for OK, else -1. */
 int t30_restart(t30_state_t *s);
-
-/*! Create and initialise a T.30 context.
-    \brief Create and initialise a T.30 context.
-    \param calling_party TRUE if the context is for a calling party. FALSE if the
-           context is for an answering party.
-    \return A pointer to the FAX context, or NULL if one could not be created.
-*/
-t30_state_t *t30_create(int calling_party,
-                        t30_set_handler_t *set_rx_type_handler,
-                        void *set_rx_type_user_data,
-                        t30_set_handler_t *set_tx_type_handler,
-                        void *set_tx_type_user_data,
-                        t30_send_hdlc_handler_t *send_hdlc_handler,
-                        void *send_hdlc_user_data);
 
 /*! Free a T.30 context.
     \brief Free a T.30 context.

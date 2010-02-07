@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.c,v 1.37 2007/06/08 15:25:13 steveu Exp $
+ * $Id: t38_core.c,v 1.38 2007/11/26 13:35:21 steveu Exp $
  */
 
 /*! \file */
@@ -857,6 +857,11 @@ t38_core_state_t *t38_core_init(t38_core_state_t *s,
                                 t38_tx_packet_handler_t *tx_packet_handler,
                                 void *tx_packet_user_data)
 {
+    if (s == NULL)
+    {
+        if ((s = (t38_core_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, 0, sizeof(*s));
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     span_log_set_protocol(&s->logging, "T.38");

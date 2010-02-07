@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.c,v 1.19 2007/10/06 02:30:04 steveu Exp $
+ * $Id: at_interpreter.c,v 1.20 2007/11/26 13:58:05 steveu Exp $
  */
 
 /*! \file */
@@ -5268,6 +5268,11 @@ at_state_t *at_init(at_state_t *s,
                     at_modem_control_handler_t *modem_control_handler,
                     void *modem_control_user_data)
 {
+    if (s == NULL)
+    {
+        if ((s = (at_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, '\0', sizeof(*s));
     s->modem_control_handler = modem_control_handler;
     s->modem_control_user_data = modem_control_user_data;

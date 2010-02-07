@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.c,v 1.16 2007/08/29 12:44:36 steveu Exp $
+ * $Id: sig_tone.c,v 1.17 2007/11/26 13:28:59 steveu Exp $
  */
 
 /*! \file */
@@ -497,6 +497,11 @@ sig_tone_state_t *sig_tone_init(sig_tone_state_t *s, int tone_type, sig_tone_fun
         return NULL;
     /*endif*/
 
+    if (s == NULL)
+    {
+        if ((s = (sig_tone_state_t *) malloc(sizeof(*s))) == NULL)
+            return  NULL;
+    }
     memset(s, 0, sizeof(*s));
 
     s->sig_update = sig_update;

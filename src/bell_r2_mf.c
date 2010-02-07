@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.c,v 1.17 2007/08/31 14:47:10 steveu Exp $
+ * $Id: bell_r2_mf.c,v 1.18 2007/11/26 13:28:58 steveu Exp $
  */
 
 /*! \file bell_r2_mf.h */
@@ -310,6 +310,13 @@ size_t bell_mf_tx_put(bell_mf_tx_state_t *s, const char *digits, ssize_t len)
 
 bell_mf_tx_state_t *bell_mf_tx_init(bell_mf_tx_state_t *s)
 {
+    if (s == NULL)
+    {
+        if ((s = (bell_mf_tx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
+    memset(s, 0, sizeof(*s));
+
     if (!bell_mf_gen_inited)
         bell_mf_gen_init();
     tone_gen_init(&(s->tones), &bell_mf_digit_tones[0]);
@@ -362,6 +369,13 @@ r2_mf_tx_state_t *r2_mf_tx_init(r2_mf_tx_state_t *s, int fwd)
     int i;
     const mf_digit_tones_t *tones;
 
+    if (s == NULL)
+    {
+        if ((s = (r2_mf_tx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
+    memset(s, 0, sizeof(*s));
+
     if (!r2_mf_gen_inited)
     {
         i = 0;
@@ -398,7 +412,6 @@ r2_mf_tx_state_t *r2_mf_tx_init(r2_mf_tx_state_t *s, int fwd)
         }
         r2_mf_gen_inited = TRUE;
     }
-    memset(s, 0, sizeof(*s));
     s->fwd = fwd;
     return s;
 }
@@ -631,6 +644,13 @@ bell_mf_rx_state_t *bell_mf_rx_init(bell_mf_rx_state_t *s,
     int i;
     static int initialised = FALSE;
 
+    if (s == NULL)
+    {
+        if ((s = (bell_mf_rx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
+    memset(s, 0, sizeof(*s));
+
     if (!initialised)
     {
         for (i = 0;  i < 6;  i++)
@@ -836,6 +856,13 @@ r2_mf_rx_state_t *r2_mf_rx_init(r2_mf_rx_state_t *s, int fwd)
 {
     int i;
     static int initialised = FALSE;
+
+    if (s == NULL)
+    {
+        if ((s = (r2_mf_rx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
+    memset(s, 0, sizeof(*s));
 
     s->fwd = fwd;
 

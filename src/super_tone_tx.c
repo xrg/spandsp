@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.c,v 1.17 2007/11/18 08:57:14 steveu Exp $
+ * $Id: super_tone_tx.c,v 1.19 2007/11/26 13:35:21 steveu Exp $
  */
 
 /*! \file */
@@ -114,6 +114,11 @@ super_tone_tx_state_t *super_tone_tx_init(super_tone_tx_state_t *s, super_tone_t
 {
     if (tree == NULL)
         return NULL;
+    if (s == NULL)
+    {
+        if ((s = (super_tone_tx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, 0, sizeof(*s));
     s->level = 0;
     s->levels[0] = tree;
@@ -166,7 +171,7 @@ int super_tone_tx(super_tone_tx_state_t *s, int16_t amp[], int max_samples)
             }
             if (s->tone[0].phase_rate < 0)
             {
-                for (  ;  samples < limit;  samples++)
+                for (limit = len + samples;  samples < limit;  samples++)
                 {
                     /* There must be two, and only two tones */
                     xamp = dds_modf(&s->phase[0], -s->tone[0].phase_rate, s->tone[0].gain, 0)

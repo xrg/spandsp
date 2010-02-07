@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_encode.c,v 1.16 2007/08/21 14:25:54 steveu Exp $
+ * $Id: gsm0610_encode.c,v 1.17 2007/11/26 13:28:59 steveu Exp $
  */
 
 /*! \file */
@@ -108,7 +108,7 @@ gsm0610_state_t *gsm0610_init(gsm0610_state_t *s, int packing)
 {
     if (s == NULL)
     {
-        s = (gsm0610_state_t *) malloc(sizeof (gsm0610_state_t));
+        s = (gsm0610_state_t *) malloc(sizeof (*s));
         if (s == NULL)
             return  NULL;
         /*endif*/

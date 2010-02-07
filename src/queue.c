@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: queue.c,v 1.16 2007/10/24 13:32:06 steveu Exp $
+ * $Id: queue.c,v 1.17 2007/11/26 13:35:21 steveu Exp $
  */
 
 /*! \file */
@@ -411,14 +411,14 @@ queue_state_t *queue_create(int len, int flags)
 queue_state_t *queue_init(queue_state_t *s, int len, int flags)
 {
     if (s == NULL)
-        s = malloc(sizeof(*s) + len + 1);
-    if (s)
     {
-        s->iptr =
-        s->optr = 0;
-        s->flags = flags;
-        s->len = len + 1;
+        if ((s = (queue_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
     }
+    s->iptr =
+    s->optr = 0;
+    s->flags = flags;
+    s->len = len + 1;
     return s;
 }
 /*- End of function --------------------------------------------------------*/

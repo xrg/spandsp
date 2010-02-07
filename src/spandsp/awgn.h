@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn.h,v 1.11 2007/04/08 08:16:17 steveu Exp $
+ * $Id: awgn.h,v 1.12 2007/11/26 13:28:59 steveu Exp $
  */
 
 /*! \file */
@@ -87,9 +87,9 @@ extern "C"
 {
 #endif
 
-void awgn_init_dbm0(awgn_state_t *s, int idum, float level);
+awgn_state_t *awgn_init_dbm0(awgn_state_t *s, int idum, float level);
 
-void awgn_init_dbov(awgn_state_t *s, int idum, float level);
+awgn_state_t *awgn_init_dbov(awgn_state_t *s, int idum, float level);
 
 int16_t awgn(awgn_state_t *s);
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.c,v 1.18 2007/09/02 14:28:13 steveu Exp $
+ * $Id: super_tone_rx.c,v 1.19 2007/11/26 13:35:21 steveu Exp $
  */
 
 /*! \file */
@@ -230,7 +230,7 @@ super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *s,
         return NULL;
     if (s == NULL)
     {
-        s = (super_tone_rx_state_t *) malloc(sizeof(super_tone_rx_state_t) + desc->monitored_frequencies*sizeof(goertzel_state_t));
+        s = (super_tone_rx_state_t *) malloc(sizeof(*s) + desc->monitored_frequencies*sizeof(goertzel_state_t));
         if (s == NULL)
             return NULL;
     }

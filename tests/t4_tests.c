@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.51 2007/11/21 15:36:31 steveu Exp $
+ * $Id: t4_tests.c,v 1.52 2007/11/26 13:58:06 steveu Exp $
  */
 
 /*! \file */
@@ -278,7 +278,7 @@ int main(int argc, char *argv[])
         if (compression < 0)
             compression = T4_COMPRESSION_ITU_T4_1D;
         /* Receive end puts TIFF to a new file. We assume the receive width here. */
-        if (t4_rx_init(&receive_state, OUT_FILE_NAME, T4_COMPRESSION_ITU_T4_2D))
+        if (t4_rx_init(&receive_state, OUT_FILE_NAME, T4_COMPRESSION_ITU_T4_2D) == NULL)
         {
             printf("Failed to init T.4 rx\n");
             exit(2);
@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
     {
 #if 1
         /* Send end gets TIFF from a file */
-        if (t4_tx_init(&send_state, in_file_name, -1, -1))
+        if (t4_tx_init(&send_state, in_file_name, -1, -1) == NULL)
         {
             printf("Failed to init T.4 send\n");
             exit(2);
@@ -345,7 +345,7 @@ int main(int argc, char *argv[])
         t4_tx_set_local_ident(&send_state, "111 2222 3333");
 
         /* Receive end puts TIFF to a new file. */
-        if (t4_rx_init(&receive_state, OUT_FILE_NAME, T4_COMPRESSION_ITU_T4_2D))
+        if (t4_rx_init(&receive_state, OUT_FILE_NAME, T4_COMPRESSION_ITU_T4_2D) == NULL)
         {
             printf("Failed to init T.4 rx\n");
             exit(2);
@@ -492,7 +492,7 @@ int main(int argc, char *argv[])
 #endif
 #if 0
         /* Send end gets TIFF from a function */
-        if (t4_tx_init(&send_state, in_file_name, -1, -1))
+        if (t4_tx_init(&send_state, in_file_name, -1, -1) == NULL)
         {
             printf("Failed to init T.4 tx\n");
             exit(2);
@@ -502,7 +502,7 @@ int main(int argc, char *argv[])
         t4_tx_set_local_ident(&send_state, "111 2222 3333");
 
         /* Receive end puts TIFF to a function. */
-        if (t4_rx_init(&receive_state, OUT_FILE_NAME, T4_COMPRESSION_ITU_T4_2D))
+        if (t4_rx_init(&receive_state, OUT_FILE_NAME, T4_COMPRESSION_ITU_T4_2D) == NULL)
         {
             printf("Failed to init T.4 rx\n");
             exit(2);
