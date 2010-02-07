@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: regression_tests.sh,v 1.45 2007/09/07 13:22:25 steveu Exp $
+# $Id: regression_tests.sh,v 1.46 2007/09/28 13:00:10 steveu Exp $
 #
 
 ITUTESTS_TIF=../itutests/fax/itutests.tif
@@ -571,15 +571,6 @@ echo t38_terminal_tests completed OK
 
 rm -f t4_tests_receive.tif
 ./t4_tests >$STDOUT_DEST 2>$STDERR_DEST
-RETVAL=$?
-if [ $RETVAL != 0 ]
-then
-    echo t4_tests failed!
-    exit $RETVAL
-fi
-# Now use tiffcmp to check the results. It will return non-zero if any page images differ. The -t
-# option means the normal differences in tags will be ignored.
-tiffcmp -t ${ITUTESTS_TIF} t4_tests_receive.tif >/dev/null
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then

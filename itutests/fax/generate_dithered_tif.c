@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: generate_dithered_tif.c,v 1.3 2006/11/20 00:00:27 steveu Exp $
+ * $Id: generate_dithered_tif.c,v 1.4 2007/09/30 11:36:52 steveu Exp $
  */
 
 /*! \file */
@@ -61,13 +61,7 @@
 #endif
 #include <tiffio.h>
 
-#define T4_X_RESOLUTION_R4          4019
-#define T4_X_RESOLUTION_R8          8037
-#define T4_X_RESOLUTION_R16         16074
-
-#define T4_Y_RESOLUTION_STANDARD    3850
-#define T4_Y_RESOLUTION_FINE        7700
-#define T4_Y_RESOLUTION_SUPERFINE   15400
+#include "spandsp.h"
 
 int main(int argc, char *argv[])
 {

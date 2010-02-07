@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: generate_sized_pages.c,v 1.4 2006/11/20 00:00:27 steveu Exp $
+ * $Id: generate_sized_pages.c,v 1.5 2007/09/30 11:36:52 steveu Exp $
  */
 
 /*! \file */
@@ -51,13 +51,7 @@
 #endif
 #include <tiffio.h>
 
-#define T4_X_RESOLUTION_R4          4019
-#define T4_X_RESOLUTION_R8          8037
-#define T4_X_RESOLUTION_R16         16074
-
-#define T4_Y_RESOLUTION_STANDARD    3850
-#define T4_Y_RESOLUTION_FINE        7700
-#define T4_Y_RESOLUTION_SUPERFINE   15400
+#include "spandsp.h"
 
 struct
 {
@@ -72,126 +66,210 @@ struct
         "R8_385_A4.tif",
         T4_X_RESOLUTION_R8,
         T4_Y_RESOLUTION_STANDARD,
-        1728,
+        T4_WIDTH_R8_A4,
         1100
-    },
-    {
-        "R16_385_A4.tif",
-        T4_X_RESOLUTION_R16,
-        T4_Y_RESOLUTION_STANDARD,
-        3456,
-        1100
-    },
-    {
-        "R8_77_A4.tif",
-        T4_X_RESOLUTION_R8,
-        T4_Y_RESOLUTION_FINE,
-        1728,
-        2200
-    },
-    {
-        "R16_77_A4.tif",
-        T4_X_RESOLUTION_R16,
-        T4_Y_RESOLUTION_FINE,
-        3456,
-        2200
-    },
-    {
-        "R8_154_A4.tif",
-        T4_X_RESOLUTION_R8,
-        T4_Y_RESOLUTION_SUPERFINE,
-        1728,
-        4400
-    },
-    {
-        "R16_154_A4.tif",
-        T4_X_RESOLUTION_R16,
-        T4_Y_RESOLUTION_SUPERFINE,
-        3456,
-        4400
     },
     {
         "R8_385_B4.tif",
         T4_X_RESOLUTION_R8,
         T4_Y_RESOLUTION_STANDARD,
-        2048,
+        T4_WIDTH_R8_B4,
         1200
-    },
-    {
-        "R16_385_B4.tif",
-        T4_X_RESOLUTION_R16,
-        T4_Y_RESOLUTION_STANDARD,
-        4096,
-        1200
-    },
-    {
-        "R8_77_B4.tif",
-        T4_X_RESOLUTION_R8,
-        T4_Y_RESOLUTION_FINE,
-        2048,
-        2400
-    },
-    {
-        "R16_77_B4.tif",
-        T4_X_RESOLUTION_R16,
-        T4_Y_RESOLUTION_FINE,
-        4096,
-        2400
-    },
-    {
-        "R8_154_B4.tif",
-        T4_X_RESOLUTION_R8,
-        T4_Y_RESOLUTION_SUPERFINE,
-        2048,
-        4800
-    },
-    {
-        "R16_154_B4.tif",
-        T4_X_RESOLUTION_R16,
-        T4_Y_RESOLUTION_SUPERFINE,
-        4096,
-        4800
     },
     {
         "R8_385_A3.tif",
         T4_X_RESOLUTION_R8,
         T4_Y_RESOLUTION_STANDARD,
-        2432,
+        T4_WIDTH_R8_A3,
         1556
     },
     {
-        "R16_385_A3.tif",
-        T4_X_RESOLUTION_R16,
-        T4_Y_RESOLUTION_STANDARD,
-        4864,
-        1556
+        "R8_77_A4.tif",
+        T4_X_RESOLUTION_R8,
+        T4_Y_RESOLUTION_FINE,
+        T4_WIDTH_R8_A4,
+        2200
+    },
+    {
+        "R8_77_B4.tif",
+        T4_X_RESOLUTION_R8,
+        T4_Y_RESOLUTION_FINE,
+        T4_WIDTH_R8_B4,
+        2400
     },
     {
         "R8_77_A3.tif",
         T4_X_RESOLUTION_R8,
         T4_Y_RESOLUTION_FINE,
-        2432,
+        T4_WIDTH_R8_A3,
         3111
     },
     {
-        "R16_77_A3.tif",
-        T4_X_RESOLUTION_R16,
-        T4_Y_RESOLUTION_FINE,
-        4864,
-        3111
+        "R8_154_A4.tif",
+        T4_X_RESOLUTION_R8,
+        T4_Y_RESOLUTION_SUPERFINE,
+        T4_WIDTH_R8_A4,
+        4400
+    },
+    {
+        "R8_154_B4.tif",
+        T4_X_RESOLUTION_R8,
+        T4_Y_RESOLUTION_SUPERFINE,
+        T4_WIDTH_R8_B4,
+        4800
     },
     {
         "R8_154_A3.tif",
         T4_X_RESOLUTION_R8,
         T4_Y_RESOLUTION_SUPERFINE,
-        2432,
+        T4_WIDTH_R8_A3,
         6222
+    },
+    {
+        "R300_300_A4.tif",
+        T4_X_RESOLUTION_300,
+        T4_Y_RESOLUTION_300,
+        T4_WIDTH_300_A4,
+        4400
+    },
+    {
+        "R300_300_B4.tif",
+        T4_X_RESOLUTION_300,
+        T4_Y_RESOLUTION_300,
+        T4_WIDTH_300_B4,
+        4800
+    },
+    {
+        "R300_300_A3.tif",
+        T4_X_RESOLUTION_300,
+        T4_Y_RESOLUTION_300,
+        T4_WIDTH_300_A3,
+        6222
+    },
+    {
+        "R300_600_A4.tif",
+        T4_X_RESOLUTION_300,
+        T4_Y_RESOLUTION_600,
+        T4_WIDTH_300_A4,
+        4400
+    },
+    {
+        "R300_600_B4.tif",
+        T4_X_RESOLUTION_300,
+        T4_Y_RESOLUTION_600,
+        T4_WIDTH_300_B4,
+        4800
+    },
+    {
+        "R300_600_A3.tif",
+        T4_X_RESOLUTION_300,
+        T4_Y_RESOLUTION_600,
+        T4_WIDTH_300_A3,
+        6222
+    },
+    {
+        "R16_154_A4.tif",
+        T4_X_RESOLUTION_R16,
+        T4_Y_RESOLUTION_SUPERFINE,
+        T4_WIDTH_R16_A4,
+        4400
+    },
+    {
+        "R16_154_B4.tif",
+        T4_X_RESOLUTION_R16,
+        T4_Y_RESOLUTION_SUPERFINE,
+        T4_WIDTH_R16_B4,
+        4800
     },
     {
         "R16_154_A3.tif",
         T4_X_RESOLUTION_R16,
         T4_Y_RESOLUTION_SUPERFINE,
-        4864,
+        T4_WIDTH_R16_A3,
+        6222
+    },
+    {
+        "R16_800_A4.tif",
+        T4_X_RESOLUTION_R16,
+        T4_Y_RESOLUTION_800,
+        T4_WIDTH_R16_A4,
+        4400
+    },
+    {
+        "R16_800_B4.tif",
+        T4_X_RESOLUTION_R16,
+        T4_Y_RESOLUTION_800,
+        T4_WIDTH_R16_B4,
+        4800
+    },
+    {
+        "R16_800_A3.tif",
+        T4_X_RESOLUTION_R16,
+        T4_Y_RESOLUTION_800,
+        T4_WIDTH_R16_A3,
+        6222
+    },
+    {
+        "R600_600_A4.tif",
+        T4_X_RESOLUTION_600,
+        T4_Y_RESOLUTION_600,
+        T4_WIDTH_600_A4,
+        4400
+    },
+    {
+        "R600_600_B4.tif",
+        T4_X_RESOLUTION_600,
+        T4_Y_RESOLUTION_600,
+        T4_WIDTH_600_B4,
+        4800
+    },
+    {
+        "R600_600_A3.tif",
+        T4_X_RESOLUTION_600,
+        T4_Y_RESOLUTION_600,
+        T4_WIDTH_600_A3,
+        6222
+    },
+    {
+        "R600_1200_A4.tif",
+        T4_X_RESOLUTION_600,
+        T4_Y_RESOLUTION_1200,
+        T4_WIDTH_600_A4,
+        4400
+    },
+    {
+        "R600_1200_B4.tif",
+        T4_X_RESOLUTION_600,
+        T4_Y_RESOLUTION_1200,
+        T4_WIDTH_600_B4,
+        4800
+    },
+    {
+        "R600_1200_A3.tif",
+        T4_X_RESOLUTION_600,
+        T4_Y_RESOLUTION_1200,
+        T4_WIDTH_600_A3,
+        6222
+    },
+    {
+        "R1200_1200_A4.tif",
+        T4_X_RESOLUTION_1200,
+        T4_Y_RESOLUTION_1200,
+        T4_WIDTH_1200_A4,
+        4400
+    },
+    {
+        "R1200_1200_B4.tif",
+        T4_X_RESOLUTION_1200,
+        T4_Y_RESOLUTION_1200,
+        T4_WIDTH_1200_B4,
+        4800
+    },
+    {
+        "R1200_1200_A3.tif",
+        T4_X_RESOLUTION_1200,
+        T4_Y_RESOLUTION_1200,
+        T4_WIDTH_1200_A3,
         6222
     },
     {
@@ -206,7 +284,7 @@ struct
 int main(int argc, char *argv[])
 {
     int row;
-    uint8_t image_buffer[1024];
+    uint8_t image_buffer[8192];
     TIFF *tiff_file;
     struct tm *tm;
     time_t now;

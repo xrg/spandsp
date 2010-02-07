@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.71 2007/08/14 14:57:37 steveu Exp $
+ * $Id: fax_tests.c,v 1.72 2007/09/30 11:37:47 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -320,10 +320,26 @@ int main(int argc, char *argv[])
         t30_set_header_info(&mc->fax.t30_state, page_header_info);
         t30_set_local_nsf(&mc->fax.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
         t30_set_ecm_capability(&mc->fax.t30_state, use_ecm);
-        t30_set_supported_image_sizes(&mc->fax.t30_state, T30_SUPPORT_US_LETTER_LENGTH | T30_SUPPORT_US_LEGAL_LENGTH | T30_SUPPORT_UNLIMITED_LENGTH
-                                                        | T30_SUPPORT_215MM_WIDTH | T30_SUPPORT_255MM_WIDTH | T30_SUPPORT_303MM_WIDTH);
-        t30_set_supported_resolutions(&mc->fax.t30_state, T30_SUPPORT_STANDARD_RESOLUTION | T30_SUPPORT_FINE_RESOLUTION | T30_SUPPORT_SUPERFINE_RESOLUTION
-                                                        | T30_SUPPORT_R8_RESOLUTION | T30_SUPPORT_R16_RESOLUTION);
+        t30_set_supported_image_sizes(&mc->fax.t30_state,
+                                      T30_SUPPORT_US_LETTER_LENGTH
+                                    | T30_SUPPORT_US_LEGAL_LENGTH
+                                    | T30_SUPPORT_UNLIMITED_LENGTH
+                                    | T30_SUPPORT_215MM_WIDTH
+                                    | T30_SUPPORT_255MM_WIDTH
+                                    | T30_SUPPORT_303MM_WIDTH);
+        t30_set_supported_resolutions(&mc->fax.t30_state,
+                                      T30_SUPPORT_STANDARD_RESOLUTION
+                                    | T30_SUPPORT_FINE_RESOLUTION
+                                    | T30_SUPPORT_SUPERFINE_RESOLUTION
+                                    | T30_SUPPORT_R8_RESOLUTION
+                                    | T30_SUPPORT_R16_RESOLUTION
+                                    | T30_SUPPORT_300_300_RESOLUTION
+                                    | T30_SUPPORT_400_400_RESOLUTION
+                                    | T30_SUPPORT_600_600_RESOLUTION
+                                    | T30_SUPPORT_1200_1200_RESOLUTION
+                                    | T30_SUPPORT_300_600_RESOLUTION
+                                    | T30_SUPPORT_400_800_RESOLUTION
+                                    | T30_SUPPORT_600_1200_RESOLUTION);
         //t30_set_supported_modems(&mc->fax.t30_state, T30_SUPPORT_V27TER);
         if (use_ecm)
             t30_set_supported_compressions(&mc->fax.t30_state, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);

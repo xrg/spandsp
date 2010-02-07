@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.38 2007/09/26 03:19:23 steveu Exp $
+ * $Id: t4.h,v 1.39 2007/10/02 14:09:30 steveu Exp $
  */
 
 /*! \file */
@@ -41,14 +41,14 @@ for FAX transmission.
 \section t4_page_sec_1 How does it work?
 */
 
-enum
+typedef enum
 {
     T4_COMPRESSION_ITU_T4_1D = 1,
     T4_COMPRESSION_ITU_T4_2D = 2,
     T4_COMPRESSION_ITU_T6 = 3
 } t4_image_compression_t;
 
-enum
+typedef enum
 {
     T4_X_RESOLUTION_R4 = 4016,
     T4_X_RESOLUTION_R8 = 8031,
@@ -59,7 +59,7 @@ enum
     T4_X_RESOLUTION_1200 = 47244
 } t4_image_x_resolution_t;
 
-enum
+typedef enum
 {
     T4_Y_RESOLUTION_STANDARD = 3850,
     T4_Y_RESOLUTION_FINE = 7700,
@@ -119,7 +119,7 @@ typedef enum
         North American Legal (215.9mm x 355.6mm)
         Unlimited
 */
-enum
+typedef enum
 {
     /* A4 is 297mm long */
     T4_LENGTH_STANDARD_A4 = 1143,
@@ -184,48 +184,61 @@ typedef struct
                for hardware FAX machines. */
     int min_scan_line_bits;
     
+    /*! \brief The compression type for output to the TIFF file. */
     int output_compression;
+    /*! \brief The TIFF G3 FAX options. */
     int output_t4_options;
 
+    /*! \brief The time at which handling of the current page began. */
     time_t page_start_time;
 
+    /*! \brief The current number of bytes per row of uncompressed image data. */
     int bytes_per_row;
+    /*! \brief The size of the image in the image buffer, in bytes. */
     int image_size;
+    /*! \brief The current size of the image buffer. */
     int image_buffer_size;
     uint8_t *image_buffer;
 
+    /*! \brief The libtiff context for the current TIFF file */
     TIFF *tiff_file;
+    /*! \brief The current file name. */
     const char *file;
+    /*! \brief The first page to transfer. -1 to start at the beginning of the file. */
     int start_page;
+    /*! \brief The last page to transfer. -1 to continue to the end of the file. */
     int stop_page;
 
+    /*! \brief The number of pages transferred to date. */
     int pages_transferred;
+    /*! \brief The number of pages in the current TIFF file. */
     int pages_in_file;
-    /*! Column-to-column (X) resolution in pixels per metre. */
+    /*! \brief Column-to-column (X) resolution in pixels per metre. */
     int x_resolution;
-    /*! Row-to-row (Y) resolution in pixels per metre. */
+    /*! \brief Row-to-row (Y) resolution in pixels per metre. */
     int y_resolution;
-    /*! Width of the current page, in pixels. */
+    /*! \brief Width of the current page, in pixels. */
     int image_width;
-    /*! Current pixel row number. */
+    /*! \brief Current pixel row number. */
     int row;
-    /*! Total pixel rows in the current page. */
+    /*! \brief Total pixel rows in the current page. */
     int image_length;
-    /*! The current number of consecutive bad rows. */
+    /*! \brief The current number of consecutive bad rows. */
     int curr_bad_row_run;
-    /*! The longest run of consecutive bad rows seen in the current page. */
+    /*! \brief The longest run of consecutive bad rows seen in the current page. */
     int longest_bad_row_run;
-    /*! The total number of bad rows in the current page. */
+    /*! \brief The total number of bad rows in the current page. */
     int bad_rows;
 
-    /* Decode state */
     uint32_t bits_to_date;
     int bits;
 
     /*! \brief This variable is set if we are treating the current row as a 2D encoded
                one. */
     int row_is_2d;
+    /*! \brief TRUE if the current run is black */
     int its_black;
+    /*! \brief The current length of the current row. */
     int row_len;
     /*! \brief This variable is used to record the fact we have seen at least one EOL
                since we started decoding. We will not try to interpret the received
@@ -235,37 +248,37 @@ typedef struct
                reaches six, this is the end of the image. */
     int consecutive_eols;
 
-    /*! \brief B&W runs for reference line */
+    /*! \brief Black and white run-lengths for the reference row. */
     uint32_t *ref_runs;
-    /*! \brief B&W runs for current line */
+    /*! \brief Black and white run-lengths for the current row. */
     uint32_t *cur_runs;
+    /*! \brief The current step into the reference row run-lengths buffer. */
+    int b_cursor;
+    /*! \brief The current step into the current row run-lengths buffer. */
+    int a_cursor;
 
-    uint32_t *pa;
-    uint32_t *pb;
     /*! \brief The reference or starting changing element on the coding line. At the
                start of the coding line, a0 is set on an imaginary white changing element
                situated just before the first element on the line. During the coding of
                the coding line, the position of a0 is defined by the previous coding mode.
-               (See 4.2.1.3.2.) */
+               (See 4.2.1.3.2.). */
     int a0;
     /*! \brief The first changing element on the reference line to the right of a0 and of
                opposite colour to a0. */
     int b1;
-    /*! \brief The length of the current run of black or white. */
+    /*! \brief The length of the in-progress run of black or white. */
     int run_length;
+    /*! \brief 2D horizontal mode control. */
     int black_white;
 
     uint32_t data;
     int bit;
 
-    /*! \brief A point into the image buffer indicating where the last row begins */
+    /*! \brief A pointer into the image buffer indicating where the last row begins */
     int last_row_starts_at;
-    /*! \brief A point into the image buffer indicating where the current row begins */
     int row_starts_at;
     
-    /* Encode state */
-
-    /*! Pointer to the buffer for the current pixel row. */
+    /*! \brief Pointer to the buffer for the current pixel row. */
     uint8_t *row_buf;
     
     int bit_pos;

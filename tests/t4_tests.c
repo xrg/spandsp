@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.40 2007/09/16 15:06:13 steveu Exp $
+ * $Id: t4_tests.c,v 1.41 2007/09/28 13:00:10 steveu Exp $
  */
 
 /*! \file */
@@ -64,7 +64,6 @@ in ITU specifications T.4 and T.6.
 t4_state_t send_state;
 t4_state_t receive_state;
 
-#if defined(DUMP_AS_XXX)
 static void dump_image_as_xxx(t4_state_t *state)
 {
     uint8_t *s;
@@ -87,7 +86,20 @@ static void dump_image_as_xxx(t4_state_t *state)
         printf("\n");
     }
 }
-#endif
+/*- End of function --------------------------------------------------------*/
+
+static void display_page_stats(t4_state_t *state)
+{
+    t4_stats_t stats;
+
+    t4_get_transfer_statistics(state, &stats);
+    printf("Pages = %d\n", stats.pages_transferred);
+    printf("Image size = %d x %d pixels\n", stats.width, stats.length);
+    printf("Image resolution = %d/m x %d/m\n", stats.x_resolution, stats.y_resolution);
+    printf("Bad rows = %d\n", stats.bad_rows);
+    printf("Longest bad row run = %d\n", stats.longest_bad_row_run);
+}
+/*- End of function --------------------------------------------------------*/
 
 int main(int argc, char* argv[])
 {
@@ -105,10 +117,11 @@ int main(int argc, char* argv[])
     int block_size;
     char buf[1024];
     uint8_t block[1024];
-    t4_stats_t stats;
     const char *in_file_name;
     int opt;
     int i;
+    int bit_error_rate;
+    int dump_as_xxx;
 
     decode_test = FALSE;
     compression = -1;
@@ -117,18 +130,12 @@ int main(int argc, char* argv[])
     in_file_name = IN_FILE_NAME;
     min_row_bits = 0;
     block_size = 0;
-    while ((opt = getopt(argc, argv, "b:d126hri:m:")) != -1)
+    bit_error_rate = 0;
+    dump_as_xxx = FALSE;
+    while ((opt = getopt(argc, argv, "126b:dehri:m:x")) != -1)
     {
         switch (opt)
         {
-        case 'b':
-            block_size = atoi(optarg);
-            if (block_size > 1024)
-                block_size = 1024;
-            break;
-        case 'd':
-            decode_test = TRUE;
-            break;
         case '1':
             compression = T4_COMPRESSION_ITU_T4_1D;
             break;
@@ -137,6 +144,17 @@ int main(int argc, char* argv[])
             break;
         case '6':
             compression = T4_COMPRESSION_ITU_T6;
+            break;
+        case 'b':
+            block_size = atoi(optarg);
+            if (block_size > 1024)
+                block_size = 1024;
+            break;
+        case 'd':
+            decode_test = TRUE;
+            break;
+        case 'e':
+            bit_error_rate = 0x3FF;
             break;
         case 'h':
             add_page_headers = TRUE;
@@ -149,6 +167,9 @@ int main(int argc, char* argv[])
             break;
         case 'm':
             min_row_bits = atoi(optarg);
+            break;
+        case 'x':
+            dump_as_xxx = TRUE;
             break;
         default:
             //usage();
@@ -200,16 +221,10 @@ int main(int argc, char* argv[])
                 }
             }
         }
-#if defined(DUMP_AS_XXX)
-        dump_image_as_xxx(&receive_state);
-#endif
+        if (dump_as_xxx)
+            dump_image_as_xxx(&receive_state);
         t4_rx_end_page(&receive_state);
-        t4_get_transfer_statistics(&receive_state, &stats);
-        printf("Pages = %d\n", stats.pages_transferred);
-        printf("Image size = %d x %d\n", stats.width, stats.length);
-        printf("Image resolution = %d x %d\n", stats.x_resolution, stats.y_resolution);
-        printf("Bad rows = %d\n", stats.bad_rows);
-        printf("Longest bad row run = %d\n", stats.longest_bad_row_run);
+        display_page_stats(&receive_state);
         t4_rx_end(&receive_state);
     }
     else
@@ -283,15 +298,6 @@ int main(int argc, char* argv[])
                 do
                 {
                     bit = t4_tx_get_bit(&send_state);
-#if 0
-                    if (--next_hit <= 0)
-                    {
-                        do
-                            next_hit = rand() & 0x3FF;
-                        while (next_hit < 20);
-                        bit ^= (rand() & 1);
-                    }
-#endif
                     if (bit == PUTBIT_END_OF_DATA)
                     {
                         /* T.6 data does not contain an image termination sequence.
@@ -303,6 +309,11 @@ int main(int argc, char* argv[])
                             printf("Receiver missed the end of page mark\n");
                             exit(2);
                         }
+                    }
+                    if (bit_error_rate)
+                    {
+                        if ((rand() % bit_error_rate) == 0)
+                            bit ^= 1;
                     }
                     end_of_page = t4_rx_put_bit(&receive_state, bit & 1);
                 }
@@ -351,15 +362,9 @@ int main(int argc, char* argv[])
                 }
                 while (!end_of_page);
             }
-#if defined(DUMP_AS_XXX)
-            dump_image_as_xxx(&receive_state);
-#endif
-            t4_get_transfer_statistics(&receive_state, &stats);
-            printf("Pages = %d\n", stats.pages_transferred);
-            printf("Image size = %d x %d\n", stats.width, stats.length);
-            printf("Image resolution = %d x %d\n", stats.x_resolution, stats.y_resolution);
-            printf("Bad rows = %d\n", stats.bad_rows);
-            printf("Longest bad row run = %d\n", stats.longest_bad_row_run);
+            if (dump_as_xxx)
+                dump_image_as_xxx(&receive_state);
+            display_page_stats(&receive_state);
             if (!restart_pages  ||  (sends & 1))
                 t4_tx_end_page(&send_state);
             t4_rx_end_page(&receive_state);
@@ -370,7 +375,14 @@ int main(int argc, char* argv[])
            so bit matching of the files is not the normal case. */
         t4_tx_end(&send_state);
         t4_rx_end(&receive_state);
+        if (system("tiffcmp -t " IN_FILE_NAME " " OUT_FILE_NAME))
+        {
+            printf("Tests failed\n");
+            exit(2);
+        }
+        printf("Tests passed\n");
     }
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/
