@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.51 2007/08/31 14:47:10 steveu Exp $
+ * $Id: adsi.c,v 1.52 2007/10/22 14:22:42 steveu Exp $
  */
 
 /*! \file */
@@ -899,13 +899,17 @@ int adsi_next_field(adsi_rx_state_t *s, const uint8_t *msg, int msg_len, int pos
         {
             /* Remove bias on the pos value */
             pos--;
-            *field_type = msg[pos++];
+            if (msg[pos] >= '0'  &&  msg[pos] <= '9')
+                *field_type = CLIP_DTMF_HASH_UNSPECIFIED;
+            else
+                *field_type = msg[pos++];
             *field_body = msg + pos;
             i = pos;
             while (i < msg_len  &&  msg[i] >= '0'  &&  msg[i] <= '9')
                 i++;
             *field_len = i - pos;
             pos = i;
+            /* Check if we have reached the end of message marker. */
             if (msg[pos] == '#'  ||  msg[pos] == 'C')
                 pos++;
             if (pos > msg_len)
@@ -1002,12 +1006,12 @@ int adsi_add_field(adsi_tx_state_t *s, uint8_t *msg, int len, uint8_t field_type
         else
         {
             /* Save and reuse the terminator/message type */
-            len--;
-            x = msg[len];
-            msg[len] = field_type;
-            memcpy(msg + len + 1, field_body, field_len);
-            msg[len + field_len + 1] = x;
-            len += (field_len + 2);
+            x = msg[--len];
+            if (field_type != CLIP_DTMF_HASH_UNSPECIFIED)
+                msg[len++] = field_type;
+            memcpy(msg + len, field_body, field_len);
+            msg[len + field_len] = x;
+            len += (field_len + 1);
         }
         break;
     case ADSI_STANDARD_TDD:

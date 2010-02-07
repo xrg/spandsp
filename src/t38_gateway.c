@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.87 2007/10/21 12:06:35 steveu Exp $
+ * $Id: t38_gateway.c,v 1.88 2007/10/22 14:22:42 steveu Exp $
  */
 
 /*! \file */
@@ -599,7 +599,8 @@ static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int l
             s->ecm_mode = (buf[6] & DISBIT3);
         else
             s->ecm_mode = FALSE;
-        s->tcf_in_progress = TRUE;
+        if (from_modem)
+            s->tcf_in_progress = TRUE;
         break;
     default:
         s->tcf_in_progress = FALSE;

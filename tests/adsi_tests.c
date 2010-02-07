@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.34 2007/08/31 14:47:11 steveu Exp $
+ * $Id: adsi_tests.c,v 1.35 2007/10/22 14:22:42 steveu Exp $
  */
 
 /*! \page adsi_tests_page ADSI tests
@@ -177,7 +177,7 @@ int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg)
         len = adsi_add_field(s, msg, len, JCLIP_DIALED_NUM_DES, (uint8_t *) "215", 3);
         break;
     case ADSI_STANDARD_CLIP_DTMF:
-        if (cycle > 2)
+        if (cycle > 4)
             cycle = 0;
         switch (cycle)
         {
@@ -194,6 +194,16 @@ int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg)
         case 2:
             len = adsi_add_field(s, msg, -1, CLIP_DTMF_HASH_TERMINATED, NULL, 0);
             len = adsi_add_field(s, msg, len, CLIP_DTMF_HASH_ABSENCE, (uint8_t *) "1", 1);
+            break;
+        case 3:
+            /* Test the D<number>C format, used in Taiwan and Kuwait */
+            len = adsi_add_field(s, msg, -1, CLIP_DTMF_HASH_TERMINATED, NULL, 0);
+            len = adsi_add_field(s, msg, len, CLIP_DTMF_HASH_ABSENCE, (uint8_t *) "12345678", 8);
+            break;
+        case 4:
+            /* Test the <number># format, with no header */
+            len = adsi_add_field(s, msg, -1, CLIP_DTMF_HASH_TERMINATED, NULL, 0);
+            len = adsi_add_field(s, msg, len, CLIP_DTMF_HASH_UNSPECIFIED, (uint8_t *) "12345678", 8);
             break;
         }
         break;
@@ -222,7 +232,7 @@ static void put_adsi_msg(void *user_data, const uint8_t *msg, int len)
     for (i = 0;  i < len;  i++)
     {
         printf("%02x ", msg[i]);
-        if ((i & 0xf) == 0xf)
+        if ((i & 0xF) == 0xF)
             printf("\n");
     }
     printf("\n");
@@ -367,7 +377,7 @@ static void put_adsi_msg(void *user_data, const uint8_t *msg, int len)
                         case ACLIP_DIALED_NUMBER:
                             printf("Dialed number");
                             break;
-                        case ACLIP_ABSENCE1:
+                        case ACLIP_NUMBER_ABSENCE:
                             printf("Caller's number absent: 'O' or 'P'");
                             break;
                         case ACLIP_REDIRECT:
@@ -379,7 +389,7 @@ static void put_adsi_msg(void *user_data, const uint8_t *msg, int len)
                         case ACLIP_CALLER_NAME:
                             printf("Caller's name");
                             break;
-                        case ACLIP_ABSENCE2:
+                        case ACLIP_NAME_ABSENCE:
                             printf("Caller's name absent: 'O' or 'P'");
                             break;
                         }
@@ -422,6 +432,9 @@ static void put_adsi_msg(void *user_data, const uint8_t *msg, int len)
                             break;
                         case CLIP_DTMF_HASH_ABSENCE:
                             printf("Caller's number absent: private (1), overseas (2) or not available (3)");
+                            break;
+                        case CLIP_DTMF_HASH_UNSPECIFIED:
+                            printf("Unspecified");
                             break;
                         }
                         break;

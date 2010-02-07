@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.h,v 1.24 2007/08/31 14:47:11 steveu Exp $
+ * $Id: adsi.h,v 1.25 2007/10/22 14:22:42 steveu Exp $
  */
 
 /*! \file */
@@ -37,15 +37,17 @@ any form of Analogue Display Service Interface, which includes caller ID, SMS, a
 
 The ADSI module provides for the transmission and reception of ADSI messages
 in various formats. Currently, the supported formats are:
-    - CLASS (Custom Local Area Signaling Services) standard, published by Bellcore:
 
-    - ACLIP (Analog Calling Line Identity Presentation) standard, published by the
-      Telecommunications Authority of Singapore:
+    - CLASS (Custom Local Area Signaling Services) standard, published by Bellcore.
 
-    - CLIP (Calling Line Identity Presentation) standard, published by ETSI.
+    - CLIP (Calling Line Identity Presentation) standard, published by ETSI (FSK and DTMF
+      options), and some variations used around the world.
 
     - JCLIP (Japanese Calling Line Identity Presentation) standard, published by NTT.
         
+    - ACLIP (Analog Calling Line Identity Presentation) standard, published by the
+      Telecommunications Authority of Singapore.
+
     - TDD (Telecommunications Device for the Deaf).
 
 \section adsi_page_sec_2 How does it work?
@@ -80,12 +82,15 @@ The carrier signal consists of 180 bits of 1s. This may be reduced to 80
 bits of 1s for caller ID on call waiting.
     
 \section adsi_page_sec_2a3 MESSAGE TYPE WORD
-Various message types are defined. The common ones for the US CLASS 
+Various message types are defined. The commonest ones for the US CLASS 
 standard are:
+
     - Type 0x04 (SDMF) - single data message. Simple caller ID (CND)
     - Type 0x80 (MDMF) - multiple data message. A more flexible caller ID,
                          with extra information.
-    
+
+Other messages support message waiting, for voice mail, and other display features. 
+
 \section adsi_page_sec_2a4 MESSAGE LENGTH WORD
 The message length word specifies the total number of data words
 to follow.
@@ -108,15 +113,56 @@ The ETSI CLIP specification uses similar messages to the Bellcore specification.
 They are not, however, identical. First, ETSI use the V.23 modem standard, rather
 than Bell 202. Second, different fields, and different message types are available.
 
-\section adsi_page_sec_2e The ETSI caller ID by DTMF specification
+The wake up indication generally differs from the Bellcore specification, to
+accomodate differences in European ring cadences.
+
+\section adsi_page_sec_2c The ETSI caller ID by DTMF specification
 CLI by DTMF is usually sent in a very simple way. The exchange does not give
 any prior warning (no reversal, or ring) to wake up the receiver. It just
-sends one of the following DTMF strings:
-    
-    - A<phone number>#
+sends a string of DTMF digits. Around the world several variants of this
+basic scheme are used.
+
+In one variant, the digit string is one of the following:
+
+    - A<caller's phone number>#
     - D1#     Number not available because the caller has restricted it.
     - D2#     Number not available because the call is international.
     - D3#     Number not available due to technical reasons.
+
+A second variant of the digit string is used in Finland, Denmark, Iceland, Netherlands,
+India, Belgium, Sweden, Brazil, Saudi Arabia and Uruguay:
+
+    - A<caller's phone number>D<redirected number>B<special information>C
+
+Each of these fields may be omited. The following special information codes are defined
+
+    - "00" indicates the calling party number is not available.
+    - "10" indicates that the presentation of the calling party number is restricted.
+
+A third variant of the digit string is used in Taiwan and Kuwait:
+
+    - D<caller's phone number>C
+
+A forth variant of the digit string is used in Denmark and Holland:
+
+    - <caller's phone number>#
+
+There is no distinctive start marker in this format.
+
+\section adsi_page_sec_2d The Japanese specification from NTT
+
+The Japanese caller ID specification is considerably different from any of the others. It
+uses V.23 modem signals, but the message structure is uniqeue. Also, the message is delivered
+while off hook. This results in a sequence
+
+    - The phone line rings
+    - CPE answers and waits for the caller ID message
+    - CPE hangs up on receipt of the caller ID message
+    - The phone line rings a second time
+    - The CPE answers a second time, connecting the called party with the caller.
+    
+Timeouts are, obviously, required to ensure this system behaves well when the caller ID message
+or the second ring are missing.
 */
 
 enum
@@ -135,156 +181,132 @@ enum
         'L' for long distance
         'O' for overseas
         'P' for private
-        'S' for service conflict */
+        'S' for service conflict
 
-/*! Definitions for generic caller ID message type IDs */
-/*! Complete caller ID message */
-#define CLIDINFO_CMPLT          0x100
-/*! Date, time, phone #, name */
-#define CLIDINFO_GENERAL        0x101
-/*! Caller ID */
-#define CLIDINFO_CALLID         0x102
-/*! See frame type equates */
-#define CLIDINFO_FRAMETYPE      0x103
+    Taiwan and Kuwait change this pattern to:
+        'C' for coin/public callbox
+        'I' for international call
+        'O' for out of area call
+        'P' for private
+ */
 
 /*! Definitions for CLASS (Custom Local Area Signaling Services) */
 /*! Single data message caller ID */
-#define CLASS_SDMF_CALLERID     0x04
+#define CLASS_SDMF_CALLERID             0x04
 /*! Multiple data message caller ID */
-#define CLASS_MDMF_CALLERID     0x80
+#define CLASS_MDMF_CALLERID             0x80
 /*! Single data message message waiting */
-#define CLASS_SDMF_MSG_WAITING  0x06
+#define CLASS_SDMF_MSG_WAITING          0x06
 /*! Multiple data message message waiting */
-#define CLASS_MDMF_MSG_WAITING  0x82
+#define CLASS_MDMF_MSG_WAITING          0x82
 
 /*! CLASS MDMF message IDs */
 /*! Date and time (MMDDHHMM) */
-#define MCLASS_DATETIME         0x01
+#define MCLASS_DATETIME                 0x01
 /*! Caller number */
-#define MCLASS_CALLER_NUMBER    0x02
+#define MCLASS_CALLER_NUMBER            0x02
 /*! Dialed number */
-#define MCLASS_DIALED_NUMBER    0x03
+#define MCLASS_DIALED_NUMBER            0x03
 /*! Caller number absent: 'O' or 'P' */
-#define MCLASS_ABSENCE1         0x04
+#define MCLASS_ABSENCE1                 0x04
 /*! Call forward: universal ('0'), on busy ('1'), or on unanswered ('2') */
-#define MCLASS_REDIRECT         0x05
+#define MCLASS_REDIRECT                 0x05
 /*! Long distance: 'L' */
-#define MCLASS_QUALIFIER        0x06
+#define MCLASS_QUALIFIER                0x06
 /*! Caller's name */
-#define MCLASS_CALLER_NAME      0x07
+#define MCLASS_CALLER_NAME              0x07
 /*! Caller's name absent: 'O' or 'P' */
-#define MCLASS_ABSENCE2         0x08
+#define MCLASS_ABSENCE2                 0x08
 
 /*! CLASS MDMF message waiting message IDs */
 /*! Message waiting/not waiting */
-#define MCLASS_VISUAL_INDICATOR 0x0B
+#define MCLASS_VISUAL_INDICATOR         0x0B
 
 /*! Definitions for CLIP (Calling Line Identity Presentation) */
 /*! Multiple data message caller ID */
-#define CLIP_MDMF_CALLERID      0x80
+#define CLIP_MDMF_CALLERID              0x80
 /*! Multiple data message message waiting */
-#define CLIP_MDMF_MSG_WAITING   0x82
+#define CLIP_MDMF_MSG_WAITING           0x82
 /*! Multiple data message charge information */
-#define CLIP_MDMF_CHARGE_INFO   0x86
+#define CLIP_MDMF_CHARGE_INFO           0x86
 /*! Multiple data message SMS */
-#define CLIP_MDMF_SMS           0x89
+#define CLIP_MDMF_SMS                   0x89
 
 /*! CLIP message IDs */
 /*! Date and time (MMDDHHMM) */
-#define CLIP_DATETIME           0x01
+#define CLIP_DATETIME                   0x01
 /*! Caller number */
-#define CLIP_CALLER_NUMBER      0x02
+#define CLIP_CALLER_NUMBER              0x02
 /*! Dialed number */
-#define CLIP_DIALED_NUMBER      0x03
+#define CLIP_DIALED_NUMBER              0x03
 /*! Caller number absent: 'O' or 'P' */
-#define CLIP_ABSENCE1           0x04
+#define CLIP_ABSENCE1                   0x04
 /*! Caller's name */
-#define CLIP_CALLER_NAME        0x07
+#define CLIP_CALLER_NAME                0x07
 /*! Caller's name absent: 'O' or 'P' */
-#define CLIP_ABSENCE2           0x08
+#define CLIP_ABSENCE2                   0x08
 /*! Visual indicator */
-#define CLIP_VISUAL_INDICATOR   0x0B
+#define CLIP_VISUAL_INDICATOR           0x0B
 /*! Message ID */
-#define CLIP_MESSAGE_ID         0x0D
+#define CLIP_MESSAGE_ID                 0x0D
 /*! Voice call, ring-back-when-free call, or msg waiting call */
-#define CLIP_CALLTYPE           0x11
+#define CLIP_CALLTYPE                   0x11
 /*! Number of messages */
-#define CLIP_NUM_MSG            0x13
+#define CLIP_NUM_MSG                    0x13
 /*! Redirecting number */
-#define CLIP_REDIR_NUMBER       0x03
+#define CLIP_REDIR_NUMBER               0x03
 /*! Charge */
-#define CLIP_CHARGE             0x20
+#define CLIP_CHARGE                     0x20
 /*! Duration of the call */
-#define CLIP_DURATION           0x23
+#define CLIP_DURATION                   0x23
 /*! Additional charge */
-#define CLIP_ADD_CHARGE         0x21
+#define CLIP_ADD_CHARGE                 0x21
 /*! Display information */
-#define CLIP_DISPLAY_INFO       0x50
+#define CLIP_DISPLAY_INFO               0x50
 /*! Service information */
-#define CLIP_SERVICE_INFO       0x55
+#define CLIP_SERVICE_INFO               0x55
 
 /*! Definitions for A-CLIP (Analog Calling Line Identity Presentation) */
 /*! Single data message caller ID frame   */
-#define ACLIP_SDMF_CALLERID     0x04
+#define ACLIP_SDMF_CALLERID             0x04
 /*! Multiple data message caller ID frame */
-#define ACLIP_MDMF_CALLERID     0x80
+#define ACLIP_MDMF_CALLERID             0x80
 
 /*! A-CLIP MDM message IDs */
 /*! Date and time (MMDDHHMM) */
-#define ACLIP_DATETIME          0x01
+#define ACLIP_DATETIME                  0x01
 /*! Caller number */
-#define ACLIP_CALLER_NUMBER     0x02
+#define ACLIP_CALLER_NUMBER             0x02
 /*! Dialed number */
-#define ACLIP_DIALED_NUMBER     0x03
+#define ACLIP_DIALED_NUMBER             0x03
 /*! Caller number absent: 'O' or 'P' */
-#define ACLIP_ABSENCE1          0x04
+#define ACLIP_NUMBER_ABSENCE            0x04
 /*! Call forward: universal, on busy, or on unanswered */
-#define ACLIP_REDIRECT          0x05
+#define ACLIP_REDIRECT                  0x05
 /*! Long distance call: 'L' */
-#define ACLIP_QUALIFIER         0x06
+#define ACLIP_QUALIFIER                 0x06
 /*! Caller's name */
-#define ACLIP_CALLER_NAME       0x07
+#define ACLIP_CALLER_NAME               0x07
 /*! Caller's name absent: 'O' or 'P' */
-#define ACLIP_ABSENCE2          0x08
+#define ACLIP_NAME_ABSENCE              0x08
 
 /*! Definitions for J-CLIP (Japan Calling Line Identity Presentation) */
 /*! Multiple data message caller ID frame */
-#define JCLIP_MDMF_CALLERID     0x40
+#define JCLIP_MDMF_CALLERID             0x40
 
 /*! J-CLIP MDM message IDs */
 /*! Caller number */
-#define JCLIP_CALLER_NUMBER     0x02
+#define JCLIP_CALLER_NUMBER             0x02
 /*! Caller number data extension signal */
-#define JCLIP_CALLER_NUM_DES    0x21
+#define JCLIP_CALLER_NUM_DES            0x21
 /*! Dialed number */
-#define JCLIP_DIALED_NUMBER     0x09
+#define JCLIP_DIALED_NUMBER             0x09
 /*! Dialed number data extension signal */
-#define JCLIP_DIALED_NUM_DES    0x22
+#define JCLIP_DIALED_NUM_DES            0x22
 /*! Caller number absent: 'C', 'O', 'P' or 'S' */
-#define JCLIP_ABSENCE           0x04
+#define JCLIP_ABSENCE                   0x04
 
-/* Dutch/Danish scheme from the ETSI documents.
-   We are looking for a string of digits ending with "#". There
-   is no special start marker. Only the caller number is supplied */
-
-/* Finland/Denmark/Iceland/Netherlands/India/Belgium/Sweden/
-   Brazil/Saudi Arabia/Uruguay scheme.
-   We are looking for a string of digits like "AnnnnBnnnDnnnnC"
-   where:
-        "A" is used as a start code for the Calling party number
-        "B" is used as a start code for the special information concerning the "not availability / restriction information" of the Calling party number
-        "C" is used as an end code for the information transfer
-        "D" is used as a start code for the Diverting party number in case of call diversion
-
-   The following special information codes are defined
-        Decimal value "00" is used to indicate, that the calling party number is not available
-        Decimal value "10" is used to indicate, that the presentation of the calling party number is restricted */
-
-/* Taiwan/Kuwait scheme.
-   We are looking for a string of digits like "DnnnnC", containing
-   the caller number. */
-
-/*! Definitions for CLIP-DTMF */
+/*! Definitions for CLIP-DTMF and its variants */
 
 #define CLIP_DTMF_HASH_TERMINATED       '#'
 #define CLIP_DTMF_C_TERMINATED          'C'
@@ -293,6 +315,8 @@ enum
 #define CLIP_DTMF_HASH_CALLER_NUMBER    'A'
 /*! Caller number absent: private (1), overseas (2) or not available (3) */
 #define CLIP_DTMF_HASH_ABSENCE          'D'
+/*! Caller ID field with no explicit field type */
+#define CLIP_DTMF_HASH_UNSPECIFIED      0
 
 /*! Caller number */
 #define CLIP_DTMF_C_CALLER_NUMBER       'A'
@@ -337,9 +361,9 @@ typedef struct
  */
 typedef struct
 {
+    int standard;
     put_msg_func_t put_msg;
     void *user_data;
-    int standard;
 
     fsk_rx_state_t fskrx;
     dtmf_rx_state_t dtmfrx;
