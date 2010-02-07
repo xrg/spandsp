@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g726.h,v 1.1 2008/10/13 13:14:01 steveu Exp $
+ * $Id: g726.h,v 1.2 2008/11/16 12:20:57 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_G726_H_)
@@ -33,9 +33,9 @@
  * used by the G.726 encoder and decoder to preserve their internal
  * state between successive calls.  The meanings of the majority
  * of the state structure fields are explained in detail in the
- * CCITT Recommendation G.721.  The field names are essentially indentical
+ * CCITT Recommendation G.726.  The field names are essentially indentical
  * to variable names in the bit level description of the coding algorithm
- * included in this Recommendation.
+ * included in this recommendation.
  */
 struct g726_state_s
 {

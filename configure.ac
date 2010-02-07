@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.62 2008/10/12 23:44:29 steveu Exp $
+# $Id: configure.ac,v 1.63 2008/11/28 12:41:25 steveu Exp $
 
 # @start 1
 
@@ -431,6 +431,7 @@ AC_CONFIG_FILES([Makefile
                  test-data/itu/fax/Makefile
                  test-data/local/Makefile
                  tests/Makefile
+                 spandsp.pc
                  spandsp.spec])
 
 AC_OUTPUT
