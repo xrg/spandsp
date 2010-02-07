@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.109 2008/06/11 17:52:30 steveu Exp $
+ * $Id: t31.c,v 1.110 2008/06/30 16:48:30 steveu Exp $
  */
 
 /*! \file */
@@ -42,6 +42,7 @@
 #include <memory.h>
 #include <string.h>
 #include <ctype.h>
+#include <malloc.h>
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
@@ -228,8 +229,12 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
 static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, int field_type, const uint8_t *buf, int len)
 {
     t31_state_t *s;
+#if defined(_MSC_VER)
+    uint8_t *buf2 = (uint8_t *) alloca(len);
+#else
     uint8_t buf2[len];
-    
+#endif
+
     s = (t31_state_t *) user_data;
 #if 0
     switch (data_type)

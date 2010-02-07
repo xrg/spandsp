@@ -38,7 +38,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = at_dictionary_gen$(EXEEXT) \
+noinst_PROGRAMS = make_at_dictionary$(EXEEXT) \
 	make_modem_filter$(EXEEXT)
 subdir = src
 DIST_COMMON = $(nobase_include_HEADERS) $(noinst_HEADERS) \
@@ -49,6 +49,7 @@ am__aclocal_m4_deps = $(top_srcdir)/config/ax_compiler_vendor.m4 \
 	$(top_srcdir)/config/ax_check_real_file.m4 \
 	$(top_srcdir)/config/ax_fixed_point_machine.m4 \
 	$(top_srcdir)/config/ax_misaligned_access_fails.m4 \
+	$(top_srcdir)/config/ax_c99_features.m4 \
 	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -86,9 +87,9 @@ am_libspandsp_la_OBJECTS = adsi.lo async.lo at_interpreter.lo awgn.lo \
 	vector_int.lo
 libspandsp_la_OBJECTS = $(am_libspandsp_la_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
-at_dictionary_gen_SOURCES = at_dictionary_gen.c
-at_dictionary_gen_OBJECTS = at_dictionary_gen.$(OBJEXT)
-at_dictionary_gen_LDADD = $(LDADD)
+make_at_dictionary_SOURCES = make_at_dictionary.c
+make_at_dictionary_OBJECTS = make_at_dictionary.$(OBJEXT)
+make_at_dictionary_LDADD = $(LDADD)
 am_make_modem_filter_OBJECTS = make_modem_filter.$(OBJEXT) \
 	filter_tools.$(OBJEXT)
 make_modem_filter_OBJECTS = $(am_make_modem_filter_OBJECTS)
@@ -104,9 +105,9 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libspandsp_la_SOURCES) at_dictionary_gen.c \
+SOURCES = $(libspandsp_la_SOURCES) make_at_dictionary.c \
 	$(make_modem_filter_SOURCES)
-DIST_SOURCES = $(libspandsp_la_SOURCES) at_dictionary_gen.c \
+DIST_SOURCES = $(libspandsp_la_SOURCES) make_at_dictionary.c \
 	$(make_modem_filter_SOURCES)
 nobase_includeHEADERS_INSTALL = $(install_sh_DATA)
 nodist_includeHEADERS_INSTALL = $(INSTALL_HEADER)
@@ -405,29 +406,7 @@ noinst_HEADERS = faxfont.h \
                         t30_local.h \
                         t4_states.h \
                         v17rx_constellation_maps.h \
-                        v17rx_fixed_rrc.h \
-                        v17rx_floating_rrc.h \
-                        v17tx_constellation_maps.h \
-                        v17tx_fixed_rrc.h \
-                        v17tx_floating_rrc.h \
-                        v22bis_rx_1200_fixed_rrc.h \
-                        v22bis_rx_2400_fixed_rrc.h \
-                        v22bis_rx_1200_floating_rrc.h \
-                        v22bis_rx_2400_floating_rrc.h \
-                        v22bis_tx_fixed_rrc.h \
-                        v22bis_tx_floating_rrc.h \
-                        v27ter_rx_2400_fixed_rrc.h \
-                        v27ter_rx_4800_fixed_rrc.h \
-                        v27ter_rx_2400_floating_rrc.h \
-                        v27ter_rx_4800_floating_rrc.h \
-                        v27ter_tx_2400_fixed_rrc.h \
-                        v27ter_tx_4800_fixed_rrc.h \
-                        v27ter_tx_2400_floating_rrc.h \
-                        v27ter_tx_4800_floating_rrc.h \
-                        v29rx_fixed_rrc.h \
-                        v29rx_floating_rrc.h \
-                        v29tx_fixed_rrc.h \
-                        v29tx_floating_rrc.h
+                        v17tx_constellation_maps.h
 
 make_modem_filter_SOURCES = make_modem_filter.c \
                             filter_tools.c
@@ -527,6 +506,12 @@ clean-noinstPROGRAMS:
 	  echo " rm -f $$p $$f"; \
 	  rm -f $$p $$f ; \
 	done
+make_at_dictionary$(EXEEXT): $(make_at_dictionary_OBJECTS) $(make_at_dictionary_DEPENDENCIES) 
+	@rm -f make_at_dictionary$(EXEEXT)
+	$(LINK) $(make_at_dictionary_LDFLAGS) $(make_at_dictionary_OBJECTS) $(make_at_dictionary_LDADD) $(LIBS)
+make_modem_filter$(EXEEXT): $(make_modem_filter_OBJECTS) $(make_modem_filter_DEPENDENCIES) 
+	@rm -f make_modem_filter$(EXEEXT)
+	$(LINK) $(make_modem_filter_LDFLAGS) $(make_modem_filter_OBJECTS) $(make_modem_filter_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -536,7 +521,6 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/adsi.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/async.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/at_dictionary_gen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/at_interpreter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/awgn.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bell_r2_mf.Plo@am__quote@
@@ -572,6 +556,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lpc10_encode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lpc10_placev.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lpc10_voicing.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/make_at_dictionary.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/make_modem_filter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/modem_connect_tones.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/modem_echo.Plo@am__quote@
@@ -862,18 +847,15 @@ uninstall-am: uninstall-info-am uninstall-libLTLIBRARIES \
 	uninstall-nodist_includeHEADERS
 
 
-# We need to run at_dictionary_gen, so it generates the
+# We need to run make_at_dictionary, so it generates the
 # at_interpreter_dictionary.h file
 
 at_interpreter.$(OBJEXT): at_interpreter_dictionary.h
 
 at_interpreter.lo: at_interpreter_dictionary.h
 
-at_interpreter_dictionary.h: at_dictionary_gen$(EXEEXT)
-	./at_dictionary_gen$(EXEEXT) >at_interpreter_dictionary.h
-
-at_dictionary_gen$(EXEEXT): at_dictionary_gen.c config.h
-	$(CC_FOR_BUILD) $(CPPFLAGS_FOR_BUILD) -o $@ $<
+at_interpreter_dictionary.h: make_at_dictionary$(EXEEXT)
+	./make_at_dictionary$(EXEEXT) >at_interpreter_dictionary.h
 
 v17rx.$(OBJEXT): v17rx_fixed_rrc.h v17rx_floating_rrc.h
 
@@ -990,9 +972,6 @@ v29tx_fixed_rrc.h: make_modem_filter$(EXEEXT)
 
 v29tx_floating_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.29 -t >v29tx_floating_rrc.h
-
-make_modem_filter$(EXEEXT): make_modem_filter.c filter_tools.c filter_tools.h config.h
-	$(CC_FOR_BUILD) $(CPPFLAGS_FOR_BUILD) $(DEFS) -I. -o $@ make_modem_filter.c filter_tools.c -lm
 
 $(DSP): msvc/msvcproj.head msvc/msvcproj.foot Makefile.am
 	echo "creating $(DSP)"

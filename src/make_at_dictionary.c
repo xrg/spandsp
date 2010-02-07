@@ -1,8 +1,8 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * at_dictionary_gen.c - Generate a trie based dictionary for the AT
- *                       commands supported by the AT interpreter.
+ * make_at_dictionary.c - Generate a trie based dictionary for the AT
+ *                        commands supported by the AT interpreter.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_dictionary_gen.c,v 1.13 2008/05/13 13:17:21 steveu Exp $
+ * $Id: make_at_dictionary.c,v 1.1 2008/07/01 03:27:51 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)

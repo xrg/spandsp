@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.53 2008/06/28 01:13:08 steveu Exp $
+# $Id: configure.ac,v 1.54 2008/06/30 19:00:02 steveu Exp $
 
 # @start 1
 
@@ -26,6 +26,7 @@ m4_include(config/ax_compiler_vendor.m4)
 m4_include(config/ax_check_real_file.m4)
 m4_include(config/ax_fixed_point_machine.m4)
 m4_include(config/ax_misaligned_access_fails.m4)
+m4_include(config/ax_c99_features.m4)
 
 SPANDSP_MAJOR_VERSION=0
 SPANDSP_MINOR_VERSION=0
@@ -128,6 +129,10 @@ AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_FUNC_REALLOC
 AC_FUNC_SELECT_ARGTYPES
+
+AX_C99_FUNC_LRINT
+AX_C99_FUNC_LRINTF
+AX_C99_FLEXIBLE_ARRAY
 
 AC_CHECK_FUNCS([memmove])
 AC_CHECK_FUNCS([memset])
@@ -241,24 +246,25 @@ then
 fi
 
 # Checks for libraries.
-AC_CHECK_LIB([Xft], [XftFontOpen], TESTLIBS="$TESTLIBS -lXft",, $TESTLIBS)
-AC_CHECK_LIB([Xext], [XextCreateExtension], TESTLIBS="$TESTLIBS -lXext",, $TESTLIBS)
-AC_CHECK_LIB([X11], [XOpenDisplay], TESTLIBS="$TESTLIBS -lX11",, $TESTLIBS)
 AC_CHECK_LIB([tiff], [TIFFOpen], , AC_MSG_ERROR("Can't build without libtiff (does your system require a libtiff-devel package?)"), -lm)
 
 AC_CHECK_LIB([xml2], [xmlParseFile], [AC_DEFINE([HAVE_LIBXML2], [1], [Define to 1 if you have the 'libxml2' library (-lxml2).]) TESTLIBS="$TESTLIBS -lxml2"])
 
 if test -n "$enable_tests" ; then
-    AC_LANG([C++])
-    AC_CHECK_LIB([fltk], [main], TESTLIBS="$TESTLIBS -lfltk -lsupc++")
-    AC_CHECK_LIB([fltk_cartesian], [main], TESTLIBS="-lfltk_cartesian $TESTLIBS")
-    AC_CHECK_LIB([fltk_audio_meter], [main], TESTLIBS="-lfltk_audio_meter $TESTLIBS")
     AC_LANG([C])
     AC_CHECK_LIB([audiofile], [afOpenFile], TESTLIBS="$TESTLIBS -laudiofile", AC_MSG_ERROR("Can't make tests without libaudiofile (does your system require a libaudiofile-devel package?)"))
     AC_CHECK_LIB([fftw3], [fftw_plan_dft_1d], TESTLIBS="$TESTLIBS -lfftw3", [AC_CHECK_LIB([fftw], [fftw_create_plan], TESTLIBS="$TESTLIBS -lfftw")])
     AC_CHECK_LIB([pthread], [pthread_attr_init], TESTLIBS="$TESTLIBS -lpthread")
     AC_CHECK_LIB([dl], [dlopen], TESTLIBS="$TESTLIBS -ldl")
     AC_CHECK_LIB([unicall], [uc_start], TESTLIBS="$TESTLIBS -lunicall",, -ltiff -ldl)
+    AC_CHECK_LIB([Xft], [XftFontOpen], TESTLIBS="$TESTLIBS -lXft",, $TESTLIBS)
+    AC_CHECK_LIB([Xext], [XextCreateExtension], TESTLIBS="$TESTLIBS -lXext",, $TESTLIBS)
+    AC_CHECK_LIB([X11], [XOpenDisplay], TESTLIBS="$TESTLIBS -lX11",, $TESTLIBS)
+    AC_LANG([C++])
+    AC_CHECK_LIB([fltk], [main], TESTLIBS="$TESTLIBS -lfltk -lsupc++",, $TESTLIBS)
+    AC_CHECK_LIB([fltk_cartesian], [main], TESTLIBS="-lfltk_cartesian $TESTLIBS",, $TESTLIBS)
+    AC_CHECK_LIB([fltk_audio_meter], [main], TESTLIBS="-lfltk_audio_meter $TESTLIBS",, $TESTLIBS)
+    AC_LANG([C])
 fi
 
 case "${ax_cv_c_compiler_vendor}" in
@@ -306,12 +312,12 @@ if test "$enable_fixed_point" = "yes" ; then
     AC_DEFINE([SPANDSP_USE_FIXED_POINT], [1], [Enable fixed point processing, where possible, instead of floating point])
     SPANDSP_USE_FIXED_POINT="#define SPANDSP_USE_FIXED_POINT 1"
 else
-    AX_FIXED_POINT_MACHINE([$basic_machine],
+    AX_FIXED_POINT_MACHINE([$host],
         [AC_DEFINE([SPANDSP_USE_FIXED_POINT], [1], [Enable fixed point processing, where possible, instead of floating point])
         SPANDSP_USE_FIXED_POINT="#define SPANDSP_USE_FIXED_POINT 1"],
         [SPANDSP_USE_FIXED_POINT="#undef SPANDSP_USE_FIXED_POINT"])
 fi
-AX_MISALIGNED_ACCESS_FAILS([$basic_machine],
+AX_MISALIGNED_ACCESS_FAILS([$host],
     [AC_DEFINE([SPANDSP_MISALIGNED_ACCESS_FAILS], [1], [Do not expect a misaligned memory access to work correctly])
     SPANDSP_MISALIGNED_ACCESS_FAILS="#define SPANDSP_MISALIGNED_ACCESS_FAILS 1"],
     [SPANDSP_MISALIGNED_ACCESS_FAILS="#undef SPANDSP_MISALIGNED_ACCESS_FAILS"])

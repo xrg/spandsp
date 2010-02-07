@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.c,v 1.28 2008/06/11 17:52:30 steveu Exp $
+ * $Id: at_interpreter.c,v 1.29 2008/06/29 03:24:15 steveu Exp $
  */
 
 /*! \file */
@@ -818,8 +818,9 @@ static const char *at_cmd_D(at_state_t *s, const char *t)
                 if (!s->p.pulse_dial)
                     *u++ = ch;
                 break;
+            case ' ':
             case '-':
-                /* Ignore dashes */
+                /* Ignore spaces and dashes */
                 /* This is not a standards based thing. It just improves
                    compatibility with some other modems. */
                 break;

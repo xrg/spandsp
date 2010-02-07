@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.93 2008/06/19 12:19:57 steveu Exp $
+## $Id: Makefile.am,v 1.95 2008/07/01 03:27:51 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -186,48 +186,23 @@ noinst_HEADERS =        faxfont.h \
                         t30_local.h \
                         t4_states.h \
                         v17rx_constellation_maps.h \
-                        v17rx_fixed_rrc.h \
-                        v17rx_floating_rrc.h \
-                        v17tx_constellation_maps.h \
-                        v17tx_fixed_rrc.h \
-                        v17tx_floating_rrc.h \
-                        v22bis_rx_1200_fixed_rrc.h \
-                        v22bis_rx_2400_fixed_rrc.h \
-                        v22bis_rx_1200_floating_rrc.h \
-                        v22bis_rx_2400_floating_rrc.h \
-                        v22bis_tx_fixed_rrc.h \
-                        v22bis_tx_floating_rrc.h \
-                        v27ter_rx_2400_fixed_rrc.h \
-                        v27ter_rx_4800_fixed_rrc.h \
-                        v27ter_rx_2400_floating_rrc.h \
-                        v27ter_rx_4800_floating_rrc.h \
-                        v27ter_tx_2400_fixed_rrc.h \
-                        v27ter_tx_4800_fixed_rrc.h \
-                        v27ter_tx_2400_floating_rrc.h \
-                        v27ter_tx_4800_floating_rrc.h \
-                        v29rx_fixed_rrc.h \
-                        v29rx_floating_rrc.h \
-                        v29tx_fixed_rrc.h \
-                        v29tx_floating_rrc.h
+                        v17tx_constellation_maps.h
 
-noinst_PROGRAMS = at_dictionary_gen \
+noinst_PROGRAMS = make_at_dictionary \
                   make_modem_filter
 
 make_modem_filter_SOURCES = make_modem_filter.c \
                             filter_tools.c
 
-# We need to run at_dictionary_gen, so it generates the
+# We need to run make_at_dictionary, so it generates the
 # at_interpreter_dictionary.h file
 
 at_interpreter.$(OBJEXT): at_interpreter_dictionary.h
 
 at_interpreter.lo: at_interpreter_dictionary.h
 
-at_interpreter_dictionary.h: at_dictionary_gen$(EXEEXT)
-	./at_dictionary_gen$(EXEEXT) >at_interpreter_dictionary.h
-
-at_dictionary_gen$(EXEEXT): at_dictionary_gen.c config.h
-	$(CC_FOR_BUILD) $(CPPFLAGS_FOR_BUILD) -o $@ $<
+at_interpreter_dictionary.h: make_at_dictionary$(EXEEXT)
+	./make_at_dictionary$(EXEEXT) >at_interpreter_dictionary.h
 
 v17rx.$(OBJEXT): v17rx_fixed_rrc.h v17rx_floating_rrc.h
 
@@ -344,9 +319,6 @@ v29tx_fixed_rrc.h: make_modem_filter$(EXEEXT)
 
 v29tx_floating_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.29 -t >v29tx_floating_rrc.h
-
-make_modem_filter$(EXEEXT): make_modem_filter.c filter_tools.c filter_tools.h config.h
-	$(CC_FOR_BUILD) $(CPPFLAGS_FOR_BUILD) $(DEFS) -I. -o $@ make_modem_filter.c filter_tools.c -lm
 
 DSP = libspandsp.dsp
 VCPROJ = libspandsp.vcproj

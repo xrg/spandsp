@@ -12,7 +12,7 @@
 #
 AC_DEFUN([AX_MISALIGNED_ACCESS_FAILS],
 [AS_VAR_PUSHDEF([ac_MisalignedAccessFails], [ac_cv_misaligned_access_fails_$1])dnl
-AC_CACHE_CHECK([for $1], ac_MisalignedAccessFails,
+AC_CACHE_CHECK([if $1 fails on misaligned memory access], ac_MisalignedAccessFails,
 [case $1 in
       arc | arm | arm[bl]e | arme[lb] | armv[2345] | armv[345][lb] \
     | sparc \

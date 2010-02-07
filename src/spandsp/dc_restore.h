@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dc_restore.h,v 1.21 2008/04/17 14:27:00 steveu Exp $
+ * $Id: dc_restore.h,v 1.22 2008/06/30 16:48:30 steveu Exp $
  */
 
 /*! \file */
@@ -84,39 +84,6 @@ static __inline__ int16_t dc_restore_estimate(dc_restore_state_t *dc)
     return (int16_t) (dc->state >> 15);
 }
 /*- End of function --------------------------------------------------------*/
-
-#ifdef _MSC_VER
-__inline float rintf(float flt)
-{
-	_asm
-	{	fld flt
-		frndint
-	}
-}
-/*- End of function --------------------------------------------------------*/
-
-__inline double rint(double dbl)
-{
-    __asm 
-	{
-        fld dbl
-        frndint
-    }
-}
-/*- End of function --------------------------------------------------------*/
-
-__inline long lrintf(float flt)
-{
-	long retval;
-
-	_asm
-	{	fld flt
-		fistp retval
-	}
-	return retval;
-}
-/*- End of function --------------------------------------------------------*/
-#endif
 
 static __inline__ int16_t saturate(int32_t amp)
 {

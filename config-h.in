@@ -69,6 +69,12 @@
 /* Define to 1 if the system has the type `long long'. */
 #undef HAVE_LONG_LONG
 
+/* Define if you have C99's lrint function. */
+#undef HAVE_LRINT
+
+/* Define if you have C99's lrintf function. */
+#undef HAVE_LRINTF
+
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */
 #undef HAVE_MALLOC

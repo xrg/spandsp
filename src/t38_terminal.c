@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.93 2008/06/19 13:27:45 steveu Exp $
+ * $Id: t38_terminal.c,v 1.94 2008/06/30 16:48:30 steveu Exp $
  */
 
 /*! \file */
@@ -37,6 +37,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <string.h>
+#include <malloc.h>
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
@@ -238,8 +239,12 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
 static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, int field_type, const uint8_t *buf, int len)
 {
     t38_terminal_state_t *s;
+#if defined(_MSC_VER)
+    uint8_t *buf2 = alloca(len);
+#else
     uint8_t buf2[len];
-    
+#endif
+
     s = (t38_terminal_state_t *) user_data;
 #if 0
     /* In termination mode we don't care very much what the data type is. */

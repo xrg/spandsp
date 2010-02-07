@@ -12,7 +12,7 @@
 #
 AC_DEFUN([AX_FIXED_POINT_MACHINE],
 [AS_VAR_PUSHDEF([ac_FixedPoint], [ac_cv_fixed_point_machine_$1])dnl
-AC_CACHE_CHECK([for $1], ac_FixedPoint,
+AC_CACHE_CHECK([if $1 is fixed point only], ac_FixedPoint,
 [case $1 in
       arc | arm | arm[bl]e | arme[lb] | armv[2345] | armv[345][lb] \
     | bfin \
