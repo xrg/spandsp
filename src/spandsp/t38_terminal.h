@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.37 2008/08/14 14:06:05 steveu Exp $
+ * $Id: t38_terminal.h,v 1.38 2008/10/12 08:40:06 steveu Exp $
  */
 
 /*! \file */
@@ -154,6 +154,15 @@ void t38_terminal_set_fill_bit_removal(t38_terminal_state_t *s, int remove);
     \return A pointer to the T.30 context, or NULL.
 */
 t30_state_t *t38_terminal_get_t30_state(t38_terminal_state_t *s);
+
+/*! Get a pointer to the T.38 core IFP packet engine associated with a
+    termination mode T.38 context.
+    \brief Get a pointer to the T.38 core IFP packet engine associated
+           with a T.38 context.
+    \param s The T.38 context.
+    \return A pointer to the T.38 core context, or NULL.
+*/
+t38_core_state_t *t38_terminal_get_t38_core_state(t38_terminal_state_t *s);
 
 /*! \brief Initialise a termination mode T.38 context.
     \param s The T.38 context.

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.102 2008/10/05 04:58:30 steveu Exp $
+ * $Id: t38_terminal.c,v 1.103 2008/10/12 08:40:06 steveu Exp $
  */
 
 /*! \file */
@@ -960,6 +960,12 @@ void t38_terminal_set_fill_bit_removal(t38_terminal_state_t *s, int remove)
 t30_state_t *t38_terminal_get_t30_state(t38_terminal_state_t *s)
 {
     return &s->t30;
+}
+/*- End of function --------------------------------------------------------*/
+
+t38_core_state_t *t38_terminal_get_t38_core_state(t38_terminal_state_t *s)
+{
+    return &s->t38_fe.t38;
 }
 /*- End of function --------------------------------------------------------*/
 

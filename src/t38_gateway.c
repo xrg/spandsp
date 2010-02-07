@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.142 2008/09/07 12:45:17 steveu Exp $
+ * $Id: t38_gateway.c,v 1.143 2008/10/12 08:40:06 steveu Exp $
  */
 
 /*! \file */
@@ -2041,6 +2041,12 @@ void t38_gateway_get_transfer_statistics(t38_gateway_state_t *s, t38_stats_t *t)
     t->bit_rate = s->core.fast_bit_rate;
     t->error_correcting_mode = s->core.ecm_mode;
     t->pages_transferred = s->core.pages_confirmed;
+}
+/*- End of function --------------------------------------------------------*/
+
+t38_core_state_t *t38_gateway_get_t38_core_state(t38_gateway_state_t *s)
+{
+    return &s->t38x.t38;
 }
 /*- End of function --------------------------------------------------------*/
 

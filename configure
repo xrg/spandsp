@@ -31574,199 +31574,67 @@ else
   SPANDSP_MISALIGNED_ACCESS_FAILS="#undef SPANDSP_MISALIGNED_ACCESS_FAILS"
 fi
 
-if test "$enable_mmx" = "yes" ; then
+
+if test "$enable_sse5" = "yes" ; then
 
 cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_MMX 1
+#define SPANDSP_USE_SSE5 1
 _ACEOF
 
-fi
-if test "$enable_sse" = "yes" ; then
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_MMX 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE 1
-_ACEOF
-
-fi
-if test "$enable_sse2" = "yes" ; then
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_MMX 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE2 1
-_ACEOF
-
-fi
-if test "$enable_sse3" = "yes" ; then
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_MMX 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE2 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE3 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE4_1 1
-_ACEOF
-
-fi
-if test "$enable_sse4_1" = "yes" ; then
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_MMX 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE2 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE3 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE4_1 1
-_ACEOF
-
-fi
-if test "$enable_sse4_2" = "yes" ; then
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_MMX 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE2 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE3 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE4_1 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE4_2 1
-_ACEOF
-
+    enable_sse4a="yes"
 fi
 if test "$enable_sse4a" = "yes" ; then
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_MMX 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE2 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE3 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE4_1 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE4_2 1
-_ACEOF
-
 
 cat >>confdefs.h <<\_ACEOF
 #define SPANDSP_USE_SSE4A 1
 _ACEOF
 
+    enable_sse4_2="yes"
 fi
-if test "$enable_sse5" = "yes" ; then
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_MMX 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE2 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE3 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE4_1 1
-_ACEOF
-
+if test "$enable_sse4_2" = "yes" ; then
 
 cat >>confdefs.h <<\_ACEOF
 #define SPANDSP_USE_SSE4_2 1
 _ACEOF
 
+    enable_sse4_1="yes"
+fi
+if test "$enable_sse4_1" = "yes" ; then
 
 cat >>confdefs.h <<\_ACEOF
-#define SPANDSP_USE_SSE5 1
+#define SPANDSP_USE_SSE4_1 1
+_ACEOF
+
+    enable_sse3="yes"
+fi
+if test "$enable_sse3" = "yes" ; then
+
+cat >>confdefs.h <<\_ACEOF
+#define SPANDSP_USE_SSE3 1
+_ACEOF
+
+    enable_sse2="yes"
+fi
+if test "$enable_sse2" = "yes" ; then
+
+cat >>confdefs.h <<\_ACEOF
+#define SPANDSP_USE_SSE2 1
+_ACEOF
+
+    enable_sse="yes"
+fi
+if test "$enable_sse" = "yes" ; then
+
+cat >>confdefs.h <<\_ACEOF
+#define SPANDSP_USE_SSE 1
+_ACEOF
+
+    enable_mmx="yes"
+fi
+if test "$enable_mmx" = "yes" ; then
+
+cat >>confdefs.h <<\_ACEOF
+#define SPANDSP_USE_MMX 1
 _ACEOF
 
 fi

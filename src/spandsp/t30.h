@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.115 2008/09/04 14:40:05 steveu Exp $
+ * $Id: t30.h,v 1.116 2008/10/12 07:05:21 steveu Exp $
  */
 
 /*! \file */
@@ -793,6 +793,13 @@ int t30_free(t30_state_t *s);
     \param s The T.30 context.
     \return 0 for OK, else -1. */
 int t30_restart(t30_state_t *s);
+
+/*! Check if a T.30 call is still active. This may be used to regularly poll
+    if the job has finished.
+    \brief Check if a T.30 call is still active.
+    \param s The T.30 context.
+    \return TRUE for call still active, or FALSE for call completed. */
+int t30_call_active(t30_state_t *s);
 
 /*! Cleanup a T.30 context if the call terminates.
     \brief Cleanup a T.30 context if the call terminates.

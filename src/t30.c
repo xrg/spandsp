@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.267 2008/09/16 12:45:01 steveu Exp $
+ * $Id: t30.c,v 1.268 2008/10/12 07:05:21 steveu Exp $
  */
 
 /*! \file */
@@ -5868,6 +5868,12 @@ int t30_free(t30_state_t *s)
     t30_release(s);
     free(s);
     return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t30_call_active(t30_state_t *s)
+{
+    return (s->phase != T30_PHASE_CALL_FINISHED);
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

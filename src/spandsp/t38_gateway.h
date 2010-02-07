@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.57 2008/09/02 13:56:10 steveu Exp $
+ * $Id: t38_gateway.h,v 1.58 2008/10/12 08:40:06 steveu Exp $
  */
 
 /*! \file */
@@ -330,6 +330,15 @@ void t38_gateway_set_fill_bit_removal(t38_gateway_state_t *s, int remove);
     \param s The T.38 context.
     \param t A pointer to a buffer for the statistics. */
 void t38_gateway_get_transfer_statistics(t38_gateway_state_t *s, t38_stats_t *t);
+
+/*! Get a pointer to the T.38 core IFP packet engine associated with a
+    gateway mode T.38 context.
+    \brief Get a pointer to the T.38 core IFP packet engine associated
+           with a T.38 context.
+    \param s The T.38 context.
+    \return A pointer to the T.38 core context, or NULL.
+*/
+t38_core_state_t *t38_gateway_get_t38_core_state(t38_gateway_state_t *s);
 
 /*! Set a callback function for T.30 frame exchange monitoring. This is called from the heart
     of the signal processing, so don't take too long in the handler routine.
