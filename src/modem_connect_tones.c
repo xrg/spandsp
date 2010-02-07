@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.c,v 1.18 2008/03/30 18:33:26 steveu Exp $
+ * $Id: modem_connect_tones.c,v 1.20 2008/04/02 12:41:18 steveu Exp $
  */
  
 /*! \file */
@@ -161,6 +161,24 @@ int modem_connect_tones_tx_free(modem_connect_tones_tx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
+static void report_tone_state(modem_connect_tones_rx_state_t *s, int on, int level)
+{
+    if (on != s->tone_present)
+    {
+        if (s->tone_callback)
+        {
+            s->tone_callback(s->callback_data, on, level, 0);
+        }
+        else
+        {
+            if (on)
+                s->hit = TRUE;
+        }
+        s->tone_present = on;
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
 static void v21_put_bit(void *user_data, int bit)
 {
     modem_connect_tones_rx_state_t *s;
@@ -172,11 +190,9 @@ static void v21_put_bit(void *user_data, int bit)
         switch (bit)
         {
         case PUTBIT_CARRIER_DOWN:
-            if (s->framing_ok_announced)
-            {
-                if (s->tone_callback)
-                    s->tone_callback(s->callback_data, FALSE, -99, 0);
-            }
+            /* Only declare tone off, if we were the one to declare tone on. */
+            if (!s->tone_on)
+                report_tone_state(s, FALSE, -99);
             /* Fall through */
         case PUTBIT_CARRIER_UP:
             s->raw_bit_stream = 0;
@@ -212,8 +228,7 @@ static void v21_put_bit(void *user_data, int bit)
                     s->flags_seen = 0;
                 if (++s->flags_seen >= HDLC_FRAMING_OK_THRESHOLD  &&  !s->framing_ok_announced)
                 {
-                    if (s->tone_callback)
-                        s->tone_callback(s->callback_data, TRUE, -13, 0);
+                    report_tone_state(s, TRUE, rintf(fsk_rx_signal_power(&(s->v21rx))));
                     s->framing_ok_announced = TRUE;
                 }
             }
@@ -226,8 +241,6 @@ static void v21_put_bit(void *user_data, int bit)
         {
             if (s->num_bits == 8)
             {
-                if (s->tone_callback)
-                    s->tone_callback(s->callback_data, FALSE, -99, 0);
                 s->framing_ok_announced = FALSE;
                 s->flags_seen = 0;
             }
@@ -268,17 +281,13 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                 if (!s->tone_present)
                 {
                     if (++s->tone_cycle_duration >= ms_to_samples(415))
-                    {
-                        if (s->tone_callback)
-                            s->tone_callback(s->callback_data, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f), 0);
-                        else
-                            s->hit = TRUE;
-                        s->tone_present = TRUE;
-                    }
+                        report_tone_state(s, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
                 }
             }
             else
             {
+                if (s->tone_present)
+                    report_tone_state(s, FALSE, -99);
                 s->tone_cycle_duration = 0;
             }
         }
@@ -305,17 +314,16 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                 if (!s->tone_present)
                 {
                     if (++s->tone_cycle_duration >= ms_to_samples(500))
-                    {
-                        if (s->tone_callback)
-                            s->tone_callback(s->callback_data, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f), 0);
-                        else
-                            s->hit = TRUE;
-                        s->tone_present = TRUE;
-                    }
+                        report_tone_state(s, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
+                    s->tone_on = TRUE;
                 }
             }
             else
             {
+                /* Only declare tone off, if we were the one to declare tone on. */
+                if (s->tone_present  &&  s->tone_on)
+                    report_tone_state(s, FALSE, -99);
+                s->tone_on = FALSE;
                 s->tone_cycle_duration = 0;
             }
         }
@@ -347,40 +355,46 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
             s->notch_level += ((abs(notched) - s->notch_level) >> 4);
             if (s->channel_level > 280)
             {
+                /* We should get a kick from the notch filter every 450+-25ms, as the phase reverses. */
                 /* There is adequate energy in the channel. Is it mostly at 2100Hz? */
                 if (s->notch_level*6 < s->channel_level)
                 {
                     /* The notch says yes, so we have the tone. */
-                    if (!s->tone_present)
+                    if (!s->tone_on)
                     {
-                        /* Do we get a kick every 450+-25ms? */
-                        if (s->tone_cycle_duration >= ms_to_samples(425)
-                            &&
-                            s->tone_cycle_duration <= ms_to_samples(475))
+                        if (s->tone_cycle_duration >= ms_to_samples(450 - 25))
                         {
-                            if (++s->good_cycles > 2)
-                            {
-                                if (s->tone_callback)
-                                    s->tone_callback(s->callback_data, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f), 0);
-                                else
-                                    s->hit = TRUE;
-                            }
+                            if (++s->good_cycles == 3)
+                                report_tone_state(s, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
+                        }
+                        else
+                        {
+                            s->good_cycles = 0;
                         }
                         s->tone_cycle_duration = 0;
-                        s->tone_present = TRUE;
+                        s->tone_on = TRUE;
                     }
                 }
                 else
                 {
-                    s->tone_present = FALSE;
+                    if (s->tone_cycle_duration >= ms_to_samples(450 + 25))
+                    {
+                        if (s->tone_present)
+                            report_tone_state(s, FALSE, -99);
+                        s->tone_cycle_duration = 0;
+                        s->good_cycles = 0;
+                    }
+                    s->tone_on = FALSE;
                 }
                 s->tone_cycle_duration++;
             }
             else
             {
-                s->tone_present = FALSE;
+                if (s->tone_present)
+                    report_tone_state(s, FALSE, -99);
                 s->tone_cycle_duration = 0;
                 s->good_cycles = 0;
+                s->tone_on = FALSE;
             }
         }
     }
@@ -411,8 +425,9 @@ modem_connect_tones_rx_state_t *modem_connect_tones_rx_init(modem_connect_tones_
 
     s->tone_type = tone_type;
     s->channel_level = 0;
-    s->notch_level = 0;    
+    s->notch_level = 0;
     s->tone_present = FALSE;
+    s->tone_on = FALSE;
     s->tone_cycle_duration = 0;
     s->good_cycles = 0;
     s->hit = FALSE;
