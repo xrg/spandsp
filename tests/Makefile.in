@@ -148,7 +148,7 @@ echo_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_fax_decode_OBJECTS = fax_decode.$(OBJEXT)
 fax_decode_OBJECTS = $(am_fax_decode_OBJECTS)
 fax_decode_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_fax_tests_OBJECTS = fax_tests.$(OBJEXT)
+am_fax_tests_OBJECTS = fax_tests.$(OBJEXT) fax_utils.$(OBJEXT)
 fax_tests_OBJECTS = $(am_fax_tests_OBJECTS)
 fax_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_fsk_tests_OBJECTS = fsk_tests.$(OBJEXT)
@@ -240,18 +240,19 @@ super_tone_rx_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_super_tone_tx_tests_OBJECTS = super_tone_tx_tests.$(OBJEXT)
 super_tone_tx_tests_OBJECTS = $(am_super_tone_tx_tests_OBJECTS)
 super_tone_tx_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_t31_tests_OBJECTS = t31_tests.$(OBJEXT) media_monitor.$(OBJEXT)
+am_t31_tests_OBJECTS = t31_tests.$(OBJEXT) fax_utils.$(OBJEXT) \
+	media_monitor.$(OBJEXT)
 t31_tests_OBJECTS = $(am_t31_tests_OBJECTS)
 t31_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_t38_core_tests_OBJECTS = t38_core_tests.$(OBJEXT)
 t38_core_tests_OBJECTS = $(am_t38_core_tests_OBJECTS)
 t38_core_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_t38_gateway_tests_OBJECTS = t38_gateway_tests.$(OBJEXT) \
-	media_monitor.$(OBJEXT)
+	fax_utils.$(OBJEXT) media_monitor.$(OBJEXT)
 t38_gateway_tests_OBJECTS = $(am_t38_gateway_tests_OBJECTS)
 t38_gateway_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_t38_gateway_to_terminal_tests_OBJECTS =  \
-	t38_gateway_to_terminal_tests.$(OBJEXT) \
+	t38_gateway_to_terminal_tests.$(OBJEXT) fax_utils.$(OBJEXT) \
 	media_monitor.$(OBJEXT)
 t38_gateway_to_terminal_tests_OBJECTS =  \
 	$(am_t38_gateway_to_terminal_tests_OBJECTS)
@@ -262,11 +263,11 @@ t38_non_ecm_buffer_tests_OBJECTS =  \
 	$(am_t38_non_ecm_buffer_tests_OBJECTS)
 t38_non_ecm_buffer_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_t38_terminal_tests_OBJECTS = t38_terminal_tests.$(OBJEXT) \
-	media_monitor.$(OBJEXT)
+	fax_utils.$(OBJEXT) media_monitor.$(OBJEXT)
 t38_terminal_tests_OBJECTS = $(am_t38_terminal_tests_OBJECTS)
 t38_terminal_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_t38_terminal_to_gateway_tests_OBJECTS =  \
-	t38_terminal_to_gateway_tests.$(OBJEXT) \
+	t38_terminal_to_gateway_tests.$(OBJEXT) fax_utils.$(OBJEXT) \
 	media_monitor.$(OBJEXT)
 t38_terminal_to_gateway_tests_OBJECTS =  \
 	$(am_t38_terminal_to_gateway_tests_OBJECTS)
@@ -289,7 +290,8 @@ tone_detect_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_tone_generate_tests_OBJECTS = tone_generate_tests.$(OBJEXT)
 tone_generate_tests_OBJECTS = $(am_tone_generate_tests_OBJECTS)
 tone_generate_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_tsb85_tests_OBJECTS = tsb85_tests.$(OBJEXT) fax_tester.$(OBJEXT)
+am_tsb85_tests_OBJECTS = tsb85_tests.$(OBJEXT) fax_utils.$(OBJEXT) \
+	fax_tester.$(OBJEXT)
 tsb85_tests_OBJECTS = $(am_tsb85_tests_OBJECTS)
 tsb85_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_v17_tests_OBJECTS = v17_tests.$(OBJEXT) \
@@ -613,7 +615,7 @@ echo_tests_SOURCES = echo_tests.c echo_monitor.cpp
 echo_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 fax_decode_SOURCES = fax_decode.c
 fax_decode_LDADD = $(LIBDIR) -lspandsp
-fax_tests_SOURCES = fax_tests.c
+fax_tests_SOURCES = fax_tests.c fax_utils.c
 fax_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 fsk_tests_SOURCES = fsk_tests.c
 fsk_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
@@ -673,19 +675,19 @@ super_tone_tx_tests_SOURCES = super_tone_tx_tests.c
 super_tone_tx_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 t4_tests_SOURCES = t4_tests.c
 t4_tests_LDADD = $(LIBDIR) -lspandsp
-t31_tests_SOURCES = t31_tests.c media_monitor.cpp
+t31_tests_SOURCES = t31_tests.c fax_utils.c media_monitor.cpp
 t31_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 t38_core_tests_SOURCES = t38_core_tests.c
 t38_core_tests_LDADD = $(LIBDIR) -lspandsp
-t38_gateway_tests_SOURCES = t38_gateway_tests.c media_monitor.cpp
+t38_gateway_tests_SOURCES = t38_gateway_tests.c fax_utils.c media_monitor.cpp
 t38_gateway_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
-t38_gateway_to_terminal_tests_SOURCES = t38_gateway_to_terminal_tests.c media_monitor.cpp
+t38_gateway_to_terminal_tests_SOURCES = t38_gateway_to_terminal_tests.c fax_utils.c media_monitor.cpp
 t38_gateway_to_terminal_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 t38_non_ecm_buffer_tests_SOURCES = t38_non_ecm_buffer_tests.c
 t38_non_ecm_buffer_tests_LDADD = $(LIBDIR) -lspandsp
-t38_terminal_tests_SOURCES = t38_terminal_tests.c media_monitor.cpp
+t38_terminal_tests_SOURCES = t38_terminal_tests.c fax_utils.c media_monitor.cpp
 t38_terminal_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
-t38_terminal_to_gateway_tests_SOURCES = t38_terminal_to_gateway_tests.c media_monitor.cpp
+t38_terminal_to_gateway_tests_SOURCES = t38_terminal_to_gateway_tests.c fax_utils.c media_monitor.cpp
 t38_terminal_to_gateway_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 time_scale_tests_SOURCES = time_scale_tests.c
 time_scale_tests_LDADD = $(LIBDIR) -lspandsp
@@ -693,7 +695,7 @@ tone_detect_tests_SOURCES = tone_detect_tests.c
 tone_detect_tests_LDADD = $(LIBDIR) -lspandsp
 tone_generate_tests_SOURCES = tone_generate_tests.c
 tone_generate_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
-tsb85_tests_SOURCES = tsb85_tests.c fax_tester.c
+tsb85_tests_SOURCES = tsb85_tests.c fax_utils.c fax_tester.c
 tsb85_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 v17_tests_SOURCES = v17_tests.c line_model_monitor.cpp modem_monitor.cpp
 v17_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
@@ -995,6 +997,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fax_decode.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fax_tester.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fax_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fax_utils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fsk_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g1050_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g168_tests.Po@am__quote@

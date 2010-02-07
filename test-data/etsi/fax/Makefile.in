@@ -228,20 +228,22 @@ target_alias = @target_alias@
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 PBM2G3 = pbmtog3
 FAX2TIFF = fax2tiff
-EXTRA_DIST = 
-nobase_data_DATA = etsi_300_242_a4_diago1.tif \
-                   etsi_300_242_a4_diago2.tif \
-                   etsi_300_242_a4_duration1.tif \
-                   etsi_300_242_a4_duration2.tif \
-                   etsi_300_242_a4_error.tif \
-                   etsi_300_242_a4_impress.tif \
-                   etsi_300_242_a4_impress_white.tif \
-                   etsi_300_242_a4_stairstep.tif \
-                   etsi_300_242_a4_white.tif \
-                   etsi_300_242_a4_white_2p.tif
+TIFFCP = tiffcp
+ETSI_TEST_PAGES = etsi_300_242_a4_diago1.tif \
+                  etsi_300_242_a4_diago2.tif \
+                  etsi_300_242_a4_duration1.tif \
+                  etsi_300_242_a4_duration2.tif \
+                  etsi_300_242_a4_error.tif \
+                  etsi_300_242_a4_impress.tif \
+                  etsi_300_242_a4_impress_white.tif \
+                  etsi_300_242_a4_stairstep.tif \
+                  etsi_300_242_a4_white.tif \
+                  etsi_300_242_a4_white_2p.tif
 
+EXTRA_DIST = 
+nobase_data_DATA = ${ETSI_TEST_PAGES}
 generate_etsi_300_242_pages_SOURCES = generate_etsi_300_242_pages.c
-generate_etsi_300_242_pages_LDADD = -ltiff
+generate_etsi_300_242_pages_LDADD = -lspandsp -ltiff
 all: all-am
 
 .SUFFIXES:
@@ -522,16 +524,7 @@ clean:
 .pbm.g3:
 	${PBM2G3} $*.pbm >$*.g3
 
-etsi_300_242_a4_diago1.tif \
-etsi_300_242_a4_diago2.tif \
-etsi_300_242_a4_duration1.tif \
-etsi_300_242_a4_duration2.tif \
-etsi_300_242_a4_error.tif \
-etsi_300_242_a4_impress.tif \
-etsi_300_242_a4_impress_white.tif \
-etsi_300_242_a4_stairstep.tif \
-etsi_300_242_a4_white.tif \
-etsi_300_242_a4_white_2p.tif: generate_etsi_300_242_pages$(EXEEXT)
+${ETSI_TEST_PAGES}: generate_etsi_300_242_pages$(EXEEXT)
 	./generate_etsi_300_242_pages$(EXEEXT)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
