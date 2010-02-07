@@ -213,7 +213,7 @@ super_tone_rx_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_super_tone_tx_tests_OBJECTS = super_tone_tx_tests.$(OBJEXT)
 super_tone_tx_tests_OBJECTS = $(am_super_tone_tx_tests_OBJECTS)
 super_tone_tx_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_t31_tests_OBJECTS = t31_tests.$(OBJEXT)
+am_t31_tests_OBJECTS = t31_tests.$(OBJEXT) media_monitor.$(OBJEXT)
 t31_tests_OBJECTS = $(am_t31_tests_OBJECTS)
 t31_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_t38_core_tests_OBJECTS = t38_core_tests.$(OBJEXT)
@@ -595,8 +595,8 @@ super_tone_tx_tests_SOURCES = super_tone_tx_tests.c
 super_tone_tx_tests_LDADD = $(LIBDIR) -lspandsp
 t4_tests_SOURCES = t4_tests.c
 t4_tests_LDADD = $(LIBDIR) -lspandsp
-t31_tests_SOURCES = t31_tests.c
-t31_tests_LDADD = $(LIBDIR) -lspandsp
+t31_tests_SOURCES = t31_tests.c media_monitor.cpp
+t31_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 t38_core_tests_SOURCES = t38_core_tests.c
 t38_core_tests_LDADD = $(LIBDIR) -lspandsp
 t38_gateway_tests_SOURCES = t38_gateway_tests.c media_monitor.cpp
@@ -806,7 +806,7 @@ super_tone_tx_tests$(EXEEXT): $(super_tone_tx_tests_OBJECTS) $(super_tone_tx_tes
 	$(LINK) $(super_tone_tx_tests_LDFLAGS) $(super_tone_tx_tests_OBJECTS) $(super_tone_tx_tests_LDADD) $(LIBS)
 t31_tests$(EXEEXT): $(t31_tests_OBJECTS) $(t31_tests_DEPENDENCIES) 
 	@rm -f t31_tests$(EXEEXT)
-	$(LINK) $(t31_tests_LDFLAGS) $(t31_tests_OBJECTS) $(t31_tests_LDADD) $(LIBS)
+	$(CXXLINK) $(t31_tests_LDFLAGS) $(t31_tests_OBJECTS) $(t31_tests_LDADD) $(LIBS)
 t38_core_tests$(EXEEXT): $(t38_core_tests_OBJECTS) $(t38_core_tests_DEPENDENCIES) 
 	@rm -f t38_core_tests$(EXEEXT)
 	$(LINK) $(t38_core_tests_LDFLAGS) $(t38_core_tests_OBJECTS) $(t38_core_tests_LDADD) $(LIBS)

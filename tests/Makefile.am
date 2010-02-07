@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.91 2007/09/06 12:24:54 steveu Exp $
+## $Id: Makefile.am,v 1.92 2007/11/28 12:26:52 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -234,8 +234,8 @@ super_tone_tx_tests_LDADD = $(LIBDIR) -lspandsp
 t4_tests_SOURCES = t4_tests.c
 t4_tests_LDADD = $(LIBDIR) -lspandsp
 
-t31_tests_SOURCES = t31_tests.c
-t31_tests_LDADD = $(LIBDIR) -lspandsp
+t31_tests_SOURCES = t31_tests.c media_monitor.cpp
+t31_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
 t38_core_tests_SOURCES = t38_core_tests.c
 t38_core_tests_LDADD = $(LIBDIR) -lspandsp

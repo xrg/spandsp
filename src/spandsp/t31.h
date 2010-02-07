@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.43 2007/05/15 13:22:43 steveu Exp $
+ * $Id: t31.h,v 1.44 2007/11/27 14:09:34 steveu Exp $
  */
 
 /*! \file */
@@ -72,6 +72,9 @@ struct t31_state_s
         (e.g. the 75ms silence between V.21 and a high speed modem) will alway be transmitted as
         silent audio. */
     int transmit_on_idle;
+
+    /*! \brief Use talker echo protection when transmitting. */
+    int use_tep;    
 
     uint8_t hdlc_tx_buf[256];
     int hdlc_tx_len;
@@ -136,6 +139,28 @@ struct t31_state_s
     int32_t silence_threshold_power;
     
     t38_core_state_t t38;
+    int rx_signal_present;
+    /*! \brief The next queued tramsit indicator */
+    int next_tx_indicator;
+    /*! \brief The current T.38 data type being transmitted */
+    int current_tx_data_type;
+
+    int ms_per_tx_chunk;
+    int merge_tx_fields;
+
+    /*! \brief The number of times an indicator packet will be sent. Numbers greater than one
+               will increase reliability for UDP transmission. Zero is valid, to suppress all
+               indicator packets for TCP transmission. */
+    int indicator_tx_count;
+
+    /*! \brief The number of times a data packet which ends transmission will be sent. Numbers
+               greater than one will increase reliability for UDP transmission. Zero is not valid. */
+    int data_end_tx_count;
+
+    /*! \brief A "sample" count, used to time events */
+    int32_t samples;
+    int32_t next_tx_samples;
+    int32_t timeout_rx_samples;
 
 	/*! \brief Samples of silence heard */
     int silence_heard;
@@ -156,16 +181,18 @@ struct t31_state_s
     int t38_mode;
     int timed_step;
     int current_tx_data;
-    int64_t next_send_samples;
-    int next_tx_indicator;
 
     int current_rx_type;
     int current_tx_type;
 
+    int trailer_bytes;
+
     /*! \brief TRUE is there has been some T.38 data missed */
     int missing_data;
 
-    int octets_per_non_ecm_packet;
+    /*! \brief The number of octets to send in each image packet (non-ECM or ECM) at the current
+               rate and the current specified packet interval. */
+    int octets_per_data_packet;
 
     /*! \brief Error and flow logging control */
     logging_state_t logging;
@@ -207,6 +234,21 @@ int t31_t38_send_timeout(t31_state_t *s, int samples);
            behaviour is FALSE.
 */
 void t31_set_transmit_on_idle(t31_state_t *s, int transmit_on_idle);
+
+/*! Select whether TEP mode will be used (or time allowed for it (when transmitting).
+    \brief Select whether TEP mode will be used.
+    \param s The T.31 modem context.
+    \param use_tep TRUE if TEP is to be ised.
+*/
+void t31_set_tep_mode(t31_state_t *s, int use_tep);
+
+/*! Select whether T.38 data will be paced as it is transmitted.
+    \brief Select whether T.38 data will be paced.
+    \param s The T.31 modem context.
+    \param without_pacing TRUE if data is to be sent as fast as possible. FALSE if it is
+           to be paced.
+*/
+void t31_set_t38_config(t31_state_t *s, int without_pacing);
 
 /*! Initialise a T.31 context. This must be called before the first
     use of the context, to initialise its contents.

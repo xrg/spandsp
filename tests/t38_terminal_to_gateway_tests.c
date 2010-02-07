@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_to_gateway_tests.c,v 1.43 2007/11/10 11:14:59 steveu Exp $
+ * $Id: t38_terminal_to_gateway_tests.c,v 1.44 2007/11/29 00:13:30 steveu Exp $
  */
 
 /*! \file */
@@ -472,6 +472,8 @@ int main(int argc, char *argv[])
             media_monitor_update_display();
 #endif
     }
+    t38_terminal_release(&t38_state_a);
+    fax_release(&fax_state_b);
     if (log_audio)
     {
         if (afCloseFile(wave_handle) != 0)

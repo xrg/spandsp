@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_tests.c,v 1.55 2007/11/10 11:14:59 steveu Exp $
+ * $Id: t38_gateway_tests.c,v 1.56 2007/11/29 00:13:29 steveu Exp $
  */
 
 /*! \file */
@@ -552,6 +552,8 @@ int main(int argc, char *argv[])
         if (++hist_ptr > 3)
             hist_ptr = 0;
     }
+    fax_release(&fax_state_a);
+    fax_release(&fax_state_b);
     if (log_audio)
     {
         if (afCloseFile(wave_handle) != 0)

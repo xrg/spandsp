@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.76 2007/11/26 13:28:59 steveu Exp $
+ * $Id: t38_terminal.c,v 1.78 2007/11/29 00:13:29 steveu Exp $
  */
 
 /*! \file */
@@ -144,74 +144,27 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
         t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
         break;
     case T38_IND_V27TER_2400_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V27TER_4800_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V29_7200_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V29_9600_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V17_7200_SHORT_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V17_7200_LONG_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V17_9600_SHORT_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V17_9600_LONG_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V17_12000_SHORT_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V17_12000_LONG_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V17_14400_SHORT_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V17_14400_LONG_TRAINING:
+    case T38_IND_V33_12000_TRAINING:
+    case T38_IND_V33_14400_TRAINING:
         s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
         t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
         break;
     case T38_IND_V8_ANSAM:
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V8_SIGNAL:
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V34_CNTL_CHANNEL_1200:
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V34_PRI_CHANNEL:
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
     case T38_IND_V34_CC_RETRAIN:
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
-    case T38_IND_V33_12000_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
-        break;
-    case T38_IND_V33_14400_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
         t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
         break;
     default:
@@ -901,6 +854,13 @@ t38_terminal_state_t *t38_terminal_init(t38_terminal_state_t *s,
     t30_set_iaf_mode(&(s->t30_state), T30_IAF_MODE_T37 | T30_IAF_MODE_T38);
     t30_restart(&s->t30_state);
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t38_terminal_release(t38_terminal_state_t *s)
+{
+    t30_release(&s->t30_state);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

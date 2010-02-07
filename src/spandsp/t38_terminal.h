@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.22 2007/11/21 18:17:50 steveu Exp $
+ * $Id: t38_terminal.h,v 1.23 2007/11/29 00:13:29 steveu Exp $
  */
 
 /*! \file */
@@ -128,6 +128,11 @@ t38_terminal_state_t *t38_terminal_init(t38_terminal_state_t *s,
                                         int calling_party,
                                         t38_tx_packet_handler_t *tx_packet_handler,
                                         void *tx_packet_user_data);
+
+/*! Release a termination mode T.38 context.
+    \brief Release a T.38 context.
+    \param s The T.38 context. */
+int t38_terminal_release(t38_terminal_state_t *s);
 
 #if defined(__cplusplus)
 }
