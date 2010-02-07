@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.148 2009/03/24 14:17:36 steveu Exp $
+ * $Id: t31.c,v 1.150 2009/04/12 09:12:10 steveu Exp $
  */
 
 /*! \file */
@@ -86,6 +86,7 @@
 
 #include "spandsp/private/logging.h"
 #include "spandsp/private/t38_core.h"
+#include "spandsp/private/silence_gen.h"
 #include "spandsp/private/fsk.h"
 #include "spandsp/private/v17tx.h"
 #include "spandsp/private/v17rx.h"
@@ -100,10 +101,15 @@
 #include "spandsp/private/t31.h"
 
 /* Settings suitable for paced transmission over a UDP transport */
+/*! The default number of milliseconds per transmitted IFP when sending bulk T.38 data */
 #define MS_PER_TX_CHUNK                         30
+/*! The number of transmissions of indicator IFP packets */
 #define INDICATOR_TX_COUNT                      3
+/*! The number of transmissions of data IFP packets */
 #define DATA_TX_COUNT                           1
+/*! The number of transmissions of terminating data IFP packets */
 #define DATA_END_TX_COUNT                       3
+/*! The default DTE timeout, in seconds */
 #define DEFAULT_DTE_TIMEOUT                     5
 
 /* Settings suitable for unpaced transmission over a TCP transport */

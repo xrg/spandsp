@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v18.h,v 1.2 2009/04/02 13:43:49 steveu Exp $
+ * $Id: v18.h,v 1.3 2009/04/12 09:12:11 steveu Exp $
  */
  
 /*! \file */
@@ -119,8 +119,22 @@ SPAN_DECLARE(int) v18_rx(v18_state_t *s, const int16_t amp[], int len);
             length of the digit string, if the buffer fills up. */
 SPAN_DECLARE(int) v18_put(v18_state_t *s, const char msg[], int len);
 
+/*! Convert a text string to a V.18 DTMF string.
+    \brief Convert a text string to a V.18 DTMF string.
+    \param s The V.18 context.
+    \param dtmf The resulting DTMF string.
+    \param msg The text string to be converted.
+    \return The length of the DTMF string.
+*/
 SPAN_DECLARE(int) v18_encode_dtmf(v18_state_t *s, char dtmf[], const char msg[]);
 
+/*! Convert a V.18 DTMF string to a text string.
+    \brief Convert a V.18 DTMF string to a text string.
+    \param s The V.18 context.
+    \param msg The resulting test string.
+    \param dtmf The DTMF string to be converted.
+    \return The length of the text string.
+*/
 SPAN_DECLARE(int) v18_decode_dtmf(v18_state_t *s, char msg[], const char dtmf[]);
 
 SPAN_DECLARE(uint16_t) v18_encode_baudot(v18_state_t *s, uint8_t ch);

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.120 2009/03/23 14:17:42 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.121 2009/04/12 04:20:01 steveu Exp $
  */
 
 /*! \file */
@@ -74,7 +74,13 @@
    signal to a static constellation, even though dealing with differences is all
    that is necessary. */
 
+/*! The nominal frequency of the carrier, in Hertz */
 #define CARRIER_NOMINAL_FREQ            1800.0f
+/*! The nominal baud or symbol rate in 2400bps mode */
+#define BAUD_RATE_2400                  1200
+/*! The nominal baud or symbol rate in 4800bps mode */
+#define BAUD_RATE_4800                  1600
+/*! The adaption rate coefficient for the equalizer */
 #define EQUALIZER_DELTA                 0.25f
 
 #if defined(SPANDSP_USE_FIXED_POINT)
@@ -85,10 +91,14 @@
 /* Segments of the training sequence */
 /* V.27ter defines a long and a short sequence. FAX doesn't use the
    short sequence, so it is not implemented here. */
+/*! The length of training segment 3, in symbols */
 #define V27TER_TRAINING_SEG_3_LEN       50
+/*! The length of training segment 5, in symbols */
 #define V27TER_TRAINING_SEG_5_LEN       1074
+/*! The length of training segment 6, in symbols */
 #define V27TER_TRAINING_SEG_6_LEN       8
 
+/*! The length of the equalizer buffer */
 #define V27TER_EQUALIZER_LEN    (V27TER_EQUALIZER_PRE_LEN + 1 + V27TER_EQUALIZER_POST_LEN)
 
 enum

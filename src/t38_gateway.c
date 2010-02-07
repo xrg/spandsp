@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.159 2009/03/24 14:17:36 steveu Exp $
+ * $Id: t38_gateway.c,v 1.162 2009/04/12 14:18:02 steveu Exp $
  */
 
 /*! \file */
@@ -84,6 +84,7 @@
 #include "spandsp/t38_gateway.h"
 
 #include "spandsp/private/logging.h"
+#include "spandsp/private/silence_gen.h"
 #include "spandsp/private/fsk.h"
 #include "spandsp/private/v17tx.h"
 #include "spandsp/private/v17rx.h"
@@ -102,12 +103,18 @@
 
 /* This is the target time per transmission chunk. The actual
    packet timing will sync to the data octets. */
-#define MS_PER_TX_CHUNK                 30
-#define HDLC_START_BUFFER_LEVEL         8
+/*! The default number of milliseconds per transmitted IFP when sending bulk T.38 data */
+#define MS_PER_TX_CHUNK                         30
+/*! The number of bytes which must be in the audio to T.38 HDLC buffer before we start
+    outputting them as IFP messages. */
+#define HDLC_START_BUFFER_LEVEL                 8
 
-#define INDICATOR_TX_COUNT              3
-#define DATA_TX_COUNT                   1
-#define DATA_END_TX_COUNT               3
+/*! The number of transmissions of indicator IFP packets */
+#define INDICATOR_TX_COUNT                      3
+/*! The number of transmissions of data IFP packets */
+#define DATA_TX_COUNT                           1
+/*! The number of transmissions of terminating data IFP packets */
+#define DATA_END_TX_COUNT                       3
 
 enum
 {
@@ -152,8 +159,11 @@ enum
     TCF_MODE_PREDICTABLE_MODEM_START_BEGIN
 };
 
+/*! The maximum number of bytes to be zapped, in order to corrupt NSF,
+    NSS and NSC messages, so the receiver does not recognise them. */
 #define MAX_NSX_SUPPRESSION             10
 
+/*! The number of consecutive flags to declare HDLC framing is OK. */
 #define HDLC_FRAMING_OK_THRESHOLD       5
 
 static uint8_t nsx_overwrite[2][MAX_NSX_SUPPRESSION] =
@@ -1576,8 +1586,8 @@ static void non_ecm_push_residue(t38_gateway_state_t *t)
         s->data[s->data_ptr++] = (uint8_t) (s->bit_stream << (8 - s->bit_no));
     }
     t38_core_send_data(&t->t38x.t38, t->t38x.current_tx_data_type, T38_FIELD_T4_NON_ECM_SIG_END, s->data, s->data_ptr, t->t38x.t38.data_end_tx_count);
-    s->out_octets += s->data_ptr;
     s->in_bits += s->bits_absorbed;
+    s->out_octets += s->data_ptr;
     s->data_ptr = 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1590,8 +1600,8 @@ static void non_ecm_push(t38_gateway_state_t *t)
     if (s->data_ptr)
     {
         t38_core_send_data(&t->t38x.t38, t->t38x.current_tx_data_type, T38_FIELD_T4_NON_ECM_DATA, s->data, s->data_ptr, t->t38x.t38.data_tx_count);
-        s->out_octets += s->data_ptr;
         s->in_bits += s->bits_absorbed;
+        s->out_octets += s->data_ptr;
         s->bits_absorbed = 0;
         s->data_ptr = 0;
     }

@@ -22,10 +22,10 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.c,v 1.51 2009/04/11 18:11:19 steveu Exp $
+ * $Id: tone_generate.c,v 1.52 2009/04/12 09:12:10 steveu Exp $
  */
 
-/*! \file spandsp/tone_generate.h */
+/*! \file */
 
 #if defined(HAVE_CONFIG_H)
 #include "config.h"

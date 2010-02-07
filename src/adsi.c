@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.75 2009/04/02 13:43:49 steveu Exp $
+ * $Id: adsi.c,v 1.76 2009/04/12 09:12:10 steveu Exp $
  */
 
 /*! \file */
@@ -69,14 +69,19 @@
 #include "spandsp/private/dtmf.h"
 #include "spandsp/private/adsi.h"
 
+/*! The baudot code to shift from alpha to digits and symbols */
 #define BAUDOT_FIGURE_SHIFT     0x1B
+/*! The baudot code to shift from digits and symbols to alpha */
 #define BAUDOT_LETTER_SHIFT     0x1F
 
-#define SOH 0x01
-#define STX 0x02
-#define ETX 0x03
-#define DLE 0x10
-#define SUB 0x1A
+enum
+{
+    SOH = 0x01,
+    STX = 0x02,
+    ETX = 0x03,
+    DLE = 0x10,
+    SUB = 0x1A
+};
 
 static uint16_t adsi_encode_baudot(adsi_tx_state_t *s, uint8_t ch);
 static uint8_t adsi_decode_baudot(adsi_rx_state_t *s, uint8_t ch);

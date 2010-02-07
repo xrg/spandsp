@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.36 2009/03/13 12:59:26 steveu Exp $
+ * $Id: v22bis.h,v 1.38 2009/04/14 16:04:54 steveu Exp $
  */
 
 /*! \file */
@@ -50,11 +50,22 @@ or 1200bps if one or both ends to not acknowledge that 2400bps is OK.
 #if !defined(_SPANDSP_V22BIS_H_)
 #define _SPANDSP_V22BIS_H_
 
-#define V22BIS_EQUALIZER_LEN    7  /* this much to the left and this much to the right */
-#define V22BIS_EQUALIZER_MASK   15 /* one less than a power of 2 >= (2*V22BIS_EQUALIZER_LEN + 1) */
+enum
+{
+    V22BIS_GUARD_TONE_NONE,
+    V22BIS_GUARD_TONE_550HZ,
+    V22BIS_GUARD_TONE_1800HZ
+};
 
+/*! The number of steps to the left and to the right of the target position in the equalizer buffer. */
+#define V22BIS_EQUALIZER_LEN    7
+/*! One less than a power of 2 >= (2*V22BIS_EQUALIZER_LEN + 1) */
+#define V22BIS_EQUALIZER_MASK   15
+
+/*! The number of taps in the transmit pulse shaping filter */
 #define V22BIS_TX_FILTER_STEPS  9
 
+/*! The number of taps in the receive pulse shaping/bandpass filter */
 #define V22BIS_RX_FILTER_STEPS  37
 
 /*!
@@ -172,6 +183,10 @@ SPAN_DECLARE(int) v22bis_release(v22bis_state_t *s);
     \return 0 for OK */
 SPAN_DECLARE(int) v22bis_free(v22bis_state_t *s);
 
+/*! Get the logging context associated with a V.22bis modem context.
+    \brief Get the logging context associated with a V.22bis modem context.
+    \param s The modem context.
+    \return A pointer to the logging context */
 SPAN_DECLARE(logging_state_t *) v22bis_get_logging_state(v22bis_state_t *s);
 
 /*! Change the get_bit function associated with a V.22bis modem context.

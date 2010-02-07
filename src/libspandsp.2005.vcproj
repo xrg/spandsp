@@ -274,6 +274,7 @@
 <File RelativePath="spandsp/private/queue.h"></File>
 <File RelativePath="spandsp/private/schedule.h"></File>
 <File RelativePath="spandsp/private/sig_tone.h"></File>
+<File RelativePath="spandsp/private/silence_gen.h"></File>
 <File RelativePath="spandsp/private/super_tone_rx.h"></File>
 <File RelativePath="spandsp/private/super_tone_tx.h"></File>
 <File RelativePath="spandsp/private/t30.h"></File>

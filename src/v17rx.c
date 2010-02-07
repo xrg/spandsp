@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.137 2009/03/24 14:17:36 steveu Exp $
+ * $Id: v17rx.c,v 1.138 2009/04/12 04:20:00 steveu Exp $
  */
 
 /*! \file */
@@ -71,21 +71,33 @@
 #include "v17rx_floating_rrc.h"
 #endif
 
+/*! The nominal frequency of the carrier, in Hertz */
 #define CARRIER_NOMINAL_FREQ            1800.0f
+/*! The nominal baud or symbol rate */
 #define BAUD_RATE                       2400
+/*! The adaption rate coefficient for the equalizer during initial training */
 #define EQUALIZER_DELTA                 0.21f
+/*! The adaption rate coefficient for the equalizer during continuous fine tuning */
 #define EQUALIZER_SLOW_ADAPT_RATIO      0.1f
 
 /* Segments of the training sequence */
+/*! The length of training segment 1, in symbols */
 #define V17_TRAINING_SEG_1_LEN          256
+/*! The length of training segment 2 in long training mode, in symbols */
 #define V17_TRAINING_SEG_2_LEN          2976
+/*! The length of training segment 2 in short training mode, in symbols */
 #define V17_TRAINING_SHORT_SEG_2_LEN    38
+/*! The length of training segment 3, in symbols */
 #define V17_TRAINING_SEG_3_LEN          64
+/*! The length of training segment 4A, in symbols */
 #define V17_TRAINING_SEG_4A_LEN         15
+/*! The length of training segment 4, in symbols */
 #define V17_TRAINING_SEG_4_LEN          48
 
+/*! The 16 bit pattern used in the bridge section of the training sequence */
 #define V17_BRIDGE_WORD                 0x8880
 
+/*! The length of the equalizer buffer */
 #define V17_EQUALIZER_LEN    (V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN)
 
 enum

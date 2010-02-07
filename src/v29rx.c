@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.158 2009/03/24 14:17:36 steveu Exp $
+ * $Id: v29rx.c,v 1.159 2009/04/12 04:20:01 steveu Exp $
  */
 
 /*! \file */
@@ -68,8 +68,11 @@
 #include "v29rx_floating_rrc.h"
 #endif
 
+/*! The nominal frequency of the carrier, in Hertz */
 #define CARRIER_NOMINAL_FREQ            1700.0f
+/*! The nominal baud or symbol rate */
 #define BAUD_RATE                       2400
+/*! The adaption rate coefficient for the equalizer */
 #define EQUALIZER_DELTA                 0.21f
 
 #if defined(SPANDSP_USE_FIXED_POINT)
@@ -78,10 +81,14 @@
 #endif
 
 /* Segments of the training sequence */
+/*! The length of training segment 2, in symbols */
 #define V29_TRAINING_SEG_2_LEN          128
+/*! The length of training segment 3, in symbols */
 #define V29_TRAINING_SEG_3_LEN          384
+/*! The length of training segment 4, in symbols */
 #define V29_TRAINING_SEG_4_LEN          48
 
+/*! The length of the equalizer buffer */
 #define V29_EQUALIZER_LEN    (V29_EQUALIZER_PRE_LEN + 1 + V29_EQUALIZER_POST_LEN)
 
 enum

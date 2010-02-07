@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.90 2009/03/23 14:17:42 steveu Exp $
+ * $Id: fax.c,v 1.91 2009/04/12 03:29:58 steveu Exp $
  */
 
 /*! \file */
@@ -83,6 +83,7 @@
 #include "spandsp/fax.h"
 
 #include "spandsp/private/logging.h"
+#include "spandsp/private/silence_gen.h"
 #include "spandsp/private/fsk.h"
 #include "spandsp/private/v17tx.h"
 #include "spandsp/private/v17rx.h"

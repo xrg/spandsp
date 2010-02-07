@@ -819,6 +819,10 @@ SOURCE=.\spandsp/private/sig_tone.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\spandsp/private/silence_gen.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\spandsp/private/super_tone_rx.h
 # End Source File
 # Begin Source File

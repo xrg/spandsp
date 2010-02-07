@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v18.c,v 1.4 2009/04/11 15:16:14 steveu Exp $
+ * $Id: v18.c,v 1.5 2009/04/12 09:12:10 steveu Exp $
  */
  
 /*! \file */
@@ -70,7 +70,9 @@
 
 #include <stdlib.h>
 
+/*! The baudot code to shift from alpha to digits and symbols */
 #define BAUDOT_FIGURE_SHIFT     0x1B
+/*! The baudot code to shift from digits and symbols to alpha */
 #define BAUDOT_LETTER_SHIFT     0x1F
 
 struct dtmf_to_ascii_s
