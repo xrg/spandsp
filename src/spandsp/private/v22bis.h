@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.4 2009/04/17 14:37:53 steveu Exp $
+ * $Id: v22bis.h,v 1.5 2009/04/22 12:57:40 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_V22BIS_H_)
@@ -135,6 +135,7 @@ struct v22bis_state_s
         int detected_unscrambled_ones;
         int detected_unscrambled_zeros;
         int detected_2400bps_markers;
+        int last_raw_bits;
     } rx;
 
     /* TRANSMIT SECTION */

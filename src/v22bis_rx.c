@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.56 2009/04/20 12:26:38 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.58 2009/04/22 12:57:40 steveu Exp $
  */
 
 /*! \file */
@@ -108,6 +108,7 @@ enum
     V22BIS_RX_TRAINING_STAGE_SYMBOL_ACQUISITION,
     V22BIS_RX_TRAINING_STAGE_LOG_PHASE,
     V22BIS_RX_TRAINING_STAGE_UNSCRAMBLED_ONES,
+    V22BIS_RX_TRAINING_STAGE_UNSCRAMBLED_ONES_SUSTAINING,
     V22BIS_RX_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200,
     V22BIS_RX_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200_SUSTAINING,
     V22BIS_RX_TRAINING_STAGE_WAIT_FOR_START_1,
@@ -321,6 +322,7 @@ static void decode_baud(v22bis_state_t *s, int nearest)
     int raw_bits;
 
     raw_bits = phase_steps[((nearest >> 2) - (s->rx.constellation_state >> 2)) & 3];
+    s->rx.constellation_state = nearest;
     /* The first two bits are the quadrant */
     put_bit(s, raw_bits >> 1);
     put_bit(s, raw_bits);
@@ -330,7 +332,6 @@ static void decode_baud(v22bis_state_t *s, int nearest)
         put_bit(s, nearest >> 1);
         put_bit(s, nearest);
     }
-    s->rx.constellation_state = nearest;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -340,6 +341,7 @@ static int decode_baudx(v22bis_state_t *s, int nearest)
     int out_bits;
 
     raw_bits = phase_steps[((nearest >> 2) - (s->rx.constellation_state >> 2)) & 3];
+    s->rx.constellation_state = nearest;
     /* The first two bits are the quadrant */
     out_bits = descramble(s, raw_bits >> 1);
     out_bits = (out_bits << 1) | descramble(s, raw_bits);
@@ -349,7 +351,6 @@ static int decode_baudx(v22bis_state_t *s, int nearest)
         out_bits = (out_bits << 1) | descramble(s, nearest >> 1);
         out_bits = (out_bits << 1) | descramble(s, nearest);
     }
-    s->rx.constellation_state = nearest;
     return out_bits;
 }
 /*- End of function --------------------------------------------------------*/
@@ -388,6 +389,9 @@ static void process_half_baud(v22bis_state_t *s, const complexf_t *sample)
     int nearest;
     int bitstream;
     int raw_bits;
+    int32_t angle1;
+    int32_t angle2;
+    int i;
 
     z.re = sample->re;
     z.im = sample->im;
@@ -501,6 +505,14 @@ static void process_half_baud(v22bis_state_t *s, const complexf_t *sample)
                 s->rx.training = V22BIS_RX_TRAINING_STAGE_UNSCRAMBLED_ONES;
             else
                 s->rx.training = V22BIS_RX_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
+            /* Kick the carrier phase to bring the symsols into line */
+            angle1 = arctan2(z.im, z.re);
+            angle2 = arctan2(v22bis_constellation[nearest].im, v22bis_constellation[nearest].re);
+            s->rx.carrier_phase += (angle2 - angle1);
+            p = (angle2 - angle1)*2.0f*3.14159f/(65536.0f*65536.0f);
+            zz = complex_setf(cosf(p), -sinf(p));
+            for (i = 0;  i < 2*V22BIS_EQUALIZER_LEN + 1;  i++)
+                s->rx.eq_buf[i] = complex_mulf(&s->rx.eq_buf[i], &zz);
             break;
         }
         /* Once we have pulled in the symbol timing in a coarse way, use finer
@@ -519,15 +531,19 @@ static void process_half_baud(v22bis_state_t *s, const complexf_t *sample)
         {
         case 0:
             s->rx.detected_unscrambled_zeros++;
+            s->rx.detected_unscrambled_ones = 0;
+            s->rx.detected_2400bps_markers = 0;
             break;
         case 3:
+            s->rx.detected_unscrambled_zeros = 0;
             s->rx.detected_unscrambled_ones++;
+            s->rx.detected_2400bps_markers = 0;
             break;
         default:
-            s->rx.detected_2400bps_markers++;
+            s->rx.detected_unscrambled_zeros = 0;
+            s->rx.detected_unscrambled_ones = 0;
             break;
         }
-span_log(&s->logging, SPAN_LOG_FLOW, "TWIDDLING THUMBS - %d %d\n", s->rx.training_count, s->rx.detected_2400bps_markers);
         if (++s->rx.training_count == ms_to_symbols(155 + 456))
         {
             if (s->rx.detected_unscrambled_ones >= ms_to_symbols(456)
@@ -544,18 +560,63 @@ span_log(&s->logging, SPAN_LOG_FLOW, "TWIDDLING THUMBS - %d %d\n", s->rx.trainin
                 else
                 {
                     /* Only try to establish at 1200bps */
-                    span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting S11 (Caller)\n");
-                    s->tx.training = V22BIS_TX_TRAINING_STAGE_TIMED_S11;
+                    span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting S11 (1200) (Caller)\n");
+                    s->tx.training = V22BIS_TX_TRAINING_STAGE_S11;
                     s->tx.training_count = 0;
                 }
             }
-span_log(&s->logging, SPAN_LOG_FLOW, "unscrambled ones = %d, unscrambled zeros = %d, 2400 markers = %d\n", s->rx.detected_unscrambled_ones, s->rx.detected_unscrambled_zeros, s->rx.detected_2400bps_markers);
-            s->rx.training_count = 0;
-            s->rx.training = V22BIS_RX_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
             s->rx.detected_unscrambled_zeros = 0;
             s->rx.detected_unscrambled_ones = 0;
             s->rx.detected_2400bps_markers = 0;
-            s->rx.scrambled_ones_to_date = 0;
+            s->rx.training_count = 0;
+            s->rx.training = V22BIS_RX_TRAINING_STAGE_UNSCRAMBLED_ONES_SUSTAINING;
+        }
+        break;
+    case V22BIS_RX_TRAINING_STAGE_UNSCRAMBLED_ONES_SUSTAINING:
+        /* Calling modem only */
+        /* The calling modem should initially receive unscrambled ones at 1200bps */
+        track_carrier(s, &z, &v22bis_constellation[nearest]);
+        target = &z;
+        raw_bits = phase_steps[((nearest >> 2) - (s->rx.constellation_state >> 2)) & 3];
+        s->rx.constellation_state = nearest;
+span_log(&s->logging, SPAN_LOG_FLOW, "Sust 0x%02x 0x%02x 0x%X %d %d %d %d %d\n", raw_bits, nearest, 0, s->rx.scrambled_ones_to_date, s->rx.detected_unscrambled_ones, s->rx.detected_unscrambled_zeros, s->rx.detected_2400bps_markers, s->rx.training_count);
+        if ((s->rx.last_raw_bits == 3  &&  raw_bits == 0)  ||  (s->rx.last_raw_bits == 0  &&  raw_bits == 3))
+        {
+            if (++s->rx.detected_2400bps_markers == 15)
+            {
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ XXX2 %d\n", s->rx.detected_2400bps_markers);
+                if (s->caller)
+                {
+                    s->rx.detected_unscrambled_zeros = 9999;
+                }
+            }
+        }
+        else
+        {
+            s->rx.detected_2400bps_markers = 0;
+        }
+        switch (raw_bits)
+        {
+        case 0:
+        case 3:
+            break;
+        default:
+            if (++s->rx.detected_unscrambled_ones >= 4)
+            {
+                /* End of unscrambled ones */
+                if (s->caller  &&  s->rx.detected_unscrambled_zeros < 9999)
+                {
+                    span_log(&s->logging, SPAN_LOG_FLOW, "+++ using 1200bps (caller)\n");
+                    s->bit_rate = 1200;
+                }
+                s->rx.detected_unscrambled_zeros = 0;
+                s->rx.detected_unscrambled_ones = 0;
+                s->tx.training_count = 0;
+                s->tx.training = V22BIS_TX_TRAINING_STAGE_TIMED_S11;
+                s->rx.training_count = 0;
+                s->rx.training = V22BIS_RX_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
+            }
+            break;
         }
         break;
     case V22BIS_RX_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200:
@@ -563,42 +624,73 @@ span_log(&s->logging, SPAN_LOG_FLOW, "unscrambled ones = %d, unscrambled zeros =
         tune_equalizer(s, &z, &v22bis_constellation[nearest]);
         target = &z;
         raw_bits = phase_steps[((nearest >> 2) - (s->rx.constellation_state >> 2)) & 3];
-        switch (raw_bits)
+        s->rx.constellation_state = nearest;
+        if ((s->rx.last_raw_bits == 3  &&  raw_bits == 0)  ||  (s->rx.last_raw_bits == 0  &&  raw_bits == 3))
         {
-        case 0:
-            s->rx.detected_unscrambled_zeros++;
-            break;
-        case 3:
-            s->rx.detected_unscrambled_ones++;
-            break;
-        default:
-            s->rx.detected_2400bps_markers++;
-            break;
-        }
-        bitstream = decode_baudx(s, nearest);
-        s->rx.scrambled_ones_to_date += ones[bitstream];
-span_log(&s->logging, SPAN_LOG_FLOW, "S11 0x%02x 0x%02x 0x%X %d %d %d %d %d %d\n", raw_bits, nearest, bitstream, s->rx.scrambled_ones_to_date, s->rx.detected_unscrambled_ones, s->rx.detected_unscrambled_zeros, s->rx.detected_2400bps_markers, s->rx.training_count, s->rx.detected_2400bps_markers);
-        if (s->rx.detected_2400bps_markers  &&  ++s->rx.training_count > ms_to_symbols(270))
-        {
-            if (!s->caller)
+            if (++s->rx.detected_2400bps_markers == 15)
             {
-                if (s->bit_rate == 2400  &&  s->rx.detected_2400bps_markers > 20)
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ XXX1 %d\n", s->rx.detected_2400bps_markers);
+                if (!s->caller)
                 {
                     /* Try to establish at 2400bps */
                     span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting U0011 (S1) (Answerer)\n");
                     s->tx.training = V22BIS_TX_TRAINING_STAGE_U0011;
                     s->tx.training_count = 0;
+                    s->rx.detected_unscrambled_zeros = 9999;
+                }
+            }
+        }
+        else
+        {
+            s->rx.detected_2400bps_markers = 0;
+        }
+        bitstream = decode_baudx(s, nearest);
+        s->rx.scrambled_ones_to_date += ones[bitstream];
+span_log(&s->logging, SPAN_LOG_FLOW, "S11 0x%02x 0x%02x 0x%X %d %d %d %d %d\n", raw_bits, nearest, bitstream, s->rx.scrambled_ones_to_date, s->rx.detected_unscrambled_ones, s->rx.detected_unscrambled_zeros, s->rx.detected_2400bps_markers, s->rx.training_count);
+        ++s->rx.training_count;
+        if (s->rx.training_count == ms_to_symbols(270))
+        {
+            if (!s->caller  &&  s->rx.detected_unscrambled_zeros < 9999)
+            {
+                span_log(&s->logging, SPAN_LOG_FLOW, "+++ using 1200bps (answerer)\n");
+                s->bit_rate = 1200;
+            }
+        }
+
+        if ((s->bit_rate == 1200  &&  s->rx.training_count >= ms_to_symbols(270))
+            ||
+            (s->bit_rate == 2400  &&  s->rx.training_count >= ms_to_symbols(450 + 100)))
+        {
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ YYY %d\n", s->rx.detected_2400bps_markers);
+            if (s->caller)
+            {
+                if (s->bit_rate == 2400)
+                {
+                    span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting 16 way decisions\n");
+                    s->rx.sixteen_way_decisions = TRUE;
+                    span_log(&s->logging, SPAN_LOG_FLOW, "+++ Rx normal operation (2400)\n");
                 }
                 else
                 {
-                    /* We are going to work at 1200bps. */
-                    span_log(&s->logging, SPAN_LOG_FLOW, "+++ [1200] starting S11 (Answerer)\n");
-                    s->bit_rate = 1200;
-                    s->tx.training = V22BIS_TX_TRAINING_STAGE_TIMED_S11;
-                    s->tx.training_count = 0;
+                    span_log(&s->logging, SPAN_LOG_FLOW, "+++ Rx normal operation (1200)\n");
                 }
+                s->rx.training = V22BIS_RX_TRAINING_STAGE_NORMAL_OPERATION;
+                s->tx.training_count = 0;
+                s->tx.training = V22BIS_TX_TRAINING_STAGE_TIMED_S11;
             }
-            s->rx.training = V22BIS_RX_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200_SUSTAINING;
+            else
+            {
+                if (s->bit_rate == 2400)
+                {
+                }
+                else
+                {
+                    span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting S11 (1200) (Answerer)\n");
+                    s->tx.training_count = 0;
+                    s->tx.training = V22BIS_TX_TRAINING_STAGE_TIMED_S11;
+                }
+                s->rx.training = V22BIS_RX_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200_SUSTAINING;
+            }
         }
         break;
     case V22BIS_RX_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200_SUSTAINING:
@@ -606,6 +698,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "S11 0x%02x 0x%02x 0x%X %d %d %d %d %d %d\n
         tune_equalizer(s, &z, &v22bis_constellation[nearest]);
         target = &z;
         raw_bits = phase_steps[((nearest >> 2) - (s->rx.constellation_state >> 2)) & 3];
+        s->rx.constellation_state = nearest;
         switch (raw_bits)
         {
         case 0:
@@ -621,40 +714,8 @@ span_log(&s->logging, SPAN_LOG_FLOW, "S11 0x%02x 0x%02x 0x%X %d %d %d %d %d %d\n
         bitstream = decode_baudx(s, nearest);
         s->rx.scrambled_ones_to_date += ones[bitstream];
 span_log(&s->logging, SPAN_LOG_FLOW, "S11 0x%02x 0x%02x 0x%X %d %d %d %d %d sustain\n", raw_bits, nearest, bitstream, s->rx.scrambled_ones_to_date, s->rx.detected_unscrambled_ones, s->rx.detected_unscrambled_zeros, s->rx.detected_2400bps_markers, s->rx.training_count);
-        if (s->rx.detected_2400bps_markers == 20)
-        {
-            /* It looks like we have the S1 (Unscrambled 00 11) section, so 2400bps
-               operation is possible. */
-            s->rx.detected_2400bps_markers++;
-            if (s->bit_rate == 2400)
-            {
-                /* We are allowed to use 2400bps, and the far end is requesting 2400bps. Result: we are going to
-                   work at 2400bps */
-                span_log(&s->logging, SPAN_LOG_FLOW, "+++ [2400] starting U0011 (S1)\n");
-                s->tx.training = V22BIS_TX_TRAINING_STAGE_U0011;
-                s->tx.training_count = 0;
-            }
-        }
         if (++s->rx.training_count > ms_to_symbols(270 + 765))
         {
-            if (s->caller)
-            {
-                if (s->bit_rate == 2400)
-                {
-                    /* We've  continued for a further 756+-10ms. This should have given the other
-                       side enough time to train its equaliser. */
-                    span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting S1111 (B)\n");
-                    s->tx.training = V22BIS_TX_TRAINING_STAGE_S1111;
-                    s->tx.training_count = 0;
-                }
-                else
-                {
-                    span_log(&s->logging, SPAN_LOG_FLOW, "+++ Tx normal operation (1200)\n");
-                    s->tx.training = V22BIS_TX_TRAINING_STAGE_NORMAL_OPERATION;
-                    s->tx.training_count = 0;
-                    s->tx.current_get_bit = s->get_bit;
-                }
-            }
             if (s->bit_rate == 2400)
                 span_log(&s->logging, SPAN_LOG_FLOW, "+++ Rx normal operation (2400)\n");
             else
@@ -674,6 +735,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "S11 0x%02x 0x%02x 0x%X %d %d %d %d %d sust
         target = &z;
         break;
     }
+    s->rx.last_raw_bits = raw_bits;
     if (s->rx.qam_report)
         s->rx.qam_report(s->rx.qam_user_data, &z, target, s->rx.constellation_state);
 }
