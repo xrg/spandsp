@@ -28,7 +28,7 @@
  * Computer Science, Speech Group
  * Chengxiang Lu and Alex Hauptmann
  *
- * $Id: g722.c,v 1.1 2008/09/19 14:02:05 steveu Exp $
+ * $Id: g722.c,v 1.2 2008/09/19 16:24:25 steveu Exp $
  */
 
 /*! \file */
@@ -179,82 +179,75 @@ static const int16_t rh2[4] =
     2,  1,  2,  1
 };
 
-static void block4(g722_band_t *s, int16_t d)
+static void block4(g722_band_t *s, int16_t dx)
 {
     int16_t wd1;
-    int32_t wd2;
+    int16_t wd2;
     int16_t wd3;
     int16_t sp;
+    int16_t r;
+    int16_t p;
+    int16_t ap[2];
+    int32_t wd32;
     int32_t sz;
-    int16_t ap[3];
-    int16_t sg[3];
     int i;
 
-    /* Block 4, RECONS */
-    s->d[0] = d;
-    s->r[0] = saturated_add16(s->s, d);
+    /* RECONS */
+    r = saturated_add16(s->s, dx);
+    /* PARREC */
+    p = saturated_add16(s->sz, dx);
 
-    /* Block 4, PARREC */
-    s->p[0] = saturated_add16(s->sz, d);
-
-    /* Block 4, UPPOL2 */
-    wd1 = saturate((int32_t) s->a[1] << 2);
-    wd2 = ((s->p[0] ^ s->p[1]) & 0x8000)  ?  wd1  :  -wd1;
-    if (wd2 > 32767)
-        wd2 = 32767;
-    wd3 = (((s->p[0] ^ s->p[2]) & 0x8000)  ?  -128  :  128)
-        + (wd2 >> 7)
-        + (((int32_t) s->a[2]*(int32_t) 32512) >> 15);
+    /* UPPOL2 */
+    wd1 = saturate((int32_t) s->a[0] << 2);
+    wd32 = ((p ^ s->p[0]) & 0x8000)  ?  wd1  :  -wd1;
+    if (wd32 > 32767)
+        wd32 = 32767;
+    wd3 = (((p ^ s->p[1]) & 0x8000)  ?  -128  :  128)
+        + (wd32 >> 7)
+        + (((int32_t) s->a[1]*(int32_t) 32512) >> 15);
     if (abs(wd3) > 12288)
         wd3 = (wd3 < 0)  ?  -12288  :  12288;
-    ap[2] = wd3;
+    ap[1] = wd3;
 
-    /* Block 4, UPPOL1 */
-    wd1 = ((s->p[0] ^ s->p[1]) & 0x8000)  ?  -192  :  192;
-    wd2 = ((int32_t) s->a[1]*(int32_t) 32640) >> 15;
+    /* UPPOL1 */
+    wd1 = ((p ^ s->p[0]) & 0x8000)  ?  -192  :  192;
+    wd2 = ((int32_t) s->a[0]*(int32_t) 32640) >> 15;
+    ap[0] = saturated_add16(wd1, wd2);
 
-    ap[1] = saturated_add16(wd1, wd2);
-    wd3 = saturated_sub16(15360, ap[2]);
-    if (abs(ap[1]) > wd3)
-        ap[1] = (ap[1] < 0)  ?  -wd3  :  wd3;
+    wd3 = saturated_sub16(15360, ap[1]);
+    if (abs(ap[0]) > wd3)
+        ap[0] = (ap[0] < 0)  ?  -wd3  :  wd3;
 
-    /* Block 4, UPZERO */
-    /* Block 4, DELAYA */
-    wd1 = (d == 0)  ?  0  :  128;
-    sg[0] = d & 0x8000;
-    for (i = 6;  i > 0;  i--)
+    /* FILTEP */
+    wd1 = saturated_add16(r, r);
+    wd1 = ((int32_t) ap[0]*(int32_t) wd1) >> 15;
+    wd2 = saturated_add16(s->r, s->r);
+    wd2 = ((int32_t) ap[1]*(int32_t) wd2) >> 15;
+    sp = saturated_add16(wd1, wd2);
+    s->r = r;
+    s->a[1] = ap[1];
+    s->a[0] = ap[0];
+    s->p[1] = s->p[0];
+    s->p[0] = p;
+
+    /* UPZERO */
+    /* DELAYA */
+    /* FILTEZ */
+    wd1 = (dx == 0)  ?  0  :  128;
+    s->d[0] = dx;
+    sz = 0;
+    for (i = 5;  i >= 0;  i--)
     {
-        sg[1] = s->d[i] & 0x8000;
-        wd2 = ((sg[1] ^ sg[0]) & 0x8000)  ?  -wd1  :  wd1;
+        wd2 = ((s->d[i + 1] ^ dx) & 0x8000)  ?  -wd1  :  wd1;
         wd3 = ((int32_t) s->b[i]*(int32_t) 32640) >> 15;
         s->b[i] = saturated_add16(wd2, wd3);
-        s->d[i] = s->d[i - 1];
-    }
-    
-    for (i = 2;  i > 0;  i--)
-    {
-        s->r[i] = s->r[i - 1];
-        s->p[i] = s->p[i - 1];
-        s->a[i] = ap[i];
-    }
-
-    /* Block 4, FILTEP */
-    wd1 = saturated_add16(s->r[1], s->r[1]);
-    wd1 = ((int32_t) s->a[1]*(int32_t) wd1) >> 15;
-    wd2 = saturated_add16(s->r[2], s->r[2]);
-    wd2 = ((int32_t) s->a[2]*(int32_t) wd2) >> 15;
-    sp = saturated_add16(wd1, wd2);
-
-    /* Block 4, FILTEZ */
-    sz = 0;
-    for (i = 6;  i > 0;  i--)
-    {
-        wd1 = saturated_add16(s->d[i], s->d[i]);
-        sz += ((int32_t) s->b[i]*(int32_t) wd1) >> 15;
+        wd3 = saturated_add16(s->d[i], s->d[i]);
+        sz += ((int32_t) s->b[i]*(int32_t) wd3) >> 15;
+        s->d[i + 1] = s->d[i];
     }
     s->sz = saturate(sz);
 
-    /* Block 4, PREDIC */
+    /* PREDIC */
     s->s = saturated_add16(sp, s->sz);
 }
 /*- End of function --------------------------------------------------------*/

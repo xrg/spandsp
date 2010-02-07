@@ -260,6 +260,22 @@ target_alias = @target_alias@
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
 MAINTAINERCLEANFILES = Makefile.in
+EXTRA_DIST = floating_fudge.h \
+             spandsp/version.h.in \
+             libspandsp.dsp \
+             libspandsp.sln \
+             libspandsp.vcproj \
+             msvc/gettimeofday.c \
+             msvc/inttypes.h \
+             msvc/tgmath.h \
+             msvc/unistd.h \
+             msvc/sys/time.h \
+             msvc/spandsp.def \
+             msvc/msvcproj.head \
+             msvc/msvcproj.foot \
+             msvc/vc8proj.head \
+             msvc/vc8proj.foot
+
 INCLUDES = -I$(top_builddir)
 lib_LTLIBRARIES = libspandsp.la
 libspandsp_la_SOURCES = adsi.c \
@@ -733,7 +749,7 @@ distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 
 distdir: $(DISTFILES)
-	$(mkdir_p) $(distdir)/.. $(distdir)/spandsp
+	$(mkdir_p) $(distdir)/.. $(distdir)/msvc $(distdir)/msvc/sys $(distdir)/spandsp
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

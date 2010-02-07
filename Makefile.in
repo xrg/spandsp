@@ -227,26 +227,10 @@ EXTRA_DIST = autogen.sh \
              README.testdata \
              spandsp.spec \
              wrapper.xsl \
-             libspandsp.vcproj \
              unpack_g722_data.sh \
              unpack_g726_data.sh \
              unpack_gsm0610_data.sh \
              unpack_v56ter_data.sh \
-             doc/doxygen.in \
-             src/floating_fudge.h \
-             src/spandsp/version.h.in \
-             src/libspandsp.dsp \
-             src/libspandsp.sln \
-             src/msvc/gettimeofday.c \
-             src/msvc/inttypes.h \
-             src/msvc/tgmath.h \
-             src/msvc/unistd.h \
-             src/msvc/sys/time.h \
-             src/msvc/spandsp.def \
-             src/msvc/msvcproj.head \
-             src/msvc/msvcproj.foot \
-             src/msvc/vc8proj.head \
-             src/msvc/vc8proj.foot \
              spandsp/global-tones.xml \
              spandsp/tones.dtd \
              spandsp/tsb85.xml \
@@ -449,7 +433,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/. $(distdir)/config $(distdir)/debian $(distdir)/doc $(distdir)/spandsp $(distdir)/src $(distdir)/src/msvc $(distdir)/src/msvc/sys $(distdir)/src/spandsp
+	$(mkdir_p) $(distdir)/. $(distdir)/config $(distdir)/debian $(distdir)/doc $(distdir)/spandsp $(distdir)/src
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

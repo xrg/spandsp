@@ -195,6 +195,7 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = css.css \
+             doxygen.in \
              t38-gateway.dia \
              t38-terminal.dia \
              t38_manual.xml \
