@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v18_tests.c,v 1.6 2009/05/22 16:39:01 steveu Exp $
+ * $Id: v18_tests.c,v 1.7 2009/05/24 04:35:28 steveu Exp $
  */
 
 /*! \page v18_tests_page V.18 tests
@@ -64,15 +64,26 @@ char *decode_test_file = NULL;
 
 int good_message_received;
 
-const char *qbf_tx = "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()";
-const char *qbf_rx = "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG 0123456789#$*()";
+const char *qbf_tx = "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()'";
+const char *qbf_rx = "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG 0123456789!X$$/'+.()'";
+const char *full_baudot_rx =
+    "\b \n\n\n\r?\n\n\n  !\"$$/+'().+,-./"
+    "0123456789:;(=)?"
+    "XABCDEFGHIJKLMNOPQRSTUVWXYZ(/)' "
+    "'ABCDEFGHIJKLMNOPQRSTUVWXYZ(!) ";
+
 #if 1
 static void put_text_msg(void *user_data, const uint8_t *msg, int len)
 {
     if (strcmp((const char *) msg, qbf_rx))
-        printf("%s\n", msg);
+    {
+        printf("Result:\n%s\n", msg);
+        printf("Reference result:\n%s\n", qbf_rx);
+    }
     else
+    {
         good_message_received = TRUE;
+    }
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -175,37 +186,42 @@ static int test_x_03(void)
 
 static int test_x_04(void)
 {
-    const char *s;
     char result[1024];
     char *t;
     int ch;
     int xx;
     int yy;
+    int i;
     v18_state_t *v18_state;
 
     /* III.5.4.5.4 5 Bit to T.50 character conversion */
     v18_state = v18_init(NULL, TRUE, V18_MODE_5BIT_45, NULL, NULL);
-    s = qbf_tx;
-    printf("Original:\n%s\n", s);
+    printf("Original:\n");
     t = result;
-    while ((ch = *s++))
+    for (i = 0;  i < 127;  i++)
     {
+        ch = i;
+        printf("%c", ch);
         xx = v18_encode_baudot(v18_state, ch);
-        if ((xx & 0x3E0))
+        if (xx)
         {
-            yy = v18_decode_baudot(v18_state, (xx >> 5) & 0x1F);
+            if ((xx & 0x3E0))
+            {
+                yy = v18_decode_baudot(v18_state, (xx >> 5) & 0x1F);
+                if (yy)
+                    *t++ = yy;
+            }
+            yy = v18_decode_baudot(v18_state, xx & 0x1F);
             if (yy)
                 *t++ = yy;
         }
-        yy = v18_decode_baudot(v18_state, xx & 0x1F);
-        if (yy)
-            *t++ = yy;
     }
+    printf("\n");
     *t = '\0';
     v18_free(v18_state);
     printf("Result:\n%s\n", result);
-    printf("Reference result:\n%s\n", qbf_rx);
-    if (strcmp(result, qbf_rx) != 0)
+    printf("Reference result:\n%s\n", full_baudot_rx);
+    if (strcmp(result, full_baudot_rx) != 0)
         return -1;
     return 0;
 }
