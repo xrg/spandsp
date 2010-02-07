@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.59 2009/04/23 14:12:34 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.60 2009/04/24 22:35:25 steveu Exp $
  */
 
 /*! \file */
@@ -294,12 +294,13 @@ static __inline__ int scramble(v22bis_state_t *s, int bit)
         bit ^= 1;
         s->tx.scrambler_pattern_count = 0;
     }
-    out_bit = (bit ^ (s->tx.scramble_reg >> 14) ^ (s->tx.scramble_reg >> 17)) & 1;
+    out_bit = (bit ^ (s->tx.scramble_reg >> 13) ^ (s->tx.scramble_reg >> 16)) & 1;
+    s->tx.scramble_reg = (s->tx.scramble_reg << 1) | out_bit;
+    
     if (out_bit == 1)
         s->tx.scrambler_pattern_count++;
     else
         s->tx.scrambler_pattern_count = 0;
-    s->tx.scramble_reg = (s->tx.scramble_reg << 1) | out_bit;
     return out_bit;
 }
 /*- End of function --------------------------------------------------------*/
@@ -385,6 +386,7 @@ static complexf_t training_get(v22bis_state_t *s)
                 span_log(&s->logging, SPAN_LOG_FLOW, "+++ Tx normal operation (1200)\n");
                 s->tx.training_count = 0;
                 s->tx.training = V22BIS_TX_TRAINING_STAGE_NORMAL_OPERATION;
+                v22bis_report_status_change(s, SIG_STATUS_TRAINING_SUCCEEDED);
                 s->tx.current_get_bit = s->get_bit;
             }
         }
@@ -408,8 +410,9 @@ static complexf_t training_get(v22bis_state_t *s)
         {
             /* We have completed training. Now handle some real work. */
             span_log(&s->logging, SPAN_LOG_FLOW, "+++ Tx normal operation (2400)\n");
-            s->tx.training = V22BIS_TX_TRAINING_STAGE_NORMAL_OPERATION;
             s->tx.training_count = 0;
+            s->tx.training = V22BIS_TX_TRAINING_STAGE_NORMAL_OPERATION;
+            v22bis_report_status_change(s, SIG_STATUS_TRAINING_SUCCEEDED);
             s->tx.current_get_bit = s->get_bit;
         }
         break;

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.6 2009/04/23 14:12:34 steveu Exp $
+ * $Id: v22bis.h,v 1.7 2009/04/24 22:35:25 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_V22BIS_H_)
@@ -193,6 +193,7 @@ extern "C"
     \return 0 for OK, -1 for bad parameter */
 int v22bis_rx_restart(v22bis_state_t *s);
 
+void v22bis_report_status_change(v22bis_state_t *s, int status);
 
 #if defined(__cplusplus)
 }

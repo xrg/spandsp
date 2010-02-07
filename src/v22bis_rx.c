@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.59 2009/04/23 14:12:34 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.60 2009/04/24 22:35:25 steveu Exp $
  */
 
 /*! \file */
@@ -177,7 +177,7 @@ SPAN_DECLARE(void) v22bis_rx_signal_cutoff(v22bis_state_t *s, float cutoff)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void report_status_change(v22bis_state_t *s, int status)
+void v22bis_report_status_change(v22bis_state_t *s, int status)
 {
     if (s->status_handler)
         s->status_handler(s->status_user_data, status);
@@ -291,7 +291,9 @@ static __inline__ int descramble(v22bis_state_t *s, int bit)
     bit &= 1;
 
     /* Descramble the bit */
-    out_bit = (bit ^ (s->rx.scramble_reg >> 14) ^ (s->rx.scramble_reg >> 17)) & 1;
+    out_bit = (bit ^ (s->rx.scramble_reg >> 13) ^ (s->rx.scramble_reg >> 16)) & 1;
+    s->rx.scramble_reg = (s->rx.scramble_reg << 1) | bit;
+
     if (s->rx.scrambler_pattern_count >= 64)
     {
         out_bit ^= 1;
@@ -301,7 +303,6 @@ static __inline__ int descramble(v22bis_state_t *s, int bit)
         s->rx.scrambler_pattern_count++;
     else
         s->rx.scrambler_pattern_count = 0;
-    s->rx.scramble_reg = (s->rx.scramble_reg << 1) | bit;
     return out_bit;
 }
 /*- End of function --------------------------------------------------------*/
@@ -473,7 +474,6 @@ static void process_half_baud(v22bis_state_t *s, const complexf_t *sample)
         zz = complex_setf(3.0f/3.162278f, -1.0f/3.162278f);
         zz = complex_mulf(&z, &zz);
         nearest = (find_quadrant(&zz) << 2) | 0x01;
-        printf("Trackit rx %p %15.5f %15.5f     %15.5f %15.5f   %d\n", s, z.re, z.im, zz.re, zz.im, nearest);
     }
 
     switch (s->rx.training)
@@ -749,7 +749,7 @@ SPAN_DECLARE(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len)
             if (power < s->rx.carrier_off_power)
             {
                 v22bis_rx_restart(s);
-                report_status_change(s, SIG_STATUS_CARRIER_DOWN);
+                v22bis_report_status_change(s, SIG_STATUS_CARRIER_DOWN);
                 continue;
             }
         }
@@ -759,7 +759,7 @@ SPAN_DECLARE(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len)
             if (power < s->rx.carrier_on_power)
                 continue;
             s->rx.signal_present = TRUE;
-            report_status_change(s, SIG_STATUS_CARRIER_UP);
+            v22bis_report_status_change(s, SIG_STATUS_CARRIER_UP);
         }
         if (s->rx.training != V22BIS_RX_TRAINING_STAGE_PARKED)
         {
