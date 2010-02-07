@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tester.h,v 1.3 2008/07/17 14:27:11 steveu Exp $
+ * $Id: fax_tester.h,v 1.4 2008/07/21 12:59:48 steveu Exp $
  */
 
 /*! \file */
@@ -94,6 +94,8 @@ struct faxtester_state_s
     int image_len;
     int image_ptr;
     int image_bit_ptr;
+    
+    int final_delayed;
 
     /*! If TRUE, transmission is in progress */
     int transmit;

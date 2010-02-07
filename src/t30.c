@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.248 2008/07/02 14:48:26 steveu Exp $
+ * $Id: t30.c,v 1.250 2008/07/21 13:22:03 steveu Exp $
  */
 
 /*! \file */
@@ -296,6 +296,8 @@ static void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, in
 static void decode_url_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len);
 static int set_min_scan_time_code(t30_state_t *s);
 static int send_cfr_sequence(t30_state_t *s, int start);
+static void timer_t2_start(t30_state_t *s);
+static void timer_t4_start(t30_state_t *s);
 
 #define test_ctrl_bit(s,bit) ((s)[3 + ((bit - 1)/8)] & (1 << ((bit - 1)%8)))
 #define set_ctrl_bit(s,bit) (s)[3 + ((bit - 1)/8)] |= (1 << ((bit - 1)%8))
@@ -2074,8 +2076,7 @@ static int process_rx_dcs(t30_state_t *s, const uint8_t *msg, int len)
     }
     if (!(s->iaf & T30_IAF_MODE_NO_TCF))
     {
-        s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
-        s->timer_is_t4 = FALSE;
+        timer_t2_start(s);
         set_state(s, T30_STATE_F_TCF);
         set_phase(s, T30_PHASE_C_NON_ECM_RX);
     }
@@ -3023,6 +3024,9 @@ static void process_state_f_post_rcp_mcf(t30_state_t *s, const uint8_t *msg, int
     case T30_FNV:
         process_rx_fnv(s, msg, len);
         break;
+    case T30_DCN:
+        disconnect(s);
+        break;
     default:
         /* We don't know what to do with this. */
         unexpected_final_frame(s, msg, len);
@@ -3365,6 +3369,9 @@ static void process_state_iii_q_mcf(t30_state_t *s, const uint8_t *msg, int len)
         break;
     case T30_FNV:
         process_rx_fnv(s, msg, len);
+        break;
+    case T30_DCN:
+        disconnect(s);
         break;
     default:
         /* We don't know what to do with this. */
@@ -3927,7 +3934,10 @@ static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
         if (s->phase != T30_PHASE_C_ECM_RX)
         {
             /* Restart the command or response timer, T2 or T4 */
-            s->timer_t2_t4 = ms_to_samples((s->timer_is_t4)  ?  DEFAULT_TIMER_T4  :  DEFAULT_TIMER_T2);
+            if (s->timer_is_t4)
+                timer_t4_start(s);
+            else
+                timer_t2_start(s);
         }
         /* The following handles all the message types we expect to get without
            a final frame tag. If we get one that T.30 says we should not expect
@@ -4367,6 +4377,20 @@ static void repeat_last_command(t30_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
+static void timer_t2_start(t30_state_t *s)
+{
+    s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
+    s->timer_is_t4 = FALSE;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void timer_t4_start(t30_state_t *s)
+{
+    s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T4);
+    s->timer_is_t4 = TRUE;
+}
+/*- End of function --------------------------------------------------------*/
+
 static void timer_t0_expired(t30_state_t *s)
 {
     span_log(&s->logging, SPAN_LOG_FLOW, "T0 expired in state %d\n", s->state);
@@ -4648,8 +4672,7 @@ void t30_non_ecm_put_bit(void *user_data, int bit)
                        it did not end cleanly. */
                     set_state(s, T30_STATE_F_POST_DOC_NON_ECM);
                     set_phase(s, T30_PHASE_D_RX);
-                    s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
-                    s->timer_is_t4 = FALSE;
+                    timer_t2_start(s);
                     if (s->current_status == T30_ERR_RX_NOCARRIER)
                         s->current_status = T30_ERR_OK;
                 }
@@ -4694,8 +4717,7 @@ void t30_non_ecm_put_bit(void *user_data, int bit)
             /* That is the end of the document */
             set_state(s, T30_STATE_F_POST_DOC_NON_ECM);
             queue_phase(s, T30_PHASE_D_RX);
-            s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
-            s->timer_is_t4 = FALSE;
+            timer_t2_start(s);
         }
         break;
     }
@@ -4730,8 +4752,7 @@ void t30_non_ecm_put_byte(void *user_data, int byte)
             /* That is the end of the document */
             set_state(s, T30_STATE_F_POST_DOC_NON_ECM);
             queue_phase(s, T30_PHASE_D_RX);
-            s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
-            s->timer_is_t4 = FALSE;
+            timer_t2_start(s);
         }
         break;
     }
@@ -4770,8 +4791,7 @@ void t30_non_ecm_put_chunk(void *user_data, const uint8_t buf[], int len)
             /* That is the end of the document */
             set_state(s, T30_STATE_F_POST_DOC_NON_ECM);
             queue_phase(s, T30_PHASE_D_RX);
-            s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
-            s->timer_is_t4 = FALSE;
+            timer_t2_start(s);
         }
         break;
     }
@@ -4998,8 +5018,7 @@ void t30_front_end_status(void *user_data, int status)
         case T30_STATE_ANSWERING:
             span_log(&s->logging, SPAN_LOG_FLOW, "Starting answer mode\n");
             set_phase(s, T30_PHASE_B_TX);
-            s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
-            s->timer_is_t4 = FALSE;
+            timer_t2_start(s);
             s->dis_received = FALSE;
             send_dis_or_dtc_sequence(s, TRUE);
             break;
@@ -5008,8 +5027,7 @@ void t30_front_end_status(void *user_data, int status)
             {
                 /* Wait for an acknowledgement. */
                 set_phase(s, T30_PHASE_B_RX);
-                s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T4);
-                s->timer_is_t4 = TRUE;
+                timer_t4_start(s);
             }
             break;
         case T30_STATE_F_CFR:
@@ -5032,8 +5050,7 @@ void t30_front_end_status(void *user_data, int status)
                     set_state(s, T30_STATE_F_DOC_NON_ECM);
                     set_phase(s, T30_PHASE_C_NON_ECM_RX);
                 }
-                s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
-                s->timer_is_t4 = FALSE;
+                timer_t2_start(s);
                 s->next_rx_step = T30_MPS;
             }
             break;
@@ -5048,8 +5065,7 @@ void t30_front_end_status(void *user_data, int status)
             else
             {
                 set_phase(s, T30_PHASE_B_RX);
-                s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
-                s->timer_is_t4 = FALSE;
+                timer_t2_start(s);
             }
             break;
         case T30_STATE_III_Q_MCF:
@@ -5080,8 +5096,7 @@ void t30_front_end_status(void *user_data, int status)
                         set_state(s, T30_STATE_F_DOC_NON_ECM);
                         set_phase(s, T30_PHASE_C_NON_ECM_RX);
                     }
-                    s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
-                    s->timer_is_t4 = FALSE;
+                    timer_t2_start(s);
                     break;
                 case T30_EOM:
                 case T30_PRI_EOM:
@@ -5090,7 +5105,9 @@ void t30_front_end_status(void *user_data, int status)
                     break;
                 case T30_EOP:
                 case T30_PRI_EOP:
-                    disconnect(s);
+                    /* Wait for a DCN. */
+                    set_phase(s, T30_PHASE_B_RX);
+                    timer_t4_start(s);
                     break;
                 default:
                     span_log(&s->logging, SPAN_LOG_FLOW, "Unknown next rx step - %d\n", s->next_rx_step);
@@ -5119,8 +5136,7 @@ void t30_front_end_status(void *user_data, int status)
                 /* We have finished sending the post image message. Wait for an
                    acknowledgement. */
                 set_phase(s, T30_PHASE_D_RX);
-                s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T4);
-                s->timer_is_t4 = TRUE;
+                timer_t4_start(s);
             }
             break;
         case T30_STATE_B:
@@ -5177,8 +5193,7 @@ void t30_front_end_status(void *user_data, int status)
         case T30_STATE_D_TCF:
             /* Finished sending training test. Listen for the response. */
             set_phase(s, T30_PHASE_B_RX);
-            s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T4);
-            s->timer_is_t4 = TRUE;
+            timer_t4_start(s);
             set_state(s, T30_STATE_D_POST_TCF);
             break;
         case T30_STATE_I:
@@ -5225,8 +5240,7 @@ void t30_front_end_status(void *user_data, int status)
             {
                 /* We have finished sending the CTR. Wait for image data again. */
                 set_phase(s, T30_PHASE_C_ECM_RX);
-                s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
-                s->timer_is_t4 = FALSE;
+                timer_t2_start(s);
             }
             break;
         case T30_STATE_CALL_FINISHED:
