@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.26 2007/09/01 09:16:56 steveu Exp $
+ * $Id: dtmf.c,v 1.27 2007/10/24 13:32:06 steveu Exp $
  */
  
 /*! \file dtmf.h */
@@ -578,9 +578,11 @@ int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples)
     while (len < max_samples  &&  (digit = queue_read_byte(&s->queue)) >= 0)
     {
         /* Step to the next digit */
+        if (digit == 0)
+            continue;
         if ((cp = strchr(dtmf_positions, digit)) == NULL)
             continue;
-        tone_gen_init(&(s->tones), &(s->tone_descriptors[cp - dtmf_positions]));
+        tone_gen_init(&(s->tones), &dtmf_digit_tones[cp - dtmf_positions]);
         len += tone_gen(&(s->tones), amp + len, max_samples - len);
     }
     return len;
@@ -611,7 +613,6 @@ dtmf_tx_state_t *dtmf_tx_init(dtmf_tx_state_t *s)
 {
     if (!dtmf_tx_inited)
         dtmf_tx_initialise();
-    s->tone_descriptors = dtmf_digit_tones;
     tone_gen_init(&(s->tones), &dtmf_digit_tones[0]);
     s->current_sample = 0;
     queue_init(&s->queue, MAX_DTMF_DIGITS, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC);

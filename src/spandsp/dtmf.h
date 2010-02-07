@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.h,v 1.14 2007/08/31 14:47:11 steveu Exp $
+ * $Id: dtmf.h,v 1.15 2007/10/24 13:32:07 steveu Exp $
  */
 
 #if !defined(_SPANDSP_DTMF_H_)
@@ -81,7 +81,6 @@ typedef void (*dtmf_rx_callback_t)(void *user_data, const char *digits, int len)
 */
 typedef struct
 {
-    tone_gen_descriptor_t *tone_descriptors;
     tone_gen_state_t tones;
     int current_sample;
     /* The queue structure MUST be followed immediately by the buffer */

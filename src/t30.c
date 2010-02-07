@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.204 2007/10/19 04:29:35 steveu Exp $
+ * $Id: t30.c,v 1.205 2007/10/24 14:49:59 steveu Exp $
  */
 
 /*! \file */
@@ -1260,9 +1260,8 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
     default:
         break;
     }
-    /* If we have a file to send, tell the far end to go into receive mode. */
-    if (s->rx_file[0])
-        set_dcs_bit(s, 10);
+    /* We have a file to send, so tell the far end to go into receive mode. */
+    set_dcs_bit(s, 10);
     /* Set the Y resolution bits */
     bad = T30_ERR_OK;
     switch (s->y_resolution)
@@ -5280,9 +5279,9 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *pkt, int len)
     static const value_string_t selected_minimum_scan_line_time_tags[] =
     {
         { 0x00, "20ms" },
-        { 0x01, "40ms" },
+        { 0x01, "5ms" },
         { 0x02, "10ms" },
-        { 0x04, "5ms" },
+        { 0x04, "40ms" },
         { 0x07, "0ms" },
         { 0x00, NULL }
     };
@@ -5358,14 +5357,17 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *pkt, int len)
     }
     
     if (frame_type == T30_DCS)
+    {
         octet_reserved_bit(log, pkt, 9, 0);
-    else
-        octet_bit_field(log, pkt, 9, "Ready to transmit a fax document (polling)", NULL, NULL);
-    octet_bit_field(log, pkt, 10, "Can receive fax", NULL, NULL);
-    if (frame_type == T30_DCS)
+        octet_bit_field(log, pkt, 10, "Receive fax", NULL, NULL);
         octet_field(log, pkt, 11, 14, "Selected data signalling rate", selected_signalling_rate_tags);
+    }
     else
+    {
+        octet_bit_field(log, pkt, 9, "Ready to transmit a fax document (polling)", NULL, NULL);
+        octet_bit_field(log, pkt, 10, "Can receive fax", NULL, NULL);
         octet_field(log, pkt, 11, 14, "Supported data signalling rates", available_signalling_rate_tags);
+    }
     octet_bit_field(log, pkt, 15, "R8x7.7lines/mm and/or 200x200pels/25.4mm", NULL, NULL);
     octet_bit_field(log, pkt, 16, "2-D coding", NULL, NULL);
     if (len <= 5)

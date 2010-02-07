@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: queue.c,v 1.15 2007/05/19 18:34:42 steveu Exp $
+ * $Id: queue.c,v 1.16 2007/10/24 13:32:06 steveu Exp $
  */
 
 /*! \file */
@@ -204,7 +204,7 @@ int queue_read_byte(queue_state_t *s)
     /*endif*/
     to_end = s->len - optr;
     byte = s->data[optr];
-    if (++optr > s->len)
+    if (++optr >= s->len)
         optr = 0;
     /*endif*/
     /* Only change the pointer now we have really finished */
@@ -288,7 +288,7 @@ int queue_write_byte(queue_state_t *s, uint8_t byte)
     }
     /*endif*/
     s->data[iptr] = byte;
-    if (++iptr > s->len)
+    if (++iptr >= s->len)
         iptr = 0;
     /*endif*/
     /* Only change the pointer now we have really finished */

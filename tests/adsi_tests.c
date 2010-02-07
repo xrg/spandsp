@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.35 2007/10/22 14:22:42 steveu Exp $
+ * $Id: adsi_tests.c,v 1.36 2007/10/24 13:32:07 steveu Exp $
  */
 
 /*! \page adsi_tests_page ADSI tests
@@ -72,9 +72,7 @@ adsi_tx_state_t tx_adsi;
 int current_standard = 0;
 int good_message_received;
 
-int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg);
-
-int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg)
+static int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg)
 {
     const char *t;
     int len;
@@ -455,6 +453,14 @@ static void put_adsi_msg(void *user_data, const uint8_t *msg, int len)
                     }
                     break;
                 case ADSI_STANDARD_TDD:
+                    if (len != 59
+                        ||
+                        memcmp(msg, "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG 0123456789#$*()", 59))
+                    {
+                        printf("\n");
+                        printf("String error\n");
+                        exit(2);
+                    }
                     break;
                 }
             }

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.c,v 1.35 2007/08/29 12:44:36 steveu Exp $
+ * $Id: tone_generate.c,v 1.36 2007/10/24 13:32:06 steveu Exp $
  */
 
 /*! \file */
@@ -139,7 +139,7 @@ int tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples)
         {
             for (  ;  samples < limit;  samples++)
             {
-                xamp = 0.0;
+                xamp = 0.0f;
                 if (s->phase_rate[0])
                     xamp = dds_modf(&(s->phase[0]), s->phase_rate[0], s->gain[0], 0);
                 if (s->phase_rate[1])

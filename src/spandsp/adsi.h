@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.h,v 1.25 2007/10/22 14:22:42 steveu Exp $
+ * $Id: adsi.h,v 1.26 2007/10/24 13:32:07 steveu Exp $
  */
 
 /*! \file */
@@ -38,15 +38,34 @@ any form of Analogue Display Service Interface, which includes caller ID, SMS, a
 The ADSI module provides for the transmission and reception of ADSI messages
 in various formats. Currently, the supported formats are:
 
-    - CLASS (Custom Local Area Signaling Services) standard, published by Bellcore.
+    - Bellcore/Telcordia GR-30 CORE CLASS (Custom Local Area Signaling Services) standard
+      (North America, Australia, China, Taiwan, and Hong Kong).
 
-    - CLIP (Calling Line Identity Presentation) standard, published by ETSI (FSK and DTMF
-      options), and some variations used around the world.
+    - ETSI ETS 300 648, ETS 300 659-1 CLIP (Calling Line Identity Presentation) FSK standard
+      (France, Germany, Norway, Italy, Spain, South Africa, Turkey, and the UK).
 
-    - JCLIP (Japanese Calling Line Identity Presentation) standard, published by NTT.
-        
-    - ACLIP (Analog Calling Line Identity Presentation) standard, published by the
-      Telecommunications Authority of Singapore.
+    - ETSI Caller-ID support for the UK, British Telecom SIN227 and SIN242.
+
+    - ETSI ETS 300 648, ETS 300 659-1 CLIP (Calling Line Identity Presentation) DTMF standard
+      variant 1 (Belgium, Brazil, Denmark, Finland, Iceland, India, Netherlands, Saudi Arabia,
+      Sweden and Uruguay).
+    
+    - ETSI ETS 300 648, ETS 300 659-1 CLIP (Calling Line Identity Presentation) DTMF standard
+      variant 2 (Denmark and Holland).
+    
+    - ETSI ETS 300 648, ETS 300 659-1 CLIP (Calling Line Identity Presentation) DTMF standard
+      variant 3.
+    
+    - ETSI ETS 300 648, ETS 300 659-1 CLIP (Calling Line Identity Presentation) DTMF standard
+      variant 4. (Taiwan and Kuwait).
+    
+    - ETSI Caller-ID support in UK (British Telecom), British Telecomm SIN227, SIN242.
+
+    - Nippon Telegraph & Telephone Corporation JCLIP (Japanese Calling Line Identity
+      Presentation) standard.
+
+    - Telecommunications Authority of Singapore ACLIP (Analog Calling Line Identity
+      Presentation) standard.
 
     - TDD (Telecommunications Device for the Deaf).
 
@@ -122,22 +141,22 @@ any prior warning (no reversal, or ring) to wake up the receiver. It just
 sends a string of DTMF digits. Around the world several variants of this
 basic scheme are used.
 
-In one variant, the digit string is one of the following:
+One variant of the digit string is used in Belgium, Brazil, Denmark, Finland, Iceland,
+India, Netherlands, Saudi Arabia, Sweden and Uruguay:
+
+    - A<caller's phone number>D<redirected number>B<special information>C
+
+Each of these fields may be omitted. The following special information codes are defined
+
+    - "00" indicates the calling party number is not available.
+    - "10" indicates that the presentation of the calling party number is restricted.
+
+A second variant of the digit string is one of the following:
 
     - A<caller's phone number>#
     - D1#     Number not available because the caller has restricted it.
     - D2#     Number not available because the call is international.
     - D3#     Number not available due to technical reasons.
-
-A second variant of the digit string is used in Finland, Denmark, Iceland, Netherlands,
-India, Belgium, Sweden, Brazil, Saudi Arabia and Uruguay:
-
-    - A<caller's phone number>D<redirected number>B<special information>C
-
-Each of these fields may be omited. The following special information codes are defined
-
-    - "00" indicates the calling party number is not available.
-    - "10" indicates that the presentation of the calling party number is restricted.
 
 A third variant of the digit string is used in Taiwan and Kuwait:
 

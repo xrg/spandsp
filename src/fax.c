@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.58 2007/07/21 14:37:13 steveu Exp $
+ * $Id: fax.c,v 1.59 2007/10/24 13:32:06 steveu Exp $
  */
 
 /*! \file */
@@ -96,7 +96,7 @@ static void hdlc_underflow_handler(void *user_data)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int dummy_rx(void *s, const int16_t amp[], int len)
+static int dummy_rx(void *user_data, const int16_t amp[], int len)
 {
     return 0;
 }
@@ -117,7 +117,7 @@ static int early_v17_rx(void *user_data, const int16_t amp[], int len)
         s->rx_handler = (span_rx_handler_t *) &v17_rx;
         s->rx_user_data = &(s->v17rx);
     }
-    return len;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -136,7 +136,7 @@ static int early_v27ter_rx(void *user_data, const int16_t amp[], int len)
         s->rx_handler = (span_rx_handler_t *) &v27ter_rx;
         s->rx_user_data = &(s->v27ter_rx);
     }
-    return len;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -155,7 +155,7 @@ static int early_v29_rx(void *user_data, const int16_t amp[], int len)
         s->rx_handler = (span_rx_handler_t *) &v29_rx;
         s->rx_user_data = &(s->v29rx);
     }
-    return len;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -171,7 +171,7 @@ int fax_rx(fax_state_t *s, int16_t *amp, int len)
         amp[i] = dc_restore(&(s->dc_restore), amp[i]);
     s->rx_handler(s->rx_user_data, amp, len);
     t30_timer_update(&(s->t30_state), len);
-    return  0;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 

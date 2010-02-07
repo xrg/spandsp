@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.45 2007/10/18 15:08:06 steveu Exp $
+ * $Id: t4_tests.c,v 1.46 2007/10/24 13:32:07 steveu Exp $
  */
 
 /*! \file */
@@ -297,7 +297,8 @@ int main(int argc, char *argv[])
         
         t4_rx_set_rx_encoding(&receive_state, compression);
         t4_rx_set_x_resolution(&receive_state, T4_X_RESOLUTION_R8);
-        t4_rx_set_y_resolution(&receive_state, T4_Y_RESOLUTION_FINE);
+        //t4_rx_set_y_resolution(&receive_state, T4_Y_RESOLUTION_FINE);
+        t4_rx_set_y_resolution(&receive_state, T4_Y_RESOLUTION_STANDARD);
         t4_rx_set_image_width(&receive_state, XSIZE);
 
         page_no = 1;
@@ -306,10 +307,23 @@ int main(int argc, char *argv[])
         {
             if (sscanf(buf, "HDLC:  FCD: 06 %x", &bit) == 1)
             {
+                /* Useful for breaking up T.38 ECM logs */
                 for (i = 0;  i < 256;  i++)
                 {
                     if (sscanf(&buf[18 + 3*i], "%x", &bit) != 1)
                         break;
+                    if ((end_of_page = t4_rx_put_byte(&receive_state, bit)))
+                        break;
+                }
+            }
+            else if (sscanf(buf, "Rx %d: IFP %x %x", &bit, &bit, &bit) == 3)
+            {
+                /* Useful for breaking up T.38 non-ECM logs */
+                for (i = 0;  i < 256;  i++)
+                {
+                    if (sscanf(&buf[29 + 3*i], "%x", &bit) != 1)
+                        break;
+                    bit = bit_reverse8(bit);
                     if ((end_of_page = t4_rx_put_byte(&receive_state, bit)))
                         break;
                 }

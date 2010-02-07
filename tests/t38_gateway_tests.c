@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_tests.c,v 1.53 2007/10/21 12:06:35 steveu Exp $
+ * $Id: t38_gateway_tests.c,v 1.54 2007/10/24 13:32:07 steveu Exp $
  */
 
 /*! \file */
@@ -224,13 +224,16 @@ int main(int argc, char *argv[])
     int16_t silence[SAMPLES_PER_CHUNK];
     int16_t t30_amp_a[SAMPLES_PER_CHUNK];
     int16_t t38_amp_a[SAMPLES_PER_CHUNK];
+    int16_t t38_amp_hist_a[8][SAMPLES_PER_CHUNK];
     int16_t t38_amp_b[SAMPLES_PER_CHUNK];
+    int16_t t38_amp_hist_b[8][SAMPLES_PER_CHUNK];
     int16_t t30_amp_b[SAMPLES_PER_CHUNK];
     int16_t out_amp[SAMPLES_PER_CHUNK*4];
     int t30_len_a;
     int t38_len_a;
     int t38_len_b;
     int t30_len_b;
+    int hist_ptr;
     int log_audio;
     int msg_len;
     uint8_t msg[1024];
@@ -263,7 +266,7 @@ int main(int argc, char *argv[])
     use_tep = FALSE;
     feedback_audio = FALSE;
     use_transmit_on_idle = TRUE;
-    while ((opt = getopt(argc, argv, "egi:Ilm:s:tv:")) != -1)
+    while ((opt = getopt(argc, argv, "efgi:Ilm:s:tv:")) != -1)
     {
         switch (opt)
         {
@@ -363,6 +366,8 @@ int main(int argc, char *argv[])
     span_log_set_level(&fax_state_a.t30_state.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&fax_state_a.t30_state.logging, "FAX-A ");
     memset(t30_amp_a, 0, sizeof(t30_amp_a));
+    memset(t38_amp_hist_a, 0, sizeof(t38_amp_hist_a));
+    memset(t38_amp_hist_b, 0, sizeof(t38_amp_hist_b));
 
     if (t38_gateway_init(&t38_state_a, tx_packet_handler_a, &t38_state_b) == NULL)
     {
@@ -422,6 +427,7 @@ int main(int argc, char *argv[])
     if (use_gui)
         start_media_monitor();
 #endif
+    hist_ptr = 0;
     for (;;)
     {
         span_log_bump_samples(&fax_state_a.logging, SAMPLES_PER_CHUNK);
@@ -454,7 +460,8 @@ int main(int argc, char *argv[])
         if (feedback_audio)
         {
             for (i = 0;  i < t30_len_a;  i++)
-                t30_amp_a[i] += t38_amp_a[i] >> 1;
+                t30_amp_a[i] += t38_amp_hist_a[hist_ptr][i] >> 1;
+            memcpy(t38_amp_hist_a[hist_ptr], t38_amp_a, sizeof(int16_t)*SAMPLES_PER_CHUNK);
         }
         if (t38_gateway_rx(&t38_state_a, t30_amp_a, t30_len_a))
             break;
@@ -496,7 +503,8 @@ int main(int argc, char *argv[])
         if (feedback_audio)
         {
             for (i = 0;  i < t30_len_b;  i++)
-                t30_amp_b[i] += t38_amp_b[i] >> 1;
+                t30_amp_b[i] += t38_amp_hist_b[hist_ptr][i] >> 1;
+            memcpy(t38_amp_hist_b[hist_ptr], t38_amp_b, sizeof(int16_t)*SAMPLES_PER_CHUNK);
         }
         if (t38_gateway_rx(&t38_state_b, t30_amp_b, t30_len_b))
             break;
@@ -549,6 +557,8 @@ int main(int argc, char *argv[])
         if (use_gui)
             media_monitor_update_display();
 #endif
+        if (++hist_ptr > 3)
+            hist_ptr = 0;
     }
     if (log_audio)
     {

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.88 2007/10/22 14:22:42 steveu Exp $
+ * $Id: t38_gateway.c,v 1.89 2007/10/24 13:32:06 steveu Exp $
  */
 
 /*! \file */
@@ -109,6 +109,96 @@ static int restart_rx_modem(t38_gateway_state_t *s);
 static void add_to_non_ecm_tx_buffer(t38_gateway_state_t *s, const uint8_t *buf, int len);
 static int non_ecm_get_bit(void *user_data);
 static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indicator);
+
+static int dummy_rx(void *user_data, const int16_t amp[], int len)
+{
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int early_v17_rx(void *user_data, const int16_t amp[], int len)
+{
+    t38_gateway_state_t *s;
+
+    s = (t38_gateway_state_t *) user_data;
+    v17_rx(&(s->v17rx), amp, len);
+    fsk_rx(&(s->v21rx), amp, len);
+    if (s->rx_signal_present)
+    {
+        if (s->rx_trained)
+        {
+            /* The fast modem has trained, so we no longer need to run the slow
+               one in parallel. */
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&(s->v17rx)));
+            s->rx_handler = (span_rx_handler_t *) &v17_rx;
+            s->rx_user_data = &(s->v17rx);
+        }
+        else
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&(s->v21rx)));
+            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            s->rx_user_data = &(s->v21rx);
+        }
+    }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int early_v27ter_rx(void *user_data, const int16_t amp[], int len)
+{
+    t38_gateway_state_t *s;
+
+    s = (t38_gateway_state_t *) user_data;
+    v27ter_rx(&(s->v27ter_rx), amp, len);
+    fsk_rx(&(s->v21rx), amp, len);
+    if (s->rx_signal_present)
+    {
+        if (s->rx_trained)
+        {
+            /* The fast modem has trained, so we no longer need to run the slow
+               one in parallel. */
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.27ter (%.2fdBm0)\n", v27ter_rx_signal_power(&(s->v27ter_rx)));
+            s->rx_handler = (span_rx_handler_t *) &v27ter_rx;
+            s->rx_user_data = &(s->v27ter_rx);
+        }
+        else
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&(s->v21rx)));
+            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            s->rx_user_data = &(s->v21rx);
+        }
+    }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int early_v29_rx(void *user_data, const int16_t amp[], int len)
+{
+    t38_gateway_state_t *s;
+
+    s = (t38_gateway_state_t *) user_data;
+    v29_rx(&(s->v29rx), amp, len);
+    fsk_rx(&(s->v21rx), amp, len);
+    if (s->rx_signal_present)
+    {
+        if (s->rx_trained)
+        {
+            /* The fast modem has trained, so we no longer need to run the slow
+               one in parallel. */
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&(s->v29rx)));
+            s->rx_handler = (span_rx_handler_t *) &v29_rx;
+            s->rx_user_data = &(s->v29rx);
+        }
+        else
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&(s->v21rx)));
+            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            s->rx_user_data = &(s->v21rx);
+        }
+    }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
 
 static void hdlc_underflow_handler(void *user_data)
 {
@@ -620,7 +710,7 @@ static void queue_missing_indicator(t38_gateway_state_t *s, int data_type)
        such as when the data says 'end of signal'. */
     switch (data_type)
     {
-    case -1:
+    case T38_DATA_NONE:
         if (t->current_rx_indicator != T38_IND_NO_SIGNAL)
             process_rx_indicator(t, (void *) s, T38_IND_NO_SIGNAL);
         break;
@@ -847,7 +937,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             s->hdlc_len[s->hdlc_in] = 0;
             s->hdlc_flags[s->hdlc_in] = 0;
             s->hdlc_contents[s->hdlc_in] = 0;
-            queue_missing_indicator(s, -1);
+            queue_missing_indicator(s, T38_DATA_NONE);
             s->current_rx_field_class = T38_FIELD_CLASS_NONE;
         }
         s->corrupt_the_frame_from_t38 = FALSE;
@@ -878,7 +968,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             s->hdlc_len[s->hdlc_in] = 0;
             s->hdlc_flags[s->hdlc_in] = 0;
             s->hdlc_contents[s->hdlc_in] = 0;
-            queue_missing_indicator(s, -1);
+            queue_missing_indicator(s, T38_DATA_NONE);
             s->current_rx_field_class = T38_FIELD_CLASS_NONE;
         }
         s->corrupt_the_frame_from_t38 = FALSE;
@@ -917,7 +1007,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
                 s->non_ecm_tx_latest_eol_ptr = s->non_ecm_tx_in_ptr;
                 s->non_ecm_data_finished = TRUE;
             }
-            queue_missing_indicator(s, -1);
+            queue_missing_indicator(s, T38_DATA_NONE);
             s->current_rx_field_class = T38_FIELD_CLASS_NONE;
         }
         s->corrupt_the_frame_from_t38 = FALSE;
@@ -961,7 +1051,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
                 s->hdlc_flags[s->hdlc_in] = 0;
                 s->hdlc_contents[s->hdlc_in] = 0;
             }
-            queue_missing_indicator(s, -1);
+            queue_missing_indicator(s, T38_DATA_NONE);
             s->current_rx_field_class = T38_FIELD_CLASS_NONE;
         }
         s->corrupt_the_frame_from_t38 = FALSE;
@@ -1202,6 +1292,7 @@ static void add_to_non_ecm_tx_buffer(t38_gateway_state_t *s, const uint8_t *buf,
     }
     if (s->short_train)
     {
+        /* This is image data */
         for (  ;  i < len;  i++)
         {
             /* Check for EOLs, because at an EOL we can pause and pump out zeros while
@@ -1211,7 +1302,7 @@ static void add_to_non_ecm_tx_buffer(t38_gateway_state_t *s, const uint8_t *buf,
                 /* There might be an EOL here. Look for at least 11 zeros, followed by a one. */
                 upper = bottom_bit((s->bit_stream | 0x800) & 0xFFF);
                 lower = top_bit(buf[i] & 0xFF);
-                if (lower > 0  &&  upper - lower >= 3)
+                if (upper - lower > 3)
                 {
                     s->non_ecm_tx_latest_eol_ptr = s->non_ecm_tx_in_ptr;
                     s->non_ecm_flow_control_fill_octet = 0x00;
@@ -1226,11 +1317,12 @@ static void add_to_non_ecm_tx_buffer(t38_gateway_state_t *s, const uint8_t *buf,
     }
     else
     {
+        /* This is TCF data */
         for (  ;  i < len;  i++)
         {
             /* Check for zero bytes, as we can pause and pump out zeros while waiting
                for more incoming data. */
-            if (buf[i] == 0)
+            if (buf[i] == 0x00)
             {
                 s->non_ecm_tx_latest_eol_ptr = s->non_ecm_tx_in_ptr;
                 s->non_ecm_flow_control_fill_octet = 0x00;
@@ -1442,116 +1534,6 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int early_v17_rx(void *user_data, const int16_t amp[], int len)
-{
-    t38_gateway_state_t *s;
-
-    s = (t38_gateway_state_t *) user_data;
-    v17_rx(&(s->v17rx), amp, len);
-    fsk_rx(&(s->v21rx), amp, len);
-    if (s->rx_signal_present)
-    {
-        if (s->rx_trained)
-        {
-            /* The fast modem has trained, so we no longer need to run the slow
-               one in parallel. */
-            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&(s->v17rx)));
-            s->rx_handler = (span_rx_handler_t *) &v17_rx;
-            s->rx_user_data = &(s->v17rx);
-        }
-        else
-        {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&(s->v21rx)));
-            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
-            s->rx_user_data = &(s->v21rx);
-        }
-    }
-    return len;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int early_v27ter_rx(void *user_data, const int16_t amp[], int len)
-{
-    t38_gateway_state_t *s;
-
-    s = (t38_gateway_state_t *) user_data;
-    v27ter_rx(&(s->v27ter_rx), amp, len);
-    fsk_rx(&(s->v21rx), amp, len);
-    if (s->rx_signal_present)
-    {
-        if (s->rx_trained)
-        {
-            /* The fast modem has trained, so we no longer need to run the slow
-               one in parallel. */
-            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.27ter (%.2fdBm0)\n", v27ter_rx_signal_power(&(s->v27ter_rx)));
-            s->rx_handler = (span_rx_handler_t *) &v27ter_rx;
-            s->rx_user_data = &(s->v27ter_rx);
-        }
-        else
-        {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&(s->v21rx)));
-            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
-            s->rx_user_data = &(s->v21rx);
-        }
-    }
-    return len;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int early_v29_rx(void *user_data, const int16_t amp[], int len)
-{
-    t38_gateway_state_t *s;
-
-    s = (t38_gateway_state_t *) user_data;
-    v29_rx(&(s->v29rx), amp, len);
-    fsk_rx(&(s->v21rx), amp, len);
-    if (s->rx_signal_present)
-    {
-        if (s->rx_trained)
-        {
-            /* The fast modem has trained, so we no longer need to run the slow
-               one in parallel. */
-            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&(s->v29rx)));
-            s->rx_handler = (span_rx_handler_t *) &v29_rx;
-            s->rx_user_data = &(s->v29rx);
-        }
-        else
-        {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&(s->v21rx)));
-            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
-            s->rx_user_data = &(s->v21rx);
-        }
-    }
-    return len;
-}
-/*- End of function --------------------------------------------------------*/
-
-int t38_gateway_rx(t38_gateway_state_t *s, int16_t amp[], int len)
-{
-    int i;
-
-    if (s->samples_to_timeout > 0)
-    {
-        if ((s->samples_to_timeout -= len) <= 0)
-        {
-            if (s->tcf_in_progress)
-                announce_training(s);
-        }
-    }
-    for (i = 0;  i < len;  i++)
-        amp[i] = dc_restore(&(s->dc_restore), amp[i]);
-    /* Don't process the received signal while transmitting. We might start
-       decoding the echo of our own output. */
-    if (s->tx_handler == (span_tx_handler_t *) &(silence_gen)
-        ||
-        s->tx_handler == (span_tx_handler_t *) &(tone_gen))
-    {
-        s->rx_handler(s->rx_user_data, amp, len);
-    }
-    return  0;
-}
-/*- End of function --------------------------------------------------------*/
-
 static int restart_rx_modem(t38_gateway_state_t *s)
 {
     put_bit_func_t put_bit_func;
@@ -1610,6 +1592,32 @@ static int restart_rx_modem(t38_gateway_state_t *s)
         break;
     }
     return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t38_gateway_rx(t38_gateway_state_t *s, int16_t amp[], int len)
+{
+    int i;
+
+    if (s->samples_to_timeout > 0)
+    {
+        if ((s->samples_to_timeout -= len) <= 0)
+        {
+            if (s->tcf_in_progress)
+                announce_training(s);
+        }
+    }
+    for (i = 0;  i < len;  i++)
+        amp[i] = dc_restore(&(s->dc_restore), amp[i]);
+    /* Don't process the received signal while transmitting. We might start
+       decoding the echo of our own output. */
+    if (s->tx_handler == (span_tx_handler_t *) &(silence_gen)
+        ||
+        s->tx_handler == (span_tx_handler_t *) &(tone_gen))
+    {
+        s->rx_handler(s->rx_user_data, amp, len);
+    }
+    return  0;
 }
 /*- End of function --------------------------------------------------------*/
 

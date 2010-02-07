@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.52 2007/10/22 14:22:42 steveu Exp $
+ * $Id: adsi.c,v 1.53 2007/10/24 13:32:06 steveu Exp $
  */
 
 /*! \file */
@@ -68,7 +68,7 @@
 #define DLE 0x10
 #define SUB 0x1A
 
-static uint8_t adsi_encode_baudot(adsi_tx_state_t *s, uint8_t ch);
+static uint16_t adsi_encode_baudot(adsi_tx_state_t *s, uint8_t ch);
 static uint8_t adsi_decode_baudot(adsi_rx_state_t *s, uint8_t ch);
 
 static int adsi_tx_get_bit(void *user_data)
@@ -629,7 +629,7 @@ void adsi_tx_init(adsi_tx_state_t *s, int standard)
 }
 /*- End of function --------------------------------------------------------*/
 
-static uint8_t adsi_encode_baudot(adsi_tx_state_t *s, uint8_t ch)
+static uint16_t adsi_encode_baudot(adsi_tx_state_t *s, uint8_t ch)
 {
     static const uint8_t conv[128] =
     {
@@ -762,28 +762,28 @@ static uint8_t adsi_encode_baudot(adsi_tx_state_t *s, uint8_t ch)
         0xFF, /* ~ */
         0xFF, /* DEL */
     };
+    uint16_t shift;
 
     ch = conv[ch];
-    if (ch != 0xFF)
+    if (ch == 0xFF)
+        return 0;
+    if ((ch & 0x40))
+        return ch & 0x1F;
+    if ((ch & 0x80))
     {
-        if ((ch & 0x40))
+        if (s->baudot_shift == 1)
             return ch & 0x1F;
-        if ((ch & 0x80))
-        {
-            if (s->baudot_shift == 1)
-                return ch & 0x1F;
-            s->baudot_shift = 1;
-            return (BAUDOT_FIGURE_SHIFT << 5) | (ch & 0x1F);
-        }
-        else
-        {
-            if (s->baudot_shift == 0)
-                return ch & 0x1F;
-            s->baudot_shift = 0;
-            return (BAUDOT_LETTER_SHIFT << 5) | (ch & 0x1F);
-        }
+        s->baudot_shift = 1;
+        shift = BAUDOT_FIGURE_SHIFT;
     }
-    return 0;
+    else
+    {
+        if (s->baudot_shift == 0)
+            return ch & 0x1F;
+        s->baudot_shift = 0;
+        shift = BAUDOT_LETTER_SHIFT;
+    }
+    return (shift << 5) | (ch & 0x1F);
 }
 /*- End of function --------------------------------------------------------*/
 
