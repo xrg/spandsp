@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.71 2009/07/12 09:29:18 steveu Exp $
+# $Id: configure.ac,v 1.72 2009/09/04 14:38:46 steveu Exp $
 
 # @start 1
 
@@ -130,6 +130,9 @@ AC_ARG_ENABLE(sse4_2,       [  --enable-sse4-2      Enable SSE4.2 support])
 AC_ARG_ENABLE(sse4a,        [  --enable-sse4a       Enable SSE4A support])
 AC_ARG_ENABLE(sse5,         [  --enable-sse5        Enable SSE5 support])
 AC_ARG_ENABLE(fixed_point,  [  --enable-fixed-point Enable fixed point support])
+# The following is for MSVC, where we may be using a local copy of libtiff, built alongside spandsp
+AC_ARG_ENABLE(builtin_tiff,
+    [AC_HELP_STRING([--enable-builtin-tiff],[build with builtin libtiff])],[enable_builtin_tiff="$enableval"],[enable_builtin_tiff="no"])
 
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_VPRINTF
@@ -187,7 +190,6 @@ AC_CHECK_HEADERS([sys/ioctl.h])
 AC_CHECK_HEADERS([sys/fcntl.h])
 AC_CHECK_HEADERS([sndfile.h])
 AC_CHECK_HEADERS([fftw3.h], , [AC_CHECK_HEADERS([fftw.h])])
-AC_CHECK_HEADERS([tiffio.h])
 AC_CHECK_HEADERS([pthread.h])
 if test "${build}" == "${host}"
 then
@@ -265,8 +267,6 @@ AC_SEARCH_LIBS([logf], [m], AC_DEFINE([HAVE_LOGF], [1], [Define to 1 if you have
 AC_SEARCH_LIBS([log10f], [m], AC_DEFINE([HAVE_LOG10F], [1], [Define to 1 if you have the log10f() function.]))
 
 # Checks for libraries.
-AC_CHECK_LIB([tiff], [TIFFOpen], , AC_MSG_ERROR("Can't build without libtiff (does your system require a libtiff-devel package?)"), -lm)
-
 AC_CHECK_LIB([xml2], [xmlParseFile], [AC_DEFINE([HAVE_LIBXML2], [1], [Define to 1 if you have the 'libxml2' library (-lxml2).]) SIMLIBS="$SIMLIBS -lxml2"])
 
 if test -n "$enable_tests" ; then
@@ -413,6 +413,21 @@ if test "$enable_sse" = "yes" ; then
 fi
 if test "$enable_mmx" = "yes" ; then
     AC_DEFINE([SPANDSP_USE_MMX], [1], [Use the MMX instruction set (i386 and x86_64 only).])
+fi
+
+if test "$enable_builtin_tiff" = "yes" ; then
+  abs_tiffdir="`cd $srcdir/../tiff-3.8.2/ && pwd`"
+  save_CFLAGS=$CFLAGS
+  CFLAGS="$CFLAGS -I$abs_tiffdir/libtiff"
+  AC_CHECK_HEADERS([tiffio.h])
+  CFLAGS="$save_CFLAGS"
+  COMP_VENDOR_CFLAGS="-I$abs_tiffdir/libtiff $COMP_VENDOR_CFLAGS"
+  COMP_VENDOR_LDFLAGS="-L$abs_tiffdir/libtiff $COMP_VENDOR_LDFLAGS"
+  LIBS="$LIBS $abs_tiffdir/libtiff/libtiff.la"
+  AC_DEFINE([HAVE_LIBTIFF], [1], [Define to 1 if you have the `tiff' library (-ltiff).])
+else
+  AC_CHECK_HEADERS([tiffio.h])
+  AC_CHECK_LIB([tiff], [TIFFOpen], , AC_MSG_ERROR("Can't build without libtiff (does your system require a libtiff-devel package?)"), -lm)
 fi
 
 TESTLIBS="$SIMLIBS $TESTLIBS"
