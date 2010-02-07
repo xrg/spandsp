@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.46 2007/10/24 13:32:07 steveu Exp $
+ * $Id: t4_tests.c,v 1.47 2007/10/27 01:59:01 steveu Exp $
  */
 
 /*! \file */
@@ -316,12 +316,12 @@ int main(int argc, char *argv[])
                         break;
                 }
             }
-            else if (sscanf(buf, "Rx %d: IFP %x %x", &bit, &bit, &bit) == 3)
+            else if (strlen(buf) > 62  &&  sscanf(buf + 62, "Rx %d: IFP %x %x", &bit, &bit, &bit) == 3)
             {
                 /* Useful for breaking up T.38 non-ECM logs */
                 for (i = 0;  i < 256;  i++)
                 {
-                    if (sscanf(&buf[29 + 3*i], "%x", &bit) != 1)
+                    if (sscanf(&buf[62 + 29 + 3*i], "%x", &bit) != 1)
                         break;
                     bit = bit_reverse8(bit);
                     if ((end_of_page = t4_rx_put_byte(&receive_state, bit)))

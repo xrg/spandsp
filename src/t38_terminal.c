@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.71 2007/10/18 15:08:06 steveu Exp $
+ * $Id: t38_terminal.c,v 1.72 2007/10/26 15:06:10 steveu Exp $
  */
 
 /*! \file */
@@ -863,6 +863,10 @@ t38_terminal_state_t *t38_terminal_init(t38_terminal_state_t *s,
              (void *) s,
              send_hdlc,
              (void *) s);
+    /* TODO: This needs to go where the operation starts up. The variable will not
+             have been set at this stage. */
+    if (s->t38.fill_bit_removal)
+        t30_set_min_non_ecm_row_bits(&(s->t30_state), 0);
     t30_set_supported_modems(&(s->t30_state),
                              T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17 | T30_SUPPORT_IAF);
     t30_set_iaf_mode(&(s->t30_state), T30_IAF_MODE_T37 | T30_IAF_MODE_T38);

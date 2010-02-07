@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.205 2007/10/24 14:49:59 steveu Exp $
+ * $Id: t30.c,v 1.207 2007/10/26 15:06:09 steveu Exp $
  */
 
 /*! \file */
@@ -1647,22 +1647,18 @@ static int set_min_scan_time_code(t30_state_t *s, const uint8_t *msg, int len)
             s->min_scan_time_code = translate_min_scan_time[((msg[8] & DISBIT6))  ?  2  :  1][min_bits_field];
             break;
         }
-        /* Fall back */
-        s->y_resolution = T4_Y_RESOLUTION_FINE;
         s->current_status = T30_ERR_NORESSUPPORT;
         span_log(&s->logging, SPAN_LOG_FLOW, "Remote FAX does not support super-fine resolution.\n");
-        /* Fall through */
+        return -1;
     case T4_Y_RESOLUTION_FINE:
         if (len > 4  &&  (msg[4] & DISBIT7))
         {
             s->min_scan_time_code = translate_min_scan_time[1][min_bits_field];
             break;
         }
-        /* Fall back */
-        s->y_resolution = T4_Y_RESOLUTION_STANDARD;
         s->current_status = T30_ERR_NORESSUPPORT;
         span_log(&s->logging, SPAN_LOG_FLOW, "Remote FAX does not support fine resolution.\n");
-        /* Fall through */
+        return -1;
     default:
     case T4_Y_RESOLUTION_STANDARD:
         s->min_scan_time_code = translate_min_scan_time[0][min_bits_field];
@@ -1710,7 +1706,7 @@ static int start_sending_document(t30_state_t *s, const uint8_t *msg, int len)
     }
     min_row_bits = fallback_sequence[s->current_fallback].bit_rate*min_scan_times[s->min_scan_time_code]/1000;
     span_log(&s->logging, SPAN_LOG_FLOW, "Minimum bits per row will be %d\n", min_row_bits);
-    t4_tx_set_min_row_bits(&(s->t4), min_row_bits);
+    t4_tx_set_min_row_bits(&(s->t4), (s->forced_min_non_ecm_row_bits >= 0)  ?  s->forced_min_non_ecm_row_bits  :  min_row_bits);
 
     if (t4_tx_start_page(&(s->t4)))
     {
@@ -3904,15 +3900,13 @@ static void hdlc_accept_control_msg(t30_state_t *s, const uint8_t *msg, int len,
             {
                 /* Non-standard facilities */
                 /* OK in (NSF) (CSI) DIS */
-                if (t35_decode(&msg[3], len - 3, &s->country, &s->vendor, &s->model))
-                {
-                    if (s->country)
-                        span_log(&s->logging, SPAN_LOG_FLOW, "The remote was made in '%s'\n", s->country);
-                    if (s->vendor)
-                        span_log(&s->logging, SPAN_LOG_FLOW, "The remote was made by '%s'\n", s->vendor);
-                    if (s->model)
-                        span_log(&s->logging, SPAN_LOG_FLOW, "The remote is a '%s'\n", s->model);
-                }
+                t35_decode(&msg[3], len - 3, &s->country, &s->vendor, &s->model);
+                if (s->country)
+                    span_log(&s->logging, SPAN_LOG_FLOW, "The remote was made in '%s'\n", s->country);
+                if (s->vendor)
+                    span_log(&s->logging, SPAN_LOG_FLOW, "The remote was made by '%s'\n", s->vendor);
+                if (s->model)
+                    span_log(&s->logging, SPAN_LOG_FLOW, "The remote is a '%s'\n", s->model);
             }
             else
             {
@@ -6002,6 +5996,13 @@ int t30_set_ecm_capability(t30_state_t *s, int enabled)
 {
     s->ecm_allowed = enabled;
     build_dis_or_dtc(s);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t30_set_min_non_ecm_row_bits(t30_state_t *s, int bits)
+{
+    s->forced_min_non_ecm_row_bits = bits;
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.29 2007/10/18 15:08:06 steveu Exp $
+ * $Id: t38_gateway.h,v 1.33 2007/10/28 15:05:38 steveu Exp $
  */
 
 /*! \file */
@@ -92,7 +92,7 @@ typedef struct
 
     /*! \brief The location of the most recent EOL marker in the non-ECM data buffer */
     int non_ecm_tx_latest_eol_ptr;
-    unsigned int bit_stream;
+    unsigned int non_ecm_bit_stream;
     /*! \brief The non-ECM flow control fill octet (0xFF before the first data, and 0x00
                once data has started). */
     uint8_t non_ecm_flow_control_fill_octet;
@@ -101,9 +101,14 @@ typedef struct
     /*! \brief TRUE is the end of non-ECM data indication has been received. */
     int non_ecm_data_finished;
     /*! \brief The current octet being sent as non-ECM data. */
-    int current_non_ecm_octet;
+    unsigned int non_ecm_rx_bit_stream;
+    unsigned int non_ecm_tx_octet;
     /*! \brief The current bit number in the current non-ECM octet. */
     int non_ecm_bit_no;
+    int non_ecm_in_octets;
+    int non_ecm_out_octets;
+    int non_ecm_in_rows;
+    int non_ecm_out_rows;
     /*! \brief A count of the number of non-ECM fill octets generated for flow control control
                purposes. */
     int non_ecm_flow_control_fill_octets;
@@ -191,8 +196,8 @@ typedef struct
     int fast_rx_active;
     /*! \brief The number of samples until the next timeout event */
     int samples_to_timeout;
-    /*! \brief TRUE is short training is to be used for the fast modem */
-    int short_train;
+    /*! \brief TRUE if in image data mode (as opposed to TCF mode). */
+    int image_data_mode;
 
     /*! \brief TRUE if we need to corrupt the HDLC frame in progress, so the receiver cannot
                interpret it. */

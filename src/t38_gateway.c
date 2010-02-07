@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.90 2007/10/25 16:25:40 steveu Exp $
+ * $Id: t38_gateway.c,v 1.96 2007/10/28 15:16:48 steveu Exp $
  */
 
 /*! \file */
@@ -267,7 +267,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     if (++s->hdlc_out >= T38_TX_HDLC_BUFS)
         s->hdlc_out = 0;
     span_log(&s->logging, SPAN_LOG_FLOW, "Changing to %s\n", t38_indicator(indicator));
-    if (s->short_train  &&  s->ecm_mode)
+    if (s->image_data_mode  &&  s->ecm_mode)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "HDLC mode\n");
         hdlc_tx_init(&s->hdlctx, FALSE, 2, TRUE, hdlc_underflow_handler, s);
@@ -382,7 +382,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_7200_SHORT_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 180);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 7200, s->use_tep, s->short_train);
+        v17_tx_restart(&(s->v17tx), 7200, s->use_tep, s->image_data_mode);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -392,7 +392,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_7200_LONG_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 180);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 7200, s->use_tep, s->short_train);
+        v17_tx_restart(&(s->v17tx), 7200, s->use_tep, s->image_data_mode);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -402,7 +402,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_9600_SHORT_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 240);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 9600, s->use_tep, s->short_train);
+        v17_tx_restart(&(s->v17tx), 9600, s->use_tep, s->image_data_mode);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -412,7 +412,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_9600_LONG_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 240);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 9600, s->use_tep, s->short_train);
+        v17_tx_restart(&(s->v17tx), 9600, s->use_tep, s->image_data_mode);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -422,7 +422,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_12000_SHORT_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 300);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 12000, s->use_tep, s->short_train);
+        v17_tx_restart(&(s->v17tx), 12000, s->use_tep, s->image_data_mode);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -432,7 +432,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_12000_LONG_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 300);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 12000, s->use_tep, s->short_train);
+        v17_tx_restart(&(s->v17tx), 12000, s->use_tep, s->image_data_mode);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -442,7 +442,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_14400_SHORT_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 360);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 14400, s->use_tep, s->short_train);
+        v17_tx_restart(&(s->v17tx), 14400, s->use_tep, s->image_data_mode);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -452,7 +452,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_14400_LONG_TRAINING:
         hdlc_tx_flags(&s->hdlctx, 360);
         silence_gen_alter(&s->silence_gen, ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 14400, s->use_tep, s->short_train);
+        v17_tx_restart(&(s->v17tx), 14400, s->use_tep, s->image_data_mode);
         v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
@@ -476,16 +476,29 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     default:
         break;
     }
+    if (s->non_ecm_in_octets)
+    {
+        span_log(&s->logging, SPAN_LOG_WARNING, "%d incoming non-ECM octets, %d rows\n", s->non_ecm_in_octets, s->non_ecm_in_rows);
+        s->non_ecm_in_octets = 0;
+    }
+    if (s->non_ecm_out_octets)
+    {
+        span_log(&s->logging, SPAN_LOG_WARNING, "%d outgoing non-ECM octets, %d rows\n", s->non_ecm_out_octets, s->non_ecm_out_rows);
+        s->non_ecm_out_octets = 0;
+    }
+    s->non_ecm_in_rows = 0;
+    s->non_ecm_out_rows = 0;
     if (s->non_ecm_flow_control_fill_octets)
     {
-        span_log(&s->logging, SPAN_LOG_WARNING, "Flow control generated %d octets\n", s->non_ecm_flow_control_fill_octets);
+        span_log(&s->logging, SPAN_LOG_WARNING, "Non-ECM flow control generated %d octets\n", s->non_ecm_flow_control_fill_octets);
         s->non_ecm_flow_control_fill_octets = 0;
     }
     s->non_ecm_bit_no = 0;
-    s->current_non_ecm_octet = 0xFF;
+    s->non_ecm_rx_bit_stream = 0xFFFF;
+    s->non_ecm_tx_octet = 0xFF;
     s->non_ecm_flow_control_fill_octet = 0xFF;
     s->non_ecm_at_initial_all_ones = TRUE;
-    s->bit_stream = 0xFFFF;
+    s->non_ecm_bit_stream = 0xFFFF;
     s->in_progress_rx_indicator = indicator;
     return TRUE;
 }
@@ -608,16 +621,16 @@ static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int l
     case T30_CFR:
         /* We are changing from TCF exchange to image exchange */
         /* Successful training means we should change to short training */
-        s->short_train = TRUE;
+        s->image_data_mode = TRUE;
         s->tcf_in_progress = FALSE;
-        span_log(&s->logging, SPAN_LOG_FLOW, "CFR - short = %d, ECM = %d\n", s->short_train, s->ecm_mode);
+        span_log(&s->logging, SPAN_LOG_FLOW, "CFR - short = %d, ECM = %d\n", s->image_data_mode, s->ecm_mode);
         if (!from_modem)
             restart_rx_modem(s);
         break;
     case T30_RTN:
     case T30_RTP:
         /* We are going back to the exchange of fresh TCF */
-        s->short_train = FALSE;
+        s->image_data_mode = FALSE;
         s->tcf_in_progress = FALSE;
         break;
     case T30_DTC:
@@ -631,42 +644,42 @@ static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int l
             case 0:
                 s->fast_bit_rate = 2400;
                 s->fast_modem = T38_V27TER_RX;
-                s->short_train = FALSE;
+                s->image_data_mode = FALSE;
                 break;
             case DISBIT4:
                 s->fast_bit_rate = 4800;
                 s->fast_modem = T38_V27TER_RX;
-                s->short_train = FALSE;
+                s->image_data_mode = FALSE;
                 break;
             case DISBIT3:
                 s->fast_bit_rate = 9600;
                 s->fast_modem = T38_V29_RX;
-                s->short_train = FALSE;
+                s->image_data_mode = FALSE;
                 break;
             case (DISBIT4 | DISBIT3):
                 s->fast_bit_rate = 7200;
                 s->fast_modem = T38_V29_RX;
-                s->short_train = FALSE;
+                s->image_data_mode = FALSE;
                 break;
             case DISBIT6:
                 s->fast_bit_rate = 14400;
                 s->fast_modem = T38_V17_RX;
-                s->short_train = FALSE;
+                s->image_data_mode = FALSE;
                 break;
             case (DISBIT6 | DISBIT4):
                 s->fast_bit_rate = 12000;
                 s->fast_modem = T38_V17_RX;
-                s->short_train = FALSE;
+                s->image_data_mode = FALSE;
                 break;
             case (DISBIT6 | DISBIT3):
                 s->fast_bit_rate = 9600;
                 s->fast_modem = T38_V17_RX;
-                s->short_train = FALSE;
+                s->image_data_mode = FALSE;
                 break;
             case (DISBIT6 | DISBIT4 | DISBIT3):
                 s->fast_bit_rate = 7200;
                 s->fast_modem = T38_V17_RX;
-                s->short_train = FALSE;
+                s->image_data_mode = FALSE;
                 break;
             case (DISBIT5 | DISBIT3):
             case (DISBIT5 | DISBIT4 | DISBIT3):
@@ -1100,23 +1113,23 @@ static void announce_training(t38_gateway_state_t *s)
         {
         case 7200:
             set_octets_per_data_packet(s, s->fast_bit_rate);
-            ind = (s->short_train)  ?  T38_IND_V17_7200_SHORT_TRAINING  :  T38_IND_V17_7200_LONG_TRAINING;
+            ind = (s->image_data_mode)  ?  T38_IND_V17_7200_SHORT_TRAINING  :  T38_IND_V17_7200_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_7200;
             break;
         case 9600:
             set_octets_per_data_packet(s, s->fast_bit_rate);
-            ind = (s->short_train)  ?  T38_IND_V17_9600_SHORT_TRAINING  :  T38_IND_V17_9600_LONG_TRAINING;
+            ind = (s->image_data_mode)  ?  T38_IND_V17_9600_SHORT_TRAINING  :  T38_IND_V17_9600_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_9600;
             break;
         case 12000:
             set_octets_per_data_packet(s, s->fast_bit_rate);
-            ind = (s->short_train)  ?  T38_IND_V17_12000_SHORT_TRAINING  :  T38_IND_V17_12000_LONG_TRAINING;
+            ind = (s->image_data_mode)  ?  T38_IND_V17_12000_SHORT_TRAINING  :  T38_IND_V17_12000_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_12000;
             break;
         default:
         case 14400:
             set_octets_per_data_packet(s, 14400);
-            ind = (s->short_train)  ?  T38_IND_V17_14400_SHORT_TRAINING  :  T38_IND_V17_14400_LONG_TRAINING;
+            ind = (s->image_data_mode)  ?  T38_IND_V17_14400_SHORT_TRAINING  :  T38_IND_V17_14400_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_14400;
             break;
         }
@@ -1207,10 +1220,19 @@ static void non_ecm_put_bit(void *user_data, int bit)
         }
         return;
     }
-    s->current_non_ecm_octet = (s->current_non_ecm_octet << 1) | (bit & 1);
+    bit &= 1;
+#if 0    
+    if (s->t38.fill_bit_removal)
+    {
+        /* Drop any extra zero bits when we already have enough for an EOL symbol. */
+        if ((s->non_ecm_rx_bit_stream & 0x7FFF) == 0  &&  bit == 0)
+            return;
+    }
+#endif
+    s->non_ecm_rx_bit_stream = (s->non_ecm_rx_bit_stream << 1) | bit;
     if (++s->non_ecm_bit_no >= 8)
     {
-        s->rx_data[s->rx_data_ptr++] = (uint8_t) s->current_non_ecm_octet;
+        s->rx_data[s->rx_data_ptr++] = (uint8_t) s->non_ecm_rx_bit_stream & 0xFF;
         if (s->rx_data_ptr >= s->octets_per_data_packet)
         {
             t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_T4_NON_ECM_DATA, s->rx_data, s->rx_data_ptr, DATA_TX_COUNT);
@@ -1219,7 +1241,6 @@ static void non_ecm_put_bit(void *user_data, int bit)
             s->rx_data_ptr = 0;
         }
         s->non_ecm_bit_no = 0;
-        s->current_non_ecm_octet = 0;
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -1236,7 +1257,7 @@ static int non_ecm_get_bit(void *user_data)
         /* We need another byte */
         if (s->non_ecm_tx_out_ptr != s->non_ecm_tx_latest_eol_ptr)
         {
-            s->current_non_ecm_octet = s->non_ecm_tx_data[s->non_ecm_tx_out_ptr];
+            s->non_ecm_tx_octet = s->non_ecm_tx_data[s->non_ecm_tx_out_ptr];
             s->non_ecm_tx_out_ptr = (s->non_ecm_tx_out_ptr + 1) & (T38_NON_ECM_TX_BUF_LEN - 1);
         }
         else
@@ -1252,16 +1273,17 @@ static int non_ecm_get_bit(void *user_data)
                 s->non_ecm_tx_latest_eol_ptr = 0;
                 return PUTBIT_END_OF_DATA;
             }
-            /* The queue is empty, but this does not appear to be the end of the data. Idle with
+            /* The queue is blocked, but this does not appear to be the end of the data. Idle with
                fill octets, which should be safe at this point. */
-            s->current_non_ecm_octet = s->non_ecm_flow_control_fill_octet;
+            s->non_ecm_tx_octet = s->non_ecm_flow_control_fill_octet;
             s->non_ecm_flow_control_fill_octets++;
         }
+        s->non_ecm_out_octets++;
         s->non_ecm_bit_no = 8;
     }
     s->non_ecm_bit_no--;
-    bit = (s->current_non_ecm_octet >> 7) & 1;
-    s->current_non_ecm_octet <<= 1;
+    bit = (s->non_ecm_tx_octet >> 7) & 1;
+    s->non_ecm_tx_octet <<= 1;
     return bit;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1270,7 +1292,6 @@ static void add_to_non_ecm_tx_buffer(t38_gateway_state_t *s, const uint8_t *buf,
 {
     int i;
     int upper;
-    int lower;
 
     /* A rate adapting data stuffer for non-ECM image data */
     i = 0;
@@ -1290,7 +1311,7 @@ static void add_to_non_ecm_tx_buffer(t38_gateway_state_t *s, const uint8_t *buf,
             }
         }
     }
-    if (s->short_train)
+    if (s->image_data_mode)
     {
         /* This is image data */
         for (  ;  i < len;  i++)
@@ -1299,20 +1320,25 @@ static void add_to_non_ecm_tx_buffer(t38_gateway_state_t *s, const uint8_t *buf,
                waiting for more incoming data. */
             if (buf[i])
             {
-                /* There might be an EOL here. Look for at least 11 zeros, followed by a one. */
-                upper = bottom_bit((s->bit_stream | 0x800) & 0xFFF);
-                lower = top_bit(buf[i] & 0xFF);
-                if (upper - lower > 3)
+                /* There might be an EOL here. Look for at least 11 zeros, followed by a one, split
+                   between two octets. Between those two octets we can insert numerous zero octets
+                   as a means of flow control. */
+                /* Or'ing with 0x800 here is simply to avoid zero words looking like they have -1
+                   trailing zeros */
+                upper = bottom_bit(s->non_ecm_bit_stream | 0x800);
+                if (upper - top_bit(buf[i]) > 3)
                 {
+                    s->non_ecm_in_rows++;
                     s->non_ecm_tx_latest_eol_ptr = s->non_ecm_tx_in_ptr;
                     s->non_ecm_flow_control_fill_octet = 0x00;
                 }
             }
-            s->bit_stream = (s->bit_stream << 8) | buf[i];
+            s->non_ecm_bit_stream = (s->non_ecm_bit_stream << 8) | buf[i];
             s->non_ecm_tx_data[s->non_ecm_tx_in_ptr] = buf[i];
             /* TODO: We can't buffer overflow, since we wrap around. However, the tail could overwrite
                      itself if things fall badly behind. */
             s->non_ecm_tx_in_ptr = (s->non_ecm_tx_in_ptr + 1) & (T38_NON_ECM_TX_BUF_LEN - 1);
+            s->non_ecm_in_octets++;
         }
     }
     else
@@ -1331,6 +1357,7 @@ static void add_to_non_ecm_tx_buffer(t38_gateway_state_t *s, const uint8_t *buf,
             /* TODO: We can't buffer overflow, since we wrap around. However, the tail could overwrite
                      itself if things fall badly behind. */
             s->non_ecm_tx_in_ptr = (s->non_ecm_tx_in_ptr + 1) & (T38_NON_ECM_TX_BUF_LEN - 1);
+            s->non_ecm_in_octets++;
         }
     }
 }
@@ -1539,7 +1566,7 @@ static int restart_rx_modem(t38_gateway_state_t *s)
     put_bit_func_t put_bit_func;
     void *put_bit_user_data;
 
-    span_log(&s->logging, SPAN_LOG_FLOW, "Restart rx modem - modem = %d, short = %d, ECM = %d\n", s->fast_modem, s->short_train,  s->ecm_mode);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Restart rx modem - modem = %d, short = %d, ECM = %d\n", s->fast_modem, s->image_data_mode,  s->ecm_mode);
 
     hdlc_rx_init(&(s->hdlcrx), FALSE, TRUE, 5, NULL, s);
     s->crc = 0xFFFF;
@@ -1551,7 +1578,7 @@ static int restart_rx_modem(t38_gateway_state_t *s)
 #if 0
     fsk_rx_signal_cutoff(&(s->v21rx), -45.5);
 #endif
-    if (s->short_train  &&  s->ecm_mode)
+    if (s->image_data_mode  &&  s->ecm_mode)
     {
         put_bit_func = (put_bit_func_t) t38_hdlc_rx_put_bit;
         put_bit_user_data = (void *) &(s->hdlcrx);
