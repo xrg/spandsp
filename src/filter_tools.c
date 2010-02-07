@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: filter_tools.c,v 1.5 2008/05/13 13:17:22 steveu Exp $
+ * $Id: filter_tools.c,v 1.6 2008/06/19 13:27:45 steveu Exp $
  */
  
 #if defined(HAVE_CONFIG_H)
@@ -46,7 +46,8 @@
 #include <time.h>
 #include <fcntl.h>
 
-#include "spandsp.h"
+#include "spandsp/telephony.h"
+#include "spandsp/complex.h"
 #include "filter_tools.h"
 
 #define FALSE 0

@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.92 2008/05/07 14:38:30 steveu Exp $
+## $Id: Makefile.am,v 1.93 2008/06/19 12:19:57 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -346,7 +346,7 @@ v29tx_floating_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.29 -t >v29tx_floating_rrc.h
 
 make_modem_filter$(EXEEXT): make_modem_filter.c filter_tools.c filter_tools.h config.h
-	$(CC_FOR_BUILD) $(CPPFLAGS_FOR_BUILD) -I. -o $@ make_modem_filter.c filter_tools.c -lm
+	$(CC_FOR_BUILD) $(CPPFLAGS_FOR_BUILD) $(DEFS) -I. -o $@ make_modem_filter.c filter_tools.c -lm
 
 DSP = libspandsp.dsp
 VCPROJ = libspandsp.vcproj

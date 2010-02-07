@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.h,v 1.27 2008/06/18 13:28:42 steveu Exp $
+ * $Id: t38_core.h,v 1.28 2008/06/19 13:27:45 steveu Exp $
  */
 
 /*! \file */
@@ -305,6 +305,23 @@ const char *t38_data_type_to_str(int data_type);
     \param field_type The field type.
     \return A pointer to a short text name for the field type. */
 const char *t38_field_type_to_str(int field_type);
+
+/*! \brief Convert the code for a CM profile code to text description.
+    \param profile The profile code from a CM message.
+    \return A pointer to a short text description of the profile. */
+const char *t38_cm_profile_to_str(int profile);
+
+/*! \brief Convert a JM message code to text description.
+    \param data The data field of the message.
+    \param len The length of the data field.
+    \return A pointer to a short text description of the profile. */
+const char *t38_jm_to_str(const uint8_t *data, int len);
+
+/*! \brief Convert a V34rate message to an actual bit rate.
+    \param data The data field of the message.
+    \param len The length of the data field.
+    \return The bit rate, or -1 for a bad message. */
+int t38_v34rate_to_bps(const uint8_t *data, int len);
 
 /*! \brief Send an indicator packet
     \param s The T.38 context.

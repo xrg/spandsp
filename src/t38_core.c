@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.c,v 1.42 2008/05/13 13:17:23 steveu Exp $
+ * $Id: t38_core.c,v 1.43 2008/06/19 13:27:45 steveu Exp $
  */
 
 /*! \file */
@@ -178,6 +178,75 @@ const char *t38_field_type_to_str(int field_type)
         return "v34rate";
     }
     return "???";
+}
+/*- End of function --------------------------------------------------------*/
+
+const char *t38_cm_profile_to_str(int profile)
+{
+    switch (profile)
+    {
+    case '1':
+        return "G3 Facsimile Terminal: (Sending Facsimile)";
+    case '2':
+        return "G3 Facsimile Terminal: (Receiving Facsimile)";
+    case '3':
+        return "V.34 HDX and G3 Facsimile Terminal: (Sending Facsimile)";
+    case '4':
+        return "V.34 HDX and G3 Facsimile Terminal: (Receiving Facsimile)";
+    case '5':
+        return "V.34 HDX-only Facsimile Terminal: (Sending Facsimile)";
+    case '6':
+        return "V.34 HDX-only Facsimile Terminal: (Receiving Facsimile)";
+    }
+    return "???";
+}
+/*- End of function --------------------------------------------------------*/
+
+const char *t38_jm_to_str(const uint8_t *data, int len)
+{
+    if (len < 2)
+        return "???";
+    switch (data[0])
+    {
+    case 'A':
+        switch (data[1])
+        {
+        case '0':
+            return "ACK";
+        }
+        break;
+    case 'N':
+        switch (data[1])
+        {
+        case '0':
+            return "NACK: No compatible mode available";
+        case '1':
+            /* Response for profiles 1 and 2 */
+            return "NACK: No V.34 fax, use G3 fax";
+        case '2':
+            /* Response for profiles 5 and 6 */
+            return "NACK: V.34 fax only.";
+        }
+        break;
+    }
+    return "???";
+}
+/*- End of function --------------------------------------------------------*/
+
+int t38_v34rate_to_bps(const uint8_t *data, int len)
+{
+    int i;
+    int rate;
+
+    if (len < 3)
+        return -1;
+    for (i = 0, rate = 0;  i < 3;  i++)
+    {
+        if (data[i] < '0'  ||  data[i] > '9')
+            return -1;
+        rate = rate*10 + data[i] - '0';
+    }
+    return rate*100;
 }
 /*- End of function --------------------------------------------------------*/
 

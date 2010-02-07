@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.92 2008/06/18 13:28:42 steveu Exp $
+ * $Id: t38_terminal.c,v 1.93 2008/06/19 13:27:45 steveu Exp $
  */
 
 /*! \file */
@@ -426,27 +426,31 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         break;
     case T38_FIELD_CM_MESSAGE:
         if (len >= 1)
-        {
-            span_log(&s->logging, SPAN_LOG_FLOW, "CM profile %d\n", buf[0] - '0');
-        }
+            span_log(&s->logging, SPAN_LOG_FLOW, "CM profile %d - %s\n", buf[0] - '0', t38_cm_profile_to_str(buf[0]));
+        else
+            span_log(&s->logging, SPAN_LOG_FLOW, "Bad length for CM message - %d\n", len);
         break;
     case T38_FIELD_JM_MESSAGE:
         if (len >= 2)
-        {
-            span_log(&s->logging, SPAN_LOG_FLOW, "JM response 0x%X 0x%X\n", buf[0], buf[1]);
-        }
+            span_log(&s->logging, SPAN_LOG_FLOW, "JM - %s\n", t38_jm_to_str(buf, len));
+        else
+            span_log(&s->logging, SPAN_LOG_FLOW, "Bad length for JM message - %d\n", len);
         break;
     case T38_FIELD_CI_MESSAGE:
         if (len >= 1)
-        {
             span_log(&s->logging, SPAN_LOG_FLOW, "CI 0x%X\n", buf[0]);
-        }
+        else
+            span_log(&s->logging, SPAN_LOG_FLOW, "Bad length for CI message - %d\n", len);
         break;
     case T38_FIELD_V34RATE:
         if (len >= 3)
         {
-            s->t38.v34_rate = (buf[0] - '0')*10000 + (buf[1] - '0')*1000 + (buf[2] - '0')*100;
+            s->t38.v34_rate = t38_v34rate_to_bps(buf, len);
             span_log(&s->logging, SPAN_LOG_FLOW, "V.34 rate %d bps\n", s->t38.v34_rate);
+        }
+        else
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Bad length for V34rate message - %d\n", len);
         }
         break;
     default:

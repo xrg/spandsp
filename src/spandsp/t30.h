@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.107 2008/06/18 13:28:42 steveu Exp $
+ * $Id: t30.h,v 1.108 2008/06/19 13:27:45 steveu Exp $
  */
 
 /*! \file */
@@ -42,9 +42,22 @@ Current features of this module include:
 
     - FAXing to and from multi-page TIFF/F files, whose images are one of the standard
       FAX sizes.
+    - V.27ter, V.29 and V.17 modes (2400bps, to 14,400bps).
     - T.4 1D (MH), T.4 2D,(MR) and T.6 (MMR) compression.
-    - Error correction (ECM)
-    - All standard resolutions and page sizes
+    - Error correction mode (ECM).
+    - All standard horizonal resolutions (R8, R16, 300dpi, 600dpi, 800dpi, 1200dpi).
+    - All standard vertical resolutions (standard, fine, superfine, 300dpi, 600dpi, 800dpi, 1200dpi).
+    - All standard page widths (A4, B4, A3).
+    - All standard page lengths (A4, B4, North American letter, North American legal, continuous).
+    - Monitoring and sending identifier strings (CSI, TSI, and CIG).
+    - Monitoring and sending sub-address strings (SUB).
+    - Monitoring and sending polling sub-addresses (SEP).
+    - Monitoring and sending polled sub-addresses (PSA).
+    - Monitoring and sending sender identifications (SID).
+    - Monitoring and sending passwords (PWD).
+    - Monitoring of non-standard facility frames (NSF, NSC, and NSS).
+    - Sending custom non-standard facility frames (NSF, NSC, and NSS).
+    - Modem and T.38 operation.
 
 \section t30_page_sec_2 How does it work?
 

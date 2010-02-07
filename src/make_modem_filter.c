@@ -2,7 +2,7 @@
  * SpanDSP - a series of DSP components for telephony
  *
  * make_modem_filter.c - Create coefficient sets for pulse shaping
-                         various modem rx and tx signals.
+ *                       various modem rx and tx signals.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,9 +23,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: make_modem_filter.c,v 1.8 2008/05/13 13:17:23 steveu Exp $
+ * $Id: make_modem_filter.c,v 1.10 2008/06/19 13:27:45 steveu Exp $
  */
- 
+
 #if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
@@ -44,7 +44,8 @@
 #include <time.h>
 #include <fcntl.h>
 
-#include "spandsp.h"
+#include "spandsp/telephony.h"
+#include "spandsp/complex.h"
 #include "filter_tools.h"
 
 #define FALSE 0

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.47 2008/06/18 13:28:42 steveu Exp $
+ * $Id: t38_gateway.h,v 1.48 2008/06/19 13:27:45 steveu Exp $
  */
 
 /*! \file */
@@ -46,10 +46,27 @@ to maximum the tolerance of jitter and packet loss on the IP network.
 /* Make sure the HDLC frame buffers are big enough for ECM frames. */
 #define T38_MAX_HDLC_LEN        260
 
+typedef struct t38_gateway_state_s t38_gateway_state_t;
+
+/*!
+    T.30 real time frame handler.
+    \brief T.30 real time frame handler.
+    \param s The T.30 context.
+    \param user_data An opaque pointer.
+    \param direction TRUE for incoming, FALSE for outgoing.
+    \param msg The HDLC message.
+    \param len The length of the message.
+*/
+typedef void (t38_gateway_real_time_frame_handler_t)(t38_gateway_state_t *s,
+                                                     void *user_data,
+                                                     int direction,
+                                                     const uint8_t *msg,
+                                                     int len);
+
 /*!
     T.38 gateway state.
 */
-typedef struct
+struct t38_gateway_state_s
 {
     /*! Core T.38 support */
     t38_core_state_t t38;
@@ -207,7 +224,7 @@ typedef struct
 
     /*! \brief A pointer to a callback routine to be called when frames are
         exchanged. */
-    t30_real_time_frame_handler_t *real_time_frame_handler;
+    t38_gateway_real_time_frame_handler_t *real_time_frame_handler;
     /*! \brief An opaque pointer supplied in real time frame callbacks. */
     void *real_time_frame_user_data;
 
@@ -238,7 +255,7 @@ typedef struct
     int fax_audio_tx_log;
     /*! \brief Error and flow logging control */
     logging_state_t logging;
-} t38_gateway_state_t;
+};
 
 typedef struct
 {
@@ -347,7 +364,9 @@ void t38_gateway_get_transfer_statistics(t38_gateway_state_t *s, t38_stats_t *t)
     \param s The T.30 context.
     \param handler The callback function.
     \param user_data An opaque pointer passed to the callback function. */
-void t38_gateway_set_real_time_frame_handler(t38_gateway_state_t *s, t30_real_time_frame_handler_t *handler, void *user_data);
+void t38_gateway_set_real_time_frame_handler(t38_gateway_state_t *s,
+                                             t38_gateway_real_time_frame_handler_t *handler,
+                                             void *user_data);
 
 #if defined(__cplusplus)
 }
