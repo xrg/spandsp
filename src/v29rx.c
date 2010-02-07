@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.148 2009/01/05 13:48:32 steveu Exp $
+ * $Id: v29rx.c,v 1.149 2009/01/27 05:13:12 steveu Exp $
  */
 
 /*! \file */
@@ -514,7 +514,11 @@ static __inline__ void symbol_sync(v29_rx_state_t *s)
     s->symbol_sync_dc_filter[0] = v;
     /* A little integration will now filter away much of the noise */
     s->baud_phase -= p;
+#if 0
     if (fabsf(s->baud_phase) > 100.0f)
+#else
+    if (fabsf(s->baud_phase) > 30.0f)
+#endif
     {
         if (s->baud_phase > 0.0f)
             i = (s->baud_phase > 1000.0f)  ?  5  :  1;
