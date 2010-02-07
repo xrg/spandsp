@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter_tests.c,v 1.15 2008/05/13 13:17:25 steveu Exp $
+ * $Id: at_interpreter_tests.c,v 1.16 2008/06/11 17:52:31 steveu Exp $
  */
 
 /*! \file */
@@ -339,7 +339,7 @@ static const struct command_response_s general_test_seq[] =
     {"AT+VRX\r", "\r\nOK\r\n"},                                     /* V.253 10.1.3 - Voice receive state */
     {"AT+VSD\r", "\r\nOK\r\n"},                                     /* V.253 10.2.7 - Silence detection (QUIET and SILENCE) */
     {"AT+VSID=12345\r", "\r\nOK\r\n"},                              /* Extension - Set the originating number */
-    {"AT+vsid?\r", "\r\n12345\r\n\r\nOK\r\n"},                      /* Extension - Set the originating number */
+    {"AT+VSID?\r", "\r\n12345\r\n\r\nOK\r\n"},
     {"AT+VSM\r", "\r\nOK\r\n"},                                     /* V.253 10.2.8 - Compression method selection */
     {"AT+VSP\r", "\r\nOK\r\n"},                                     /* V.253 10.5.1 - Voice speakerphone state */
     {"AT+VTA\r", "\r\nOK\r\n"},                                     /* V.253 10.5.4 - Train acoustic echo-canceller */ 

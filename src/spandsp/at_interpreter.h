@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.h,v 1.17 2008/04/17 14:26:59 steveu Exp $
+ * $Id: at_interpreter.h,v 1.18 2008/06/11 17:52:30 steveu Exp $
  */
 
 /*! \file */
@@ -67,17 +67,29 @@ enum at_call_event_e
 
 enum at_modem_control_operation_e
 {
+    /*! Start an outgoing call. */
     AT_MODEM_CONTROL_CALL,
+    /*! Answer an incoming call. */
     AT_MODEM_CONTROL_ANSWER,
+    /*! Hangup a call. */
     AT_MODEM_CONTROL_HANGUP,
+    /*! Take the line off hook. */
     AT_MODEM_CONTROL_OFFHOOK,
+    /*! Put the line on hook. */
     AT_MODEM_CONTROL_ONHOOK,
+    /*! Control V.24 Circuit 108, "data terminal ready". */
     AT_MODEM_CONTROL_DTR,
+    /*! Control V.24 Circuit 105, "request to send". */
     AT_MODEM_CONTROL_RTS,
+    /*! Control V.24 Circuit 106, "clear to send". */
     AT_MODEM_CONTROL_CTS,
+    /*! Control V.24 Circuit 109, "receive line signal detector" (i.e. carrier detect). */
     AT_MODEM_CONTROL_CAR,
+    /*! Control V.24 Circuit 125, "ring indicator". */
     AT_MODEM_CONTROL_RNG,
+    /*! Control V.24 Circuit 107, "data set ready". */
     AT_MODEM_CONTROL_DSR,
+    /*! Set the caller ID for outgoing calls. */
     AT_MODEM_CONTROL_SETID,
     /* The remainder of the control functions should not get past the modem, to the
        application. */

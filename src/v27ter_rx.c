@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.92 2008/05/13 13:17:24 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.93 2008/05/30 17:23:12 steveu Exp $
  */
 
 /*! \file */
@@ -501,7 +501,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
                 s->eq_buf[i] = complex_mulf(&s->eq_buf[i], &zz);
             s->carrier_phase += angle;
 
-            s->gardner_step = 1;
+            s->gardner_step = 2;
             /* We have just seen the first element of the scrambled sequence so skip it. */
             s->training_bc = 1;
             s->training_bc ^= descramble(s, 1);

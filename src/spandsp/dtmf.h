@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.h,v 1.26 2008/05/30 13:51:28 steveu Exp $
+ * $Id: dtmf.h,v 1.28 2008/06/13 14:46:52 steveu Exp $
  */
 
 #if !defined(_SPANDSP_DTMF_H_)
@@ -110,22 +110,37 @@ typedef struct
     void *realtime_callback_data;
     /*! TRUE if dialtone should be filtered before processing */
     int filter_dialtone;
-    /*! Maximum acceptable "normal" (lower bigger than higher) twist ratio */
-    float normal_twist;
-    /*! Maximum acceptable "reverse" (higher bigger than lower) twist ratio */
-    float reverse_twist;
-
-    /*! 350Hz filter state for the optional dialtone filter */
+#if defined(SPANDSP_USE_FIXED_POINT)
+    /*! 350Hz filter state for the optional dialtone filter. */
     float z350[2];
-    /*! 440Hz filter state for the optional dialtone filter */
+    /*! 440Hz filter state for the optional dialtone filter. */
     float z440[2];
-
+    /*! Maximum acceptable "normal" (lower bigger than higher) twist ratio. */
+    float normal_twist;
+    /*! Maximum acceptable "reverse" (higher bigger than lower) twist ratio. */
+    float reverse_twist;
+    /*! Minimum acceptable tone level for detection. */
+    int32_t threshold;
+    /*! The accumlating total energy on the same period over which the Goertzels work. */
+    int32_t energy;
+#else
+    /*! 350Hz filter state for the optional dialtone filter. */
+    float z350[2];
+    /*! 440Hz filter state for the optional dialtone filter. */
+    float z440[2];
+    /*! Maximum acceptable "normal" (lower bigger than higher) twist ratio. */
+    float normal_twist;
+    /*! Maximum acceptable "reverse" (higher bigger than lower) twist ratio. */
+    float reverse_twist;
+    /*! Minimum acceptable tone level for detection. */
+    float threshold;
+    /*! The accumlating total energy on the same period over which the Goertzels work. */
+    float energy;
+#endif
     /*! Tone detector working states for the row tones. */
     goertzel_state_t row_out[4];
     /*! Tone detector working states for the column tones. */
     goertzel_state_t col_out[4];
-    /*! The accumlating total energy on the same period over which the Goertzels work. */
-    float energy;
     /*! The result of the last tone analysis. */
     uint8_t last_hit;
     /*! The confirmed digit we are currently receiving */
@@ -203,8 +218,14 @@ void dtmf_rx_set_realtime_callback(dtmf_rx_state_t *s,
     \param filter_dialtone TRUE to enable filtering of dialtone, FALSE
            to disable, < 0 to leave unchanged.
     \param twist Acceptable twist, in dB. < 0 to leave unchanged.
-    \param reverse_twist Acceptable reverse twist, in dB. < 0 to leave unchanged. */
-void dtmf_rx_parms(dtmf_rx_state_t *s, int filter_dialtone, int twist, int reverse_twist);
+    \param reverse_twist Acceptable reverse twist, in dB. < 0 to leave unchanged.
+    \param threshold The minimum acceptable tone level for detection, in dBm0.
+           <= -99 to leave unchanged. */
+void dtmf_rx_parms(dtmf_rx_state_t *s,
+                   int filter_dialtone,
+                   int twist,
+                   int reverse_twist,
+                   int threshold);
 
 /*! Process a block of received DTMF audio samples.
     \brief Process a block of received DTMF audio samples.

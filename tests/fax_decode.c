@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_decode.c,v 1.42 2008/05/13 13:17:25 steveu Exp $
+ * $Id: fax_decode.c,v 1.43 2008/05/30 17:23:12 steveu Exp $
  */
 
 /*! \page fax_decode_page FAX decoder
@@ -277,6 +277,7 @@ static void t4_begin(void)
 {
     int i;
 
+    //printf("Begin T.4 - %d %d %d %d\n", line_encoding, x_resolution, y_resolution, image_width);
     t4_rx_set_rx_encoding(&t4_state, line_encoding);
     t4_rx_set_x_resolution(&t4_state, x_resolution);
     t4_rx_set_y_resolution(&t4_state, y_resolution);

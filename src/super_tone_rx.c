@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.c,v 1.25 2008/05/13 13:17:23 steveu Exp $
+ * $Id: super_tone_rx.c,v 1.27 2008/06/13 14:46:52 steveu Exp $
  */
 
 /*! \file */
@@ -53,7 +53,16 @@
 #include "spandsp/tone_generate.h"
 #include "spandsp/super_tone_rx.h"
 
-#define THRESHOLD               8.0e7f
+#if defined(SPANDSP_USE_FIXED_POINT)
+#define DETECTION_THRESHOLD         16439           /* -42dBm0 */
+#define TONE_TWIST                  4               /* 6dB */
+#define TONE_TO_TOTAL_ENERGY        64              /* -3dB */
+#else
+#define DETECTION_THRESHOLD         269338317.0f    /* -42dBm0 [((128.0*32768.0/1.4142)*10^((-42 - DBM0_MAX_SINE_POWER)/20.0))^2 => 269338317.0] */
+#define TONE_TWIST                  3.981f          /* 6dB */
+#define TONE_TO_TOTAL_ENERGY        1.995f          /* 3dB */
+#define DTMF_TO_TOTAL_ENERGY        64.152f         /* -3dB [BINS*10^(-3/10.0)] */
+#endif
 
 static int add_super_tone_freq(super_tone_rx_descriptor_t *desc, int freq)
 {
@@ -248,7 +257,6 @@ super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *s,
         s->desc = desc;
     s->detected_tone = -1;
     s->energy = 0.0f;
-    s->total_energy = 0.0f;
     for (i = 0;  i < desc->monitored_frequencies;  i++)
         goertzel_init(&s->state[i], &s->desc->desc[i]);
     return  s;
@@ -263,159 +271,174 @@ int super_tone_rx_free(super_tone_rx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int super_tone_rx(super_tone_rx_state_t *s, const int16_t amp[], int samples)
+static void super_tone_chunk(super_tone_rx_state_t *s)
 {
     int i;
     int j;
     int k1;
     int k2;
-    int x;
+#if defined(SPANDSP_USE_FIXED_POINT)
+    int32_t res[BINS/2];
+#else
     float res[BINS/2];
-    int sample;
+#endif
 
-    for (sample = 0;  sample < samples;  sample += x)
+    for (i = 0;  i < s->desc->monitored_frequencies;  i++)
+        res[i] = goertzel_result(&s->state[i]);
+    /* Find our two best monitored frequencies, which also have adequate energy. */
+    if (s->energy < DETECTION_THRESHOLD)
     {
-        x = 0;
-        for (i = 0;  i < s->desc->monitored_frequencies;  i++)
+        k1 = -1;
+        k2 = -1;
+    }
+    else
+    {
+        if (res[0] > res[1])
         {
-            x = goertzel_update(&s->state[i],
-                                amp + sample,
-                                samples - sample);
-            if (i == s->desc->monitored_frequencies - 1)
+            k1 = 0;
+            k2 = 1;
+        }
+        else
+        {
+            k1 = 1;
+            k2 = 0;
+        }
+        for (j = 2;  j < s->desc->monitored_frequencies;  j++)
+        {
+            if (res[j] >= res[k1])
             {
-                for (j = 0;  j < x;  j++)
-                    s->energy += amp[sample + j]*amp[sample + j];
+                k2 = k1;
+                k1 = j;
             }
-            if (s->state[i].current_sample >= s->state[i].samples)
+            else if (res[j] >= res[k2])
             {
-                res[i] = goertzel_result(&s->state[i]);
-                goertzel_init(&s->state[i], &s->desc->desc[i]);
-                if (i == s->desc->monitored_frequencies - 1)
+                k2 = j;
+            }
+        }
+        if ((res[k1] + res[k2]) < TONE_TO_TOTAL_ENERGY*s->energy)
+        {
+            k1 = -1;
+            k2 = -1;
+        }
+        else if (res[k1] > TONE_TWIST*res[k2])
+        {
+            k2 = -1;
+        }
+        else if (k2 < k1)
+        {
+            j = k1;
+            k1 = k2;
+            k2 = j;
+        }
+    }
+    /* See if this differs from last time. */
+    if (k1 != s->segments[10].f1  ||  k2 != s->segments[10].f2)
+    {
+        /* It is different, but this might just be a transitional quirk, or
+           a one shot hiccup (eg due to noise). Only if this same thing is
+           seen a second time should we change state. */
+        s->segments[10].f1 = k1;
+        s->segments[10].f2 = k2;
+        /* While things are hopping around, consider this a continuance of the
+           previous state. */
+        s->segments[9].min_duration++;
+    }
+    else
+    {
+        if (k1 != s->segments[9].f1  ||  k2 != s->segments[9].f2)
+        {
+            if (s->detected_tone >= 0)
+            {
+                /* Test for the continuance of the existing tone pattern, based on our new knowledge of an
+                   entire segment length. */
+                if (!test_cadence(s->desc->tone_list[s->detected_tone], -s->desc->tone_segs[s->detected_tone], s->segments, s->rotation++))
                 {
-                    /* Scale the energy so it can be compared to the results from the
-                       Goertzel filters. */
-                    s->total_energy = s->energy*(s->state[i].samples/2);
-                    s->energy = 0;
-                    /* Find our two best monitored frequencies, which also have adequate
-                       energy. */
-                    if (s->total_energy < THRESHOLD)
-                    {
-                        k1 = -1;
-                        k2 = -1;
-                    }
-                    else
-                    {
-                        if (res[0] > res[1])
-                        {
-                            k1 = 0;
-                            k2 = 1;
-                        }
-                        else
-                        {
-                            k1 = 1;
-                            k2 = 0;
-                        }
-                        for (j = 2;  j < s->desc->monitored_frequencies;  j++)
-                        {
-                            if (res[j] >= res[k1])
-                            {
-                                k2 = k1;
-                                k1 = j;
-                            }
-                            else if (res[j] >= res[k2])
-                            {
-                                k2 = j;
-                            }
-                        }
-                        if (res[k1] + res[k2] < 0.5f*s->total_energy)
-                        {
-                            k1 = -1;
-                            k2 = -1;
-                        }
-                        else if (res[k1] > 4.0f*res[k2])
-                        {
-                            k2 = -1;
-                        }
-                        else if (k2 < k1)
-                        {
-                            j = k1;
-                            k1 = k2;
-                            k2 = j;
-                        }
-                    }
-                    /* See if this looks different to last time */
-                    if (k1 != s->segments[10].f1  ||  k2 != s->segments[10].f2)
-                    {
-                        /* It is different, but this might just be a transitional quirk, or
-                           a one shot hiccup (eg due to noise). Only if this same thing is
-                           seen a second time should we change state. */
-                        s->segments[10].f1 = k1;
-                        s->segments[10].f2 = k2;
-                        /* While things are hopping around, consider this a continuance of the
-                           previous state. */
-                        s->segments[9].min_duration++;
-                    }
-                    else
-                    {
-                        if (k1 != s->segments[9].f1  ||  k2 != s->segments[9].f2)
-                        {
-                            if (s->detected_tone >= 0)
-                            {
-                                /* Test for the continuance of the existing tone pattern, based on our new knowledge of an
-                                   entire segment length. */
-                                if (!test_cadence(s->desc->tone_list[s->detected_tone], -s->desc->tone_segs[s->detected_tone], s->segments, s->rotation++))
-                                {
-                                    s->detected_tone = -1;
-                                    s->tone_callback(s->callback_data, s->detected_tone, -10, 0);
-                                }
-                            }
-                            if (s->segment_callback)
-                            {
-                                s->segment_callback(s->callback_data,
-                                                    s->segments[9].f1,
-                                                    s->segments[9].f2,
-                                                    s->segments[9].min_duration*BINS/8);
-                            }
-                            memcpy (&s->segments[0], &s->segments[1], 9*sizeof(s->segments[0]));
-                            s->segments[9].f1 = k1;
-                            s->segments[9].f2 = k2;
-                            s->segments[9].min_duration = 1;
-                        }
-                        else
-                        {
-                            /* This is a continuance of the previous state */
-                            if (s->detected_tone >= 0)
-                            {
-                                /* Test for the continuance of the existing tone pattern. We must do this here, so we can sense the
-                                   discontinuance of the tone on an excessively long segment. */
-                                if (!test_cadence(s->desc->tone_list[s->detected_tone], s->desc->tone_segs[s->detected_tone], s->segments, s->rotation))
-                                {
-                                    s->detected_tone = -1;
-                                    s->tone_callback(s->callback_data, s->detected_tone, -10, 0);
-                                }
-                            }
-                            s->segments[9].min_duration++;
-                        }
-                    }
-                    if (s->detected_tone < 0)
-                    {
-                        /* Test for the start of any of the monitored tone patterns */
-                        for (j = 0;  j < s->desc->tones;  j++)
-                        {
-                            if (test_cadence(s->desc->tone_list[j], s->desc->tone_segs[j], s->segments, -1))
-                            {
-                                s->detected_tone = j;
-                                s->rotation = 0;
-                                s->tone_callback(s->callback_data, s->detected_tone, -10, 0);
-                                break;
-                            }
-                        }
-                    }
+                    s->detected_tone = -1;
+                    s->tone_callback(s->callback_data, s->detected_tone, -10, 0);
                 }
+            }
+            if (s->segment_callback)
+            {
+                s->segment_callback(s->callback_data,
+                                    s->segments[9].f1,
+                                    s->segments[9].f2,
+                                    s->segments[9].min_duration*BINS/8);
+            }
+            memcpy (&s->segments[0], &s->segments[1], 9*sizeof(s->segments[0]));
+            s->segments[9].f1 = k1;
+            s->segments[9].f2 = k2;
+            s->segments[9].min_duration = 1;
+        }
+        else
+        {
+            /* This is a continuance of the previous state */
+            if (s->detected_tone >= 0)
+            {
+                /* Test for the continuance of the existing tone pattern. We must do this here, so we can sense the
+                   discontinuance of the tone on an excessively long segment. */
+                if (!test_cadence(s->desc->tone_list[s->detected_tone], s->desc->tone_segs[s->detected_tone], s->segments, s->rotation))
+                {
+                    s->detected_tone = -1;
+                    s->tone_callback(s->callback_data, s->detected_tone, -10, 0);
+                }
+            }
+            s->segments[9].min_duration++;
+        }
+    }
+    if (s->detected_tone < 0)
+    {
+        /* Test for the start of any of the monitored tone patterns */
+        for (j = 0;  j < s->desc->tones;  j++)
+        {
+            if (test_cadence(s->desc->tone_list[j], s->desc->tone_segs[j], s->segments, -1))
+            {
+                s->detected_tone = j;
+                s->rotation = 0;
+                s->tone_callback(s->callback_data, s->detected_tone, -10, 0);
+                break;
             }
         }
     }
-    return  samples;
+#if defined(SPANDSP_USE_FIXED_POINT)
+    s->energy = 0;
+#else
+    s->energy = 0.0f;
+#endif
+}
+/*- End of function --------------------------------------------------------*/
+
+int super_tone_rx(super_tone_rx_state_t *s, const int16_t amp[], int samples)
+{
+    int i;
+    int x;
+    int sample;
+#if defined(SPANDSP_USE_FIXED_POINT)
+    int16_t xamp;
+#else
+    float xamp;
+#endif
+
+    for (sample = 0;  sample < samples;  sample += x)
+    {
+        for (i = 0;  i < s->desc->monitored_frequencies;  i++)
+            x = goertzel_update(&s->state[i], amp + sample, samples - sample);
+        for (i = 0;  i < x;  i++)
+        {
+            xamp = goertzel_preadjust_amp(amp[sample + i]);
+#if defined(SPANDSP_USE_FIXED_POINT)
+            s->energy += ((int32_t) xamp*xamp);
+#else
+            s->energy += xamp*xamp;
+#endif
+        }
+        if (s->state[0].current_sample >= BINS)
+        {
+            /* We have finished a Goertzel block. */
+            super_tone_chunk(s);
+            s->energy = 0;
+        }
+    }
+    return samples;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

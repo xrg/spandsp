@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.108 2008/05/13 13:17:23 steveu Exp $
+ * $Id: t31.c,v 1.109 2008/06/11 17:52:30 steveu Exp $
  */
 
 /*! \file */
@@ -630,10 +630,10 @@ static int t31_modem_control_handler(at_state_t *s, void *user_data, int op, con
     t = (t31_state_t *) user_data;
     switch (op)
     {
-    case AT_MODEM_CONTROL_ANSWER:
+    case AT_MODEM_CONTROL_CALL:
         t->call_samples = 0;
         break;
-    case AT_MODEM_CONTROL_CALL:
+    case AT_MODEM_CONTROL_ANSWER:
         t->call_samples = 0;
         break;
     case AT_MODEM_CONTROL_ONHOOK:

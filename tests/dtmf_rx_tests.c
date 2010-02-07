@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_rx_tests.c,v 1.38 2008/05/13 13:17:25 steveu Exp $
+ * $Id: dtmf_rx_tests.c,v 1.39 2008/06/13 14:46:52 steveu Exp $
  */
 
 /*
@@ -319,7 +319,7 @@ static void mitel_cm7291_side_1_tests(void)
 
     dtmf_rx_init(&dtmf_state, NULL, NULL);
     if (use_dialtone_filter)
-        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1);
+        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1, -99);
 
     /* Test 1: Mitel's test 1 isn't really a test. Its a calibration step,
        which has no meaning here. */
@@ -535,6 +535,13 @@ static void mitel_cm7291_side_1_tests(void)
         nplus += dtmf_rx_get(&dtmf_state, buf, 128);
     }
     printf("    Dynamic range = %ddB\n", nplus);
+    /* We ought to set some pass/fail condition, even if Mitel did not. If
+       we don't, regression testing is weakened. */
+    if (nplus < 35)
+    {
+        printf("    Failed\n");
+        exit(2);
+    }
     printf("    Passed\n");
 
     /* Test 6: Guard time
@@ -619,7 +626,7 @@ static void mitel_cm7291_side_2_and_bellcore_tests(void)
 
     dtmf_rx_init(&dtmf_state, NULL, NULL);
     if (use_dialtone_filter)
-        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1);
+        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1, -99);
 
     /* The remainder of the Mitel tape is the talk-off test */
     /* Here we use the Bellcore test tapes (much tougher), in six
@@ -701,7 +708,7 @@ static void dial_tone_tolerance_tests(void)
 
     dtmf_rx_init(&dtmf_state, NULL, NULL);
     if (use_dialtone_filter)
-        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1);
+        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1, -99);
 
     /* Test dial tone tolerance */
     printf("Test: Dial tone tolerance.\n");
@@ -754,7 +761,7 @@ static void callback_function_tests(void)
     callback_roll = 0;
     dtmf_rx_init(&dtmf_state, digit_delivery, (void *) 0x12345678);
     if (use_dialtone_filter)
-        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1);
+        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1, -99);
     my_dtmf_gen_init(0.0f, DEFAULT_DTMF_TX_LEVEL, 0.0f, DEFAULT_DTMF_TX_LEVEL, DEFAULT_DTMF_TX_ON_TIME, DEFAULT_DTMF_TX_OFF_TIME);
     for (i = 1;  i < 10;  i++)
     {
@@ -780,7 +787,7 @@ static void callback_function_tests(void)
     dtmf_rx_init(&dtmf_state, NULL, NULL);
     dtmf_rx_set_realtime_callback(&dtmf_state, digit_status, (void *) 0x12345678);
     if (use_dialtone_filter)
-        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1);
+        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1, -99);
     my_dtmf_gen_init(0.0f, DEFAULT_DTMF_TX_LEVEL, 0.0f, DEFAULT_DTMF_TX_LEVEL, DEFAULT_DTMF_TX_ON_TIME, DEFAULT_DTMF_TX_OFF_TIME);
     step = 0;
     for (i = 1;  i < 10;  i++)
@@ -818,7 +825,7 @@ static void decode_test(const char *test_file)
 
     dtmf_rx_init(&dtmf_state, NULL, NULL);
     if (use_dialtone_filter)
-        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1);
+        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1, -99);
 
     /* We will decode the audio from a wave file. */
     

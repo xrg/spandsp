@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.31 2008/05/27 15:08:21 steveu Exp $
+ * $Id: t38_terminal.h,v 1.32 2008/05/30 14:54:42 steveu Exp $
  */
 
 /*! \file */
@@ -47,12 +47,13 @@ typedef struct
     /*! Core T.38 support */
     t38_core_state_t t38;
 
-    int spare1;
-
     /*! \brief HDLC transmit buffer */
     uint8_t tx_buf[T38_MAX_HDLC_LEN];
     /*! \brief The length of the contents of the HDLC transmit buffer */
     int tx_len;
+    /*! \brief The number of extra bits in a fully stuffed version of the
+               contents of the HDLC transmit buffer. */
+    int tx_extra_bits;
     /*! \brief Current pointer within the contents of the HDLC transmit buffer */
     int tx_ptr;
 
@@ -95,9 +96,7 @@ typedef struct
     /*! \brief Bit fields controlling the way data is packed into chunked for transmission. */
     int chunking_modes;
 
-    /*! \brief Current actual samples between T.38 transmissions, allowing for the minimum needed for a
-               single octet, etc. */
-    int samples_per_tx_chunk;
+    int spare1;
     /*! \brief Current bit rate. */
     int bit_rate;
     /*! \brief A "sample" count, used to time events. */

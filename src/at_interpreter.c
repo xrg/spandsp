@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.c,v 1.27 2008/05/13 13:17:22 steveu Exp $
+ * $Id: at_interpreter.c,v 1.28 2008/06/11 17:52:30 steveu Exp $
  */
 
 /*! \file */
@@ -410,6 +410,33 @@ static int parse_hex_num(const char **s, int max_value)
 }
 /*- End of function --------------------------------------------------------*/
 
+static int match_element(const char **variant, const char *variants)
+{
+    int i;
+    size_t len;
+    char const *s;
+    char const *t;
+
+    s = variants;
+    for (i = 0;  *s;  i++)
+    {
+        if ((t = strchr(s, ',')))
+            len = t - s;
+        else
+            len = strlen(s);
+        if (len == (int) strlen(*variant)  &&  memcmp(*variant, s, len) == 0)
+        {
+            *variant += len;
+            return  i;
+        }
+        s += len;
+        if (*s == ',')
+            s++;
+    }
+    return  -1;
+}
+/*- End of function --------------------------------------------------------*/
+
 static int parse_out(at_state_t *s, const char **t, int *target, int max_value, const char *prefix, const char *def)
 {
     char buf[100];
@@ -534,34 +561,7 @@ static int parse_hex_out(at_state_t *s, const char **t, int *target, int max_val
 }
 /*- End of function --------------------------------------------------------*/
 
-static int match_element(const char **variant, const char *variants)
-{
-    int i;
-    size_t len;
-    char const *s;
-    char const *t;
-
-    s = variants;
-    for (i = 0;  *s;  i++)
-    {
-        if ((t = strchr(s, ',')))
-            len = t - s;
-        else
-            len = strlen(s);
-        if (len == (int) strlen(*variant)  &&  memcmp(*variant, s, len) == 0)
-        {
-            *variant += len;
-            return  i;
-        }
-        s += len;
-        if (*s == ',')
-            s++;
-    }
-    return  -1;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int parse_string_out(at_state_t *s, const char **t, int *target, int max_value, const char *prefix, const char *def)
+static int parse_string_list_out(at_state_t *s, const char **t, int *target, int max_value, const char *prefix, const char *def)
 {
     char buf[100];
     int val;
@@ -607,56 +607,39 @@ static int parse_string_out(at_state_t *s, const char **t, int *target, int max_
 }
 /*- End of function --------------------------------------------------------*/
 
-static int process_class1_cmd(at_state_t *s, const char **t)
+static int parse_string_out(at_state_t *s, const char **t, char **target, const char *prefix)
 {
-    int val;
-    int operation;
-    int direction;
-    int result;
-    const char *allowed;
+    char buf[100];
 
-    direction = (*(*t + 2) == 'T');
-    operation = *(*t + 3);
-    /* Step past the "+Fxx" */
-    *t += 4;
-    switch (operation)
+    switch (*(*t)++)
     {
-    case 'S':
-        allowed = "0-255";
+    case '=':
+        switch (**t)
+        {
+        case '?':
+            /* Show possible values */
+            (*t)++;
+            snprintf(buf, sizeof(buf), "%s", (prefix)  ?  prefix  :  "");
+            at_put_response(s, buf);
+            break;
+        default:
+            /* Set value */
+            if (*target)
+                free(*target);
+            /* If this strdup fails, it should be harmless */
+            *target = strdup(*t);
+            break;
+        }
         break;
-    case 'H':
-        allowed = "3";
+    case '?':
+        /* Show current index value */
+        at_put_response(s, (*target)  ?  *target  :  "");
         break;
     default:
-        allowed = "24,48,72,73,74,96,97,98,121,122,145,146";
-        break;
-    }
-    
-    val = -1;
-    if (!parse_out(s, t, &val, 255, NULL, allowed))
-        return TRUE;
-    if (val < 0)
-    {
-        /* It was just a query */
-        return  TRUE;
-    }
-    /* All class 1 FAX commands are supposed to give an ERROR response, if the phone
-       is on-hook. */
-    if (s->at_rx_mode == AT_MODE_ONHOOK_COMMAND)
-        return FALSE;
-
-    result = TRUE;
-    if (s->class1_handler)
-        result = s->class1_handler(s, s->class1_user_data, direction, operation, val);
-    switch (result)
-    {
-    case 0:
-        /* Inhibit an immediate response.  (These commands should not be part of a multi-command entry.) */
-        *t = (const char *) -1;
-        return TRUE;
-    case -1:
         return FALSE;
     }
+    while (*t)
+        t++;
     return TRUE;
 }
 /*- End of function --------------------------------------------------------*/
@@ -722,6 +705,60 @@ static const char *s_reg_handler(at_state_t *s, const char *t, int reg)
         return NULL;
     }
     return t;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int process_class1_cmd(at_state_t *s, const char **t)
+{
+    int val;
+    int operation;
+    int direction;
+    int result;
+    const char *allowed;
+
+    direction = (*(*t + 2) == 'T');
+    operation = *(*t + 3);
+    /* Step past the "+Fxx" */
+    *t += 4;
+    switch (operation)
+    {
+    case 'S':
+        allowed = "0-255";
+        break;
+    case 'H':
+        allowed = "3";
+        break;
+    default:
+        allowed = "24,48,72,73,74,96,97,98,121,122,145,146";
+        break;
+    }
+    
+    val = -1;
+    if (!parse_out(s, t, &val, 255, NULL, allowed))
+        return TRUE;
+    if (val < 0)
+    {
+        /* It was just a query */
+        return  TRUE;
+    }
+    /* All class 1 FAX commands are supposed to give an ERROR response, if the phone
+       is on-hook. */
+    if (s->at_rx_mode == AT_MODE_ONHOOK_COMMAND)
+        return FALSE;
+
+    result = TRUE;
+    if (s->class1_handler)
+        result = s->class1_handler(s, s->class1_user_data, direction, operation, val);
+    switch (result)
+    {
+    case 0:
+        /* Inhibit an immediate response.  (These commands should not be part of a multi-command entry.) */
+        *t = (const char *) -1;
+        return TRUE;
+    case -1:
+        return FALSE;
+    }
+    return TRUE;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -3276,7 +3313,7 @@ static const char *at_cmd_plus_FCLASS(at_state_t *s, const char *t)
     /* T.31 says the reply string should be "0,1.0", however making
        it "0,1,1.0" makes things compatible with a lot more software
        that may be expecting a pre-T.31 modem. */
-    if (!parse_string_out(s, &t, &s->fclass_mode, 1, NULL, "0,1,1.0"))
+    if (!parse_string_list_out(s, &t, &s->fclass_mode, 1, NULL, "0,1,1.0"))
         return NULL;
     return t;
 }
@@ -4714,32 +4751,10 @@ static const char *at_cmd_plus_VSID(at_state_t *s, const char *t)
 {
     /* Extension of V.253 +VCID, Set calling number ID */
     t += 5;
-    switch (*t)
-    {
-    case '=':
-        switch (*(t + 1))
-        {
-        case '?':
-            /* Show possible values */
-            at_put_response(s, "");
-            break;
-        default:
-            /* Set value */
-            /* If this strdup failes, it should be harmless */
-            s->local_id = strdup(t + 1);
-            if (at_modem_control(s, AT_MODEM_CONTROL_SETID, s->local_id) < 0)
-                return NULL;
-            break;
-        }
-        break;
-    case '?':
-        /* Show current index value from def */
-        at_put_response(s, (s->local_id)  ?  s->local_id  :  "");
-        break;
-    default:
+    if (!parse_string_out(s, &t, &s->local_id, NULL))
         return NULL;
-    }
-    while (*t) t++;
+    if (at_modem_control(s, AT_MODEM_CONTROL_SETID, s->local_id) < 0)
+        return NULL;
     return t;
 }
 /*- End of function --------------------------------------------------------*/
@@ -5296,6 +5311,9 @@ at_state_t *at_init(at_state_t *s,
 
 int at_free(at_state_t *s)
 {
+    at_reset_call_info(s);
+    if (s->local_id)
+        free(s->local_id);
     free(s);
     return 0;
 }

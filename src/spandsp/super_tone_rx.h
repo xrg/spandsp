@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.h,v 1.16 2008/04/17 14:27:00 steveu Exp $
+ * $Id: super_tone_rx.h,v 1.17 2008/06/13 14:46:52 steveu Exp $
  */
 
 #if !defined(_SPANDSP_SUPER_TONE_RX_H_)
@@ -83,7 +83,6 @@ typedef struct
 {
     super_tone_rx_descriptor_t *desc;
     float energy;
-    float total_energy;
     int detected_tone;
     int rotation;
     tone_report_func_t tone_callback;
