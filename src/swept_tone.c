@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: swept_tone.c,v 1.1 2009/09/22 12:54:33 steveu Exp $
+ * $Id: swept_tone.c,v 1.2 2009/09/23 16:02:59 steveu Exp $
  */
 
 /*! \file */
@@ -97,10 +97,10 @@ SPAN_DECLARE(int) swept_tone(swept_tone_state_t *s, int16_t amp[], int max_len)
         s->pos += chunk_len;
         if (s->pos >= s->duration)
         {
-            s->pos = 0;
-            s->current_phase_inc = s->starting_phase_inc;
             if (!s->repeating)
                 break;
+            s->pos = 0;
+            s->current_phase_inc = s->starting_phase_inc;
         }
     }
     return len;

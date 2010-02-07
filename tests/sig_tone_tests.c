@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone_tests.c,v 1.26 2009/09/04 14:38:47 steveu Exp $
+ * $Id: sig_tone_tests.c,v 1.27 2009/09/23 16:02:59 steveu Exp $
  */
 
 /*! \file */
@@ -125,31 +125,30 @@ static void map_frequency_response(sig_tone_rx_state_t *s)
 {
     int16_t buf[8192];
     int i;
-    int f;
-    uint32_t phase_acc;
-    int32_t phase_rate;
-    int32_t scaling;
-    double sum;
+    int len;
+    double sumin;
+    double sumout;
+    swept_tone_state_t *swept;
     
     /* Things like noise don't highlight the frequency response of the high Q notch
        very well. We use a slowly swept frequency to check it. */
-    for (f = 1;  f < 4000;  f++)
+    swept = swept_tone_init(NULL, 200.0f, 3900.0f, -10.0f, 120*SAMPLE_RATE, 0);
+    for (;;)
     {
-        phase_rate = dds_phase_rate(f);
-        scaling = dds_scaling_dbm0(-10);
-        phase_acc = 0;
-        for (i = 0;  i < 8192;  i++)
-            buf[i] = dds_mod(&phase_acc, phase_rate, scaling, 0);
+        if ((len = swept_tone(swept, buf, SAMPLES_PER_CHUNK)) <= 0)
+            break;
+        sumin = 0.0;
+        for (i = 0;  i < len;  i++)
+            sumin += (double) buf[i]*(double) buf[i];
+        sig_tone_rx(s, buf, len);
+        sumout = 0.0;
+        for (i = 0;  i < len;  i++)
+            sumout += (double) buf[i]*(double) buf[i];
         /*endfor*/
-        sig_tone_rx(s, buf, 8192);
-        sum = 0.0;
-        for (i = 1000;  i < 8192;  i++)
-            sum += (double) buf[i]*(double) buf[i];
-        /*endfor*/
-        sum = sqrt(sum);
-        printf("%7d %f\n", f, sum);
+        printf("%7.1f %f\n", swept_tone_current_frequency(swept), 10.0*log10(sumout/sumin));
     }
     /*endfor*/
+    swept_tone_free(swept);
 }
 /*- End of function --------------------------------------------------------*/
 
