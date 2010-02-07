@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tester.c,v 1.5 2008/07/30 14:47:06 steveu Exp $
+ * $Id: fax_tester.c,v 1.6 2008/08/01 17:59:46 steveu Exp $
  */
 
 /*! \file */
@@ -155,41 +155,94 @@ void faxtester_set_image_buffer(faxtester_state_t *s, const uint8_t *buf, int le
 }
 /*- End of function --------------------------------------------------------*/
 
-static void non_ecm_put_bit(void *user_data, int bit)
+static void non_ecm_rx_status(void *user_data, int status)
 {
     faxtester_state_t *s;
 
     s = (faxtester_state_t *) user_data;
+    switch (status)
+    {
+    case PUTBIT_TRAINING_IN_PROGRESS:
+        break;
+    case PUTBIT_TRAINING_FAILED:
+        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier training failed\n");
+        s->modems.rx_trained = FALSE;
+        break;
+    case PUTBIT_TRAINING_SUCCEEDED:
+        /* The modem is now trained */
+        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier trained\n");
+        s->modems.rx_trained = TRUE;
+        break;
+    case PUTBIT_CARRIER_UP:
+        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier up\n");
+        s->modems.rx_signal_present = TRUE;
+        break;
+    case PUTBIT_CARRIER_DOWN:
+        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier down\n");
+        if (s->modems.rx_trained)
+        {
+            if (s->real_time_frame_handler)
+                s->real_time_frame_handler(s, s->real_time_frame_user_data, TRUE, NULL, 0);
+        }
+        s->modems.rx_signal_present = FALSE;
+        s->modems.rx_trained = FALSE;
+        break;
+    default:
+        span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected non-ECM rx status - %d!\n", status);
+        break;
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
+static void non_ecm_put_bit(void *user_data, int bit)
+{
+    faxtester_state_t *s;
+
     if (bit < 0)
     {
-        /* Special conditions */
-        switch (bit)
-        {
-        case PUTBIT_TRAINING_IN_PROGRESS:
-            break;
-        case PUTBIT_TRAINING_FAILED:
-            span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier training failed\n");
-            s->modems.rx_trained = FALSE;
-            break;
-        case PUTBIT_TRAINING_SUCCEEDED:
-            /* The modem is now trained */
-            span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier trained\n");
-            s->modems.rx_trained = TRUE;
-            break;
-        case PUTBIT_CARRIER_UP:
-            span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier up\n");
-            s->modems.rx_signal_present = TRUE;
-            break;
-        case PUTBIT_CARRIER_DOWN:
-            span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier down\n");
-            s->modems.rx_signal_present = FALSE;
-            s->modems.rx_trained = FALSE;
-            break;
-        default:
-            span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected non-ECM special bit - %d!\n", bit);
-            break;
-        }
+        non_ecm_rx_status(user_data, bit);
         return;
+    }
+    s = (faxtester_state_t *) user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void hdlc_rx_status(void *user_data, int status)
+{
+    faxtester_state_t *s;
+
+    s = (faxtester_state_t *) user_data;
+    switch (status)
+    {
+    case PUTBIT_TRAINING_IN_PROGRESS:
+        break;
+    case PUTBIT_TRAINING_FAILED:
+        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier training failed\n");
+        s->modems.rx_trained = FALSE;
+        break;
+    case PUTBIT_TRAINING_SUCCEEDED:
+        /* The modem is now trained */
+        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier trained\n");
+        s->modems.rx_trained = TRUE;
+        break;
+    case PUTBIT_CARRIER_UP:
+        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier up\n");
+        s->modems.rx_signal_present = TRUE;
+        break;
+    case PUTBIT_CARRIER_DOWN:
+        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier down\n");
+        s->modems.rx_signal_present = FALSE;
+        s->modems.rx_trained = FALSE;
+        break;
+    case PUTBIT_FRAMING_OK:
+        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC framing OK\n");
+        break;
+    case PUTBIT_ABORT:
+        /* Just ignore these */
+        break;
+    default:
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected HDLC special length - %d!\n", status);
+        break;
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -198,52 +251,14 @@ static void hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
 {
     faxtester_state_t *s;
 
-    s = (faxtester_state_t *) user_data;
     if (len < 0)
     {
-        /* Special conditions */
-        switch (len)
-        {
-        case PUTBIT_TRAINING_IN_PROGRESS:
-            break;
-        case PUTBIT_TRAINING_FAILED:
-            span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier training failed\n");
-            s->modems.rx_trained = FALSE;
-            break;
-        case PUTBIT_TRAINING_SUCCEEDED:
-            /* The modem is now trained */
-            span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier trained\n");
-            s->modems.rx_trained = TRUE;
-            break;
-        case PUTBIT_CARRIER_UP:
-            span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier up\n");
-            s->modems.rx_signal_present = TRUE;
-            break;
-        case PUTBIT_CARRIER_DOWN:
-            span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier down\n");
-            s->modems.rx_signal_present = FALSE;
-            s->modems.rx_trained = FALSE;
-            break;
-        case PUTBIT_FRAMING_OK:
-            span_log(&s->logging, SPAN_LOG_FLOW, "HDLC framing OK\n");
-            break;
-        case PUTBIT_ABORT:
-            /* Just ignore these */
-            break;
-        default:
-            span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected HDLC special length - %d!\n", len);
-            break;
-        }
+        hdlc_rx_status(user_data, len);
         return;
     }
+    s = (faxtester_state_t *) user_data;
     if (s->real_time_frame_handler)
         s->real_time_frame_handler(s, s->real_time_frame_user_data, TRUE, msg, len);
-}
-/*- End of function --------------------------------------------------------*/
-
-static int dummy_rx(void *user_data, const int16_t amp[], int len)
-{
-    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -451,7 +466,7 @@ void faxtester_set_rx_type(void *user_data, int type, int short_train, int use_h
     case T30_MODEM_DONE:
         span_log(&s->logging, SPAN_LOG_FLOW, "FAX exchange complete\n");
     default:
-        s->modems.rx_handler = (span_rx_handler_t *) &dummy_rx;
+        s->modems.rx_handler = (span_rx_handler_t *) &span_dummy_rx;
         s->modems.rx_user_data = s;
         break;
     }
@@ -658,6 +673,37 @@ void faxtester_set_front_end_step_timeout_handler(faxtester_state_t *s, faxteste
 }
 /*- End of function --------------------------------------------------------*/
 
+static void faxtester_fax_modems_init(fax_modems_state_t *s, int use_tep, void *user_data)
+{
+    s->use_tep = use_tep;
+
+    hdlc_rx_init(&s->hdlc_rx, FALSE, FALSE, HDLC_FRAMING_OK_THRESHOLD, hdlc_accept, user_data);
+    hdlc_tx_init(&s->hdlc_tx, FALSE, 2, FALSE, hdlc_underflow_handler, user_data);
+    fsk_rx_init(&s->v21_rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &s->hdlc_rx);
+    fsk_rx_signal_cutoff(&s->v21_rx, -45.5);
+    fsk_tx_init(&s->v21_tx, &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &s->hdlc_tx);
+    fsk_tx_set_modem_status_handler(&s->v21_tx, modem_tx_status, user_data);
+    v17_rx_init(&s->v17_rx, 14400, non_ecm_put_bit, user_data);
+    v17_tx_init(&s->v17_tx, 14400, s->use_tep, non_ecm_get_bit, user_data);
+    v17_tx_set_modem_status_handler(&s->v17_tx, modem_tx_status, user_data);
+    v29_rx_init(&s->v29_rx, 9600, non_ecm_put_bit, user_data);
+    v29_rx_signal_cutoff(&s->v29_rx, -45.5);
+    v29_tx_init(&s->v29_tx, 9600, s->use_tep, non_ecm_get_bit, user_data);
+    v29_tx_set_modem_status_handler(&s->v29_tx, modem_tx_status, user_data);
+    v27ter_rx_init(&s->v27ter_rx, 4800, non_ecm_put_bit, user_data);
+    v27ter_tx_init(&s->v27ter_tx, 4800, s->use_tep, non_ecm_get_bit, user_data);
+    v27ter_tx_set_modem_status_handler(&s->v27ter_tx, modem_tx_status, user_data);
+    silence_gen_init(&s->silence_gen, 0);
+    dc_restore_init(&s->dc_restore);
+
+    s->rx_signal_present = FALSE;
+    s->rx_handler = (span_rx_handler_t *) &span_dummy_rx;
+    s->rx_user_data = NULL;
+    s->tx_handler = (span_tx_handler_t *) &silence_gen;
+    s->tx_user_data = &s->silence_gen;
+}
+/*- End of function --------------------------------------------------------*/
+
 faxtester_state_t *faxtester_init(faxtester_state_t *s, int calling_party)
 {
     if (s == NULL)
@@ -668,27 +714,8 @@ faxtester_state_t *faxtester_init(faxtester_state_t *s, int calling_party)
 
     memset(s, 0, sizeof(*s));
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
-    span_log_set_protocol(&s->logging, "FAX");
-    hdlc_rx_init(&(s->modems.hdlc_rx), FALSE, FALSE, HDLC_FRAMING_OK_THRESHOLD, hdlc_accept, &s);
-    fsk_rx_init(&(s->modems.v21_rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &(s->modems.hdlc_rx));
-    fsk_rx_signal_cutoff(&(s->modems.v21_rx), -45.5);
-    hdlc_tx_init(&(s->modems.hdlc_tx), FALSE, 2, FALSE, hdlc_underflow_handler, s);
-    fsk_tx_init(&(s->modems.v21_tx), &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &(s->modems.hdlc_tx));
-    fsk_tx_set_modem_status_handler(&(s->modems.v21_tx), modem_tx_status, (void *) s);
-    v17_rx_init(&(s->modems.v17_rx), 14400, non_ecm_put_bit, s);
-    v17_tx_init(&(s->modems.v17_tx), 14400, s->modems.use_tep, non_ecm_get_bit, s);
-    v17_tx_set_modem_status_handler(&(s->modems.v17_tx), modem_tx_status, (void *) s);
-    v29_rx_init(&(s->modems.v29_rx), 9600, non_ecm_put_bit, s);
-    v29_rx_signal_cutoff(&(s->modems.v29_rx), -45.5);
-    v29_tx_init(&(s->modems.v29_tx), 9600, s->modems.use_tep, non_ecm_get_bit, s);
-    v29_tx_set_modem_status_handler(&(s->modems.v29_tx), modem_tx_status, (void *) s);
-    v27ter_rx_init(&(s->modems.v27ter_rx), 4800, non_ecm_put_bit, s);
-    v27ter_tx_init(&(s->modems.v27ter_tx), 4800, s->modems.use_tep, non_ecm_get_bit, s);
-    v27ter_tx_set_modem_status_handler(&(s->modems.v27ter_tx), modem_tx_status, (void *) s);
-    silence_gen_init(&(s->modems.silence_gen), 0);
-    dc_restore_init(&(s->modems.dc_restore));
-    s->modems.rx_handler = (span_rx_handler_t *) &dummy_rx;
-    s->modems.rx_user_data = NULL;
+    span_log_set_protocol(&s->logging, "TST");
+    faxtester_fax_modems_init(&s->modems, FALSE, s);
     faxtester_set_timeout(s, -1);
     faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
 

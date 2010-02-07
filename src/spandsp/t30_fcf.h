@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_fcf.h,v 1.16 2008/04/17 14:27:00 steveu Exp $
+ * $Id: t30_fcf.h,v 1.17 2008/08/03 03:44:00 steveu Exp $
  */
 
 /*! \file */
@@ -86,8 +86,8 @@ enum
     T30_MCF = 0x8C,         /*! [X011 0001] Message confirmation */
     T30_RTP = 0xCC,         /*! [X011 0011] Retrain positive */
     T30_RTN = 0x4C,         /*! [X011 0010] Retrain negative */
-    T30_PIP = 0xAC,         /*! [X111 0101] Procedure interrupt positive */
-    T30_PIN = 0x2C,         /*! [X111 0100] Procedure interrupt negative */
+    T30_PIP = 0xAC,         /*! [X011 0101] Procedure interrupt positive */
+    T30_PIN = 0x2C,         /*! [X011 0100] Procedure interrupt negative */
     T30_PPR = 0xBC,         /*! [X011 1101] Partial page request */
     T30_RNR = 0xEC,         /*! [X011 0111] Receive not ready */
     T30_ERR = 0x1C,         /*! [X011 1000] Response for end of retransmission */

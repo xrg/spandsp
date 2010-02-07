@@ -527,7 +527,7 @@ target_alias = @target_alias@
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
 noinst_DATA = sound_c1_8k.wav sound_c3_8k.wav
-EXTRA_DIST = regression_tests.sh v42bis_tests.sh fax_tests.sh
+EXTRA_DIST = regression_tests.sh v42bis_tests.sh fax_tests.sh tsb85_tests.sh
 MAINTAINERCLEANFILES = Makefile.in
 INCLUDES = -I$(top_builddir)/src -I$(top_builddir)/spandsp-sim -DDATADIR="\"$(pkgdatadir)\""
 LIBDIR = -L$(top_builddir)/src

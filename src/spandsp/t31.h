@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.51 2008/07/26 04:53:00 steveu Exp $
+ * $Id: t31.h,v 1.52 2008/07/31 12:55:30 steveu Exp $
  */
 
 /*! \file */
@@ -175,7 +175,8 @@ struct t31_state_s
 
     /*! \brief The current bit rate for the FAX fast message transfer modem. */
     int bit_rate;
-    int rx_message_received;
+    /*! \brief TRUE if a valid HDLC frame has been received in the current reception period. */
+    int rx_frame_received;
 
     /*! \brief Samples elapsed in the current call */
     int64_t call_samples;

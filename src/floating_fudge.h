@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: floating_fudge.h,v 1.4 2008/07/10 15:46:10 steveu Exp $
+ * $Id: floating_fudge.h,v 1.5 2008/08/03 03:44:00 steveu Exp $
  */
 
 #if !defined(_FLOATING_FUDGE_H_)
@@ -351,7 +351,7 @@ static __inline__ float log10f(float x)
             fld x
             fistp i
         };
-        return ir;
+        return i;
     }
 
     __inline long int lfastrint(double x)

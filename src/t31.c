@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.115 2008/07/26 04:53:00 steveu Exp $
+ * $Id: t31.c,v 1.117 2008/08/01 17:59:46 steveu Exp $
  */
 
 /*! \file */
@@ -699,49 +699,57 @@ static int t31_modem_control_handler(at_state_t *s, void *user_data, int op, con
 }
 /*- End of function --------------------------------------------------------*/
 
-static void non_ecm_put_bit(void *user_data, int bit)
+static void non_ecm_rx_status(void *user_data, int status)
 {
     t31_state_t *s;
 
     s = (t31_state_t *) user_data;
+    switch (status)
+    {
+    case PUTBIT_TRAINING_IN_PROGRESS:
+        break;
+    case PUTBIT_TRAINING_FAILED:
+        s->at_state.rx_trained = FALSE;
+        break;
+    case PUTBIT_TRAINING_SUCCEEDED:
+        /* The modem is now trained */
+        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
+        s->at_state.rx_signal_present = TRUE;
+        s->at_state.rx_trained = TRUE;
+        break;
+    case PUTBIT_CARRIER_UP:
+        break;
+    case PUTBIT_CARRIER_DOWN:
+        if (s->at_state.rx_signal_present)
+        {
+            s->at_state.rx_data[s->at_state.rx_data_bytes++] = DLE;
+            s->at_state.rx_data[s->at_state.rx_data_bytes++] = ETX;
+            s->at_state.at_tx_handler(&s->at_state, s->at_state.at_tx_user_data, s->at_state.rx_data, s->at_state.rx_data_bytes);
+            s->at_state.rx_data_bytes = 0;
+            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_NO_CARRIER);
+            t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+        }
+        s->at_state.rx_signal_present = FALSE;
+        s->at_state.rx_trained = FALSE;
+        break;
+    default:
+        if (s->at_state.p.result_code_format)
+            span_log(&s->logging, SPAN_LOG_FLOW, "Eh!\n");
+        break;
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
+static void non_ecm_put_bit(void *user_data, int bit)
+{
+    t31_state_t *s;
+
     if (bit < 0)
     {
-        /* Special conditions */
-        switch (bit)
-        {
-        case PUTBIT_TRAINING_IN_PROGRESS:
-            break;
-        case PUTBIT_TRAINING_FAILED:
-            s->at_state.rx_trained = FALSE;
-            break;
-        case PUTBIT_TRAINING_SUCCEEDED:
-            /* The modem is now trained */
-            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
-            s->at_state.rx_signal_present = TRUE;
-            s->at_state.rx_trained = TRUE;
-            break;
-        case PUTBIT_CARRIER_UP:
-            break;
-        case PUTBIT_CARRIER_DOWN:
-            if (s->at_state.rx_signal_present)
-            {
-                s->at_state.rx_data[s->at_state.rx_data_bytes++] = DLE;
-                s->at_state.rx_data[s->at_state.rx_data_bytes++] = ETX;
-                s->at_state.at_tx_handler(&s->at_state, s->at_state.at_tx_user_data, s->at_state.rx_data, s->at_state.rx_data_bytes);
-                s->at_state.rx_data_bytes = 0;
-                at_put_response_code(&s->at_state, AT_RESPONSE_CODE_NO_CARRIER);
-                t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
-            }
-            s->at_state.rx_signal_present = FALSE;
-            s->at_state.rx_trained = FALSE;
-            break;
-        default:
-            if (s->at_state.p.result_code_format)
-                span_log(&s->logging, SPAN_LOG_FLOW, "Eh!\n");
-            break;
-        }
+        non_ecm_rx_status(user_data, bit);
         return;
     }
+    s = (t31_state_t *) user_data;
     s->audio.current_byte = (s->audio.current_byte >> 1) | (bit << 7);
     if (++s->audio.bit_no >= 8)
     {
@@ -828,127 +836,136 @@ static void hdlc_tx_underflow(void *user_data)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
+static void hdlc_rx_status(void *user_data, int status)
 {
-    uint8_t buf[256];
     t31_state_t *s;
-    int i;
+    uint8_t buf[2];
 
     s = (t31_state_t *) user_data;
-    if (len < 0)
+    switch (status)
     {
-        /* Special conditions */
-        switch (len)
+    case PUTBIT_TRAINING_IN_PROGRESS:
+        break;
+    case PUTBIT_TRAINING_FAILED:
+        s->at_state.rx_trained = FALSE;
+        break;
+    case PUTBIT_TRAINING_SUCCEEDED:
+        /* The modem is now trained */
+        s->at_state.rx_signal_present = TRUE;
+        s->at_state.rx_trained = TRUE;
+        break;
+    case PUTBIT_CARRIER_UP:
+        if (s->modem == T31_CNG_TONE  ||  s->modem == T31_NOCNG_TONE  ||  s->modem == T31_V21_RX)
         {
-        case PUTBIT_TRAINING_IN_PROGRESS:
-            break;
-        case PUTBIT_TRAINING_FAILED:
-            s->at_state.rx_trained = FALSE;
-            break;
-        case PUTBIT_TRAINING_SUCCEEDED:
-            /* The modem is now trained */
             s->at_state.rx_signal_present = TRUE;
-            s->at_state.rx_trained = TRUE;
-            break;
-        case PUTBIT_CARRIER_UP:
-            if (s->modem == T31_CNG_TONE  ||  s->modem == T31_NOCNG_TONE  ||  s->modem == T31_V21_RX)
+            s->rx_frame_received = FALSE;
+        }
+        break;
+    case PUTBIT_CARRIER_DOWN:
+        if (s->rx_frame_received)
+        {
+            if (s->at_state.dte_is_waiting)
             {
-                s->at_state.rx_signal_present = TRUE;
-                s->rx_message_received = FALSE;
-            }
-            break;
-        case PUTBIT_CARRIER_DOWN:
-            if (s->rx_message_received)
-            {
-                if (s->at_state.dte_is_waiting)
+                if (s->at_state.ok_is_pending)
                 {
-                    if (s->at_state.ok_is_pending)
-                    {
-                        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
-                        s->at_state.ok_is_pending = FALSE;
-                    }
-                    else
-                    {
-                        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_NO_CARRIER);
-                    }
-                    s->at_state.dte_is_waiting = FALSE;
-                    t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
+                    s->at_state.ok_is_pending = FALSE;
                 }
                 else
                 {
-                    buf[0] = AT_RESPONSE_CODE_NO_CARRIER;
-                    queue_write_msg(s->rx_queue, buf, 1);
+                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_NO_CARRIER);
                 }
-            }
-            s->at_state.rx_signal_present = FALSE;
-            s->at_state.rx_trained = FALSE;
-            break;
-        case PUTBIT_FRAMING_OK:
-            if (s->modem == T31_CNG_TONE  ||  s->modem == T31_NOCNG_TONE)
-            {
-                /* Once we get any valid HDLC the CNG tone stops, and we drop
-                   to the V.21 receive modem on its own. */
-                s->modem = T31_V21_RX;
-                s->at_state.transmit = FALSE;
-            }
-            if (s->modem == T31_V17_RX  ||  s->modem == T31_V27TER_RX  ||  s->modem == T31_V29_RX)
-            {
-                /* V.21 has been detected while expecting a different carrier.
-                   If +FAR=0 then result +FCERROR and return to command-mode.
-                   If +FAR=1 then report +FRH:3 and CONNECT, switching to
-                   V.21 receive mode. */
-                if (s->at_state.p.adaptive_receive)
-                {
-                    s->at_state.rx_signal_present = TRUE;
-                    s->rx_message_received = TRUE;
-                    s->modem = T31_V21_RX;
-                    s->at_state.transmit = FALSE;
-                    s->at_state.dte_is_waiting = TRUE;
-                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_FRH3);
-                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
-                }
-                else
-                {
-                    s->modem = T31_SILENCE_TX;
-                    t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
-                    s->rx_message_received = FALSE;
-                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_FCERROR);
-                }
+                s->at_state.dte_is_waiting = FALSE;
+                t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
             }
             else
             {
-                if (!s->rx_message_received)
+                buf[0] = AT_RESPONSE_CODE_NO_CARRIER;
+                queue_write_msg(s->rx_queue, buf, 1);
+            }
+        }
+        s->at_state.rx_signal_present = FALSE;
+        s->at_state.rx_trained = FALSE;
+        break;
+    case PUTBIT_FRAMING_OK:
+        if (s->modem == T31_CNG_TONE  ||  s->modem == T31_NOCNG_TONE)
+        {
+            /* Once we get any valid HDLC the CNG tone stops, and we drop
+               to the V.21 receive modem on its own. */
+            s->modem = T31_V21_RX;
+            s->at_state.transmit = FALSE;
+        }
+        if (s->modem == T31_V17_RX  ||  s->modem == T31_V27TER_RX  ||  s->modem == T31_V29_RX)
+        {
+            /* V.21 has been detected while expecting a different carrier.
+               If +FAR=0 then result +FCERROR and return to command-mode.
+               If +FAR=1 then report +FRH:3 and CONNECT, switching to
+               V.21 receive mode. */
+            if (s->at_state.p.adaptive_receive)
+            {
+                s->at_state.rx_signal_present = TRUE;
+                s->rx_frame_received = TRUE;
+                s->modem = T31_V21_RX;
+                s->at_state.transmit = FALSE;
+                s->at_state.dte_is_waiting = TRUE;
+                at_put_response_code(&s->at_state, AT_RESPONSE_CODE_FRH3);
+                at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
+            }
+            else
+            {
+                s->modem = T31_SILENCE_TX;
+                t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+                s->rx_frame_received = FALSE;
+                at_put_response_code(&s->at_state, AT_RESPONSE_CODE_FCERROR);
+            }
+        }
+        else
+        {
+            if (!s->rx_frame_received)
+            {
+                if (s->at_state.dte_is_waiting)
                 {
-                    if (s->at_state.dte_is_waiting)
-                    {
-                        /* Report CONNECT as soon as possible to avoid a timeout. */
-                        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
-                        s->rx_message_received = TRUE;
-                    }
-                    else
-                    {
-                        buf[0] = AT_RESPONSE_CODE_CONNECT;
-                        queue_write_msg(s->rx_queue, buf, 1);
-                    }
+                    /* Report CONNECT as soon as possible to avoid a timeout. */
+                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
+                    s->rx_frame_received = TRUE;
+                }
+                else
+                {
+                    buf[0] = AT_RESPONSE_CODE_CONNECT;
+                    queue_write_msg(s->rx_queue, buf, 1);
                 }
             }
-            break;
-        case PUTBIT_ABORT:
-            /* Just ignore these */
-            break;
-        default:
-            span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected HDLC special length - %d!\n", len);
-            break;
         }
+        break;
+    case PUTBIT_ABORT:
+        /* Just ignore these */
+        break;
+    default:
+        span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected HDLC rx status - %d!\n", status);
+        break;
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
+static void hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
+{
+    t31_state_t *s;
+    uint8_t buf[256];
+    int i;
+
+    if (len < 0)
+    {
+        hdlc_rx_status(user_data, len);
         return;
     }
-    if (!s->rx_message_received)
+    s = (t31_state_t *) user_data;
+    if (!s->rx_frame_received)
     {
         if (s->at_state.dte_is_waiting)
         {
             /* Report CONNECT as soon as possible to avoid a timeout. */
             at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
-            s->rx_message_received = TRUE;
+            s->rx_frame_received = TRUE;
         }
         else
         {
@@ -984,7 +1001,7 @@ static void hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
             {
                 at_put_response_code(&s->at_state, (ok)  ?  AT_RESPONSE_CODE_OK  :  AT_RESPONSE_CODE_ERROR);
                 s->at_state.dte_is_waiting = FALSE;
-                s->rx_message_received = FALSE;
+                s->rx_frame_received = FALSE;
             }
         }
         else
@@ -1027,7 +1044,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
     s->tx.final = FALSE;
     s->at_state.rx_signal_present = FALSE;
     s->at_state.rx_trained = FALSE;
-    s->rx_message_received = FALSE;
+    s->rx_frame_received = FALSE;
     s->audio.modems.rx_handler = (span_rx_handler_t *) &span_dummy_rx;
     s->audio.modems.rx_user_data = NULL;
     switch (s->modem)
@@ -1452,7 +1469,7 @@ static int process_class1_cmd(at_state_t *t, void *user_data, int direction, int
         {
             /* Send straight away, if there is something queued. */
             t31_set_at_rx_mode(s, AT_MODE_DELIVERY);
-            s->rx_message_received = FALSE;
+            s->rx_frame_received = FALSE;
             do
             {
                 if (!queue_empty(s->rx_queue))
@@ -1677,7 +1694,7 @@ static int early_v17_rx(void *user_data, const int16_t amp[], int len)
     else
     {
         fsk_rx(&(s->audio.modems.v21_rx), amp, len);
-        if (s->rx_message_received)
+        if (s->rx_frame_received)
         {
             /* We have received something, and the fast modem has not trained. We must
                be receiving valid V.21 */
@@ -1707,7 +1724,7 @@ static int early_v27ter_rx(void *user_data, const int16_t amp[], int len)
     else
     {
         fsk_rx(&(s->audio.modems.v21_rx), amp, len);
-        if (s->rx_message_received)
+        if (s->rx_frame_received)
         {
             /* We have received something, and the fast modem has not trained. We must
                be receiving valid V.21 */
@@ -1737,7 +1754,7 @@ static int early_v29_rx(void *user_data, const int16_t amp[], int len)
     else
     {
         fsk_rx(&(s->audio.modems.v21_rx), amp, len);
-        if (s->rx_message_received)
+        if (s->rx_frame_received)
         {
             /* We have received something, and the fast modem has not trained. We must
                be receiving valid V.21 */
@@ -1747,6 +1764,33 @@ static int early_v29_rx(void *user_data, const int16_t amp[], int len)
         }
     }
     return len;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void t31_fax_modems_init(fax_modems_state_t *s, int use_tep, void *user_data)
+{
+    s->use_tep = use_tep;
+
+    hdlc_rx_init(&s->hdlc_rx, FALSE, TRUE, HDLC_FRAMING_OK_THRESHOLD, hdlc_accept, user_data);
+    hdlc_tx_init(&s->hdlc_tx, FALSE, 2, FALSE, hdlc_tx_underflow, user_data);
+    fsk_rx_init(&s->v21_rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &s->hdlc_rx);
+    fsk_rx_signal_cutoff(&s->v21_rx, -39.09);
+    fsk_tx_init(&s->v21_tx, &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &s->hdlc_tx);
+    v17_rx_init(&s->v17_rx, 14400, non_ecm_put_bit, user_data);
+    v17_tx_init(&s->v17_tx, 14400, s->use_tep, non_ecm_get_bit, user_data);
+    v29_rx_init(&s->v29_rx, 9600, non_ecm_put_bit, user_data);
+    v29_rx_signal_cutoff(&s->v29_rx, -45.5);
+    v29_tx_init(&s->v29_tx, 9600, s->use_tep, non_ecm_get_bit, user_data);
+    v27ter_rx_init(&s->v27ter_rx, 4800, non_ecm_put_bit, user_data);
+    v27ter_tx_init(&s->v27ter_tx, 4800, s->use_tep, non_ecm_get_bit, user_data);
+    silence_gen_init(&s->silence_gen, 0);
+    dc_restore_init(&s->dc_restore);
+
+    s->rx_signal_present = FALSE;
+    s->rx_handler = (span_rx_handler_t *) &span_dummy_rx;
+    s->rx_user_data = NULL;
+    s->tx_handler = (span_tx_handler_t *) &silence_gen;
+    s->tx_user_data = &s->silence_gen;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1929,14 +1973,7 @@ t31_state_t *t31_init(t31_state_t *s,
 
     s->modem_control_handler = modem_control_handler;
     s->modem_control_user_data = modem_control_user_data;
-    v17_rx_init(&(s->audio.modems.v17_rx), 14400, non_ecm_put_bit, s);
-    v17_tx_init(&(s->audio.modems.v17_tx), 14400, FALSE, non_ecm_get_bit, s);
-    v29_rx_init(&(s->audio.modems.v29_rx), 9600, non_ecm_put_bit, s);
-    v29_rx_signal_cutoff(&(s->audio.modems.v29_rx), -45.5);
-    v29_tx_init(&(s->audio.modems.v29_tx), 9600, FALSE, non_ecm_get_bit, s);
-    v27ter_rx_init(&(s->audio.modems.v27ter_rx), 4800, non_ecm_put_bit, s);
-    v27ter_tx_init(&(s->audio.modems.v27ter_tx), 4800, FALSE, non_ecm_get_bit, s);
-    silence_gen_init(&(s->audio.modems.silence_gen), 0);
+    t31_fax_modems_init(&s->audio.modems, FALSE, s);
     power_meter_init(&(s->audio.rx_power), 4);
     s->audio.last_sample = 0;
     s->audio.silence_threshold_power = power_meter_level_dbm0(-36);
@@ -1950,10 +1987,6 @@ t31_state_t *t31_init(t31_state_t *s,
     s->call_samples = 0;
     s->modem = T31_NONE;
     s->at_state.transmit = TRUE;
-    s->audio.modems.rx_handler = span_dummy_rx;
-    s->audio.modems.rx_user_data = NULL;
-    s->audio.modems.tx_handler = (span_tx_handler_t *) &silence_gen;
-    s->audio.modems.tx_user_data = &(s->audio.modems.silence_gen);
 
     if ((s->rx_queue = queue_init(NULL, 4096, QUEUE_WRITE_ATOMIC | QUEUE_READ_ATOMIC)) == NULL)
     {

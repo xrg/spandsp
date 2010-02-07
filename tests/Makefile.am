@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.100 2008/07/28 15:14:30 steveu Exp $
+## $Id: Makefile.am,v 1.101 2008/07/31 12:55:30 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -25,7 +25,7 @@ LIBS += $(TESTLIBS)
 
 noinst_DATA = sound_c1_8k.wav sound_c3_8k.wav
 
-EXTRA_DIST = regression_tests.sh v42bis_tests.sh fax_tests.sh
+EXTRA_DIST = regression_tests.sh v42bis_tests.sh fax_tests.sh tsb85_tests.sh
  
 MAINTAINERCLEANFILES = Makefile.in
 

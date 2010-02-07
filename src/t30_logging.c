@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_logging.c,v 1.5 2008/07/02 14:48:26 steveu Exp $
+ * $Id: t30_logging.c,v 1.6 2008/08/01 17:59:46 steveu Exp $
  */
 
 /*! \file */
@@ -221,7 +221,7 @@ const char *t30_completion_code_to_str(int result)
 
 const char *t30_frametype(uint8_t x)
 {
-    switch (x & 0xFE)
+    switch (x)
     {
     case T30_DIS:
         return "DIS";

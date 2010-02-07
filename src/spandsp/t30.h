@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.111 2008/07/30 14:47:06 steveu Exp $
+ * $Id: t30.h,v 1.112 2008/07/31 12:55:30 steveu Exp $
  */
 
 /*! \file */
@@ -586,12 +586,13 @@ struct t30_state_s
     /*! \brief TRUE if the short training sequence should be used. */
     int short_train;
 
-    /*! \brief A count of the number of bits in the trainability test. */
-    int training_test_bits;
-    /*! \brief The current count of consecutive zero bits, during the trainability test. */
-    int training_current_zeros;
-    /*! \brief The maximum consecutive zero bits seen to date, during the trainability test. */
-    int training_most_zeros;
+    /*! \brief A count of the number of bits in the trainability test. This counts down to zero when
+        sending TCF, and counts up when receiving it. */
+    int tcf_test_bits;
+    /*! \brief The current count of consecutive received zero bits, during the trainability test. */
+    int tcf_current_zeros;
+    /*! \brief The maximum consecutive received zero bits seen to date, during the trainability test. */
+    int tcf_most_zeros;
 
     /*! \brief The current fallback step for the fast message transfer modem. */
     int current_fallback;
@@ -601,6 +602,9 @@ struct t30_state_s
     int rx_signal_present;
     /*! \brief TRUE if a modem has trained correctly. */
     int rx_trained;
+    /*! \brief TRUE if a valid HDLC frame has been received in the current reception period. */
+    int rx_frame_received;
+
     /*! \brief Current reception mode. */
     int current_rx_type;
     /*! \brief Current transmission mode. */
@@ -616,6 +620,8 @@ struct t30_state_s
     int timer_t2_t4;
     /*! \brief A value specifying which of the possible timers is currently running in timer_t2_t4 */
     int timer_t2_t4_is;
+    /*! \brief T2B and T4B are the short carrier drop persistency check timers. */
+    int timer_t2b_t4b;
     /*! \brief Procedural interrupt timeout (in audio samples). */
     int timer_t3;
     /*! \brief This is only used in error correcting mode. */

@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.130 2008/07/26 04:53:00 steveu Exp $
+ * $Id: t38_gateway.c,v 1.131 2008/08/01 17:59:46 steveu Exp $
  */
 
 /*! \file */
@@ -123,7 +123,9 @@ enum
     FLAG_DATA = 0x200
 };
 
-#define MAX_NSX_SUPPRESSION     10
+#define MAX_NSX_SUPPRESSION             10
+
+#define HDLC_FRAMING_OK_THRESHOLD       5
 
 static uint8_t nsx_overwrite[2][MAX_NSX_SUPPRESSION] =
 {
@@ -1323,61 +1325,69 @@ static void announce_training(t38_gateway_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void non_ecm_put_bit(void *user_data, int bit)
+static void non_ecm_rx_status(void *user_data, int status)
 {
     t38_gateway_state_t *s;
 
     s = (t38_gateway_state_t *) user_data;
-    if (bit < 0)
+    switch (status)
     {
-        /* Special conditions */
-        switch (bit)
-        {
-        case PUTBIT_TRAINING_IN_PROGRESS:
-            span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier training in progress\n");
-            if (s->tcf_mode_predictable_modem_start)
-                s->tcf_mode_predictable_modem_start = 0;
-            else
-                announce_training(s);
-            break;
-        case PUTBIT_TRAINING_FAILED:
-            span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier training failed\n");
-            break;
-        case PUTBIT_TRAINING_SUCCEEDED:
-            /* The modem is now trained */
-            span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier trained\n");
-            s->audio.modems.rx_signal_present = TRUE;
-            s->audio.modems.rx_trained = TRUE;
-            s->to_t38.data_ptr = 0;
-            break;
-        case PUTBIT_CARRIER_UP:
-            span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier up\n");
-            break;
-        case PUTBIT_CARRIER_DOWN:
-            span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier down\n");
+    case PUTBIT_TRAINING_IN_PROGRESS:
+        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier training in progress\n");
+        if (s->tcf_mode_predictable_modem_start)
             s->tcf_mode_predictable_modem_start = 0;
-            switch (s->t38x.current_tx_data_type)
-            {
-            case T38_DATA_V17_7200:
-            case T38_DATA_V17_9600:
-            case T38_DATA_V17_12000:
-            case T38_DATA_V17_14400:
-            case T38_DATA_V27TER_2400:
-            case T38_DATA_V27TER_4800:
-            case T38_DATA_V29_7200:
-            case T38_DATA_V29_9600:
-                t38_core_send_data(&s->t38x.t38, s->t38x.current_tx_data_type, T38_FIELD_T4_NON_ECM_SIG_END, NULL, 0, s->t38x.t38.data_end_tx_count);
-                t38_core_send_indicator(&s->t38x.t38, T38_IND_NO_SIGNAL, s->t38x.t38.indicator_tx_count);
-                restart_rx_modem(s);
-                break;
-            }
-            break;
-        default:
-            span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected non-ECM special bit - %d!\n", bit);
+        else
+            announce_training(s);
+        break;
+    case PUTBIT_TRAINING_FAILED:
+        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier training failed\n");
+        break;
+    case PUTBIT_TRAINING_SUCCEEDED:
+        /* The modem is now trained */
+        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier trained\n");
+        s->audio.modems.rx_signal_present = TRUE;
+        s->audio.modems.rx_trained = TRUE;
+        s->to_t38.data_ptr = 0;
+        break;
+    case PUTBIT_CARRIER_UP:
+        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier up\n");
+        break;
+    case PUTBIT_CARRIER_DOWN:
+        span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier down\n");
+        s->tcf_mode_predictable_modem_start = 0;
+        switch (s->t38x.current_tx_data_type)
+        {
+        case T38_DATA_V17_7200:
+        case T38_DATA_V17_9600:
+        case T38_DATA_V17_12000:
+        case T38_DATA_V17_14400:
+        case T38_DATA_V27TER_2400:
+        case T38_DATA_V27TER_4800:
+        case T38_DATA_V29_7200:
+        case T38_DATA_V29_9600:
+            t38_core_send_data(&s->t38x.t38, s->t38x.current_tx_data_type, T38_FIELD_T4_NON_ECM_SIG_END, NULL, 0, s->t38x.t38.data_end_tx_count);
+            t38_core_send_indicator(&s->t38x.t38, T38_IND_NO_SIGNAL, s->t38x.t38.indicator_tx_count);
+            restart_rx_modem(s);
             break;
         }
+        break;
+    default:
+        span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected non-ECM special bit - %d!\n", status);
+        break;
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
+static void non_ecm_put_bit(void *user_data, int bit)
+{
+    t38_gateway_state_t *s;
+
+    if (bit < 0)
+    {
+        non_ecm_rx_status(user_data, bit);
         return;
     }
+    s = (t38_gateway_state_t *) user_data;
     bit &= 1;
     if (s->t38x.t38.fill_bit_removal)
     {
@@ -1524,12 +1534,12 @@ static void add_to_non_ecm_modem_buffer(t38_gateway_state_t *s, const uint8_t *b
 }
 /*- End of function --------------------------------------------------------*/
 
-static void hdlc_rx_special_condition(hdlc_rx_state_t *t, int condition)
+static void hdlc_rx_status(hdlc_rx_state_t *t, int status)
 {
     t38_gateway_state_t *s;
 
     s = (t38_gateway_state_t *) t->user_data;
-    switch (condition)
+    switch (status)
     {
     case PUTBIT_TRAINING_IN_PROGRESS:
         span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier training in progress\n");
@@ -1577,7 +1587,7 @@ static void hdlc_rx_special_condition(hdlc_rx_state_t *t, int condition)
         }
         break;
     default:
-        span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected HDLC special bit - %d!\n", condition);
+        span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected HDLC special bit - %d!\n", status);
         break;
     }
 }
@@ -1695,7 +1705,7 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
 
     if (new_bit < 0)
     {
-        hdlc_rx_special_condition(t, new_bit);
+        hdlc_rx_status(t, new_bit);
         return;
     }
     t->raw_bit_stream = (t->raw_bit_stream << 1) | (new_bit & 1);
@@ -1753,7 +1763,7 @@ static int restart_rx_modem(t38_gateway_state_t *s)
 
     span_log(&s->logging, SPAN_LOG_FLOW, "Restart rx modem - modem = %d, short train = %d, ECM = %d\n", s->fast_modem, s->audio.short_train, s->ecm_mode);
 
-    hdlc_rx_init(&(s->audio.modems.hdlc_rx), FALSE, TRUE, 5, NULL, s);
+    hdlc_rx_init(&(s->audio.modems.hdlc_rx), FALSE, TRUE, HDLC_FRAMING_OK_THRESHOLD, NULL, s);
     s->audio.crc = 0xFFFF;
     s->audio.modems.rx_signal_present = FALSE;
     s->audio.modems.rx_trained = FALSE;
@@ -1925,32 +1935,40 @@ void t38_gateway_set_real_time_frame_handler(t38_gateway_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-static int t38_gateway_audio_init(t38_gateway_state_t *t)
+static void t38_fax_modems_init(fax_modems_state_t *s, int use_tep, void *user_data)
 {
-    t38_gateway_audio_state_t *s;
-    
-    s = &t->audio;
+    s->use_tep = use_tep;
 
-    fsk_rx_init(&s->modems.v21_rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) t38_hdlc_rx_put_bit, &s->modems.hdlc_rx);
+    hdlc_rx_init(&s->hdlc_rx, FALSE, TRUE, HDLC_FRAMING_OK_THRESHOLD, NULL, user_data);
+    hdlc_tx_init(&s->hdlc_tx, FALSE, 2, TRUE, hdlc_underflow_handler, user_data);
+    fsk_rx_init(&s->v21_rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) t38_hdlc_rx_put_bit, &s->hdlc_rx);
 #if 0
-    fsk_rx_signal_cutoff(&s->modems.v21_rx, -45.5);
+    fsk_rx_signal_cutoff(&s->v21_rx, -45.5);
 #endif
-    fsk_tx_init(&s->modems.v21_tx, &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &s->modems.hdlc_tx);
-    v17_rx_init(&s->modems.v17_rx, 14400, non_ecm_put_bit, t);
-    v17_tx_init(&s->modems.v17_tx, 14400, s->modems.use_tep, non_ecm_get_bit, t);
-    v29_rx_init(&s->modems.v29_rx, 9600, non_ecm_put_bit, t);
+    fsk_tx_init(&s->v21_tx, &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &s->hdlc_tx);
+    v17_rx_init(&s->v17_rx, 14400, non_ecm_put_bit, user_data);
+    v17_tx_init(&s->v17_tx, 14400, s->use_tep, non_ecm_get_bit, user_data);
+    v29_rx_init(&s->v29_rx, 9600, non_ecm_put_bit, user_data);
 #if 0
-    v29_rx_signal_cutoff(&s->modems.v29_rx, -45.5);
+    v29_rx_signal_cutoff(&s->v29_rx, -45.5);
 #endif
-    v29_tx_init(&s->modems.v29_tx, 9600, s->modems.use_tep, non_ecm_get_bit, t);
-    v27ter_rx_init(&s->modems.v27ter_rx, 4800, non_ecm_put_bit, t);
-    v27ter_tx_init(&s->modems.v27ter_tx, 4800, s->modems.use_tep, non_ecm_get_bit, t);
-    silence_gen_init(&s->modems.silence_gen, 0);
-    hdlc_rx_init(&s->modems.hdlc_rx, FALSE, TRUE, 5, NULL, t);
-    hdlc_tx_init(&s->modems.hdlc_tx, FALSE, 2, TRUE, hdlc_underflow_handler, t);
-    s->modems.rx_signal_present = FALSE;
-    s->modems.tx_handler = (span_tx_handler_t *) &silence_gen;
-    s->modems.tx_user_data = &s->modems.silence_gen;
+    v29_tx_init(&s->v29_tx, 9600, s->use_tep, non_ecm_get_bit, user_data);
+    v27ter_rx_init(&s->v27ter_rx, 4800, non_ecm_put_bit, user_data);
+    v27ter_tx_init(&s->v27ter_tx, 4800, s->use_tep, non_ecm_get_bit, user_data);
+    silence_gen_init(&s->silence_gen, 0);
+    dc_restore_init(&s->dc_restore);
+
+    s->rx_signal_present = FALSE;
+    s->rx_handler = (span_rx_handler_t *) &span_dummy_rx;
+    s->rx_user_data = NULL;
+    s->tx_handler = (span_tx_handler_t *) &silence_gen;
+    s->tx_user_data = &s->silence_gen;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int t38_gateway_audio_init(t38_gateway_state_t *s)
+{
+    t38_fax_modems_init(&s->audio.modems, FALSE, s);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
