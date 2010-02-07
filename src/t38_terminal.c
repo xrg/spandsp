@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.98 2008/07/25 13:56:54 steveu Exp $
+ * $Id: t38_terminal.c,v 1.100 2008/08/13 14:55:51 steveu Exp $
  */
 
 /*! \file */
@@ -162,7 +162,7 @@ static int process_rx_missing(t38_core_state_t *t, void *user_data, int rx_seq_n
     t38_terminal_state_t *s;
     
     s = (t38_terminal_state_t *) user_data;
-    s->t38_fe.missing_data = TRUE;
+    s->t38_fe.rx_data_missing = TRUE;
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -192,19 +192,23 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
             &&
             (fe->current_rx_type == T30_MODEM_V21  ||  fe->current_rx_type == T30_MODEM_CNG))
         {
-            t30_hdlc_accept(&(s->t30), NULL, PUTBIT_CARRIER_DOWN, TRUE);
+            t30_hdlc_accept(&s->t30, NULL, PUTBIT_CARRIER_DOWN, TRUE);
         }
         fe->timeout_rx_samples = 0;
-        t30_front_end_status(&(s->t30), T30_FRONT_END_SIGNAL_ABSENT);
+        t30_front_end_status(&s->t30, T30_FRONT_END_SIGNAL_ABSENT);
         break;
     case T38_IND_CNG:
-        break;
     case T38_IND_CED:
+        /* We are completely indifferent to the startup tones. They serve no purpose for us.
+           We can't even assume that the existance of a tone means the far end is achieving
+           proper communication. Some T.38 gateways will just send out a CED or CNG indicator
+           without having seen anything from the far end FAX terminal. */
         break;
     case T38_IND_V21_PREAMBLE:
-        /* Some people pop these preamble indicators between HDLC frames, so we need to be tolerant of that. */
+        /* Some T.38 implementations insert these preamble indicators between HDLC frames, so
+           we need to be tolerant of that. */
         fe->timeout_rx_samples = fe->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30), T30_FRONT_END_SIGNAL_PRESENT);
+        t30_front_end_status(&s->t30, T30_FRONT_END_SIGNAL_PRESENT);
         break;
     case T38_IND_V27TER_2400_TRAINING:
     case T38_IND_V27TER_4800_TRAINING:
@@ -220,22 +224,25 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
     case T38_IND_V17_14400_LONG_TRAINING:
     case T38_IND_V33_12000_TRAINING:
     case T38_IND_V33_14400_TRAINING:
+        /* We really don't care what kind of modem is delivering the following image data.
+           We only care that some kind of fast modem signal is coming next. */
         fe->timeout_rx_samples = fe->samples + ms_to_samples(MID_RX_TIMEOUT);
-        t30_front_end_status(&(s->t30), T30_FRONT_END_SIGNAL_PRESENT);
+        t30_front_end_status(&s->t30, T30_FRONT_END_SIGNAL_PRESENT);
         break;
     case T38_IND_V8_ANSAM:
     case T38_IND_V8_SIGNAL:
     case T38_IND_V34_CNTL_CHANNEL_1200:
     case T38_IND_V34_PRI_CHANNEL:
     case T38_IND_V34_CC_RETRAIN:
-        t30_front_end_status(&(s->t30), T30_FRONT_END_SIGNAL_PRESENT);
+        /* V.34 support is a work in progress. */
+        t30_front_end_status(&s->t30, T30_FRONT_END_SIGNAL_PRESENT);
         break;
     default:
-        t30_front_end_status(&(s->t30), T30_FRONT_END_SIGNAL_ABSENT);
+        t30_front_end_status(&s->t30, T30_FRONT_END_SIGNAL_ABSENT);
         break;
     }
     fe->hdlc_rx.len = 0;
-    fe->missing_data = FALSE;
+    fe->rx_data_missing = FALSE;
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -285,11 +292,11 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
                there is zero packet lost. Nasty, but true. Its a good idea to be tolerant of
                loss, though, so accepting a sudden start of HDLC data is the right thing to do. */
             fe->timeout_rx_samples = fe->samples + ms_to_samples(MID_RX_TIMEOUT);
-            t30_front_end_status(&(s->t30), T30_FRONT_END_SIGNAL_PRESENT);
+            t30_front_end_status(&s->t30, T30_FRONT_END_SIGNAL_PRESENT);
             /* All real HDLC messages in the FAX world start with 0xFF. If this one is not starting
                with 0xFF it would appear some octets must have been missed before this one. */
             if (buf[0] != 0xFF)
-                fe->missing_data = TRUE;
+                fe->rx_data_missing = TRUE;
         }
         if (fe->hdlc_rx.len + len <= T38_MAX_HDLC_LEN)
         {
@@ -310,11 +317,11 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
            of the incrementing sequence numbers. We need to filter them here in a context sensitive manner. */
         if (t->current_rx_data_type != data_type  ||  t->current_rx_field_type != field_type)
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC OK (%s)\n", (fe->hdlc_rx.len >= 3)  ?  t30_frametype(fe->hdlc_rx.buf[2])  :  "???", (fe->missing_data)  ?  "missing octets"  :  "clean");
-            t30_hdlc_accept(&(s->t30), fe->hdlc_rx.buf, fe->hdlc_rx.len, !fe->missing_data);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC OK (%s)\n", (fe->hdlc_rx.len >= 3)  ?  t30_frametype(fe->hdlc_rx.buf[2])  :  "???", (fe->rx_data_missing)  ?  "missing octets"  :  "clean");
+            t30_hdlc_accept(&s->t30, fe->hdlc_rx.buf, fe->hdlc_rx.len, !fe->rx_data_missing);
         }
         fe->hdlc_rx.len = 0;
-        fe->missing_data = FALSE;
+        fe->rx_data_missing = FALSE;
         fe->timeout_rx_samples = fe->samples + ms_to_samples(MID_RX_TIMEOUT);
         break;
     case T38_FIELD_HDLC_FCS_BAD:
@@ -329,11 +336,11 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
            of the incrementing sequence numbers. We need to filter them here in a context sensitive manner. */
         if (t->current_rx_data_type != data_type  ||  t->current_rx_field_type != field_type)
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC bad (%s)\n", (fe->hdlc_rx.len >= 3)  ?  t30_frametype(fe->hdlc_rx.buf[2])  :  "???", (fe->missing_data)  ?  "missing octets"  :  "clean");
-            t30_hdlc_accept(&(s->t30), fe->hdlc_rx.buf, fe->hdlc_rx.len, FALSE);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC bad (%s)\n", (fe->hdlc_rx.len >= 3)  ?  t30_frametype(fe->hdlc_rx.buf[2])  :  "???", (fe->rx_data_missing)  ?  "missing octets"  :  "clean");
+            t30_hdlc_accept(&s->t30, fe->hdlc_rx.buf, fe->hdlc_rx.len, FALSE);
         }
         fe->hdlc_rx.len = 0;
-        fe->missing_data = FALSE;
+        fe->rx_data_missing = FALSE;
         fe->timeout_rx_samples = fe->samples + ms_to_samples(MID_RX_TIMEOUT);
         break;
     case T38_FIELD_HDLC_FCS_OK_SIG_END:
@@ -348,12 +355,12 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
            of the incrementing sequence numbers. We need to filter them here in a context sensitive manner. */
         if (t->current_rx_data_type != data_type  ||  t->current_rx_field_type != field_type)
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC OK, sig end (%s)\n", (fe->hdlc_rx.len >= 3)  ?  t30_frametype(fe->hdlc_rx.buf[2])  :  "???", (fe->missing_data)  ?  "missing octets"  :  "clean");
-            t30_hdlc_accept(&(s->t30), fe->hdlc_rx.buf, fe->hdlc_rx.len, !fe->missing_data);
-            t30_hdlc_accept(&(s->t30), NULL, PUTBIT_CARRIER_DOWN, TRUE);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC OK, sig end (%s)\n", (fe->hdlc_rx.len >= 3)  ?  t30_frametype(fe->hdlc_rx.buf[2])  :  "???", (fe->rx_data_missing)  ?  "missing octets"  :  "clean");
+            t30_hdlc_accept(&s->t30, fe->hdlc_rx.buf, fe->hdlc_rx.len, !fe->rx_data_missing);
+            t30_hdlc_accept(&s->t30, NULL, PUTBIT_CARRIER_DOWN, TRUE);
         }
         fe->hdlc_rx.len = 0;
-        fe->missing_data = FALSE;
+        fe->rx_data_missing = FALSE;
         fe->timeout_rx_samples = 0;
         break;
     case T38_FIELD_HDLC_FCS_BAD_SIG_END:
@@ -368,12 +375,12 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
            of the incrementing sequence numbers. We need to filter them here in a context sensitive manner. */
         if (t->current_rx_data_type != data_type  ||  t->current_rx_field_type != field_type)
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC bad, sig end (%s)\n", (fe->hdlc_rx.len >= 3)  ?  t30_frametype(fe->hdlc_rx.buf[2])  :  "???", (fe->missing_data)  ?  "missing octets"  :  "clean");
-            t30_hdlc_accept(&(s->t30), fe->hdlc_rx.buf, fe->hdlc_rx.len, FALSE);
-            t30_hdlc_accept(&(s->t30), NULL, PUTBIT_CARRIER_DOWN, TRUE);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Type %s - CRC bad, sig end (%s)\n", (fe->hdlc_rx.len >= 3)  ?  t30_frametype(fe->hdlc_rx.buf[2])  :  "???", (fe->rx_data_missing)  ?  "missing octets"  :  "clean");
+            t30_hdlc_accept(&s->t30, fe->hdlc_rx.buf, fe->hdlc_rx.len, FALSE);
+            t30_hdlc_accept(&s->t30, NULL, PUTBIT_CARRIER_DOWN, TRUE);
         }
         fe->hdlc_rx.len = 0;
-        fe->missing_data = FALSE;
+        fe->rx_data_missing = FALSE;
         fe->timeout_rx_samples = 0;
         break;
     case T38_FIELD_HDLC_SIG_END:
@@ -395,19 +402,19 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
                i.e. they send T38_FIELD_HDLC_FCS_OK, and then T38_FIELD_HDLC_SIG_END when the carrier actually drops.
                The other is because the HDLC signal drops unexpectedly - i.e. not just after a final frame. */
             fe->hdlc_rx.len = 0;
-            fe->missing_data = FALSE;
+            fe->rx_data_missing = FALSE;
             fe->timeout_rx_samples = 0;
-            t30_front_end_status(&(s->t30), T30_FRONT_END_RECEIVE_COMPLETE);
+            t30_front_end_status(&s->t30, T30_FRONT_END_RECEIVE_COMPLETE);
         }
         break;
     case T38_FIELD_T4_NON_ECM_DATA:
         if (!fe->rx_signal_present)
         {
-            t30_non_ecm_put_bit(&(s->t30), PUTBIT_TRAINING_SUCCEEDED);
+            t30_non_ecm_put_bit(&s->t30, PUTBIT_TRAINING_SUCCEEDED);
             fe->rx_signal_present = TRUE;
         }
         bit_reverse(buf2, buf, len);
-        t30_non_ecm_put_chunk(&(s->t30), buf2, len);
+        t30_non_ecm_put_chunk(&s->t30, buf2, len);
         fe->timeout_rx_samples = fe->samples + ms_to_samples(MID_RX_TIMEOUT);
         break;
     case T38_FIELD_T4_NON_ECM_SIG_END:
@@ -420,17 +427,17 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             {
                 if (!fe->rx_signal_present)
                 {
-                    t30_non_ecm_put_bit(&(s->t30), PUTBIT_TRAINING_SUCCEEDED);
+                    t30_non_ecm_put_bit(&s->t30, PUTBIT_TRAINING_SUCCEEDED);
                     fe->rx_signal_present = TRUE;
                 }
                 bit_reverse(buf2, buf, len);
-                t30_non_ecm_put_chunk(&(s->t30), buf2, len);
+                t30_non_ecm_put_chunk(&s->t30, buf2, len);
             }
             /* WORKAROUND: At least some Mediatrix boxes have a bug, where they can send HDLC signal end where
                            they should send non-ECM signal end. It is possible they also do the opposite.
                            We need to tolerate this, so we use the generic receive complete
                            indication, rather than the specific non-ECM carrier down. */
-            t30_front_end_status(&(s->t30), T30_FRONT_END_RECEIVE_COMPLETE);
+            t30_front_end_status(&s->t30, T30_FRONT_END_RECEIVE_COMPLETE);
         }
         fe->rx_signal_present = FALSE;
         fe->timeout_rx_samples = 0;
@@ -498,13 +505,13 @@ static __inline__ int bits_to_samples(t38_terminal_state_t *s, int bits)
              octets, one per IFP packet, at V.21 rate? */
     if (s->t38_fe.ms_per_tx_chunk == 0)
         return 0;
-    return bits*8000/s->t38_fe.bit_rate;
+    return bits*8000/s->t38_fe.tx_bit_rate;
 }
 /*- End of function --------------------------------------------------------*/
 
 static void set_octets_per_data_packet(t38_terminal_state_t *s, int bit_rate)
 {
-    s->t38_fe.bit_rate = bit_rate;
+    s->t38_fe.tx_bit_rate = bit_rate;
     if (s->t38_fe.ms_per_tx_chunk == 0)
     {
         s->t38_fe.octets_per_data_packet = MAX_OCTETS_PER_UNPACED_CHUNK;
@@ -571,7 +578,7 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Timeout mid-receive\n");
         fe->timeout_rx_samples = 0;
-        t30_front_end_status(&(s->t30), T30_FRONT_END_RECEIVE_COMPLETE);
+        t30_front_end_status(&s->t30, T30_FRONT_END_RECEIVE_COMPLETE);
     }
     if (fe->timed_step == T38_TIMED_STEP_NONE)
         return FALSE;
@@ -609,7 +616,7 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
         {
             /* That's the end of the image data. Do a little padding now */
             memset(buf + len, 0, fe->octets_per_data_packet - len);
-            fe->trailer_bytes = 3*fe->octets_per_data_packet + len;
+            fe->non_ecm_trailer_bytes = 3*fe->octets_per_data_packet + len;
             len = fe->octets_per_data_packet;
             fe->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_4;
         }
@@ -623,10 +630,10 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
            get corrupted. Simply delaying the no-signal message does not help for
            all implentations. It often appears to be ignored. */
         len = fe->octets_per_data_packet;
-        fe->trailer_bytes -= len;
-        if (fe->trailer_bytes <= 0)
+        fe->non_ecm_trailer_bytes -= len;
+        if (fe->non_ecm_trailer_bytes <= 0)
         {
-            len += fe->trailer_bytes;
+            len += fe->non_ecm_trailer_bytes;
             memset(buf, 0, len);
             t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_T4_NON_ECM_SIG_END, buf, len, fe->t38.data_end_tx_count);
             fe->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_5;
@@ -644,7 +651,7 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
            seems like it can improve compatibility with quirky implementations. */
         t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
         fe->timed_step = T38_TIMED_STEP_NONE;
-        t30_front_end_status(&(s->t30), T30_FRONT_END_SEND_STEP_COMPLETE);
+        t30_front_end_status(&s->t30, T30_FRONT_END_SEND_STEP_COMPLETE);
         break;
     case T38_TIMED_STEP_HDLC_MODEM:
         /* Send HDLC preambling */
@@ -672,7 +679,7 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
                 previous = fe->current_tx_data_type;
                 fe->tx.ptr = 0;
                 fe->tx.len = 0;
-                t30_front_end_status(&(s->t30), T30_FRONT_END_SEND_STEP_COMPLETE);
+                t30_front_end_status(&s->t30, T30_FRONT_END_SEND_STEP_COMPLETE);
                 /* The above step should have got the next HDLC step ready - either another frame, or an instruction to stop transmission. */
                 if (fe->tx.len < 0)
                 {
@@ -709,7 +716,7 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
         previous = fe->current_tx_data_type;
         fe->tx.ptr = 0;
         fe->tx.len = 0;
-        t30_front_end_status(&(s->t30), T30_FRONT_END_SEND_STEP_COMPLETE);
+        t30_front_end_status(&s->t30, T30_FRONT_END_SEND_STEP_COMPLETE);
         /* The above step should have got the next HDLC step ready - either another frame, or an instruction to stop transmission. */
         if (fe->tx.len < 0)
         {
@@ -738,7 +745,7 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
            A T38_IND_NO_SIGNAL should always be OK. */
         t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
         fe->timed_step = T38_TIMED_STEP_NONE;
-        t30_front_end_status(&(s->t30), T30_FRONT_END_SEND_STEP_COMPLETE);
+        t30_front_end_status(&s->t30, T30_FRONT_END_SEND_STEP_COMPLETE);
         break;
     case T38_TIMED_STEP_CED:
         /* It seems common practice to start with a no signal indicator, though
@@ -776,14 +783,14 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
     case T38_TIMED_STEP_PAUSE:
         /* End of timed pause */
         fe->timed_step = T38_TIMED_STEP_NONE;
-        t30_front_end_status(&(s->t30), T30_FRONT_END_SEND_STEP_COMPLETE);
+        t30_front_end_status(&s->t30, T30_FRONT_END_SEND_STEP_COMPLETE);
         break;
     }
     return FALSE;
 }
 /*- End of function --------------------------------------------------------*/
 
-static void set_rx_type(void *user_data, int type, int short_train, int use_hdlc)
+static void set_rx_type(void *user_data, int type, int bit_rate, int short_train, int use_hdlc)
 {
     t38_terminal_state_t *s;
 
@@ -793,7 +800,7 @@ static void set_rx_type(void *user_data, int type, int short_train, int use_hdlc
 }
 /*- End of function --------------------------------------------------------*/
 
-static void set_tx_type(void *user_data, int type, int short_train, int use_hdlc)
+static void set_tx_type(void *user_data, int type, int bit_rate, int short_train, int use_hdlc)
 {
     t38_terminal_state_t *s;
 
@@ -802,6 +809,7 @@ static void set_tx_type(void *user_data, int type, int short_train, int use_hdlc
     if (s->t38_fe.current_tx_type == type)
         return;
 
+    set_octets_per_data_packet(s, bit_rate);
     switch (type)
     {
     case T30_MODEM_NONE:
@@ -814,16 +822,20 @@ static void set_tx_type(void *user_data, int type, int short_train, int use_hdlc
         s->t38_fe.current_tx_data_type = T38_DATA_NONE;
         break;
     case T30_MODEM_CED:
-        /* A 200ms initial delay is specified. Delay this amount before the CED indicator is sent. */
-        s->t38_fe.next_tx_samples = s->t38_fe.samples;
-        s->t38_fe.timed_step = T38_TIMED_STEP_CED;
-        s->t38_fe.current_tx_data_type = T38_DATA_NONE;
-        break;
     case T30_MODEM_CNG:
-        /* Allow a short initial delay, so the chances of the other end actually being ready to receive
-           the CNG indicator are improved. */
-        s->t38_fe.next_tx_samples = s->t38_fe.samples;
-        s->t38_fe.timed_step = T38_TIMED_STEP_CNG;
+        if (type == T30_MODEM_CED)
+        {
+            /* A 200ms initial delay is specified. Delay this amount before the CED indicator is sent. */
+            s->t38_fe.next_tx_samples = s->t38_fe.samples;
+            s->t38_fe.timed_step = T38_TIMED_STEP_CED;
+        }
+        else
+        {
+            /* Allow a short initial delay, so the chances of the other end actually being ready to receive
+               the CNG indicator are improved. */
+            s->t38_fe.next_tx_samples = s->t38_fe.samples;
+            s->t38_fe.timed_step = T38_TIMED_STEP_CNG;
+        }
         s->t38_fe.current_tx_data_type = T38_DATA_NONE;
         break;
     case T30_MODEM_V21:
@@ -837,64 +849,60 @@ static void set_tx_type(void *user_data, int type, int short_train, int use_hdlc
         {
             s->t38_fe.next_tx_samples = s->t38_fe.samples;
         }
-        set_octets_per_data_packet(s, 300);
         s->t38_fe.next_tx_indicator = T38_IND_V21_PREAMBLE;
         s->t38_fe.current_tx_data_type = T38_DATA_V21;
         s->t38_fe.timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
         break;
-    case T30_MODEM_V27TER_2400:
-        set_octets_per_data_packet(s, 2400);
-        s->t38_fe.next_tx_indicator = T38_IND_V27TER_2400_TRAINING;
-        s->t38_fe.current_tx_data_type = T38_DATA_V27TER_2400;
+    case T30_MODEM_V27TER:
+        switch (bit_rate)
+        {
+        case 2400:
+            s->t38_fe.next_tx_indicator = T38_IND_V27TER_2400_TRAINING;
+            s->t38_fe.current_tx_data_type = T38_DATA_V27TER_2400;
+            break;
+        case 4800:
+            s->t38_fe.next_tx_indicator = T38_IND_V27TER_4800_TRAINING;
+            s->t38_fe.current_tx_data_type = T38_DATA_V27TER_4800;
+            break;
+        }
         s->t38_fe.timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
         s->t38_fe.next_tx_samples = s->t38_fe.samples + ms_to_samples(30);
         break;
-    case T30_MODEM_V27TER_4800:
-        set_octets_per_data_packet(s, 4800);
-        s->t38_fe.next_tx_indicator = T38_IND_V27TER_4800_TRAINING;
-        s->t38_fe.current_tx_data_type = T38_DATA_V27TER_4800;
+    case T30_MODEM_V29:
+        switch (bit_rate)
+        {
+        case 7200:
+            s->t38_fe.next_tx_indicator = T38_IND_V29_7200_TRAINING;
+            s->t38_fe.current_tx_data_type = T38_DATA_V29_7200;
+            break;
+        case 9600:
+            s->t38_fe.next_tx_indicator = T38_IND_V29_9600_TRAINING;
+            s->t38_fe.current_tx_data_type = T38_DATA_V29_9600;
+            break;
+        }
         s->t38_fe.timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
         s->t38_fe.next_tx_samples = s->t38_fe.samples + ms_to_samples(30);
         break;
-    case T30_MODEM_V29_7200:
-        set_octets_per_data_packet(s, 7200);
-        s->t38_fe.next_tx_indicator = T38_IND_V29_7200_TRAINING;
-        s->t38_fe.current_tx_data_type = T38_DATA_V29_7200;
-        s->t38_fe.timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
-        s->t38_fe.next_tx_samples = s->t38_fe.samples + ms_to_samples(30);
-        break;
-    case T30_MODEM_V29_9600:
-        set_octets_per_data_packet(s, 9600);
-        s->t38_fe.next_tx_indicator = T38_IND_V29_9600_TRAINING;
-        s->t38_fe.current_tx_data_type = T38_DATA_V29_9600;
-        s->t38_fe.timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
-        s->t38_fe.next_tx_samples = s->t38_fe.samples + ms_to_samples(30);
-        break;
-    case T30_MODEM_V17_7200:
-        set_octets_per_data_packet(s, 7200);
-        s->t38_fe.next_tx_indicator = (short_train)  ?  T38_IND_V17_7200_SHORT_TRAINING  :  T38_IND_V17_7200_LONG_TRAINING;
-        s->t38_fe.current_tx_data_type = T38_DATA_V17_7200;
-        s->t38_fe.timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
-        s->t38_fe.next_tx_samples = s->t38_fe.samples + ms_to_samples(30);
-        break;
-    case T30_MODEM_V17_9600:
-        set_octets_per_data_packet(s, 9600);
-        s->t38_fe.next_tx_indicator = (short_train)  ?  T38_IND_V17_9600_SHORT_TRAINING  :  T38_IND_V17_9600_LONG_TRAINING;
-        s->t38_fe.current_tx_data_type = T38_DATA_V17_9600;
-        s->t38_fe.timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
-        s->t38_fe.next_tx_samples = s->t38_fe.samples + ms_to_samples(30);
-        break;
-    case T30_MODEM_V17_12000:
-        set_octets_per_data_packet(s, 12000);
-        s->t38_fe.next_tx_indicator = (short_train)  ?  T38_IND_V17_12000_SHORT_TRAINING  :  T38_IND_V17_12000_LONG_TRAINING;
-        s->t38_fe.current_tx_data_type = T38_DATA_V17_12000;
-        s->t38_fe.timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
-        s->t38_fe.next_tx_samples = s->t38_fe.samples + ms_to_samples(30);
-        break;
-    case T30_MODEM_V17_14400:
-        set_octets_per_data_packet(s, 14400);
-        s->t38_fe.next_tx_indicator = (short_train)  ?  T38_IND_V17_14400_SHORT_TRAINING  :  T38_IND_V17_14400_LONG_TRAINING;
-        s->t38_fe.current_tx_data_type = T38_DATA_V17_14400;
+    case T30_MODEM_V17:
+        switch (bit_rate)
+        {
+        case 7200:
+            s->t38_fe.next_tx_indicator = (short_train)  ?  T38_IND_V17_7200_SHORT_TRAINING  :  T38_IND_V17_7200_LONG_TRAINING;
+            s->t38_fe.current_tx_data_type = T38_DATA_V17_7200;
+            break;
+        case 9600:
+            s->t38_fe.next_tx_indicator = (short_train)  ?  T38_IND_V17_9600_SHORT_TRAINING  :  T38_IND_V17_9600_LONG_TRAINING;
+            s->t38_fe.current_tx_data_type = T38_DATA_V17_9600;
+            break;
+        case 12000:
+            s->t38_fe.next_tx_indicator = (short_train)  ?  T38_IND_V17_12000_SHORT_TRAINING  :  T38_IND_V17_12000_LONG_TRAINING;
+            s->t38_fe.current_tx_data_type = T38_DATA_V17_12000;
+            break;
+        case 14400:
+            s->t38_fe.next_tx_indicator = (short_train)  ?  T38_IND_V17_14400_SHORT_TRAINING  :  T38_IND_V17_14400_LONG_TRAINING;
+            s->t38_fe.current_tx_data_type = T38_DATA_V17_14400;
+            break;
+        }
         s->t38_fe.timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
         s->t38_fe.next_tx_samples = s->t38_fe.samples + ms_to_samples(30);
         break;
@@ -946,7 +954,7 @@ void t38_terminal_set_fill_bit_removal(t38_terminal_state_t *s, int remove)
         s->t38_fe.iaf |= T30_IAF_MODE_NO_FILL_BITS;
     else
         s->t38_fe.iaf &= ~T30_IAF_MODE_NO_FILL_BITS;
-    t30_set_iaf_mode(&(s->t30), s->t38_fe.iaf);
+    t30_set_iaf_mode(&s->t30, s->t38_fe.iaf);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1006,7 +1014,7 @@ t38_terminal_state_t *t38_terminal_init(t38_terminal_state_t *s,
 
     t38_terminal_set_config(s, FALSE);
 
-    t30_init(&(s->t30),
+    t30_init(&s->t30,
              calling_party,
              set_rx_type,
              (void *) s,
@@ -1014,8 +1022,8 @@ t38_terminal_state_t *t38_terminal_init(t38_terminal_state_t *s,
              (void *) s,
              send_hdlc,
              (void *) s);
-    t30_set_iaf_mode(&(s->t30), s->t38_fe.iaf);
-    t30_set_supported_modems(&(s->t30),
+    t30_set_iaf_mode(&s->t30, s->t38_fe.iaf);
+    t30_set_supported_modems(&s->t30,
                              T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17 | T30_SUPPORT_IAF);
     t30_restart(&s->t30);
     return s;

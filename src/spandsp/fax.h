@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.h,v 1.34 2008/08/06 14:49:11 steveu Exp $
+ * $Id: fax.h,v 1.35 2008/08/13 00:11:30 steveu Exp $
  */
 
 /*! \file */
@@ -39,44 +39,17 @@
 
 typedef struct fax_state_s fax_state_t;
 
-typedef void (fax_flush_handler_t)(fax_state_t *s, void *user_data, int which);
-
-/*!
-    Analogue FAX front end channel descriptor. This defines the state of a single working
-    instance of an analogue line FAX front end.
-*/
-typedef struct
-{
-    fax_modems_state_t modems;
-
-    fax_flush_handler_t *flush_handler;
-    void *flush_user_data;
-
-    /*! If TRUE, transmission is in progress */
-    int transmit;
-
-    /*! \brief TRUE is the short training sequence should be used. */
-    int short_train;
-
-    /*! \brief The currently select receiver type */
-    int current_rx_type;
-    /*! \brief The currently select transmitter type */
-    int current_tx_type;
-} fax_modem_front_end_state_t;
-
 /*!
     Analogue line T.30 FAX channel descriptor. This defines the state of a single working
     instance of an analogue line soft-FAX machine.
 */
 struct fax_state_s
 {
-    /* This must be kept the first thing in the structure, so it can be pointed
-       to reliably as the structures change over time. */
     /*! \brief The T.30 back-end */
     t30_state_t t30;
     
     /*! \brief The analogue modem front-end */
-    fax_modem_front_end_state_t fe;
+    fax_modems_state_t modems;
 
     /*! \brief Error and flow logging control */
     logging_state_t logging;
@@ -106,8 +79,6 @@ int fax_rx(fax_state_t *s, int16_t *amp, int len);
             there is nothing to send.
 */
 int fax_tx(fax_state_t *s, int16_t *amp, int max_len);
-
-void fax_set_flush_handler(fax_state_t *s, fax_flush_handler_t *handler, void *user_data);
 
 /*! Select whether silent audio will be sent when FAX transmit is idle.
     \brief Select whether silent audio will be sent when FAX transmit is idle.

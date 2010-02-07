@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_modems.h,v 1.4 2008/08/09 05:09:56 steveu Exp $
+ * $Id: fax_modems.h,v 1.5 2008/08/13 00:11:30 steveu Exp $
  */
 
 /*! \file */
@@ -81,6 +81,11 @@ typedef struct
     /*! \brief */
     dc_restore_state_t dc_restore;
 
+    /*! \brief The currently select receiver type */
+    int current_rx_type;
+    /*! \brief The currently select transmitter type */
+    int current_tx_type;
+
     /*! \brief TRUE if a carrier is present. Otherwise FALSE. */
     int rx_signal_present;
     /*! \brief TRUE if a modem has trained correctly. */
@@ -94,10 +99,18 @@ typedef struct
     span_tx_handler_t *tx_handler;
     void *tx_user_data;
 
-    /*! The next transmit signal handler */
+    /*! The next transmit signal handler, for two stage transmit operations.
+        E.g. a short silence followed by a modem signal. */
     span_tx_handler_t *next_tx_handler;
     void *next_tx_user_data;
 
+    /*! The current bit rate of the transmitter. */
+    int tx_bit_rate;
+    /*! The current bit rate of the receiver. */
+    int rx_bit_rate;
+
+    /*! If TRUE, transmission is in progress */
+    int transmit;
     /*! \brief Audio logging file handle for received audio. */
     int audio_rx_log;
     /*! \brief Audio logging file handle for transmitted audio. */

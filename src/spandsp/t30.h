@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.113 2008/08/04 14:03:17 steveu Exp $
+ * $Id: t30.h,v 1.114 2008/08/13 00:11:30 steveu Exp $
  */
 
 /*! \file */
@@ -207,10 +207,11 @@ typedef int (t30_document_handler_t)(t30_state_t *s, void *user_data, int status
     \brief T.30 set a receive or transmit type handler.
     \param user_data An opaque pointer.
     \param type The modem, tone or silence to be sent or received.
+    \param bit_rate The bit rate of the modem to be sent or received.
     \param short_train TRUE if the short training sequence should be used (where one exists).
     \param use_hdlc FALSE for bit stream, TRUE for HDLC framing.
 */
-typedef void (t30_set_handler_t)(void *user_data, int type, int short_train, int use_hdlc);
+typedef void (t30_set_handler_t)(void *user_data, int type, int bit_rate, int short_train, int use_hdlc);
 
 /*!
     T.30 send HDLC handler.
@@ -304,6 +305,8 @@ enum
 
 /*!
     I/O modes for the T.30 protocol.
+    These are allocated such that the lower 4 bits represents the variant of the modem - e.g. the
+    particular bit rate selected.
 */
 enum
 {
@@ -312,14 +315,9 @@ enum
     T30_MODEM_CED,
     T30_MODEM_CNG,
     T30_MODEM_V21,
-    T30_MODEM_V27TER_2400,
-    T30_MODEM_V27TER_4800,
-    T30_MODEM_V29_7200,
-    T30_MODEM_V29_9600,
-    T30_MODEM_V17_7200,
-    T30_MODEM_V17_9600,
-    T30_MODEM_V17_12000,
-    T30_MODEM_V17_14400,
+    T30_MODEM_V27TER,
+    T30_MODEM_V29,
+    T30_MODEM_V17,
     T30_MODEM_DONE
 };
 

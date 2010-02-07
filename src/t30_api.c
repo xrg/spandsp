@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_api.c,v 1.7 2008/07/02 14:48:26 steveu Exp $
+ * $Id: t30_api.c,v 1.8 2008/08/14 14:06:05 steveu Exp $
  */
 
 /*! \file */
@@ -613,6 +613,27 @@ int t30_set_rx_encoding(t30_state_t *s, int encoding)
         return 0;
     }
     return -1;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t30_set_minimum_scan_line_time(t30_state_t *s, int min_time)
+{
+    /* There are only certain possible times supported, so we need to select
+       the code which best matches the request. */
+    if (min_time == 0)
+        s->local_min_scan_time_code = 7;
+    else if (min_time <= 5)
+        s->local_min_scan_time_code = 1;
+    else if (min_time <= 10)
+        s->local_min_scan_time_code = 2;
+    else if (min_time <= 20)
+        s->local_min_scan_time_code = 0;
+    else if (min_time <= 40)
+        s->local_min_scan_time_code = 4;
+    else
+        return -1;
+    t30_build_dis_or_dtc(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 

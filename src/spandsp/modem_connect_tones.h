@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.h,v 1.17 2008/05/14 15:41:25 steveu Exp $
+ * $Id: modem_connect_tones.h,v 1.18 2008/08/10 03:42:38 steveu Exp $
  */
  
 /*! \file */
@@ -56,27 +56,32 @@ is very well behaved for our purpose.
 
 enum
 {
+    /*! \brief This is reported when a tone stops. */
     MODEM_CONNECT_TONES_NONE = 0,
     /*! \brief CNG tone is a pure 1100Hz tone, in 0.5s bursts, with 3s silences in between. The
                bursts repeat for as long as is required. */
     MODEM_CONNECT_TONES_FAX_CNG = 1,
-    /*! \brief CED tone is a pure continuous 2100Hz+-15Hz tone for 3.3s+-0.7s. We might see FAX preamble
-               instead of CED, of the FAX machine does not answer with CED. */
-    MODEM_CONNECT_TONES_FAX_CED = 2,
-    /*! \brief ANS tone is a pure continuous 2100Hz+-15Hz tone for 3.3s+-0.7s. Nothing else is searched for. */
-    MODEM_CONNECT_TONES_ANS = 3,
-    /*! \brief ANS with phase reversals tone is a 2100Hz+-15Hz tone for 3.3s+-0.7s, with a 180 degree phase
-               jump every 450ms+-25ms. */
-    MODEM_CONNECT_TONES_ANS_PR = 4,
+    /*! \brief ANS tone is a pure continuous 2100Hz+-15Hz tone for 3.3s+-0.7s. */
+    MODEM_CONNECT_TONES_ANS = 2,
+    /*! \brief ANS with phase reversals tone is a 2100Hz+-15Hz tone for 3.3s+-0.7s, with a 180 degree
+               phase jump every 450ms+-25ms. */
+    MODEM_CONNECT_TONES_ANS_PR = 3,
     /*! \brief The ANSam tone is a version of ANS with 20% of 15Hz+-0.1Hz AM modulation, as per V.8 */
-    MODEM_CONNECT_TONES_ANSAM = 5,
-    /*! \brief The ANSam with phase reversals tone is a version of ANS_PR with 20% of 15Hz+-0.1Hz AM modulation,
-               as per V.8 */
-    MODEM_CONNECT_TONES_ANSAM_PR = 6,
+    MODEM_CONNECT_TONES_ANSAM = 4,
+    /*! \brief The ANSam with phase reversals tone is a version of ANS_PR with 20% of 15Hz+-0.1Hz AM
+               modulation, as per V.8 */
+    MODEM_CONNECT_TONES_ANSAM_PR = 5,
     /*! \brief FAX preamble in a string of V.21 HDLC flag octets. This is only valid as a result of tone
                detection. It should not be specified as a tone type to transmit or receive. */
-    MODEM_CONNECT_TONES_FAX_PREAMBLE = 7
+    MODEM_CONNECT_TONES_FAX_PREAMBLE = 6,
+    /*! \brief CED tone is the same as ANS tone. FAX preamble in a string of V.21 HDLC flag octets.
+               This is only valid as a tone type to receive. It is never reported as a detected tone
+               type. The report will either be for FAX preamble or CED/ANS tone. */
+    MODEM_CONNECT_TONES_FAX_CED_OR_PREAMBLE = 7
 };
+
+/*! \brief FAX CED tone is the same as ANS tone. */
+#define MODEM_CONNECT_TONES_FAX_CED MODEM_CONNECT_TONES_ANS
 
 /*!
     Modem connect tones generator descriptor. This defines the state
@@ -202,6 +207,8 @@ modem_connect_tones_rx_state_t *modem_connect_tones_rx_init(modem_connect_tones_
     \param s The context.
     \return 0 for OK, else -1. */
 int modem_connect_tones_rx_free(modem_connect_tones_rx_state_t *s);
+
+const char *modem_connect_tone_to_str(int tone);
 
 #if defined(__cplusplus)
 }

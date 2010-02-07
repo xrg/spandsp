@@ -80,11 +80,11 @@ am_libspandsp_la_OBJECTS = adsi.lo async.lo at_interpreter.lo awgn.lo \
 	oki_adpcm.lo playout.lo plc.lo power_meter.lo queue.lo \
 	schedule.lo sig_tone.lo silence_gen.lo super_tone_rx.lo \
 	super_tone_tx.lo t4.lo t30.lo t30_api.lo t30_logging.lo t31.lo \
-	t35.lo t38_core.lo t38_gateway.lo t38_terminal.lo testcpuid.lo \
-	time_scale.lo tone_detect.lo tone_generate.lo v17rx.lo \
-	v17tx.lo v22bis_rx.lo v22bis_tx.lo v27ter_rx.lo v27ter_tx.lo \
-	v29rx.lo v29tx.lo v42.lo v42bis.lo v8.lo vector_float.lo \
-	vector_int.lo
+	t35.lo t38_core.lo t38_gateway.lo t38_non_ecm_buffer.lo \
+	t38_terminal.lo testcpuid.lo time_scale.lo tone_detect.lo \
+	tone_generate.lo v17rx.lo v17tx.lo v22bis_rx.lo v22bis_tx.lo \
+	v27ter_rx.lo v27ter_tx.lo v29rx.lo v29tx.lo v42.lo v42bis.lo \
+	v8.lo vector_float.lo vector_int.lo
 libspandsp_la_OBJECTS = $(am_libspandsp_la_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
 make_at_dictionary_SOURCES = make_at_dictionary.c
@@ -306,6 +306,7 @@ libspandsp_la_SOURCES = adsi.c \
                         t35.c \
                         t38_core.c \
                         t38_gateway.c \
+                        t38_non_ecm_buffer.c \
                         t38_terminal.c \
                         testcpuid.c \
                         time_scale.c \
@@ -379,6 +380,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/t35.h \
                          spandsp/t38_core.h \
                          spandsp/t38_gateway.h \
+                         spandsp/t38_non_ecm_buffer.h \
                          spandsp/t38_terminal.h \
                          spandsp/telephony.h \
                          spandsp/time_scale.h \
@@ -580,6 +582,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t35.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_core.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_gateway.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_non_ecm_buffer.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_terminal.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t4.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testcpuid.Plo@am__quote@

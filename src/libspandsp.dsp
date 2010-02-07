@@ -321,6 +321,10 @@ SOURCE=.\t38_gateway.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\t38_non_ecm_buffer.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\t38_terminal.c
 # End Source File
 # Begin Source File
@@ -608,6 +612,10 @@ SOURCE=.\spandsp/t38_core.h
 # Begin Source File
 
 SOURCE=.\spandsp/t38_gateway.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/t38_non_ecm_buffer.h
 # End Source File
 # Begin Source File
 

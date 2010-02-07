@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.101 2008/07/31 12:55:30 steveu Exp $
+## $Id: Makefile.am,v 1.102 2008/08/14 14:06:05 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -82,6 +82,7 @@ noinst_PROGRAMS =   adsi_tests \
                     t38_core_tests \
                     t38_gateway_tests \
                     t38_gateway_to_terminal_tests \
+                    t38_non_ecm_buffer_tests \
                     t38_terminal_tests \
                     t38_terminal_to_gateway_tests \
                     time_scale_tests \
@@ -253,6 +254,9 @@ t38_gateway_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) 
 
 t38_gateway_to_terminal_tests_SOURCES = t38_gateway_to_terminal_tests.c media_monitor.cpp
 t38_gateway_to_terminal_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
+
+t38_non_ecm_buffer_tests_SOURCES = t38_non_ecm_buffer_tests.c
+t38_non_ecm_buffer_tests_LDADD = $(LIBDIR) -lspandsp
 
 t38_terminal_tests_SOURCES = t38_terminal_tests.c media_monitor.cpp
 t38_terminal_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp

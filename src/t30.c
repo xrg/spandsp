@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.259 2008/08/04 15:13:55 steveu Exp $
+ * $Id: t30.c,v 1.261 2008/08/14 14:06:05 steveu Exp $
  */
 
 /*! \file */
@@ -328,14 +328,14 @@ static const struct
     uint8_t dcs_code;
 } fallback_sequence[] =
 {
-    {14400, T30_MODEM_V17_14400,    T30_SUPPORT_V17,    DISBIT6},
-    {12000, T30_MODEM_V17_12000,    T30_SUPPORT_V17,    (DISBIT6 | DISBIT4)},
-    { 9600, T30_MODEM_V17_9600,     T30_SUPPORT_V17,    (DISBIT6 | DISBIT3)},
-    { 9600, T30_MODEM_V29_9600,     T30_SUPPORT_V29,    DISBIT3},
-    { 7200, T30_MODEM_V17_7200,     T30_SUPPORT_V17,    (DISBIT6 | DISBIT4 | DISBIT3)},
-    { 7200, T30_MODEM_V29_7200,     T30_SUPPORT_V29,    (DISBIT4 | DISBIT3)},
-    { 4800, T30_MODEM_V27TER_4800,  T30_SUPPORT_V27TER, DISBIT4},
-    { 2400, T30_MODEM_V27TER_2400,  T30_SUPPORT_V27TER, 0},
+    {14400, T30_MODEM_V17,      T30_SUPPORT_V17,    DISBIT6},
+    {12000, T30_MODEM_V17,      T30_SUPPORT_V17,    (DISBIT6 | DISBIT4)},
+    { 9600, T30_MODEM_V17,      T30_SUPPORT_V17,    (DISBIT6 | DISBIT3)},
+    { 9600, T30_MODEM_V29,      T30_SUPPORT_V29,    DISBIT3},
+    { 7200, T30_MODEM_V17,      T30_SUPPORT_V17,    (DISBIT6 | DISBIT4 | DISBIT3)},
+    { 7200, T30_MODEM_V29,      T30_SUPPORT_V29,    (DISBIT4 | DISBIT3)},
+    { 4800, T30_MODEM_V27TER,   T30_SUPPORT_V27TER, DISBIT4},
+    { 2400, T30_MODEM_V27TER,   T30_SUPPORT_V27TER, 0},
     {    0, 0, 0, 0}
 };
 
@@ -382,16 +382,16 @@ static int rx_start_page(t30_state_t *s)
 {
     int i;
 
-    t4_rx_set_image_width(&(s->t4), s->image_width);
-    t4_rx_set_sub_address(&(s->t4), s->rx_info.sub_address);
-    t4_rx_set_dcs(&(s->t4), s->rx_dcs_string);
-    t4_rx_set_far_ident(&(s->t4), s->rx_info.ident);
-    t4_rx_set_vendor(&(s->t4), s->vendor);
-    t4_rx_set_model(&(s->t4), s->model);
+    t4_rx_set_image_width(&s->t4, s->image_width);
+    t4_rx_set_sub_address(&s->t4, s->rx_info.sub_address);
+    t4_rx_set_dcs(&s->t4, s->rx_dcs_string);
+    t4_rx_set_far_ident(&s->t4, s->rx_info.ident);
+    t4_rx_set_vendor(&s->t4, s->vendor);
+    t4_rx_set_model(&s->t4, s->model);
 
-    t4_rx_set_rx_encoding(&(s->t4), s->line_encoding);
-    t4_rx_set_x_resolution(&(s->t4), s->x_resolution);
-    t4_rx_set_y_resolution(&(s->t4), s->y_resolution);
+    t4_rx_set_rx_encoding(&s->t4, s->line_encoding);
+    t4_rx_set_x_resolution(&s->t4, s->x_resolution);
+    t4_rx_set_y_resolution(&s->t4, s->y_resolution);
 
     if (t4_rx_start_page(&(s->t4)))
         return -1;
@@ -411,7 +411,7 @@ static int copy_quality(t30_state_t *s)
     t4_stats_t stats;
     int quality;
 
-    t4_get_transfer_statistics(&(s->t4), &stats);
+    t4_get_transfer_statistics(&s->t4, &stats);
     /* There is no specification for judging copy quality. However, we need to classify
        it at three levels, to control what we do next: OK; tolerable, but retrain;
        intolerable. */
@@ -587,7 +587,7 @@ static int get_partial_ecm_page(t30_state_t *s)
         /* These frames contain a frame sequence number within the partial page (one octet) followed
            by some image data. */
         s->ecm_data[i][3] = (uint8_t) i;
-        if ((len = t4_tx_get_chunk(&(s->t4), &s->ecm_data[i][4], s->octets_per_ecm_frame)) < s->octets_per_ecm_frame)
+        if ((len = t4_tx_get_chunk(&s->t4, &s->ecm_data[i][4], s->octets_per_ecm_frame)) < s->octets_per_ecm_frame)
         {
             /* The image is not big enough to fill the entire buffer */
             /* We need to pad to a full frame, as most receivers expect that. */
@@ -620,7 +620,7 @@ static int t30_ecm_commit_partial_page(t30_state_t *s)
     image_ended = FALSE;
     for (i = 0;  i < s->ecm_frames;  i++)
     {
-        if (t4_rx_put_chunk(&(s->t4), s->ecm_data[i], s->ecm_len[i]))
+        if (t4_rx_put_chunk(&s->t4, s->ecm_data[i], s->ecm_len[i]))
         {
             /* This is the end of the document */
             /* Clear the buffer */
@@ -1023,7 +1023,7 @@ int t30_build_dis_or_dtc(t30_state_t *s)
         set_ctrl_bit(s->local_dis_dtc_frame, 20);
     else if ((s->supported_image_sizes & T30_SUPPORT_B4_LENGTH))
         set_ctrl_bit(s->local_dis_dtc_frame, 19);
-    /* No scan-line padding required. */
+    /* No scan-line padding required, but some may be specified by the application. */
     set_ctrl_bits(s->local_dis_dtc_frame, s->local_min_scan_time_code, 21);
     if ((s->supported_compressions & T30_SUPPORT_NO_COMPRESSION))
         set_ctrl_bit(s->local_dis_dtc_frame, 26);
@@ -1484,7 +1484,7 @@ static int step_fallback_entry(t30_state_t *s)
              current page, though it is benign - fallback will only result in an excessive
              minimum. */
     min_row_bits = set_min_scan_time_code(s);
-    t4_tx_set_min_row_bits(&(s->t4), min_row_bits);
+    t4_tx_set_min_row_bits(&s->t4, min_row_bits);
     /* We need to rebuild the DCS message we will send. */
     build_dcs(s);
     return s->current_fallback;
@@ -1772,20 +1772,20 @@ static int start_sending_document(t30_state_t *s)
         return -1;
     }
     span_log(&s->logging, SPAN_LOG_FLOW, "Start sending document\n");
-    if (t4_tx_init(&(s->t4), s->tx_file, s->tx_start_page, s->tx_stop_page) == NULL)
+    if (t4_tx_init(&s->t4, s->tx_file, s->tx_start_page, s->tx_stop_page) == NULL)
     {
         span_log(&s->logging, SPAN_LOG_WARNING, "Cannot open source TIFF file '%s'\n", s->tx_file);
         s->current_status = T30_ERR_FILEERROR;
         return -1;
     }
     s->operation_in_progress = OPERATION_IN_PROGRESS_T4_TX;
-    t4_tx_get_pages_in_file(&(s->t4));
-    t4_tx_set_tx_encoding(&(s->t4), s->line_encoding);
-    t4_tx_set_local_ident(&(s->t4), s->tx_info.ident);
-    t4_tx_set_header_info(&(s->t4), s->header_info);
+    t4_tx_get_pages_in_file(&s->t4);
+    t4_tx_set_tx_encoding(&s->t4, s->line_encoding);
+    t4_tx_set_local_ident(&s->t4, s->tx_info.ident);
+    t4_tx_set_header_info(&s->t4, s->header_info);
 
-    s->x_resolution = t4_tx_get_x_resolution(&(s->t4));
-    s->y_resolution = t4_tx_get_y_resolution(&(s->t4));
+    s->x_resolution = t4_tx_get_x_resolution(&s->t4);
+    s->y_resolution = t4_tx_get_y_resolution(&s->t4);
     /* The minimum scan time to be used can't be evaluated until we know the Y resolution, and
        must be evaluated before the minimum scan row bits can be evaluated. */
     if ((min_row_bits = set_min_scan_time_code(s)) < 0)
@@ -1795,7 +1795,7 @@ static int start_sending_document(t30_state_t *s)
         return -1;
     }
     span_log(&s->logging, SPAN_LOG_FLOW, "Minimum bits per row will be %d\n", min_row_bits);
-    t4_tx_set_min_row_bits(&(s->t4), min_row_bits);
+    t4_tx_set_min_row_bits(&s->t4, min_row_bits);
 
     if (tx_start_page(s))
         return -1;
@@ -2152,7 +2152,7 @@ static int process_rx_dcs(t30_state_t *s, const uint8_t *msg, int len)
     }
     if (!s->in_message)
     {
-        if (t4_rx_init(&(s->t4), s->rx_file, s->output_encoding) == NULL)
+        if (t4_rx_init(&s->t4, s->rx_file, s->output_encoding) == NULL)
         {
             span_log(&s->logging, SPAN_LOG_WARNING, "Cannot open target TIFF file '%s'\n", s->rx_file);
             s->current_status = T30_ERR_FILEERROR;
@@ -3322,7 +3322,7 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
             set_state(s, T30_STATE_R);
             if (span_log_test(&s->logging, SPAN_LOG_FLOW))
             {
-                t4_get_transfer_statistics(&(s->t4), &stats);
+                t4_get_transfer_statistics(&s->t4, &stats);
                 span_log(&s->logging, SPAN_LOG_FLOW, "Success - delivered %d pages\n", stats.pages_transferred);
             }
             break;
@@ -3337,7 +3337,7 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
             send_dcn(s);
             if (span_log_test(&s->logging, SPAN_LOG_FLOW))
             {
-                t4_get_transfer_statistics(&(s->t4), &stats);
+                t4_get_transfer_statistics(&s->t4, &stats);
                 span_log(&s->logging, SPAN_LOG_FLOW, "Success - delivered %d pages\n", stats.pages_transferred);
             }
             break;
@@ -3642,7 +3642,7 @@ static void process_state_iv_pps_null(t30_state_t *s, const uint8_t *msg, int le
                 set_state(s, T30_STATE_R);
                 if (span_log_test(&s->logging, SPAN_LOG_FLOW))
                 {
-                    t4_get_transfer_statistics(&(s->t4), &stats);
+                    t4_get_transfer_statistics(&s->t4, &stats);
                     span_log(&s->logging, SPAN_LOG_FLOW, "Success - delivered %d pages\n", stats.pages_transferred);
                 }
                 break;
@@ -3657,7 +3657,7 @@ static void process_state_iv_pps_null(t30_state_t *s, const uint8_t *msg, int le
                 send_dcn(s);
                 if (span_log_test(&s->logging, SPAN_LOG_FLOW))
                 {
-                    t4_get_transfer_statistics(&(s->t4), &stats);
+                    t4_get_transfer_statistics(&s->t4, &stats);
                     span_log(&s->logging, SPAN_LOG_FLOW, "Success - delivered %d pages\n", stats.pages_transferred);
                 }
                 break;
@@ -3748,7 +3748,7 @@ static void process_state_iv_pps_q(t30_state_t *s, const uint8_t *msg, int len)
                 set_state(s, T30_STATE_R);
                 if (span_log_test(&s->logging, SPAN_LOG_FLOW))
                 {
-                    t4_get_transfer_statistics(&(s->t4), &stats);
+                    t4_get_transfer_statistics(&s->t4, &stats);
                     span_log(&s->logging, SPAN_LOG_FLOW, "Success - delivered %d pages\n", stats.pages_transferred);
                 }
                 break;
@@ -3763,7 +3763,7 @@ static void process_state_iv_pps_q(t30_state_t *s, const uint8_t *msg, int len)
                 send_dcn(s);
                 if (span_log_test(&s->logging, SPAN_LOG_FLOW))
                 {
-                    t4_get_transfer_statistics(&(s->t4), &stats);
+                    t4_get_transfer_statistics(&s->t4, &stats);
                     span_log(&s->logging, SPAN_LOG_FLOW, "Success - delivered %d pages\n", stats.pages_transferred);
                 }
                 break;
@@ -3869,7 +3869,7 @@ static void process_state_iv_pps_rnr(t30_state_t *s, const uint8_t *msg, int len
                 set_state(s, T30_STATE_R);
                 if (span_log_test(&s->logging, SPAN_LOG_FLOW))
                 {
-                    t4_get_transfer_statistics(&(s->t4), &stats);
+                    t4_get_transfer_statistics(&s->t4, &stats);
                     span_log(&s->logging, SPAN_LOG_FLOW, "Success - delivered %d pages\n", stats.pages_transferred);
                 }
                 break;
@@ -3884,7 +3884,7 @@ static void process_state_iv_pps_rnr(t30_state_t *s, const uint8_t *msg, int len
                 send_dcn(s);
                 if (span_log_test(&s->logging, SPAN_LOG_FLOW))
                 {
-                    t4_get_transfer_statistics(&(s->t4), &stats);
+                    t4_get_transfer_statistics(&s->t4, &stats);
                     span_log(&s->logging, SPAN_LOG_FLOW, "Success - delivered %d pages\n", stats.pages_transferred);
                 }
                 break;
@@ -4356,22 +4356,22 @@ static void set_phase(t30_state_t *s, int phase)
         {
         case T30_PHASE_A_CED:
             if (s->set_rx_type_handler)
-                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_V21, FALSE, TRUE);
+                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_V21, 300, FALSE, TRUE);
             if (s->set_tx_type_handler)
-                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_CED, FALSE, FALSE);
+                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_CED, 0, FALSE, FALSE);
             break;
         case T30_PHASE_A_CNG:
             if (s->set_rx_type_handler)
-                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_V21, FALSE, TRUE);
+                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_V21, 300, FALSE, TRUE);
             if (s->set_tx_type_handler)
-                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_CNG, FALSE, FALSE);
+                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_CNG, 0, FALSE, FALSE);
             break;
         case T30_PHASE_B_RX:
         case T30_PHASE_D_RX:
             if (s->set_rx_type_handler)
-                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_V21, FALSE, TRUE);
+                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_V21, 300, FALSE, TRUE);
             if (s->set_tx_type_handler)
-                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_NONE, FALSE, FALSE);
+                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_NONE, 0, FALSE, FALSE);
             break;
         case T30_PHASE_B_TX:
         case T30_PHASE_D_TX:
@@ -4381,15 +4381,15 @@ static void set_phase(t30_state_t *s, int phase)
                 s->far_end_detected = TRUE;
             }
             if (s->set_rx_type_handler)
-                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_NONE, FALSE, FALSE);
+                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_NONE, 0, FALSE, FALSE);
             if (s->set_tx_type_handler)
-                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_V21, FALSE, TRUE);
+                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_V21, 300, FALSE, TRUE);
             break;
         case T30_PHASE_C_NON_ECM_RX:
             if (s->set_rx_type_handler)
-                s->set_rx_type_handler(s->set_rx_type_user_data, fallback_sequence[s->current_fallback].modem_type, s->short_train, FALSE);
+                s->set_rx_type_handler(s->set_rx_type_user_data, fallback_sequence[s->current_fallback].modem_type, fallback_sequence[s->current_fallback].bit_rate, s->short_train, FALSE);
             if (s->set_tx_type_handler)
-                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_NONE, FALSE, FALSE);
+                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_NONE, 0, FALSE, FALSE);
             break;
         case T30_PHASE_C_NON_ECM_TX:
             /* Pause before switching from anything to phase C */
@@ -4397,22 +4397,22 @@ static void set_phase(t30_state_t *s, int phase)
                we prime it and are not doing TCF. */
             s->tcf_test_bits = (3*fallback_sequence[s->current_fallback].bit_rate)/2;
             if (s->set_rx_type_handler)
-                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_NONE, FALSE, FALSE);
+                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_NONE, 0, FALSE, FALSE);
             if (s->set_tx_type_handler)
-                s->set_tx_type_handler(s->set_tx_type_user_data, fallback_sequence[s->current_fallback].modem_type, s->short_train, FALSE);
+                s->set_tx_type_handler(s->set_tx_type_user_data, fallback_sequence[s->current_fallback].modem_type, fallback_sequence[s->current_fallback].bit_rate, s->short_train, FALSE);
             break;
         case T30_PHASE_C_ECM_RX:
             if (s->set_rx_type_handler)
-                s->set_rx_type_handler(s->set_rx_type_user_data, fallback_sequence[s->current_fallback].modem_type, s->short_train, TRUE);
+                s->set_rx_type_handler(s->set_rx_type_user_data, fallback_sequence[s->current_fallback].modem_type, fallback_sequence[s->current_fallback].bit_rate, s->short_train, TRUE);
             if (s->set_tx_type_handler)
-                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_NONE, FALSE, FALSE);
+                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_NONE, 0, FALSE, FALSE);
             break;
         case T30_PHASE_C_ECM_TX:
             /* Pause before switching from anything to phase C */
             if (s->set_rx_type_handler)
-                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_NONE, FALSE, FALSE);
+                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_NONE, 0, FALSE, FALSE);
             if (s->set_tx_type_handler)
-                s->set_tx_type_handler(s->set_tx_type_user_data, fallback_sequence[s->current_fallback].modem_type, s->short_train, TRUE);
+                s->set_tx_type_handler(s->set_tx_type_user_data, fallback_sequence[s->current_fallback].modem_type, fallback_sequence[s->current_fallback].bit_rate, s->short_train, TRUE);
             break;
         case T30_PHASE_E:
             /* Send a little silence before ending things, to ensure the
@@ -4422,15 +4422,15 @@ static void set_phase(t30_state_t *s, int phase)
             s->tcf_current_zeros = 0;
             s->tcf_most_zeros = 0;
             if (s->set_rx_type_handler)
-                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_NONE, FALSE, FALSE);
+                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_NONE, 0, FALSE, FALSE);
             if (s->set_tx_type_handler)
-                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_PAUSE, FINAL_FLUSH_TIME, FALSE);
+                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_PAUSE, 0, FINAL_FLUSH_TIME, FALSE);
             break;
         case T30_PHASE_CALL_FINISHED:
             if (s->set_rx_type_handler)
-                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_DONE, FALSE, FALSE);
+                s->set_rx_type_handler(s->set_rx_type_user_data, T30_MODEM_DONE, 0, FALSE, FALSE);
             if (s->set_tx_type_handler)
-                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_DONE, FALSE, FALSE);
+                s->set_tx_type_handler(s->set_tx_type_user_data, T30_MODEM_DONE, 0, FALSE, FALSE);
             break;
         }
     }
@@ -4948,7 +4948,7 @@ void t30_non_ecm_put_bit(void *user_data, int bit)
         break;
     case T30_STATE_F_DOC_NON_ECM:
         /* Document transfer */
-        if (t4_rx_put_bit(&(s->t4), bit))
+        if (t4_rx_put_bit(&s->t4, bit))
         {
             /* That is the end of the document */
             set_state(s, T30_STATE_F_POST_DOC_NON_ECM);
@@ -4984,7 +4984,7 @@ void t30_non_ecm_put_byte(void *user_data, int byte)
         break;
     case T30_STATE_F_DOC_NON_ECM:
         /* Document transfer */
-        if (t4_rx_put_byte(&(s->t4), byte))
+        if (t4_rx_put_byte(&s->t4, byte))
         {
             /* That is the end of the document */
             set_state(s, T30_STATE_F_POST_DOC_NON_ECM);
@@ -5024,7 +5024,7 @@ void t30_non_ecm_put_chunk(void *user_data, const uint8_t buf[], int len)
         break;
     case T30_STATE_F_DOC_NON_ECM:
         /* Document transfer */
-        if (t4_rx_put_chunk(&(s->t4), buf, len))
+        if (t4_rx_put_chunk(&s->t4, buf, len))
         {
             /* That is the end of the document */
             set_state(s, T30_STATE_F_POST_DOC_NON_ECM);
@@ -5125,7 +5125,7 @@ int t30_non_ecm_get_chunk(void *user_data, uint8_t buf[], int max_len)
         break;
     case T30_STATE_I:
         /* Transferring real data. */
-        len = t4_tx_get_chunk(&(s->t4), buf, max_len);
+        len = t4_tx_get_chunk(&s->t4, buf, max_len);
         break;
     case T30_STATE_D_POST_TCF:
     case T30_STATE_II_Q:
@@ -5693,7 +5693,7 @@ void t30_get_transfer_statistics(t30_state_t *s, t30_stats_t *t)
 
     t->bit_rate = fallback_sequence[s->current_fallback].bit_rate;
     t->error_correcting_mode = s->error_correcting_mode;
-    t4_get_transfer_statistics(&(s->t4), &stats);
+    t4_get_transfer_statistics(&s->t4, &stats);
     t->pages_transferred = stats.pages_transferred;
     t->pages_in_file = stats.pages_in_file;
     t->width = stats.width;

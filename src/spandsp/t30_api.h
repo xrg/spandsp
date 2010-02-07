@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_api.h,v 1.5 2008/06/18 13:28:42 steveu Exp $
+ * $Id: t30_api.h,v 1.6 2008/08/14 14:06:05 steveu Exp $
  */
 
 /*! \file */
@@ -459,6 +459,13 @@ int t30_set_ecm_capability(t30_state_t *s, int enabled);
            packages.
     \return 0 if OK, else -1. */
 int t30_set_rx_encoding(t30_state_t *s, int encoding);
+
+/*! Specify the minimum scan line time supported by a T.30 context.
+    \brief Specify minimum scan line time.
+    \param s The T.30 context.
+    \param min_time The minimum permitted scan line time, in milliseconds.
+    \return 0 if OK, else -1. */
+int t30_set_minimum_scan_line_time(t30_state_t *s, int min_time);
 
 /*! Specify which modem types are supported by a T.30 context.
     \brief Specify supported modems.

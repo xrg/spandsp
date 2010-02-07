@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spandsp.h.in,v 1.8 2008/07/25 13:56:54 steveu Exp $
+ * $Id: spandsp.h.in,v 1.9 2008/08/14 14:06:05 steveu Exp $
  */
 
 /*! \file */
@@ -99,6 +99,7 @@
 #include <spandsp/fax_modems.h>
 #include <spandsp/fax.h>
 #include <spandsp/t38_core.h>
+#include <spandsp/t38_non_ecm_buffer.h>
 #include <spandsp/t38_gateway.h>
 #include <spandsp/t38_terminal.h>
 #include <spandsp/t31.h>

@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.99 2008/07/30 15:02:25 steveu Exp $
+## $Id: Makefile.am,v 1.100 2008/08/14 14:06:05 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -84,6 +84,7 @@ libspandsp_la_SOURCES = adsi.c \
                         t35.c \
                         t38_core.c \
                         t38_gateway.c \
+                        t38_non_ecm_buffer.c \
                         t38_terminal.c \
                         testcpuid.c \
                         time_scale.c \
@@ -158,6 +159,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/t35.h \
                          spandsp/t38_core.h \
                          spandsp/t38_gateway.h \
+                         spandsp/t38_non_ecm_buffer.h \
                          spandsp/t38_terminal.h \
                          spandsp/telephony.h \
                          spandsp/time_scale.h \

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.53 2008/08/06 14:49:11 steveu Exp $
+ * $Id: t38_gateway.h,v 1.56 2008/08/14 14:06:05 steveu Exp $
  */
 
 /*! \file */
@@ -41,7 +41,6 @@ to maximum the tolerance of jitter and packet loss on the IP network.
 */
 
 #define T38_RX_BUF_LEN          2048
-#define T38_NON_ECM_TX_BUF_LEN  16384
 #define T38_TX_HDLC_BUFS        256
 /* Make sure the HDLC frame buffers are big enough for ECM frames. */
 #define T38_MAX_HDLC_LEN        260
@@ -64,7 +63,7 @@ typedef void (t38_gateway_real_time_frame_handler_t)(t38_gateway_state_t *s,
                                                      int len);
 
 /*!
-    T.38 gateway T.38 audio side channel descriptor.
+    T.38 gateway T.38 side channel descriptor.
 */
 typedef struct
 {
@@ -85,10 +84,6 @@ typedef struct
 
     /*! \brief The current T.38 data type being sent. */
     int current_tx_data_type;
-
-    /*! \brief The number of octets to send in each image packet (non-ECM or ECM) at the current
-               rate and the current specified packet interval. */
-    int octets_per_data_packet;
 } t38_gateway_t38_state_t;
 
 /*!
@@ -97,92 +92,76 @@ typedef struct
 typedef struct
 {
     fax_modems_state_t modems;
-
-    /*! \brief TRUE if in image data modem is to use short training. */
-    int short_train;
-
-    /*! \brief Progressively calculated CRC for HDLC messaging received from a modem. */
-    uint16_t crc;
-
     /*! \brief The current receive signal handler. Actual receiving hop between this
                and a dummy receive routine. */
     span_rx_handler_t *base_rx_handler;
 } t38_gateway_audio_state_t;
 
-/*!
-    T.38 gateway state.
-*/
-struct t38_gateway_state_s
+typedef struct
 {
-    t38_gateway_t38_state_t t38x;
-    t38_gateway_audio_state_t audio;
+    /*! \brief non-ECM and HDLC modem receive data buffer. */
+    uint8_t data[T38_RX_BUF_LEN];
+    /*! \brief Current pointer into the data buffer. */
+    int data_ptr;
+    /*! \brief The current octet being received as non-ECM data. */
+    unsigned int bit_stream;
+    /*! \brief The number of bits taken from the modem for the current scan row. This
+               is used during non-ECM transmission will fill bit removal to see that
+               T.38 packet transmissions do not stretch too far apart. */
+    int bits_absorbed;
+    /*! \brief The current bit number in the current non-ECM octet. */
+    int bit_no;
+    /*! \brief Progressively calculated CRC for HDLC messages received from a modem. */
+    uint16_t crc;
+    /*! \brief TRUE if non-ECM fill bits are to be stripped when sending image data. */
+    int fill_bit_removal;
+    /*! \brief The number of octets to send in each image packet (non-ECM or ECM) at the current
+               rate and the current specified packet interval. */
+    int octets_per_data_packet;
 
+    int in_bits;
+    int out_octets;
+} t38_gateway_to_t38_state_t;
+
+typedef struct
+{
+    /*! \brief HDLC message buffers. */
+    uint8_t buf[T38_TX_HDLC_BUFS][T38_MAX_HDLC_LEN];
+    /*! \brief HDLC message lengths. */
+    int len[T38_TX_HDLC_BUFS];
+    /*! \brief HDLC message status flags. */
+    int flags[T38_TX_HDLC_BUFS];
+    /*! \brief HDLC buffer contents. */
+    int contents[T38_TX_HDLC_BUFS];
+    /*! \brief HDLC buffer number for input. */
+    int in;
+    /*! \brief HDLC buffer number for output. */
+    int out;
+} t38_gateway_hdlc_state_t;
+
+/*!
+    T.38 gateway core descriptor.
+*/
+typedef struct
+{
     /*! \brief A bit mask of the currently supported modem types. */
     int supported_modems;
     /*! \brief TRUE if ECM FAX mode is allowed through the gateway. */
     int ecm_allowed;
 
+    /*! \brief TRUE if in image data modem is to use short training. This usually
+               follows image_data_mode, but in ECM mode T.30 defines recovery
+               conditions in which long training is used for image data. */
+    int short_train;
+    /*! \brief TRUE if in image data mode, as opposed to TCF mode. */
+    int image_data_mode;
+    /*! \brief The minimum permitted bits per FAX scan line row. */
+    int min_row_bits;
+
     /*! \brief TRUE if we should count the next MCF as a page end, else FALSE */
     int count_page_on_mcf;
     /*! \brief The number of pages for which a confirm (MCF) message was returned. */
     int pages_confirmed;
-
-    /*! Buffer for HDLC and non-ECM data going to the T.38 channel */
-    struct
-    {
-        /*! \brief non-ECM and HDLC modem receive data buffer */
-        uint8_t data[T38_RX_BUF_LEN];
-        int data_ptr;
-    } to_t38;
-
-    /*! Buffer for data going to an HDLC modem. */
-    struct
-    {
-        /*! \brief HDLC message buffers. */
-        uint8_t buf[T38_TX_HDLC_BUFS][T38_MAX_HDLC_LEN];
-        /*! \brief HDLC message lengths. */
-        int len[T38_TX_HDLC_BUFS];
-        /*! \brief HDLC message status flags. */
-        int flags[T38_TX_HDLC_BUFS];
-        /*! \brief HDLC buffer contents. */
-        int contents[T38_TX_HDLC_BUFS];
-        /*! \brief HDLC buffer number for input. */
-        int in;
-        /*! \brief HDLC buffer number for output. */
-        int out;
-    } hdlc_to_modem;
-
-    /*! Buffer for data going to a non-ECM mode modem. */
-    struct
-    {
-        /*! \brief non-ECM modem transmit data buffer */
-        uint8_t tx_data[T38_NON_ECM_TX_BUF_LEN];
-        int tx_in_ptr;
-        int tx_out_ptr;
-
-        /*! \brief The location of the most recent EOL marker in the non-ECM data buffer */
-        int tx_latest_eol_ptr;
-        unsigned int bit_stream;
-        /*! \brief The non-ECM flow control fill octet (0xFF before the first data, and 0x00
-                   once data has started). */
-        uint8_t flow_control_fill_octet;
-        /*! \brief TRUE if we are in the initial all ones part of non-ECM transmission. */
-        int at_initial_all_ones;
-        /*! \brief TRUE is the end of non-ECM data indication has been received. */
-        int data_finished;
-        /*! \brief The current octet being sent as non-ECM data. */
-        unsigned int rx_bit_stream;
-        unsigned int tx_octet;
-        /*! \brief The current bit number in the current non-ECM octet. */
-        int bit_no;
-        int in_octets;
-        int out_octets;
-        int in_rows;
-        int out_rows;
-        /*! \brief A count of the number of non-ECM fill octets generated for flow control control
-                   purposes. */
-        int flow_control_fill_octets;
-    } non_ecm_to_modem;
 
     /*! \brief TRUE if we are in error correcting (ECM) mode */
     int ecm_mode;
@@ -192,21 +171,37 @@ struct t38_gateway_state_s
     int fast_modem;
     /*! \brief The type of fast receive modem currently active, which may be T38_NONE */
     int fast_rx_active;
+
     /*! \brief TRUE if between DCS and TCF, and we want the fast image modem to
                start in the T.38 data at a predictable time from the end of the
                V.21 signal. */
     int tcf_mode_predictable_modem_start;
-    /*! \brief TRUE if in image data mode (as opposed to TCF mode) in either direction. */
-    int image_data_mode;
 
     /*! \brief The number of samples until the next timeout event */
     int samples_to_timeout;
+
+    /*! Buffer for HDLC and non-ECM data going to the T.38 channel */
+    t38_gateway_to_t38_state_t to_t38;
+    /*! Buffer for data going to an HDLC modem. */
+    t38_gateway_hdlc_state_t hdlc_to_modem;
+    /*! Buffer for data going to a non-ECM mode modem. */
+    t38_non_ecm_buffer_state_t non_ecm_to_modem;
 
     /*! \brief A pointer to a callback routine to be called when frames are
         exchanged. */
     t38_gateway_real_time_frame_handler_t *real_time_frame_handler;
     /*! \brief An opaque pointer supplied in real time frame callbacks. */
     void *real_time_frame_user_data;
+} t38_gateway_core_state_t;
+
+/*!
+    T.38 gateway state.
+*/
+struct t38_gateway_state_s
+{
+    t38_gateway_t38_state_t t38x;
+    t38_gateway_audio_state_t audio;
+    t38_gateway_core_state_t core;
 
     /*! \brief Error and flow logging control */
     logging_state_t logging;
@@ -306,6 +301,13 @@ void t38_gateway_set_nsx_suppression(t38_gateway_state_t *s,
     \param use_tep TRUE if TEP should be sent.
 */
 void t38_gateway_set_tep_mode(t38_gateway_state_t *s, int use_tep);
+
+/*! Select whether non-ECM fill bits are to be removed during transmission.
+    \brief Select whether non-ECM fill bits are to be removed during transmission.
+    \param s The T.38 context.
+    \param remove TRUE if fill bits are to be removed.
+*/
+void t38_gateway_set_fill_bit_removal(t38_gateway_state_t *s, int remove);
 
 /*! Get the current transfer statistics for the current T.38 session.
     \brief Get the current transfer statistics.

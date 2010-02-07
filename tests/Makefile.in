@@ -61,7 +61,7 @@ noinst_PROGRAMS = adsi_tests$(EXEEXT) async_tests$(EXEEXT) \
 	t4_tests$(EXEEXT) t31_tests$(EXEEXT) t38_core_tests$(EXEEXT) \
 	t38_gateway_tests$(EXEEXT) \
 	t38_gateway_to_terminal_tests$(EXEEXT) \
-	t38_terminal_tests$(EXEEXT) \
+	t38_non_ecm_buffer_tests$(EXEEXT) t38_terminal_tests$(EXEEXT) \
 	t38_terminal_to_gateway_tests$(EXEEXT) \
 	time_scale_tests$(EXEEXT) tone_detect_tests$(EXEEXT) \
 	tone_generate_tests$(EXEEXT) tsb85_tests$(EXEEXT) \
@@ -240,6 +240,11 @@ am_t38_gateway_to_terminal_tests_OBJECTS =  \
 t38_gateway_to_terminal_tests_OBJECTS =  \
 	$(am_t38_gateway_to_terminal_tests_OBJECTS)
 t38_gateway_to_terminal_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_t38_non_ecm_buffer_tests_OBJECTS =  \
+	t38_non_ecm_buffer_tests.$(OBJEXT)
+t38_non_ecm_buffer_tests_OBJECTS =  \
+	$(am_t38_non_ecm_buffer_tests_OBJECTS)
+t38_non_ecm_buffer_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_t38_terminal_tests_OBJECTS = t38_terminal_tests.$(OBJEXT) \
 	media_monitor.$(OBJEXT)
 t38_terminal_tests_OBJECTS = $(am_t38_terminal_tests_OBJECTS)
@@ -346,6 +351,7 @@ SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(t31_tests_SOURCES) $(t38_core_tests_SOURCES) \
 	$(t38_gateway_tests_SOURCES) \
 	$(t38_gateway_to_terminal_tests_SOURCES) \
+	$(t38_non_ecm_buffer_tests_SOURCES) \
 	$(t38_terminal_tests_SOURCES) \
 	$(t38_terminal_to_gateway_tests_SOURCES) $(t4_tests_SOURCES) \
 	$(testadsi_SOURCES) $(testfax_SOURCES) \
@@ -381,6 +387,7 @@ DIST_SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(t31_tests_SOURCES) $(t38_core_tests_SOURCES) \
 	$(t38_gateway_tests_SOURCES) \
 	$(t38_gateway_to_terminal_tests_SOURCES) \
+	$(t38_non_ecm_buffer_tests_SOURCES) \
 	$(t38_terminal_tests_SOURCES) \
 	$(t38_terminal_to_gateway_tests_SOURCES) $(t4_tests_SOURCES) \
 	$(testadsi_SOURCES) $(testfax_SOURCES) \
@@ -635,6 +642,8 @@ t38_gateway_tests_SOURCES = t38_gateway_tests.c media_monitor.cpp
 t38_gateway_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 t38_gateway_to_terminal_tests_SOURCES = t38_gateway_to_terminal_tests.c media_monitor.cpp
 t38_gateway_to_terminal_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
+t38_non_ecm_buffer_tests_SOURCES = t38_non_ecm_buffer_tests.c
+t38_non_ecm_buffer_tests_LDADD = $(LIBDIR) -lspandsp
 t38_terminal_tests_SOURCES = t38_terminal_tests.c media_monitor.cpp
 t38_terminal_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 t38_terminal_to_gateway_tests_SOURCES = t38_terminal_to_gateway_tests.c media_monitor.cpp
@@ -853,6 +862,9 @@ t38_gateway_tests$(EXEEXT): $(t38_gateway_tests_OBJECTS) $(t38_gateway_tests_DEP
 t38_gateway_to_terminal_tests$(EXEEXT): $(t38_gateway_to_terminal_tests_OBJECTS) $(t38_gateway_to_terminal_tests_DEPENDENCIES) 
 	@rm -f t38_gateway_to_terminal_tests$(EXEEXT)
 	$(CXXLINK) $(t38_gateway_to_terminal_tests_LDFLAGS) $(t38_gateway_to_terminal_tests_OBJECTS) $(t38_gateway_to_terminal_tests_LDADD) $(LIBS)
+t38_non_ecm_buffer_tests$(EXEEXT): $(t38_non_ecm_buffer_tests_OBJECTS) $(t38_non_ecm_buffer_tests_DEPENDENCIES) 
+	@rm -f t38_non_ecm_buffer_tests$(EXEEXT)
+	$(LINK) $(t38_non_ecm_buffer_tests_LDFLAGS) $(t38_non_ecm_buffer_tests_OBJECTS) $(t38_non_ecm_buffer_tests_LDADD) $(LIBS)
 t38_terminal_tests$(EXEEXT): $(t38_terminal_tests_OBJECTS) $(t38_terminal_tests_DEPENDENCIES) 
 	@rm -f t38_terminal_tests$(EXEEXT)
 	$(CXXLINK) $(t38_terminal_tests_LDFLAGS) $(t38_terminal_tests_OBJECTS) $(t38_terminal_tests_LDADD) $(LIBS)
@@ -967,6 +979,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_core_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_gateway_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_gateway_to_terminal_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_non_ecm_buffer_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_terminal_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_terminal_to_gateway_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t4_tests.Po@am__quote@

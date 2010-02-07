@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.91 2008/07/25 13:56:54 steveu Exp $
+ * $Id: fax_tests.c,v 1.93 2008/08/14 14:06:05 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -363,7 +363,7 @@ int main(int argc, char *argv[])
                                      | T30_SUPPORT_SUB_ADDRESSING);
 
         if ((mc->chan & 1))
-            t30->local_min_scan_time_code = 4;
+            t30_set_minimum_scan_line_time(t30, 40);
         t30_set_supported_image_sizes(t30,
                                       T30_SUPPORT_US_LETTER_LENGTH
                                     | T30_SUPPORT_US_LEGAL_LENGTH
@@ -425,8 +425,8 @@ int main(int argc, char *argv[])
         sprintf(mc->tag, "FAX-%d", j + 1);
         span_log_set_level(&t30->logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
         span_log_set_tag(&t30->logging, mc->tag);
-        span_log_set_level(&mc->fax.fe.modems.v29_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
-        span_log_set_tag(&mc->fax.fe.modems.v29_rx.logging, mc->tag);
+        span_log_set_level(&mc->fax.modems.v29_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+        span_log_set_tag(&mc->fax.modems.v29_rx.logging, mc->tag);
         span_log_set_level(&mc->fax.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
         span_log_set_tag(&mc->fax.logging, mc->tag);
         memset(mc->amp, 0, sizeof(mc->amp));
@@ -464,7 +464,7 @@ int main(int argc, char *argv[])
                 }
             }
             span_log_bump_samples(&mc->fax.t30.logging, mc->len);
-            span_log_bump_samples(&mc->fax.fe.modems.v29_rx.logging, mc->len);
+            span_log_bump_samples(&mc->fax.modems.v29_rx.logging, mc->len);
             span_log_bump_samples(&mc->fax.logging, mc->len);
 
             if (log_audio)

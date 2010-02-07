@@ -5,7 +5,7 @@
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
- * Copyright (C) 2003, 2005, 2006 Steve Underwood
+ * Copyright (C) 2008 Steve Underwood
  *
  * All rights reserved.
  *
@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tester.h,v 1.6 2008/08/04 14:03:17 steveu Exp $
+ * $Id: fax_tester.h,v 1.8 2008/08/13 00:11:30 steveu Exp $
  */
 
 /*! \file */
@@ -105,6 +105,9 @@ struct faxtester_state_s
     int current_tx_type;
 
     int wait_for_silence;
+    
+    int tone_state;
+    int64_t tone_on_time;
 
     int64_t timer;
     int64_t timeout;
@@ -138,9 +141,9 @@ int faxtester_rx(faxtester_state_t *s, int16_t *amp, int len);
 */
 int faxtester_tx(faxtester_state_t *s, int16_t *amp, int max_len);
 
-void faxtester_set_tx_type(void *user_data, int type, int short_train, int use_hdlc);
+void faxtester_set_tx_type(void *user_data, int type, int bit_rate, int short_train, int use_hdlc);
 
-void faxtester_set_rx_type(void *user_data, int type, int short_train, int use_hdlc);
+void faxtester_set_rx_type(void *user_data, int type, int bit_rate, int short_train, int use_hdlc);
 
 void faxtest_set_rx_silence(faxtester_state_t *s);
 

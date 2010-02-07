@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_tests.c,v 1.74 2008/07/24 13:55:24 steveu Exp $
+ * $Id: t38_gateway_tests.c,v 1.75 2008/08/14 14:06:05 steveu Exp $
  */
 
 /*! \file */
@@ -266,6 +266,7 @@ int main(int argc, char *argv[])
     double tx_when;
     double rx_when;
     int supported_modems;
+    int fill_removal;
     int use_gui;
     int opt;
     t38_stats_t stats;
@@ -278,12 +279,13 @@ int main(int argc, char *argv[])
     simulate_incrementing_repeats = FALSE;
     model_no = 0;
     speed_pattern_no = 1;
+    fill_removal = FALSE;
     use_gui = FALSE;
     use_tep = FALSE;
     feedback_audio = FALSE;
     use_transmit_on_idle = TRUE;
     supported_modems = T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17;
-    while ((opt = getopt(argc, argv, "efgi:Ilm:M:s:tv:")) != -1)
+    while ((opt = getopt(argc, argv, "efFgi:Ilm:M:s:tv:")) != -1)
     {
         switch (opt)
         {
@@ -292,6 +294,9 @@ int main(int argc, char *argv[])
             break;
         case 'f':
             feedback_audio = TRUE;
+            break;
+        case 'F':
+            fill_removal = TRUE;
             break;
         case 'g':
 #if defined(ENABLE_GUI)
@@ -387,6 +392,8 @@ int main(int argc, char *argv[])
     t30_set_ecm_capability(t30, use_ecm);
     if (use_ecm)
         t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
+    t30_set_minimum_scan_line_time(t30, 40);
+    //t30_set_iaf_mode(t30, T30_IAF_MODE_NO_FILL_BITS);
     span_log_set_level(&fax_state_a.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&fax_state_a.logging, "FAX-A ");
     span_log_set_level(&t30->logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
@@ -403,6 +410,7 @@ int main(int argc, char *argv[])
     t38_gateway_set_transmit_on_idle(&t38_state_a, use_transmit_on_idle);
     t38_gateway_set_supported_modems(&t38_state_a, supported_modems);
     //t38_gateway_set_nsx_suppression(&t38_state_a, NULL, 0, NULL, 0);
+    t38_gateway_set_fill_bit_removal(&t38_state_a, fill_removal);
     t38_gateway_set_real_time_frame_handler(&t38_state_a, real_time_frame_handler, NULL);
     t38_set_t38_version(&t38_state_a.t38x.t38, t38_version);
     t38_gateway_set_ecm_capability(&t38_state_a, use_ecm);
@@ -420,6 +428,7 @@ int main(int argc, char *argv[])
     t38_gateway_set_transmit_on_idle(&t38_state_b, use_transmit_on_idle);
     t38_gateway_set_supported_modems(&t38_state_b, supported_modems);
     //t38_gateway_set_nsx_suppression(&t38_state_b, FALSE);
+    t38_gateway_set_fill_bit_removal(&t38_state_b, fill_removal);
     t38_set_t38_version(&t38_state_b.t38x.t38, t38_version);
     t38_gateway_set_ecm_capability(&t38_state_b, use_ecm);
     span_log_set_level(&t38_state_b.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
@@ -446,6 +455,7 @@ int main(int argc, char *argv[])
     t30_set_ecm_capability(t30, use_ecm);
     if (use_ecm)
         t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
+    t30_set_minimum_scan_line_time(t30, 40);
     span_log_set_level(&fax_state_b.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&fax_state_b.logging, "FAX-B ");
     span_log_set_level(&t30->logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);

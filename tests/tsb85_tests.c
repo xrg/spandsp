@@ -1,11 +1,11 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * faxtester_tests.c
+ * tsb85_tests.c
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
- * Copyright (C) 2003, 2005, 2006 Steve Underwood
+ * Copyright (C) 2008 Steve Underwood
  *
  * All rights reserved.
  *
@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tsb85_tests.c,v 1.16 2008/08/09 05:09:56 steveu Exp $
+ * $Id: tsb85_tests.c,v 1.19 2008/08/13 00:11:30 steveu Exp $
  */
 
 /*! \file */
@@ -62,7 +62,6 @@
 #include "spandsp.h"
 #include "fax_tester.h"
 
-#define INPUT_TIFF_FILE_NAME    "../test-data/itu/fax/itutests.tif"
 #define OUTPUT_TIFF_FILE_NAME   "tsb85.tif"
 
 #define OUTPUT_FILE_NAME_WAVE   "tsb85.wav"
@@ -75,7 +74,6 @@ AFfilesetup filesetup;
 int use_receiver_not_ready = FALSE;
 int test_local_interrupt = FALSE;
 
-const char *input_tiff_file_name;
 const char *output_tiff_file_name;
 
 fax_state_t fax;
@@ -324,12 +322,12 @@ static void fax_prepare(void)
 
     span_log_set_level(&t30->logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
     span_log_set_tag(&t30->logging, "A");
-    span_log_set_level(&fax.fe.modems.v27ter_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
-    span_log_set_tag(&fax.fe.modems.v27ter_rx.logging, "A");
-    span_log_set_level(&fax.fe.modems.v29_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
-    span_log_set_tag(&fax.fe.modems.v29_rx.logging, "A");
-    span_log_set_level(&fax.fe.modems.v17_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
-    span_log_set_tag(&fax.fe.modems.v17_rx.logging, "A");
+    span_log_set_level(&fax.modems.v27ter_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+    span_log_set_tag(&fax.modems.v27ter_rx.logging, "A");
+    span_log_set_level(&fax.modems.v29_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+    span_log_set_tag(&fax.modems.v29_rx.logging, "A");
+    span_log_set_level(&fax.modems.v17_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+    span_log_set_tag(&fax.modems.v17_rx.logging, "A");
     span_log_set_level(&fax.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
     span_log_set_tag(&fax.logging, "A");
 }
@@ -512,6 +510,7 @@ static int next_step(faxtester_state_t *s)
     xmlChar *crc_error;
     xmlChar *pattern;
     xmlChar *timeout;
+    xmlChar *min_time;
     uint8_t buf[1000];
     uint8_t mask[1000];
     int i;
@@ -532,8 +531,8 @@ static int next_step(faxtester_state_t *s)
         {
             /* Add a bit of waiting at the end, to ensure everything gets flushed through,
                any timers can expire, etc. */
-            faxtester_set_rx_type(s, T30_MODEM_NONE, FALSE, FALSE);
-            faxtester_set_tx_type(s, T30_MODEM_PAUSE, 120000, FALSE);
+            faxtester_set_rx_type(s, T30_MODEM_NONE, 0, FALSE, FALSE);
+            faxtester_set_tx_type(s, T30_MODEM_PAUSE, 0, 120000, FALSE);
             s->final_delayed = TRUE;
             return 1;
         }
@@ -557,6 +556,7 @@ static int next_step(faxtester_state_t *s)
     crc_error = xmlGetProp(s->cur, (const xmlChar *) "crc_error");
     pattern = xmlGetProp(s->cur, (const xmlChar *) "pattern");
     timeout = xmlGetProp(s->cur, (const xmlChar *) "timeout");
+    min_time = xmlGetProp(s->cur, (const xmlChar *) "min_time");
 
     s->cur = s->cur->next;
 
@@ -586,69 +586,60 @@ static int next_step(faxtester_state_t *s)
         {
             hdlc = (strcasecmp((const char *) type, "PREAMBLE") == 0);
             short_train = (strcasecmp((const char *) type, "TCF") != 0);
-            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+            faxtester_set_tx_type(s, T30_MODEM_NONE, 0, FALSE, FALSE);
             if (strcasecmp((const char *) modem, "V.21") == 0)
             {
-                faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
+                faxtester_set_rx_type(s, T30_MODEM_V21, 300, FALSE, TRUE);
             }
             else if (strcasecmp((const char *) modem, "V.17/14400") == 0)
             {
-                faxtester_set_rx_type(s, T30_MODEM_V17_14400, short_train, hdlc);
+                faxtester_set_rx_type(s, T30_MODEM_V17, 14400, short_train, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.17/12000") == 0)
             {
-                faxtester_set_rx_type(s, T30_MODEM_V17_12000, short_train, hdlc);
+                faxtester_set_rx_type(s, T30_MODEM_V17, 12000, short_train, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.17/9600") == 0)
             {
-                faxtester_set_rx_type(s, T30_MODEM_V17_9600, short_train, hdlc);
+                faxtester_set_rx_type(s, T30_MODEM_V17, 9600, short_train, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.17/7200") == 0)
             {
-                faxtester_set_rx_type(s, T30_MODEM_V17_7200, short_train, hdlc);
+                faxtester_set_rx_type(s, T30_MODEM_V17, 7200, short_train, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.29/9600") == 0)
             {
-                faxtester_set_rx_type(s, T30_MODEM_V29_9600, FALSE, hdlc);
+                faxtester_set_rx_type(s, T30_MODEM_V29, 9600, FALSE, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.29/7200") == 0)
             {
-                faxtester_set_rx_type(s, T30_MODEM_V29_7200, FALSE, hdlc);
+                faxtester_set_rx_type(s, T30_MODEM_V29, 7200, FALSE, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.27ter/4800") == 0)
             {
-                faxtester_set_rx_type(s, T30_MODEM_V27TER_4800, FALSE, hdlc);
+                faxtester_set_rx_type(s, T30_MODEM_V27TER, 4800, FALSE, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.27ter/2400") == 0)
             {
-                faxtester_set_rx_type(s, T30_MODEM_V27TER_2400, FALSE, hdlc);
+                faxtester_set_rx_type(s, T30_MODEM_V27TER, 2400, FALSE, hdlc);
             }
             else
             {
                 span_log(&s->logging, SPAN_LOG_FLOW, "Unrecognised modem\n");
             }
         }
-#if 0
         if (strcasecmp((const char *) type, "CNG") == 0)
         {
-            faxtester_set_rx_type(s, T30_MODEM_CNG, FALSE, FALSE);
-            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+            /* Look for CNG */
+            faxtester_set_rx_type(s, T30_MODEM_CNG, 0, FALSE, FALSE);
+            faxtester_set_tx_type(s, T30_MODEM_NONE, 0, FALSE, FALSE);
         }
         else if (strcasecmp((const char *) type, "CED") == 0)
         {
-            faxtester_set_rx_type(s, T30_MODEM_CED, FALSE, FALSE);
-            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+            /* Look for CED */
+            faxtester_set_rx_type(s, T30_MODEM_CED, 0, FALSE, FALSE);
+            faxtester_set_tx_type(s, T30_MODEM_NONE, 0, FALSE, FALSE);
         }
-#else
-        if (strcasecmp((const char *) type, "CNG") == 0)
-        {
-            return 0;
-        }
-        else if (strcasecmp((const char *) type, "CED") == 0)
-        {
-            return 0;
-        }
-#endif
         else if (strcasecmp((const char *) type, "HDLC") == 0)
         {
             i = string_to_msg(buf, mask, (const char *) value);
@@ -681,42 +672,42 @@ static int next_step(faxtester_state_t *s)
         {
             hdlc = (strcasecmp((const char *) type, "PREAMBLE") == 0);
             short_train = (strcasecmp((const char *) type, "TCF") != 0);
-            faxtester_set_rx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+            faxtester_set_rx_type(s, T30_MODEM_NONE, 0, FALSE, FALSE);
             if (strcasecmp((const char *) modem, "V.21") == 0)
             {
-                faxtester_set_tx_type(s, T30_MODEM_V21, FALSE, TRUE);
+                faxtester_set_tx_type(s, T30_MODEM_V21, 300, FALSE, TRUE);
             }
             else if (strcasecmp((const char *) modem, "V.17/14400") == 0)
             {
-                faxtester_set_tx_type(s, T30_MODEM_V17_14400, short_train, hdlc);
+                faxtester_set_tx_type(s, T30_MODEM_V17, 14400, short_train, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.17/12000") == 0)
             {
-                faxtester_set_tx_type(s, T30_MODEM_V17_12000, short_train, hdlc);
+                faxtester_set_tx_type(s, T30_MODEM_V17, 12000, short_train, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.17/9600") == 0)
             {
-                faxtester_set_tx_type(s, T30_MODEM_V17_9600, short_train, hdlc);
+                faxtester_set_tx_type(s, T30_MODEM_V17, 9600, short_train, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.17/7200") == 0)
             {
-                faxtester_set_tx_type(s, T30_MODEM_V17_7200, short_train, hdlc);
+                faxtester_set_tx_type(s, T30_MODEM_V17, 7200, short_train, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.29/9600") == 0)
             {
-                faxtester_set_tx_type(s, T30_MODEM_V29_9600, FALSE, hdlc);
+                faxtester_set_tx_type(s, T30_MODEM_V29, 9600, FALSE, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.29/7200") == 0)
             {
-                faxtester_set_tx_type(s, T30_MODEM_V29_7200, FALSE, hdlc);
+                faxtester_set_tx_type(s, T30_MODEM_V29, 7200, FALSE, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.27ter/4800") == 0)
             {
-                faxtester_set_tx_type(s, T30_MODEM_V27TER_4800, FALSE, hdlc);
+                faxtester_set_tx_type(s, T30_MODEM_V27TER, 4800, FALSE, hdlc);
             }
             else if (strcasecmp((const char *) modem, "V.27ter/2400") == 0)
             {
-                faxtester_set_tx_type(s, T30_MODEM_V27TER_2400, FALSE, hdlc);
+                faxtester_set_tx_type(s, T30_MODEM_V27TER, 2400, FALSE, hdlc);
             }
             else
             {
@@ -745,19 +736,19 @@ static int next_step(faxtester_state_t *s)
         }
         else if (strcasecmp((const char *) type, "CNG") == 0)
         {
-            faxtester_set_rx_type(s, T30_MODEM_NONE, FALSE, FALSE);
-            faxtester_set_tx_type(s, T30_MODEM_CNG, FALSE, FALSE);
+            faxtester_set_rx_type(s, T30_MODEM_NONE, 0, FALSE, FALSE);
+            faxtester_set_tx_type(s, T30_MODEM_CNG, 0, FALSE, FALSE);
         }
         else if (strcasecmp((const char *) type, "CED") == 0)
         {
-            faxtester_set_rx_type(s, T30_MODEM_NONE, FALSE, FALSE);
-            faxtester_set_tx_type(s, T30_MODEM_CED, FALSE, FALSE);
+            faxtester_set_rx_type(s, T30_MODEM_NONE, 0, FALSE, FALSE);
+            faxtester_set_tx_type(s, T30_MODEM_CED, 0, FALSE, FALSE);
         }
         else if (strcasecmp((const char *) type, "WAIT") == 0)
         {
             delay = (value)  ?  atoi((const char *) value)  :  1;
-            faxtester_set_rx_type(s, T30_MODEM_NONE, FALSE, FALSE);
-            faxtester_set_tx_type(s, T30_MODEM_PAUSE, delay, FALSE);
+            faxtester_set_rx_type(s, T30_MODEM_NONE, 0, FALSE, FALSE);
+            faxtester_set_tx_type(s, T30_MODEM_PAUSE, 0, delay, FALSE);
         }
         else if (strcasecmp((const char *) type, "PREAMBLE") == 0)
         {
@@ -839,15 +830,13 @@ static int next_step(faxtester_state_t *s)
         }
         else if (strcasecmp((const char *) type, "PP") == 0)
         {
-            /* An ECM partial page */
-            min_row_bits = 0;
             compression_step = 0;
             if (t4_tx_init(&t4_state, (const char *) value, -1, -1) == NULL)
             {
                 span_log(&s->logging, SPAN_LOG_FLOW, "Failed to init T.4 send\n");
                 exit(2);
             }
-            t4_tx_set_min_row_bits(&t4_state, min_row_bits);
+            t4_tx_set_min_row_bits(&t4_state, 0);
             t4_tx_set_header_info(&t4_state, NULL);
             switch (compression_step)
             {
@@ -905,7 +894,6 @@ static void exchange(faxtester_state_t *s)
     int log_audio;
 
     log_audio = TRUE;
-    input_tiff_file_name = INPUT_TIFF_FILE_NAME;
     output_tiff_file_name = OUTPUT_TIFF_FILE_NAME;
 
     if (log_audio)
@@ -957,9 +945,9 @@ static void exchange(faxtester_state_t *s)
 
         total_audio_time += SAMPLES_PER_CHUNK;
         span_log_bump_samples(&fax.t30.logging, len);
-        span_log_bump_samples(&fax.fe.modems.v27ter_rx.logging, len);
-        span_log_bump_samples(&fax.fe.modems.v29_rx.logging, len);
-        span_log_bump_samples(&fax.fe.modems.v17_rx.logging, len);
+        span_log_bump_samples(&fax.modems.v27ter_rx.logging, len);
+        span_log_bump_samples(&fax.modems.v29_rx.logging, len);
+        span_log_bump_samples(&fax.modems.v17_rx.logging, len);
         span_log_bump_samples(&fax.logging, len);
         span_log_bump_samples(&s->logging, len);
                 

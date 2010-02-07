@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_decode.c,v 1.44 2008/07/22 13:48:16 steveu Exp $
+ * $Id: fax_decode.c,v 1.45 2008/08/13 00:11:30 steveu Exp $
  */
 
 /*! \page fax_decode_page FAX decoder
@@ -72,14 +72,14 @@ static const struct
     uint8_t dcs_code;
 } fallback_sequence[] =
 {
-    {14400, T30_MODEM_V17_14400,    T30_SUPPORT_V17,    DISBIT6},
-    {12000, T30_MODEM_V17_12000,    T30_SUPPORT_V17,    (DISBIT6 | DISBIT4)},
-    { 9600, T30_MODEM_V17_9600,     T30_SUPPORT_V17,    (DISBIT6 | DISBIT3)},
-    { 9600, T30_MODEM_V29_9600,     T30_SUPPORT_V29,    DISBIT3},
-    { 7200, T30_MODEM_V17_7200,     T30_SUPPORT_V17,    (DISBIT6 | DISBIT4 | DISBIT3)},
-    { 7200, T30_MODEM_V29_7200,     T30_SUPPORT_V29,    (DISBIT4 | DISBIT3)},
-    { 4800, T30_MODEM_V27TER_4800,  T30_SUPPORT_V27TER, DISBIT4},
-    { 2400, T30_MODEM_V27TER_2400,  T30_SUPPORT_V27TER, 0},
+    {14400, T30_MODEM_V17,    T30_SUPPORT_V17,    DISBIT6},
+    {12000, T30_MODEM_V17,    T30_SUPPORT_V17,    (DISBIT6 | DISBIT4)},
+    { 9600, T30_MODEM_V17,    T30_SUPPORT_V17,    (DISBIT6 | DISBIT3)},
+    { 9600, T30_MODEM_V29,    T30_SUPPORT_V29,    DISBIT3},
+    { 7200, T30_MODEM_V17,    T30_SUPPORT_V17,    (DISBIT6 | DISBIT4 | DISBIT3)},
+    { 7200, T30_MODEM_V29,    T30_SUPPORT_V29,    (DISBIT4 | DISBIT3)},
+    { 4800, T30_MODEM_V27TER, T30_SUPPORT_V27TER, DISBIT4},
+    { 2400, T30_MODEM_V27TER, T30_SUPPORT_V27TER, 0},
     {    0, 0, 0, 0}
 };
 
