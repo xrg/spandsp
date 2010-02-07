@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spandsp.h.in,v 1.2 2007/11/10 11:14:57 steveu Exp $
+ * $Id: spandsp.h.in,v 1.3 2007/11/12 13:30:08 steveu Exp $
  */
 
 /*! \file */
@@ -34,11 +34,9 @@
 
 #include <stdlib.h>
 @INSERT_INTTYPES_HEADER@
-@INSERT_STDINT_HEADER@
 #include <string.h>
 #include <limits.h>
 #include <time.h>
-@INSERT_TGMATH_HEADER@
 @INSERT_MATH_HEADER@
 #include <tiffio.h>
 

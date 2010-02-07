@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.91 2007/10/14 10:12:46 steveu Exp $
+ * $Id: v17rx.c,v 1.92 2007/11/12 13:30:09 steveu Exp $
  */
 
 /*! \file */
@@ -33,10 +33,10 @@
 #include <config.h>
 #endif
 
+#include <stdlib.h>
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

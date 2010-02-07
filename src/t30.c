@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.210 2007/11/10 11:14:57 steveu Exp $
+ * $Id: t30.c,v 1.211 2007/11/12 13:30:08 steveu Exp $
  */
 
 /*! \file */
@@ -1121,8 +1121,17 @@ static int build_dis_or_dtc(t30_state_t *s)
     {
         /* ECM allowed */
         set_dis_dtc_bit(s, 27);
+        /* Only offer the option of fancy compression schemes, if we are
+           also offering the ECM option needed to support them. */
         if ((s->supported_compressions & T30_SUPPORT_T6_COMPRESSION))
             set_dis_dtc_bit(s, 31);
+        if ((s->supported_compressions & T30_SUPPORT_T43_COMPRESSION))
+            set_dis_dtc_bit(s, 36);
+        if ((s->supported_compressions & T30_SUPPORT_T85_COMPRESSION))
+            set_dis_dtc_bit(s, 78);
+        /* No T.85 optional. */
+        if ((s->supported_compressions & T30_SUPPORT_T45_COMPRESSION))
+            set_dis_dtc_bit(s, 116);
     }
     if (s->support_fnv)
         set_dis_dtc_bit(s, 33);
@@ -1130,8 +1139,6 @@ static int build_dis_or_dtc(t30_state_t *s)
         set_dis_dtc_bit(s, 34);
     if ((s->supported_polling_features & T30_SUPPORT_PSA))
         set_dis_dtc_bit(s, 35);
-    if ((s->supported_compressions & T30_SUPPORT_T43_COMPRESSION))
-        set_dis_dtc_bit(s, 36);
     /* No plane interleave */
     /* No G.726 */
     /* No extended voice coding */
@@ -1165,9 +1172,6 @@ static int build_dis_or_dtc(t30_state_t *s)
         set_dis_dtc_bit(s, 76);
     if ((s->supported_image_sizes & T30_SUPPORT_US_LEGAL_LENGTH))
         set_dis_dtc_bit(s, 77);
-    if ((s->supported_compressions & T30_SUPPORT_T85_COMPRESSION))
-        set_dis_dtc_bit(s, 78);
-    /* No T.85 optional. */
     if ((s->supported_resolutions & T30_SUPPORT_600_600_RESOLUTION))
         set_dis_dtc_bit(s, 105);
     if ((s->supported_resolutions & T30_SUPPORT_1200_1200_RESOLUTION))
@@ -1178,8 +1182,6 @@ static int build_dis_or_dtc(t30_state_t *s)
         set_dis_dtc_bit(s, 108);
     if ((s->supported_resolutions & T30_SUPPORT_600_1200_RESOLUTION))
         set_dis_dtc_bit(s, 109);
-    if ((s->supported_compressions & T30_SUPPORT_T45_COMPRESSION))
-        set_dis_dtc_bit(s, 116);
     if ((s->iaf & T30_IAF_MODE_FLOW_CONTROL))
         set_dis_dtc_bit(s, 121);
     if ((s->iaf & T30_IAF_MODE_CONTINUOUS_FLOW))
@@ -1326,20 +1328,6 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
             break;
         }
         break;
-    case T4_Y_RESOLUTION_300:
-        switch (s->x_resolution)
-        {
-        case T4_X_RESOLUTION_300:
-            if (!(s->supported_resolutions & T30_SUPPORT_300_300_RESOLUTION))
-                bad = T30_ERR_NORESSUPPORT;
-            else
-                set_dcs_bit(s, 42);
-            break;
-        default:
-            bad = T30_ERR_NORESSUPPORT;
-            break;
-        }
-        break;
     case T4_Y_RESOLUTION_SUPERFINE:
         if (!(s->supported_resolutions & T30_SUPPORT_SUPERFINE_RESOLUTION))
         {
@@ -1359,6 +1347,20 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
                 bad = T30_ERR_NORESSUPPORT;
                 break;
             }
+        }
+        break;
+    case T4_Y_RESOLUTION_300:
+        switch (s->x_resolution)
+        {
+        case T4_X_RESOLUTION_300:
+            if (!(s->supported_resolutions & T30_SUPPORT_300_300_RESOLUTION))
+                bad = T30_ERR_NORESSUPPORT;
+            else
+                set_dcs_bit(s, 42);
+            break;
+        default:
+            bad = T30_ERR_NORESSUPPORT;
+            break;
         }
         break;
     case T4_Y_RESOLUTION_FINE:

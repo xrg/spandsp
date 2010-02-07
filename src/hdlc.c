@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.c,v 1.52 2007/08/25 05:15:26 steveu Exp $
+ * $Id: hdlc.c,v 1.53 2007/11/12 13:30:08 steveu Exp $
  */
 
 /*! \file */
@@ -31,9 +31,10 @@
 #include <config.h>
 #endif
 
+#include <stdlib.h>
 #include <inttypes.h>
-#include <stdio.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/async.h"
