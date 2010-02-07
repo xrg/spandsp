@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.53 2008/10/13 13:14:00 steveu Exp $
+ * $Id: t31.h,v 1.55 2009/01/09 16:09:06 steveu Exp $
  */
 
 /*! \file */
@@ -104,12 +104,16 @@ void t31_set_tep_mode(t31_state_t *s, int use_tep);
 */
 void t31_set_t38_config(t31_state_t *s, int without_pacing);
 
+void t31_set_mode(t31_state_t *s, int t38_mode);
+
 /*! Get a pointer to the logging context associated with a T.31 context.
     \brief Get a pointer to the logging context associated with a T.31 context.
     \param s The T.31 context.
     \return A pointer to the logging context, or NULL.
 */
 logging_state_t *t31_get_logging_state(t31_state_t *s);
+
+t38_core_state_t *t31_get_t38_core_state(t31_state_t *s);
 
 /*! Initialise a T.31 context. This must be called before the first
     use of the context, to initialise its contents.

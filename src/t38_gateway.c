@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.148 2008/12/31 20:09:24 steveu Exp $
+ * $Id: t38_gateway.c,v 1.150 2009/01/09 16:56:07 steveu Exp $
  */
 
 /*! \file */
@@ -1044,11 +1044,15 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         if (hdlc_buf->contents != (data_type | FLAG_DATA))
         {
             queue_missing_indicator(s, data_type);
+            /* All real HDLC messages in the FAX world start with 0xFF. If this one is not starting
+               with 0xFF it would appear some octets must have been missed before this one. */
+            if (len <= 0  ||  buf[0] != 0xFF)
+                s->core.hdlc_to_modem.buf[s->core.hdlc_to_modem.in].flags |= HDLC_FLAG_MISSING_DATA;
             hdlc_buf = &s->core.hdlc_to_modem.buf[s->core.hdlc_to_modem.in];
         }
         /*endif*/
         /* Check if this data would overflow the buffer. */
-        if (hdlc_buf->len + len > T38_MAX_HDLC_LEN)
+        if (len <= 0  ||  hdlc_buf->len + len > T38_MAX_HDLC_LEN)
             break;
         /*endif*/
         hdlc_buf->contents = (data_type | FLAG_DATA);
@@ -1312,7 +1316,8 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             queue_missing_indicator(s, data_type);
             hdlc_buf = &s->core.hdlc_to_modem.buf[s->core.hdlc_to_modem.in];
         }
-        t38_non_ecm_buffer_inject(&s->core.non_ecm_to_modem, buf, len);
+        if (len > 0)
+            t38_non_ecm_buffer_inject(&s->core.non_ecm_to_modem, buf, len);
         xx->corrupt_current_frame[0] = FALSE;
         break;
     case T38_FIELD_T4_NON_ECM_SIG_END:

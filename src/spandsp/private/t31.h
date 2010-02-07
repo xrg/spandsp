@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.4 2009/01/02 15:48:53 steveu Exp $
+ * $Id: t31.h,v 1.5 2009/01/07 12:50:53 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_T31_H_)
@@ -82,11 +82,6 @@ typedef struct
                rate and the current specified packet interval. */
     int octets_per_data_packet;
 
-    /*! \brief The current T.38 data type being transmitted */
-    int current_tx_data_type;
-    /*! \brief The next queued tramsit indicator */
-    int next_tx_indicator;
-
     struct
     {
         uint8_t buf[T31_T38_MAX_HDLC_LEN];
@@ -101,17 +96,27 @@ typedef struct
         int extra_bits;
     } hdlc_tx;
 
+    /*! \brief Counter for trailing non-ECM bytes, used to flush out the far end's modem. */
     int non_ecm_trailer_bytes;
 
+    /*! \brief The next queued tramsit indicator */
+    int next_tx_indicator;
+    /*! \brief The current T.38 data type being transmitted */
+    int current_tx_data_type;
+
+    /*! \brief The current operating mode of the receiver. */
     int current_rx_type;
+    /*! \brief The current operating mode of the transmitter. */
     int current_tx_type;
 
     /*! \brief Current transmission bit rate. */
     int tx_bit_rate;
-    int32_t next_tx_samples;
-    int32_t timeout_rx_samples;
-    /*! \brief A "sample" count, used to time events */
+    /*! \brief A "sample" count, used to time events. */
     int32_t samples;
+    /*! \brief The value for samples at the next transmission point. */
+    int32_t next_tx_samples;
+    /*! \brief The current receive timeout. */
+    int32_t timeout_rx_samples;
 } t31_t38_front_end_state_t;
 
 /*!

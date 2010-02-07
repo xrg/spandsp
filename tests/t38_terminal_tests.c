@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_tests.c,v 1.63 2008/11/30 10:17:31 steveu Exp $
+ * $Id: t38_terminal_tests.c,v 1.64 2009/01/07 12:50:53 steveu Exp $
  */
 
 /*! \file */
@@ -407,7 +407,7 @@ int main(int argc, char *argv[])
         done[0] = t38_terminal_send_timeout(t38_state_a, SAMPLES_PER_CHUNK);
         done[1] = t38_terminal_send_timeout(t38_state_b, SAMPLES_PER_CHUNK);
 
-        when += 0.02;
+        when += (float) SAMPLES_PER_CHUNK/(float) SAMPLE_RATE;
 
         while ((msg_len = g1050_get(path_a_to_b, msg, 1024, when, &seq_no, &tx_when, &rx_when)) >= 0)
         {

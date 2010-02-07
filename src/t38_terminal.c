@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.111 2009/01/05 13:48:31 steveu Exp $
+ * $Id: t38_terminal.c,v 1.114 2009/01/09 16:56:07 steveu Exp $
  */
 
 /*! \file */
@@ -319,10 +319,10 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             front_end_status(s, T30_FRONT_END_SIGNAL_PRESENT);
             /* All real HDLC messages in the FAX world start with 0xFF. If this one is not starting
                with 0xFF it would appear some octets must have been missed before this one. */
-            if (buf[0] != 0xFF)
+            if (len <= 0  ||  buf[0] != 0xFF)
                 fe->rx_data_missing = TRUE;
         }
-        if (fe->hdlc_rx.len + len <= T38_MAX_HDLC_LEN)
+        if (len > 0  &&  fe->hdlc_rx.len + len <= T38_MAX_HDLC_LEN)
         {
             bit_reverse(fe->hdlc_rx.buf + fe->hdlc_rx.len, buf, len);
             fe->hdlc_rx.len += len;
@@ -437,8 +437,11 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             t30_non_ecm_put_bit(&s->t30, SIG_STATUS_TRAINING_SUCCEEDED);
             fe->rx_signal_present = TRUE;
         }
-        bit_reverse(buf2, buf, len);
-        t30_non_ecm_put_chunk(&s->t30, buf2, len);
+        if (len > 0)
+        {
+            bit_reverse(buf2, buf, len);
+            t30_non_ecm_put_chunk(&s->t30, buf2, len);
+        }
         fe->timeout_rx_samples = fe->samples + ms_to_samples(MID_RX_TIMEOUT);
         break;
     case T38_FIELD_T4_NON_ECM_SIG_END:
@@ -754,6 +757,8 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
             /* End of transmission */
             t38_core_send_data(&fe->t38, previous, T38_FIELD_HDLC_FCS_OK_SIG_END, NULL, 0, fe->t38.data_end_tx_count);
             fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_5;
+            /* We add a bit of extra time here, as with some implementations
+               the carrier falling too abruptly causes data loss. */
             fe->next_tx_samples += (bits_to_samples(s, fe->hdlc_tx.extra_bits) + ms_to_samples(100));
             break;
         }
@@ -766,9 +771,7 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
         /* Finish the current frame off, and prepare for the next one. */
         t38_core_send_data(&fe->t38, previous, T38_FIELD_HDLC_FCS_OK, NULL, 0, fe->t38.data_tx_count);
         fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_3;
-        /* We should now wait 3 octet times - the duration of the FCS + a flag octet - and send the
-           next chunk. To give a little more latitude, and allow for stuffing in the FCS, add
-           time for an extra flag octet. */
+        /* We should now wait enough time for everything to clear through an analogue modem at the far end. */
         fe->next_tx_samples += bits_to_samples(s, fe->hdlc_tx.extra_bits);
         break;
     case T38_TIMED_STEP_HDLC_MODEM_5:
@@ -786,7 +789,6 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
         fe->timed_step = T38_TIMED_STEP_CED_2;
         fe->next_tx_samples = fe->samples + ms_to_samples(200);
         t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
-        fe->current_tx_data_type = T38_DATA_NONE;
         break;
     case T38_TIMED_STEP_CED_2:
         /* Initial 200ms delay over. Send the CED indicator */
@@ -803,7 +805,6 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
         fe->timed_step = T38_TIMED_STEP_CNG_2;
         fe->next_tx_samples = fe->samples + ms_to_samples(200);
         t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
-        fe->current_tx_data_type = T38_DATA_NONE;
         break;
     case T38_TIMED_STEP_CNG_2:
         /* Initial short delay over. Send the CNG indicator */

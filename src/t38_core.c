@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.c,v 1.46 2008/11/30 13:44:35 steveu Exp $
+ * $Id: t38_core.c,v 1.47 2009/01/07 12:50:53 steveu Exp $
  */
 
 /*! \file */
@@ -371,12 +371,17 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, const uint8_t *buf, int len, uin
             }
             s->rx_expected_seq_no = seq_no;
         }
-        s->rx_expected_seq_no = (s->rx_expected_seq_no + 1) & 0xFFFF;
     }
-    else
-    {
-        s->rx_expected_seq_no++;
-    }
+    /* The sequence numbering is defined as rolling from 0xFFFF to 0x0000. Some implementations
+       of T.38 roll from 0xFFFF to 0x0001. Isn't standardisation a wonderful thing? The T.38
+       document specifies only a small fraction of what it should, yet then they actually nail
+       something properly, people ignore it. Developers in this industry truly deserves the ****
+       **** **** **** **** **** documents they have to live with. Anyway, when the far end has a
+       broken rollover behaviour we will get a hiccup at the rollover point. Don't worry too
+       much. We will just treat the message in progress as one with some missing data. With any
+       luck a retry will ride over the problem. Rollovers don't occur that often. It takes quite
+       a few FAX pages to reach rollover. */
+    s->rx_expected_seq_no = (s->rx_expected_seq_no + 1) & 0xFFFF;
     data_field_present = (buf[0] >> 7) & 1;
     type = (buf[0] >> 6) & 1;
     ptr = 0;
