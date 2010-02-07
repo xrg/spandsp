@@ -683,7 +683,7 @@ rpm-build:
 	rm -f rpm/SOURCES/*
 	rm -f rpm/SPECS/*
 	rm -f rpm/SRPMS/*
-	rpm -ta --sign @PACKAGE@-@VERSION@.tar.gz
+	rpmbuild -ta --sign @PACKAGE@-@VERSION@.tar.gz
 
 bump.rpm.release: spandsp.spec
 	VERSION="x"; \
