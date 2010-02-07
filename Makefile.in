@@ -229,7 +229,7 @@ EXTRA_DIST = DueDiligence \
              debian/compat \
              debian/control \
              debian/copyright \
-             debian/libspandsp3.install \
+             debian/libspandsp5.install \
              debian/libspandsp-dev.install \
              debian/libspandsp-doc.install \
              debian/rules \

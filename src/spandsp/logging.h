@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: logging.h,v 1.15 2008/04/17 14:27:00 steveu Exp $
+ * $Id: logging.h,v 1.16 2008/05/05 11:25:01 steveu Exp $
  */
 
 /*! \file */
@@ -44,14 +44,14 @@ typedef void (*error_handler_func_t)(const char *text);
 /* Logging elements */
 enum
 {
-    SPAN_LOG_SEVERITY_MASK          = 0x00FF,
-    SPAN_LOG_SHOW_DATE              = 0x0100,
-    SPAN_LOG_SHOW_SAMPLE_TIME       = 0x0200,
-    SPAN_LOG_SHOW_SEVERITY          = 0x0400,
-    SPAN_LOG_SHOW_PROTOCOL          = 0x0800,
-    SPAN_LOG_SHOW_VARIANT           = 0x1000,
-    SPAN_LOG_SHOW_TAG               = 0x2000,
-    SPAN_LOG_SUPPRESS_LABELLING     = 0x8000
+    SPAN_LOG_SEVERITY_MASK              = 0x00FF,
+    SPAN_LOG_SHOW_DATE                  = 0x0100,
+    SPAN_LOG_SHOW_SAMPLE_TIME           = 0x0200,
+    SPAN_LOG_SHOW_SEVERITY              = 0x0400,
+    SPAN_LOG_SHOW_PROTOCOL              = 0x0800,
+    SPAN_LOG_SHOW_VARIANT               = 0x1000,
+    SPAN_LOG_SHOW_TAG                   = 0x2000,
+    SPAN_LOG_SUPPRESS_LABELLING         = 0x8000
 };
 
 /* Logging severity levels */

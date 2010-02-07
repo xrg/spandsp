@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.9 2008/04/17 18:03:22 steveu Exp $
+## $Id: Makefile.am,v 1.10 2008/05/05 11:25:01 steveu Exp $
 
 MAINTAINERCLEANFILES = Makefile.in
 
@@ -34,3 +34,6 @@ doxydocs:
 
 t38_manual/index.html: t38_manual.xml
 	cd t38_manual ; xsltproc ../wrapper.xsl ../t38_manual.xml
+
+clean:
+	cd t38_manual ; rm *.html ; cd ../api ; rm -rf html

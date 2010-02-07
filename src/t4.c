@@ -24,7 +24,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.108 2008/04/17 14:26:58 steveu Exp $
+ * $Id: t4.c,v 1.109 2008/05/05 12:42:06 steveu Exp $
  */
 
 /*
@@ -1077,7 +1077,8 @@ t4_state_t *t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
     memset(s, 0, sizeof(*s));
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     span_log_set_protocol(&s->logging, "T.4");
-
+    s->rx = TRUE;
+    
     span_log(&s->logging, SPAN_LOG_FLOW, "Start rx document\n");
 
     if (open_tiff_output_file(s, file) < 0)
@@ -1206,6 +1207,8 @@ int t4_rx_delete(t4_state_t *s)
 
 int t4_rx_end(t4_state_t *s)
 {
+    if (!s->rx)
+        return -1;
     if (s->tiff_file)
         close_tiff_output_file(s);
     free_buffers(s);
@@ -1630,6 +1633,7 @@ t4_state_t *t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop
     memset(s, 0, sizeof(*s));
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     span_log_set_protocol(&s->logging, "T.4");
+    s->rx = FALSE;
 
     span_log(&s->logging, SPAN_LOG_FLOW, "Start tx document\n");
 
@@ -1964,6 +1968,8 @@ int t4_tx_delete(t4_state_t *s)
 
 int t4_tx_end(t4_state_t *s)
 {
+    if (s->rx)
+        return -1;
     if (s->tiff_file)
         close_tiff_input_file(s);
     free_buffers(s);

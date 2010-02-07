@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.49 2008/05/03 15:08:32 steveu Exp $
+# $Id: configure.ac,v 1.50 2008/05/05 11:25:01 steveu Exp $
 
 # @start 1
 
@@ -28,10 +28,10 @@ m4_include(config/ax_fixed_point_machine.m4)
 
 SPANDSP_MAJOR_VERSION=0
 SPANDSP_MINOR_VERSION=0
-SPANDSP_MICRO_VERSION=4
+SPANDSP_MICRO_VERSION=5
 
-SPANDSP_LT_CURRENT=0
-SPANDSP_LT_REVISION=2
+SPANDSP_LT_CURRENT=1
+SPANDSP_LT_REVISION=0
 SPANDSP_LT_AGE=0
 
 VERSION=$SPANDSP_MAJOR_VERSION.$SPANDSP_MINOR_VERSION.$SPANDSP_MICRO_VERSION

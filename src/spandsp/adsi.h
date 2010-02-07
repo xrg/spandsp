@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.h,v 1.30 2008/04/17 14:26:59 steveu Exp $
+ * $Id: adsi.h,v 1.31 2008/05/05 11:25:01 steveu Exp $
  */
 
 /*! \file */
@@ -210,120 +210,143 @@ enum
  */
 
 /*! Definitions for CLASS (Custom Local Area Signaling Services) */
-/*! Single data message caller ID */
-#define CLASS_SDMF_CALLERID             0x04
-/*! Multiple data message caller ID */
-#define CLASS_MDMF_CALLERID             0x80
-/*! Single data message message waiting */
-#define CLASS_SDMF_MSG_WAITING          0x06
-/*! Multiple data message message waiting */
-#define CLASS_MDMF_MSG_WAITING          0x82
+enum
+{
+    /*! Single data message caller ID */
+    CLASS_SDMF_CALLERID =               0x04,
+    /*! Multiple data message caller ID */
+    CLASS_MDMF_CALLERID =               0x80,
+    /*! Single data message message waiting */
+    CLASS_SDMF_MSG_WAITING =            0x06,
+    /*! Multiple data message message waiting */
+    CLASS_MDMF_MSG_WAITING =            0x82
+};
 
 /*! CLASS MDMF message IDs */
-/*! Date and time (MMDDHHMM) */
-#define MCLASS_DATETIME                 0x01
-/*! Caller number */
-#define MCLASS_CALLER_NUMBER            0x02
-/*! Dialed number */
-#define MCLASS_DIALED_NUMBER            0x03
-/*! Caller number absent: 'O' or 'P' */
-#define MCLASS_ABSENCE1                 0x04
-/*! Call forward: universal ('0'), on busy ('1'), or on unanswered ('2') */
-#define MCLASS_REDIRECT                 0x05
-/*! Long distance: 'L' */
-#define MCLASS_QUALIFIER                0x06
-/*! Caller's name */
-#define MCLASS_CALLER_NAME              0x07
-/*! Caller's name absent: 'O' or 'P' */
-#define MCLASS_ABSENCE2                 0x08
+enum
+{
+    /*! Date and time (MMDDHHMM) */
+    MCLASS_DATETIME =                   0x01,
+    /*! Caller number */
+    MCLASS_CALLER_NUMBER =              0x02,
+    /*! Dialed number */
+    MCLASS_DIALED_NUMBER =              0x03,
+    /*! Caller number absent: 'O' or 'P' */
+    MCLASS_ABSENCE1 =                   0x04,
+    /*! Call forward: universal ('0'), on busy ('1'), or on unanswered ('2') */
+    MCLASS_REDIRECT =                   0x05,
+    /*! Long distance: 'L' */
+    MCLASS_QUALIFIER =                  0x06,
+    /*! Caller's name */
+    MCLASS_CALLER_NAME =                0x07,
+    /*! Caller's name absent: 'O' or 'P' */
+    MCLASS_ABSENCE2 =                   0x08,
+    /*! Alternate route */
+    MCLASS_ALT_ROUTE =                  0x09
+};
 
 /*! CLASS MDMF message waiting message IDs */
 /*! Message waiting/not waiting */
 #define MCLASS_VISUAL_INDICATOR         0x0B
 
 /*! Definitions for CLIP (Calling Line Identity Presentation) */
-/*! Multiple data message caller ID */
-#define CLIP_MDMF_CALLERID              0x80
-/*! Multiple data message message waiting */
-#define CLIP_MDMF_MSG_WAITING           0x82
-/*! Multiple data message charge information */
-#define CLIP_MDMF_CHARGE_INFO           0x86
-/*! Multiple data message SMS */
-#define CLIP_MDMF_SMS                   0x89
+enum
+{
+    /*! Multiple data message caller ID */
+    CLIP_MDMF_CALLERID =                0x80,
+    /*! Multiple data message message waiting */
+    CLIP_MDMF_MSG_WAITING =             0x82,
+    /*! Multiple data message charge information */
+    CLIP_MDMF_CHARGE_INFO =             0x86,
+    /*! Multiple data message SMS */
+    CLIP_MDMF_SMS =                     0x89
+};
 
 /*! CLIP message IDs */
-/*! Date and time (MMDDHHMM) */
-#define CLIP_DATETIME                   0x01
-/*! Caller number */
-#define CLIP_CALLER_NUMBER              0x02
-/*! Dialed number */
-#define CLIP_DIALED_NUMBER              0x03
-/*! Caller number absent: 'O' or 'P' */
-#define CLIP_ABSENCE1                   0x04
-/*! Caller's name */
-#define CLIP_CALLER_NAME                0x07
-/*! Caller's name absent: 'O' or 'P' */
-#define CLIP_ABSENCE2                   0x08
-/*! Visual indicator */
-#define CLIP_VISUAL_INDICATOR           0x0B
-/*! Message ID */
-#define CLIP_MESSAGE_ID                 0x0D
-/*! Voice call, ring-back-when-free call, or msg waiting call */
-#define CLIP_CALLTYPE                   0x11
-/*! Number of messages */
-#define CLIP_NUM_MSG                    0x13
-/*! Redirecting number */
-#define CLIP_REDIR_NUMBER               0x03
-/*! Charge */
-#define CLIP_CHARGE                     0x20
-/*! Duration of the call */
-#define CLIP_DURATION                   0x23
-/*! Additional charge */
-#define CLIP_ADD_CHARGE                 0x21
-/*! Display information */
-#define CLIP_DISPLAY_INFO               0x50
-/*! Service information */
-#define CLIP_SERVICE_INFO               0x55
+enum
+{
+    /*! Date and time (MMDDHHMM) */
+    CLIP_DATETIME =                     0x01,
+    /*! Caller number */
+    CLIP_CALLER_NUMBER =                0x02,
+    /*! Dialed number */
+    CLIP_DIALED_NUMBER =                0x03,
+    /*! Caller number absent: 'O' or 'P' */
+    CLIP_ABSENCE1 =                     0x04,
+    /*! Caller's name */
+    CLIP_CALLER_NAME =                  0x07,
+    /*! Caller's name absent: 'O' or 'P' */
+    CLIP_ABSENCE2 =                     0x08,
+    /*! Visual indicator */
+    CLIP_VISUAL_INDICATOR =             0x0B,
+    /*! Message ID */
+    CLIP_MESSAGE_ID =                   0x0D,
+    /*! Voice call, ring-back-when-free call, or msg waiting call */
+    CLIP_CALLTYPE =                     0x11,
+    /*! Number of messages */
+    CLIP_NUM_MSG =                      0x13,
+    /*! Redirecting number */
+    CLIP_REDIR_NUMBER =                 0x03,
+    /*! Charge */
+    CLIP_CHARGE =                       0x20,
+    /*! Duration of the call */
+    CLIP_DURATION =                     0x23,
+    /*! Additional charge */
+    CLIP_ADD_CHARGE =                   0x21,
+    /*! Display information */
+    CLIP_DISPLAY_INFO =                 0x50,
+    /*! Service information */
+    CLIP_SERVICE_INFO =                 0x55
+};
 
 /*! Definitions for A-CLIP (Analog Calling Line Identity Presentation) */
-/*! Single data message caller ID frame   */
-#define ACLIP_SDMF_CALLERID             0x04
-/*! Multiple data message caller ID frame */
-#define ACLIP_MDMF_CALLERID             0x80
+enum
+{
+    /*! Single data message caller ID frame */
+    ACLIP_SDMF_CALLERID =               0x04,
+    /*! Multiple data message caller ID frame */
+    ACLIP_MDMF_CALLERID =               0x80
+};
 
 /*! A-CLIP MDM message IDs */
-/*! Date and time (MMDDHHMM) */
-#define ACLIP_DATETIME                  0x01
-/*! Caller number */
-#define ACLIP_CALLER_NUMBER             0x02
-/*! Dialed number */
-#define ACLIP_DIALED_NUMBER             0x03
-/*! Caller number absent: 'O' or 'P' */
-#define ACLIP_NUMBER_ABSENCE            0x04
-/*! Call forward: universal, on busy, or on unanswered */
-#define ACLIP_REDIRECT                  0x05
-/*! Long distance call: 'L' */
-#define ACLIP_QUALIFIER                 0x06
-/*! Caller's name */
-#define ACLIP_CALLER_NAME               0x07
-/*! Caller's name absent: 'O' or 'P' */
-#define ACLIP_NAME_ABSENCE              0x08
+enum
+{
+    /*! Date and time (MMDDHHMM) */
+    ACLIP_DATETIME =                    0x01,
+    /*! Caller number */
+    ACLIP_CALLER_NUMBER =               0x02,
+    /*! Dialed number */
+    ACLIP_DIALED_NUMBER =               0x03,
+    /*! Caller number absent: 'O' or 'P' */
+    ACLIP_NUMBER_ABSENCE =              0x04,
+    /*! Call forward: universal, on busy, or on unanswered */
+    ACLIP_REDIRECT =                    0x05,
+    /*! Long distance call: 'L' */
+    ACLIP_QUALIFIER =                   0x06,
+    /*! Caller's name */
+    ACLIP_CALLER_NAME =                 0x07,
+    /*! Caller's name absent: 'O' or 'P' */
+    ACLIP_NAME_ABSENCE =                0x08
+};
 
 /*! Definitions for J-CLIP (Japan Calling Line Identity Presentation) */
 /*! Multiple data message caller ID frame */
 #define JCLIP_MDMF_CALLERID             0x40
 
 /*! J-CLIP MDM message IDs */
-/*! Caller number */
-#define JCLIP_CALLER_NUMBER             0x02
-/*! Caller number data extension signal */
-#define JCLIP_CALLER_NUM_DES            0x21
-/*! Dialed number */
-#define JCLIP_DIALED_NUMBER             0x09
-/*! Dialed number data extension signal */
-#define JCLIP_DIALED_NUM_DES            0x22
-/*! Caller number absent: 'C', 'O', 'P' or 'S' */
-#define JCLIP_ABSENCE                   0x04
+enum
+{
+    /*! Caller number */
+    JCLIP_CALLER_NUMBER =               0x02,
+    /*! Caller number data extension signal */
+    JCLIP_CALLER_NUM_DES =              0x21,
+    /*! Dialed number */
+    JCLIP_DIALED_NUMBER =               0x09,
+    /*! Dialed number data extension signal */
+    JCLIP_DIALED_NUM_DES =              0x22,
+    /*! Caller number absent: 'C', 'O', 'P' or 'S' */
+    JCLIP_ABSENCE =                     0x04
+};
 
 /*! Definitions for CLIP-DTMF and its variants */
 

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.105 2008/04/17 14:27:00 steveu Exp $
+ * $Id: t30.h,v 1.106 2008/05/05 12:42:06 steveu Exp $
  */
 
 /*! \file */
@@ -459,6 +459,8 @@ struct t30_state_s
        to reliably as the structures change over time. */
     /*! \brief T.4 context for reading or writing image data. */
     t4_state_t t4;
+    
+    int operation_in_progress;
 
     /*! \brief TRUE if behaving as the calling party */
     int calling_party;

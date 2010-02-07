@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.49 2008/04/17 14:27:00 steveu Exp $
+ * $Id: t4.h,v 1.50 2008/05/05 12:42:06 steveu Exp $
  */
 
 /*! \file */
@@ -177,6 +177,9 @@ typedef enum
 */
 typedef struct
 {
+    /*! \brief The same structure is used for T.4 transmit and receive. This variable
+               records which mode is in progress. */
+    int rx;
     /* "Background" information about the FAX, which can be stored in a TIFF file. */
     /*! \brief The vendor of the machine which produced the TIFF file. */ 
     const char *vendor;
