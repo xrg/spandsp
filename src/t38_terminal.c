@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.103 2008/10/12 08:40:06 steveu Exp $
+ * $Id: t38_terminal.c,v 1.104 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -71,6 +71,10 @@
 #include "spandsp/t30_logging.h"
 #include "spandsp/t38_core.h"
 #include "spandsp/t38_terminal.h"
+
+#include "spandsp/private/t4.h"
+#include "spandsp/private/t30.h"
+#include "spandsp/private/t38_terminal.h"
 
 /* Settings suitable for paced transmission over a UDP transport */
 #define MS_PER_TX_CHUNK                         30
@@ -995,6 +999,12 @@ static int t38_terminal_t38_fe_init(t38_terminal_state_t *t,
     s->t38.fastest_image_data_rate = 14400;
 
     return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+logging_state_t *t38_terminal_get_logging_state(t38_terminal_state_t *s)
+{
+    return &s->logging;
 }
 /*- End of function --------------------------------------------------------*/
 

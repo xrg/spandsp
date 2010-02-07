@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.c,v 1.44 2008/07/02 14:48:26 steveu Exp $
+ * $Id: t38_core.c,v 1.45 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -851,6 +851,12 @@ void t38_set_sequence_number_handling(t38_core_state_t *s, int check)
 int t38_get_fastest_image_data_rate(t38_core_state_t *s)
 {
     return s->fastest_image_data_rate;
+}
+/*- End of function --------------------------------------------------------*/
+
+logging_state_t *t38_core_get_logging_state(t38_core_state_t *s)
+{
+    return &s->logging;
 }
 /*- End of function --------------------------------------------------------*/
 

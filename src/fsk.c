@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.46 2008/09/07 12:45:16 steveu Exp $
+ * $Id: fsk.c,v 1.47 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -49,6 +49,8 @@
 #include "spandsp/power_meter.h"
 #include "spandsp/async.h"
 #include "spandsp/fsk.h"
+
+#include "spandsp/private/fsk.h"
 
 const fsk_spec_t preset_fsk_specs[] =
 {

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.123 2008/09/18 15:59:55 steveu Exp $
+ * $Id: v17rx.c,v 1.124 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -59,6 +59,7 @@
 #include "spandsp/v29rx.h"
 #include "spandsp/v17tx.h"
 #include "spandsp/v17rx.h"
+#include "spandsp/private/v17rx.h"
 
 #include "v17tx_constellation_maps.h"
 #include "v17rx_constellation_maps.h"
@@ -1104,6 +1105,12 @@ void v17_rx_set_modem_status_handler(v17_rx_state_t *s, modem_tx_status_func_t h
 {
     s->status_handler = handler;
     s->status_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+logging_state_t *v17_rx_get_logging_state(v17_rx_state_t *s)
+{
+    return &s->logging;
 }
 /*- End of function --------------------------------------------------------*/
 

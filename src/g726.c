@@ -48,7 +48,7 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.c,v 1.22 2008/07/02 14:48:25 steveu Exp $
+ * $Id: g726.c,v 1.23 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -74,6 +74,8 @@
 #include "spandsp/bit_operations.h"
 #include "spandsp/g711.h"
 #include "spandsp/g726.h"
+
+#include "spandsp/private/g726.h"
 
 /*
  * Maps G.726_16 code word to reconstructed scale factor normalized log

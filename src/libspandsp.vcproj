@@ -331,6 +331,28 @@
 <File RelativePath="spandsp/vector_float.h"></File>
 <File RelativePath="spandsp/vector_int.h"></File>
 <File RelativePath="spandsp/version.h"></File>
+<File RelativePath="spandsp/private/adsi.h"></File>
+<File RelativePath="spandsp/private/bell_r2_mf.h"></File>
+<File RelativePath="spandsp/private/dtmf.h"></File>
+<File RelativePath="spandsp/private/fax.h"></File>
+<File RelativePath="spandsp/private/fax_modems.h"></File>
+<File RelativePath="spandsp/private/fsk.h"></File>
+<File RelativePath="spandsp/private/g722.h"></File>
+<File RelativePath="spandsp/private/g726.h"></File>
+<File RelativePath="spandsp/private/modem_connect_tones.h"></File>
+<File RelativePath="spandsp/private/t30.h"></File>
+<File RelativePath="spandsp/private/t31.h"></File>
+<File RelativePath="spandsp/private/t38_gateway.h"></File>
+<File RelativePath="spandsp/private/t38_non_ecm_buffer.h"></File>
+<File RelativePath="spandsp/private/t38_terminal.h"></File>
+<File RelativePath="spandsp/private/t4.h"></File>
+<File RelativePath="spandsp/private/v17rx.h"></File>
+<File RelativePath="spandsp/private/v17tx.h"></File>
+<File RelativePath="spandsp/private/v27ter_rx.h"></File>
+<File RelativePath="spandsp/private/v27ter_tx.h"></File>
+<File RelativePath="spandsp/private/v29rx.h"></File>
+<File RelativePath="spandsp/private/v29tx.h"></File>
+<File RelativePath="spandsp/private/v8.h"></File>
 <File RelativePath="spandsp.h"></File>
 		</Filter>
 		<Filter

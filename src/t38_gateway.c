@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.143 2008/10/12 08:40:06 steveu Exp $
+ * $Id: t38_gateway.c,v 1.144 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -65,12 +65,12 @@
 #include "spandsp/hdlc.h"
 #include "spandsp/silence_gen.h"
 #include "spandsp/fsk.h"
-#include "spandsp/v29rx.h"
 #include "spandsp/v29tx.h"
-#include "spandsp/v27ter_rx.h"
+#include "spandsp/v29rx.h"
 #include "spandsp/v27ter_tx.h"
-#include "spandsp/v17rx.h"
+#include "spandsp/v27ter_rx.h"
 #include "spandsp/v17tx.h"
+#include "spandsp/v17rx.h"
 #include "spandsp/super_tone_rx.h"
 #include "spandsp/modem_connect_tones.h"
 #include "spandsp/t4.h"
@@ -78,11 +78,24 @@
 #include "spandsp/t35.h"
 #include "spandsp/t30.h"
 #include "spandsp/t30_logging.h"
-
 #include "spandsp/fax_modems.h"
 #include "spandsp/t38_core.h"
 #include "spandsp/t38_non_ecm_buffer.h"
 #include "spandsp/t38_gateway.h"
+
+#include "spandsp/private/fsk.h"
+#include "spandsp/private/v17tx.h"
+#include "spandsp/private/v17rx.h"
+#include "spandsp/private/v27ter_tx.h"
+#include "spandsp/private/v27ter_rx.h"
+#include "spandsp/private/v29tx.h"
+#include "spandsp/private/v29rx.h"
+#include "spandsp/private/modem_connect_tones.h"
+#include "spandsp/private/fax_modems.h"
+#include "spandsp/private/t4.h"
+#include "spandsp/private/t30.h"
+#include "spandsp/private/t38_non_ecm_buffer.h"
+#include "spandsp/private/t38_gateway.h"
 
 /* This is the target time per transmission chunk. The actual
    packet timing will sync to the data octets. */
@@ -2047,6 +2060,12 @@ void t38_gateway_get_transfer_statistics(t38_gateway_state_t *s, t38_stats_t *t)
 t38_core_state_t *t38_gateway_get_t38_core_state(t38_gateway_state_t *s)
 {
     return &s->t38x.t38;
+}
+/*- End of function --------------------------------------------------------*/
+
+logging_state_t *t38_gateway_get_logging_state(t38_gateway_state_t *s)
+{
+    return &s->logging;
 }
 /*- End of function --------------------------------------------------------*/
 

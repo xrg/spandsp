@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29_tests.c,v 1.106 2008/09/07 12:45:17 steveu Exp $
+ * $Id: v29_tests.c,v 1.110 2008/10/13 14:46:29 steveu Exp $
  */
 
 /*! \page v29_tests_page V.29 modem tests
@@ -45,6 +45,9 @@ display of modem status is maintained.
 \section v29_tests_page_sec_2 How is it used?
 */
 
+/* Enable the following definition to enable direct probing into the FAX structures */
+#define WITH_SPANDSP_INTERNALS
+
 #if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
@@ -62,6 +65,11 @@ display of modem status is maintained.
 
 #include "spandsp.h"
 #include "spandsp-sim.h"
+
+#if defined(WITH_SPANDSP_INTERNALS)
+#include "spandsp/private/v29tx.h"
+#include "spandsp/private/v29rx.h"
+#endif
 
 #if defined(ENABLE_GUI)
 #include "modem_monitor.h"
@@ -265,8 +273,8 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
 
 int main(int argc, char *argv[])
 {
-    v29_rx_state_t rx;
-    v29_tx_state_t tx;
+    v29_rx_state_t *rx;
+    v29_tx_state_t *tx;
     bert_results_t bert_results;
     int16_t gen_amp[BLOCK_LEN];
     int16_t amp[BLOCK_LEN];
@@ -285,6 +293,7 @@ int main(int argc, char *argv[])
     int channel_codec;
     int rbs_pattern;
     int opt;
+    logging_state_t *logging;
     
     channel_codec = MUNGE_CODEC_NONE;
     rbs_pattern = 0;
@@ -373,6 +382,7 @@ int main(int argc, char *argv[])
     if (decode_test_file)
     {
         /* We will decode the audio from a wave file. */
+        tx = NULL;
         if ((inhandle = afOpenFile_telephony_read(decode_test_file, 1)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
@@ -382,12 +392,14 @@ int main(int argc, char *argv[])
     else
     {
         /* We will generate V.29 audio, and add some noise to it. */
-        v29_tx_init(&tx, test_bps, tep, v29getbit, NULL);
-        v29_tx_power(&tx, signal_level);
-        v29_tx_set_modem_status_handler(&tx, v29_tx_status, (void *) &tx);
+        tx = v29_tx_init(NULL, test_bps, tep, v29getbit, NULL);
+        v29_tx_power(tx, signal_level);
+        v29_tx_set_modem_status_handler(tx, v29_tx_status, (void *) tx);
+#if defined(WITH_SPANDSP_INTERNALS)
         /* Move the carrier off a bit */
-        tx.carrier_phase_rate = dds_phase_ratef(1710.0f);
-        tx.carrier_phase = 0;
+        tx->carrier_phase_rate = dds_phase_ratef(1710.0f);
+        tx->carrier_phase = 0;
+#endif
 
         bert_init(&bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
         bert_set_report(&bert, 10000, reporter, NULL);
@@ -399,14 +411,17 @@ int main(int argc, char *argv[])
         }
     }
 
-    v29_rx_init(&rx, test_bps, v29putbit, &rx);
-    v29_rx_signal_cutoff(&rx, -45.5f);
-    v29_rx_set_modem_status_handler(&rx, v29_rx_status, (void *) &rx);
-    v29_rx_set_qam_report_handler(&rx, qam_report, (void *) &rx);
+    rx = v29_rx_init(NULL, test_bps, v29putbit, NULL);
+    v29_rx_signal_cutoff(rx, -45.5f);
+    v29_rx_set_modem_status_handler(rx, v29_rx_status, (void *) rx);
+    v29_rx_set_qam_report_handler(rx, qam_report, (void *) rx);
+#if defined(WITH_SPANDSP_INTERNALS)
     /* Rotate the starting phase */
-    rx.carrier_phase = 0x80000000;
-    span_log_set_level(&rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW);
-    span_log_set_tag(&rx.logging, "V.29-rx");
+    rx->carrier_phase = 0x80000000;
+#endif
+    logging = v29_rx_get_logging_state(rx);
+    span_log_set_level(logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW);
+    span_log_set_tag(logging, "V.29-rx");
 
 #if defined(ENABLE_GUI)
     if (use_gui)
@@ -438,7 +453,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            samples = v29_tx(&tx, gen_amp, BLOCK_LEN);
+            samples = v29_tx(tx, gen_amp, BLOCK_LEN);
 #if defined(ENABLE_GUI)
             if (use_gui)
                 qam_monitor_update_audio_level(qam_monitor, gen_amp, samples);
@@ -447,7 +462,7 @@ int main(int argc, char *argv[])
             {
                 /* Push a little silence through, to ensure all the data bits get out of the buffers */
                 memset(amp, 0, BLOCK_LEN*sizeof(int16_t));
-                v29_rx(&rx, amp, BLOCK_LEN);
+                v29_rx(rx, amp, BLOCK_LEN);
 
                 /* Note that we might get a few bad bits as the carrier shuts down. */
                 bert_result(&bert, &bert_results);
@@ -468,10 +483,12 @@ int main(int argc, char *argv[])
                 }
                 memset(&latest_results, 0, sizeof(latest_results));
                 signal_level--;
-                v29_tx_restart(&tx, test_bps, tep);
-                v29_tx_power(&tx, signal_level);
-                v29_rx_restart(&rx, test_bps, FALSE);
-                rx.eq_put_step = rand()%(48*10/3);
+                v29_tx_restart(tx, test_bps, tep);
+                v29_tx_power(tx, signal_level);
+                v29_rx_restart(rx, test_bps, FALSE);
+#if defined(WITH_SPANDSP_INTERNALS)
+                rx->eq_put_step = rand()%(48*10/3);
+#endif
                 bert_init(&bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
                 bert_set_report(&bert, 10000, reporter, NULL);
                 one_way_line_model_release(line_model);
@@ -499,7 +516,7 @@ int main(int argc, char *argv[])
         if (use_gui  &&  !decode_test_file)
             line_model_monitor_line_spectrum_update(amp, samples);
 #endif
-        v29_rx(&rx, amp, samples);
+        v29_rx(rx, amp, samples);
     }
     if (!decode_test_file)
     {

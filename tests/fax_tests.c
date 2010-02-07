@@ -22,13 +22,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.96 2008/09/09 14:05:55 steveu Exp $
+ * $Id: fax_tests.c,v 1.97 2008/10/13 13:14:01 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
 \section fax_tests_page_sec_1 What does it do?
 \section fax_tests_page_sec_2 How does it work?
 */
+
+/* Enable the following definition to enable direct probing into the FAX structures */
+//#define WITH_SPANDSP_INTERNALS
 
 #if defined(HAVE_CONFIG_H)
 #include "config.h"
@@ -44,6 +47,11 @@
 #include "spandsp.h"
 #include "spandsp-sim.h"
 
+#if defined(WITH_SPANDSP_INTERNALS)
+#include "spandsp/private/t30.h"
+#include "spandsp/private/fax.h"
+#endif
+
 #define SAMPLES_PER_CHUNK       160
 
 #define INPUT_TIFF_FILE_NAME    "../test-data/itu/fax/itutests.tif"
@@ -57,7 +65,7 @@ struct machine_s
     int chan;
     int16_t amp[SAMPLES_PER_CHUNK];
     int len;
-    fax_state_t fax;
+    fax_state_t *fax;
     int done;
     int succeeded;
     char tag[50];
@@ -116,7 +124,9 @@ static int phase_d_handler(t30_state_t *s, void *user_data, int result)
         printf("%d: Phase D: local ident '%s'\n", i, u);
     if ((u = t30_get_rx_ident(s)))
         printf("%d: Phase D: remote ident '%s'\n", i, u);
+#if defined(WITH_SPANDSP_INTERNALS)
     printf("%d: Phase D: bits per row - min %d, max %d\n", i, s->t4.min_row_bits, s->t4.max_row_bits);
+#endif
 
     if (use_receiver_not_ready)
         t30_set_receiver_not_ready(s, 3);
@@ -239,6 +249,7 @@ int main(int argc, char *argv[])
     char *page_header_info;
     int opt;
     t30_state_t *t30;
+    logging_state_t *logging;
 
     log_audio = FALSE;
     input_tiff_file_name = INPUT_TIFF_FILE_NAME;
@@ -332,12 +343,12 @@ int main(int argc, char *argv[])
         i = mc->chan + 1;
         sprintf(buf, "%d%d%d%d%d%d%d%d", i, i, i, i, i, i, i, i);
         if (reverse_flow)
-            fax_init(&mc->fax, (mc->chan & 1)  ?  TRUE  :  FALSE);
+            mc->fax = fax_init(NULL, (mc->chan & 1)  ?  TRUE  :  FALSE);
         else
-            fax_init(&mc->fax, (mc->chan & 1)  ?  FALSE  :  TRUE);
-        fax_set_transmit_on_idle(&mc->fax, use_transmit_on_idle);
-        fax_set_tep_mode(&mc->fax, use_tep);
-        t30 = fax_get_t30_state(&mc->fax);
+            mc->fax = fax_init(NULL, (mc->chan & 1)  ?  FALSE  :  TRUE);
+        fax_set_transmit_on_idle(mc->fax, use_transmit_on_idle);
+        fax_set_tep_mode(mc->fax, use_tep);
+        t30 = fax_get_t30_state(mc->fax);
         t30_set_tx_ident(t30, buf);
         t30_set_tx_sub_address(t30, "Sub-address");
         t30_set_tx_sender_ident(t30, "Sender ID");
@@ -413,12 +424,15 @@ int main(int argc, char *argv[])
         t30_set_real_time_frame_handler(t30, real_time_frame_handler, (void *) (intptr_t) mc->chan);
         t30_set_document_handler(t30, document_handler, (void *) (intptr_t) mc->chan);
         sprintf(mc->tag, "FAX-%d", j + 1);
-        span_log_set_level(&t30->logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
-        span_log_set_tag(&t30->logging, mc->tag);
-        span_log_set_level(&mc->fax.modems.v29_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
-        span_log_set_tag(&mc->fax.modems.v29_rx.logging, mc->tag);
-        span_log_set_level(&mc->fax.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
-        span_log_set_tag(&mc->fax.logging, mc->tag);
+
+        logging = t30_get_logging_state(t30);
+        span_log_set_level(logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+        span_log_set_tag(logging, mc->tag);
+
+        logging = fax_get_logging_state(mc->fax);
+        span_log_set_level(logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+        span_log_set_tag(logging, mc->tag);
+
         memset(mc->amp, 0, sizeof(mc->amp));
         mc->total_audio_time = 0;
         mc->done = FALSE;
@@ -439,7 +453,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                mc->len = fax_tx(&mc->fax, mc->amp, SAMPLES_PER_CHUNK);
+                mc->len = fax_tx(mc->fax, mc->amp, SAMPLES_PER_CHUNK);
             }
             mc->total_audio_time += SAMPLES_PER_CHUNK;
             if (!use_transmit_on_idle)
@@ -453,9 +467,11 @@ int main(int argc, char *argv[])
                     mc->len = SAMPLES_PER_CHUNK;
                 }
             }
-            span_log_bump_samples(&mc->fax.t30.logging, mc->len);
-            span_log_bump_samples(&mc->fax.modems.v29_rx.logging, mc->len);
-            span_log_bump_samples(&mc->fax.logging, mc->len);
+            t30 = fax_get_t30_state(mc->fax);
+            logging = t30_get_logging_state(t30);
+            span_log_bump_samples(logging, mc->len);
+            logging = fax_get_logging_state(mc->fax);
+            span_log_bump_samples(logging, mc->len);
 
             if (log_audio)
             {
@@ -464,10 +480,12 @@ int main(int argc, char *argv[])
             }
             if (machines[j ^ 1].len < SAMPLES_PER_CHUNK)
                 memset(machines[j ^ 1].amp + machines[j ^ 1].len, 0, sizeof(int16_t)*(SAMPLES_PER_CHUNK - machines[j ^ 1].len));
+            t30 = fax_get_t30_state(mc->fax);
+#if defined(WITH_SPANDSP_INTERNALS)
             if (use_line_hits)
             {
                 /* TODO: This applies very crude line hits. improve it */
-                if (mc->fax.t30.state == 22)
+                if (t30->state == 22)
                 {
                     if (++mc->error_delay == 100)
                     {
@@ -478,9 +496,10 @@ int main(int argc, char *argv[])
                     }
                 }    
             }
-            if (mc->fax.t30.state == t30_state_to_wreck)
+            if (t30->state == t30_state_to_wreck)
                 memset(machines[j ^ 1].amp, 0, sizeof(int16_t)*SAMPLES_PER_CHUNK);
-            if (fax_rx(&mc->fax, machines[j ^ 1].amp, SAMPLES_PER_CHUNK))
+#endif
+            if (fax_rx(mc->fax, machines[j ^ 1].amp, SAMPLES_PER_CHUNK))
                 break;
             if (!mc->done)
                 alldone = FALSE;
@@ -500,7 +519,7 @@ int main(int argc, char *argv[])
     for (j = 0;  j < FAX_MACHINES;  j++)
     {
         mc = &machines[j];
-        fax_release(&mc->fax);
+        fax_release(mc->fax);
     }
     if (log_audio)
     {

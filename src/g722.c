@@ -28,7 +28,7 @@
  * Computer Science, Speech Group
  * Chengxiang Lu and Alex Hauptmann
  *
- * $Id: g722.c,v 1.2 2008/09/19 16:24:25 steveu Exp $
+ * $Id: g722.c,v 1.3 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -52,6 +52,8 @@
 #include "spandsp/saturated.h"
 #include "spandsp/vector_int.h"
 #include "spandsp/g722.h"
+
+#include "spandsp/private/g722.h"
 
 static const int16_t qmf_coeffs_fwd[12] =
 {

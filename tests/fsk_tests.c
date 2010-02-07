@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk_tests.c,v 1.50 2008/09/07 12:45:17 steveu Exp $
+ * $Id: fsk_tests.c,v 1.52 2008/10/13 14:19:18 steveu Exp $
  */
 
 /*! \page fsk_tests_page FSK modem tests
@@ -42,6 +42,9 @@ These tests allow either:
 \section fsk_tests_page_sec_2 How does it work?
 */
 
+/* Enable the following definition to enable direct probing into the FAX structures */
+//#define WITH_SPANDSP_INTERNALS
+
 #if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
@@ -55,6 +58,10 @@ These tests allow either:
 
 #include "spandsp.h"
 #include "spandsp-sim.h"
+
+#if defined(WITH_SPANDSP_INTERNALS)
+#include "spandsp/private/fsk.h"
+#endif
 
 #define BLOCK_LEN           160
 
@@ -163,10 +170,10 @@ static void reporter(void *user_data, int reason, bert_results_t *results)
 
 int main(int argc, char *argv[])
 {
-    fsk_tx_state_t caller_tx;
-    fsk_rx_state_t caller_rx;
-    fsk_tx_state_t answerer_tx;
-    fsk_rx_state_t answerer_rx;
+    fsk_tx_state_t *caller_tx;
+    fsk_rx_state_t *caller_rx;
+    fsk_tx_state_t *answerer_tx;
+    fsk_rx_state_t *answerer_rx;
     bert_state_t caller_bert;
     bert_state_t answerer_bert;
     bert_results_t bert_results;
@@ -282,8 +289,8 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
             exit(2);
         }
-        fsk_rx_init(&caller_rx, &preset_fsk_specs[modem_under_test_1], TRUE, put_bit, NULL);
-        fsk_rx_set_modem_status_handler(&caller_rx, rx_status, (void *) &caller_rx);
+        caller_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_1], TRUE, put_bit, NULL);
+        fsk_rx_set_modem_status_handler(caller_rx, rx_status, (void *) &caller_rx);
         test_bps = preset_fsk_specs[modem_under_test_1].baud_rate;
 
         for (;;)
@@ -296,7 +303,7 @@ int main(int argc, char *argv[])
                 break;
             for (i = 0;  i < samples;  i++)
                 power_meter_update(&caller_meter, caller_model_amp[i]);
-            fsk_rx(&caller_rx, caller_model_amp, samples);
+            fsk_rx(caller_rx, caller_model_amp, samples);
         }
 
         if (afCloseFile(inhandle) != 0)
@@ -308,9 +315,9 @@ int main(int argc, char *argv[])
     else
     {
         printf("Test cutoff level\n");
-        fsk_rx_init(&caller_rx, &preset_fsk_specs[modem_under_test_1], TRUE, cutoff_test_put_bit, NULL);
-        fsk_rx_signal_cutoff(&caller_rx, -30.0f);
-        fsk_rx_set_modem_status_handler(&caller_rx, cutoff_test_rx_status, (void *) &caller_rx);
+        caller_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_1], TRUE, cutoff_test_put_bit, NULL);
+        fsk_rx_signal_cutoff(caller_rx, -30.0f);
+        fsk_rx_set_modem_status_handler(caller_rx, cutoff_test_rx_status, (void *) &caller_rx);
         on_at = 0;
         for (i = -40;  i < -25;  i++)
         {
@@ -328,7 +335,7 @@ int main(int argc, char *argv[])
             for (j = 0;  j < 10;  j++)
             {
                 samples = tone_gen(&tone_tx, caller_model_amp, 160);
-                fsk_rx(&caller_rx, caller_model_amp, samples);
+                fsk_rx(caller_rx, caller_model_amp, samples);
             }
             if (cutoff_test_carrier)
                break;
@@ -351,7 +358,7 @@ int main(int argc, char *argv[])
             for (j = 0;  j < 10;  j++)
             {
                 samples = tone_gen(&tone_tx, caller_model_amp, 160);
-                fsk_rx(&caller_rx, caller_model_amp, samples);
+                fsk_rx(caller_rx, caller_model_amp, samples);
             }
             if (!cutoff_test_carrier)
                 break;
@@ -370,17 +377,17 @@ int main(int argc, char *argv[])
         test_bps = preset_fsk_specs[modem_under_test_1].baud_rate;
         if (modem_under_test_1 >= 0)
         {
-            fsk_tx_init(&caller_tx, &preset_fsk_specs[modem_under_test_1], (get_bit_func_t) bert_get_bit, &caller_bert);
-            fsk_tx_set_modem_status_handler(&caller_tx, tx_status, (void *) &caller_tx);
-            fsk_rx_init(&answerer_rx, &preset_fsk_specs[modem_under_test_1], TRUE, (put_bit_func_t) bert_put_bit, &answerer_bert);
-            fsk_rx_set_modem_status_handler(&answerer_rx, rx_status, (void *) &answerer_rx);
+            caller_tx = fsk_tx_init(NULL, &preset_fsk_specs[modem_under_test_1], (get_bit_func_t) bert_get_bit, &caller_bert);
+            fsk_tx_set_modem_status_handler(caller_tx, tx_status, (void *) &caller_tx);
+            answerer_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_1], TRUE, (put_bit_func_t) bert_put_bit, &answerer_bert);
+            fsk_rx_set_modem_status_handler(answerer_rx, rx_status, (void *) &answerer_rx);
         }
         if (modem_under_test_2 >= 0)
         {
-            fsk_tx_init(&answerer_tx, &preset_fsk_specs[modem_under_test_2], (get_bit_func_t) bert_get_bit, &answerer_bert);
-            fsk_tx_set_modem_status_handler(&answerer_tx, tx_status, (void *) &answerer_tx);
-            fsk_rx_init(&caller_rx, &preset_fsk_specs[modem_under_test_2], TRUE, (put_bit_func_t) bert_put_bit, &caller_bert);
-            fsk_rx_set_modem_status_handler(&caller_rx, rx_status, (void *) &caller_rx);
+            answerer_tx = fsk_tx_init(NULL, &preset_fsk_specs[modem_under_test_2], (get_bit_func_t) bert_get_bit, &answerer_bert);
+            fsk_tx_set_modem_status_handler(answerer_tx, tx_status, (void *) &answerer_tx);
+            caller_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_2], TRUE, (put_bit_func_t) bert_put_bit, &caller_bert);
+            fsk_rx_set_modem_status_handler(caller_rx, rx_status, (void *) &caller_rx);
         }
         test_bps = preset_fsk_specs[modem_under_test_1].baud_rate;
 
@@ -399,10 +406,10 @@ int main(int argc, char *argv[])
 
         for (;;)
         {
-            samples = fsk_tx(&caller_tx, caller_amp, BLOCK_LEN);
+            samples = fsk_tx(caller_tx, caller_amp, BLOCK_LEN);
             for (i = 0;  i < samples;  i++)
                 power_meter_update(&caller_meter, caller_amp[i]);
-            samples = fsk_tx(&answerer_tx, answerer_amp, BLOCK_LEN);
+            samples = fsk_tx(answerer_tx, answerer_amp, BLOCK_LEN);
             for (i = 0;  i < samples;  i++)
                 power_meter_update(&answerer_meter, answerer_amp[i]);
             both_ways_line_model(model,
@@ -414,13 +421,13 @@ int main(int argc, char *argv[])
 
             //printf("Powers %10.5fdBm0 %10.5fdBm0\n", power_meter_current_dbm0(&caller_meter), power_meter_current_dbm0(&answerer_meter));
 
-            fsk_rx(&answerer_rx, caller_model_amp, samples);
+            fsk_rx(answerer_rx, caller_model_amp, samples);
             for (i = 0;  i < samples;  i++)
                 out_amp[2*i] = caller_model_amp[i];
             for (  ;  i < BLOCK_LEN;  i++)
                 out_amp[2*i] = 0;
 
-            fsk_rx(&caller_rx, answerer_model_amp, samples);
+            fsk_rx(caller_rx, answerer_model_amp, samples);
             for (i = 0;  i < samples;  i++)
                 out_amp[2*i + 1] = answerer_model_amp[i];
             for (  ;  i < BLOCK_LEN;  i++)
@@ -485,17 +492,17 @@ int main(int argc, char *argv[])
                 }
                 if (modem_under_test_1 >= 0)
                 {
-                    fsk_tx_init(&caller_tx, &preset_fsk_specs[modem_under_test_1], (get_bit_func_t) bert_get_bit, &caller_bert);
-                    fsk_tx_set_modem_status_handler(&caller_tx, tx_status, (void *) &caller_tx);
-                    fsk_rx_init(&answerer_rx, &preset_fsk_specs[modem_under_test_1], TRUE, (put_bit_func_t) bert_put_bit, &answerer_bert);
-                    fsk_rx_set_modem_status_handler(&answerer_rx, rx_status, (void *) &answerer_rx);
+                    caller_tx = fsk_tx_init(NULL, &preset_fsk_specs[modem_under_test_1], (get_bit_func_t) bert_get_bit, &caller_bert);
+                    fsk_tx_set_modem_status_handler(caller_tx, tx_status, (void *) &caller_tx);
+                    answerer_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_1], TRUE, (put_bit_func_t) bert_put_bit, &answerer_bert);
+                    fsk_rx_set_modem_status_handler(answerer_rx, rx_status, (void *) &answerer_rx);
                 }
                 if (modem_under_test_2 >= 0)
                 {
-                    fsk_tx_init(&answerer_tx, &preset_fsk_specs[modem_under_test_2], (get_bit_func_t) bert_get_bit, &answerer_bert);
-                    fsk_tx_set_modem_status_handler(&answerer_tx, tx_status, (void *) &answerer_tx);
-                    fsk_rx_init(&caller_rx, &preset_fsk_specs[modem_under_test_2], TRUE, (put_bit_func_t) bert_put_bit, &caller_bert);
-                    fsk_rx_set_modem_status_handler(&caller_rx, rx_status, (void *) &caller_rx);
+                    answerer_tx = fsk_tx_init(NULL, &preset_fsk_specs[modem_under_test_2], (get_bit_func_t) bert_get_bit, &answerer_bert);
+                    fsk_tx_set_modem_status_handler(answerer_tx, tx_status, (void *) &answerer_tx);
+                    caller_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_2], TRUE, (put_bit_func_t) bert_put_bit, &caller_bert);
+                    fsk_rx_set_modem_status_handler(caller_rx, rx_status, (void *) &caller_rx);
                 }
                 noise_level++;
                 if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, noise_level, channel_codec, 0)) == NULL)

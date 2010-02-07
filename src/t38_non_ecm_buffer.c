@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_non_ecm_buffer.c,v 1.3 2008/09/07 12:45:17 steveu Exp $
+ * $Id: t38_non_ecm_buffer.c,v 1.4 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -56,8 +56,9 @@
 #include "spandsp/dc_restore.h"
 #include "spandsp/bit_operations.h"
 #include "spandsp/async.h"
-
 #include "spandsp/t38_non_ecm_buffer.h"
+
+#include "spandsp/private/t38_non_ecm_buffer.h"
 
 static void restart_buffer(t38_non_ecm_buffer_state_t *s)
 {

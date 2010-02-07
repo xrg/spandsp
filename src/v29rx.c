@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.144 2008/09/18 14:59:30 steveu Exp $
+ * $Id: v29rx.c,v 1.145 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -57,6 +57,7 @@
 #include "spandsp/complex_filters.h"
 
 #include "spandsp/v29rx.h"
+#include "spandsp/private/v29rx.h"
 
 #include "v29tx_constellation_maps.h"
 #if defined(SPANDSP_USE_FIXED_POINT)
@@ -1002,6 +1003,12 @@ void v29_rx_set_modem_status_handler(v29_rx_state_t *s, modem_tx_status_func_t h
 {
     s->status_handler = handler;
     s->status_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+logging_state_t *v29_rx_get_logging_state(v29_rx_state_t *s)
+{
+    return &s->logging;
 }
 /*- End of function --------------------------------------------------------*/
 

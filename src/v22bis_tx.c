@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.44 2008/09/07 12:45:17 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.45 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -600,6 +600,12 @@ void v22bis_set_put_bit(v22bis_state_t *s, put_bit_func_t put_bit, void *user_da
 {
     s->put_bit = put_bit;
     s->user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+logging_state_t *v22bis_get_logging_state(v22bis_state_t *s)
+{
+    return &s->logging;
 }
 /*- End of function --------------------------------------------------------*/
 

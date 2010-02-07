@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_decode.c,v 1.48 2008/09/07 12:45:17 steveu Exp $
+ * $Id: fax_decode.c,v 1.49 2008/10/13 13:14:01 steveu Exp $
  */
 
 /*! \page fax_decode_page FAX decoder
@@ -44,6 +44,8 @@
 #include <audiofile.h>
 
 #include "spandsp.h"
+#include "spandsp/private/t4.h"
+#include "spandsp/private/t30.h"
 
 #define SAMPLES_PER_CHUNK   160
 
@@ -509,10 +511,10 @@ static void v27ter_put_bit(void *user_data, int bit)
 
 int main(int argc, char *argv[])
 {
-    fsk_rx_state_t fsk;
-    v17_rx_state_t v17;
-    v29_rx_state_t v29;
-    v27ter_rx_state_t v27ter;
+    fsk_rx_state_t *fsk;
+    v17_rx_state_t *v17;
+    v29_rx_state_t *v29;
+    v27ter_rx_state_t *v27ter;
     int16_t amp[SAMPLES_PER_CHUNK];
     AFfilehandle inhandle;
     int len;
@@ -549,16 +551,17 @@ int main(int argc, char *argv[])
     span_log_set_protocol(&t30_dummy.logging, "T.30");
 
     hdlc_rx_init(&hdlcrx, FALSE, TRUE, 5, hdlc_accept, NULL);
-    fsk_rx_init(&fsk, &preset_fsk_specs[FSK_V21CH2], TRUE, v21_put_bit, NULL);
-    v17_rx_init(&v17, 14400, v17_put_bit, NULL);
-    v29_rx_init(&v29, 9600, v29_put_bit, NULL);
-    //v29_rx_init(&v29, 7200, v29_put_bit, NULL);
-    v27ter_rx_init(&v27ter, 4800, v27ter_put_bit, NULL);
-    fsk_rx_signal_cutoff(&fsk, -45.5);
-    v17_rx_signal_cutoff(&v17, -45.5);
-    v29_rx_signal_cutoff(&v29, -45.5);
-    v27ter_rx_signal_cutoff(&v27ter, -40.0);
+    fsk = fsk_rx_init(NULL, &preset_fsk_specs[FSK_V21CH2], TRUE, v21_put_bit, NULL);
+    v17 = v17_rx_init(NULL, 14400, v17_put_bit, NULL);
+    v29 = v29_rx_init(NULL, 9600, v29_put_bit, NULL);
+    //v29 = v29_rx_init(NULL, 7200, v29_put_bit, NULL);
+    v27ter = v27ter_rx_init(NULL, 4800, v27ter_put_bit, NULL);
+    fsk_rx_signal_cutoff(fsk, -45.5);
+    v17_rx_signal_cutoff(v17, -45.5);
+    v29_rx_signal_cutoff(v29, -45.5);
+    v27ter_rx_signal_cutoff(v27ter, -40.0);
 
+#if 0
     span_log_init(&v17.logging, SPAN_LOG_FLOW, NULL);
     span_log_set_protocol(&v17.logging, "V.17");
     span_log_set_level(&v17.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);
@@ -570,6 +573,7 @@ int main(int argc, char *argv[])
     span_log_init(&v27ter.logging, SPAN_LOG_FLOW, NULL);
     span_log_set_protocol(&v27ter.logging, "V.27ter");
     span_log_set_level(&v27ter.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);
+#endif
 
     if (t4_rx_init(&t4_state, "fax_decode.tif", T4_COMPRESSION_ITU_T4_2D) == NULL)
     {
@@ -582,10 +586,10 @@ int main(int argc, char *argv[])
         len = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, SAMPLES_PER_CHUNK);
         if (len < SAMPLES_PER_CHUNK)
             break;
-        fsk_rx(&fsk, amp, len);
-        v17_rx(&v17, amp, len);
-        v29_rx(&v29, amp, len);
-        v27ter_rx(&v27ter, amp, len);
+        fsk_rx(fsk, amp, len);
+        v17_rx(v17, amp, len);
+        v29_rx(v29, amp, len);
+        v27ter_rx(v27ter, amp, len);
     }
     t4_rx_end(&t4_state);
 

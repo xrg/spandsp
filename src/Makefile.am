@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.106 2008/10/05 04:58:30 steveu Exp $
+## $Id: Makefile.am,v 1.108 2008/10/13 14:46:29 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -37,7 +37,8 @@ EXTRA_DIST = floating_fudge.h \
              msvc/msvcproj.head \
              msvc/msvcproj.foot \
              msvc/vc8proj.head \
-             msvc/vc8proj.foot
+             msvc/vc8proj.foot \
+             spandsp/private/README
 
 INCLUDES = -I$(top_builddir)
 
@@ -196,7 +197,29 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/v8.h \
                          spandsp/vector_float.h \
                          spandsp/vector_int.h \
-                         spandsp/version.h
+                         spandsp/version.h \
+                         spandsp/private/adsi.h \
+                         spandsp/private/bell_r2_mf.h \
+                         spandsp/private/dtmf.h \
+                         spandsp/private/fax.h \
+                         spandsp/private/fax_modems.h \
+                         spandsp/private/fsk.h \
+                         spandsp/private/g722.h \
+                         spandsp/private/g726.h \
+                         spandsp/private/modem_connect_tones.h \
+                         spandsp/private/t30.h \
+                         spandsp/private/t31.h \
+                         spandsp/private/t38_gateway.h \
+                         spandsp/private/t38_non_ecm_buffer.h \
+                         spandsp/private/t38_terminal.h \
+                         spandsp/private/t4.h \
+                         spandsp/private/v17rx.h \
+                         spandsp/private/v17tx.h \
+                         spandsp/private/v27ter_rx.h \
+                         spandsp/private/v27ter_tx.h \
+                         spandsp/private/v29rx.h \
+                         spandsp/private/v29tx.h \
+                         spandsp/private/v8.h
 
 nodist_include_HEADERS = spandsp.h
 

@@ -703,6 +703,94 @@ SOURCE=.\spandsp/version.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\spandsp/private/adsi.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/bell_r2_mf.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/dtmf.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/fax.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/fax_modems.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/fsk.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/g722.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/g726.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/modem_connect_tones.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/t30.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/t31.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/t38_gateway.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/t38_non_ecm_buffer.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/t38_terminal.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/t4.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/v17rx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/v17tx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/v27ter_rx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/v27ter_tx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/v29rx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/v29tx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/v8.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\spandsp.h
 # End Source File
 # End Group

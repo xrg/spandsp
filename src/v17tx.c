@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.c,v 1.64 2008/09/07 12:45:17 steveu Exp $
+ * $Id: v17tx.c,v 1.65 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -53,6 +53,8 @@
 #include "spandsp/power_meter.h"
 
 #include "spandsp/v17tx.h"
+
+#include "spandsp/private/v17tx.h"
 
 #if defined(SPANDSP_USE_FIXED_POINT)
 #define SPANDSP_USE_FIXED_POINTx
@@ -329,6 +331,12 @@ void v17_tx_set_modem_status_handler(v17_tx_state_t *s, modem_tx_status_func_t h
 {
     s->status_handler = handler;
     s->status_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+logging_state_t *v17_tx_get_logging_state(v17_tx_state_t *s)
+{
+    return &s->logging;
 }
 /*- End of function --------------------------------------------------------*/
 

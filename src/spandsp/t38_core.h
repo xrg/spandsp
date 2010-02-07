@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.h,v 1.29 2008/09/04 14:40:05 steveu Exp $
+ * $Id: t38_core.h,v 1.30 2008/10/13 13:14:01 steveu Exp $
  */
 
 /*! \file */
@@ -399,12 +399,19 @@ int t38_get_fastest_image_data_rate(t38_core_state_t *s);
 */
 void t38_set_t38_version(t38_core_state_t *s, int t38_version);
 
-/* Set the sequence number handling option.
+/*! Set the sequence number handling option.
     \param s The T.38 context.
     \param check TRUE to check sequence numbers, and handle gaps reasonably. FALSE
            for no sequence number processing (e.g. for TPKT over TCP transport).
 */
 void t38_set_sequence_number_handling(t38_core_state_t *s, int check);
+
+/*! Get a pointer to the logging context associated with a T.38 context.
+    \brief Get a pointer to the logging context associated with a T.38 context.
+    \param s The T.38 context.
+    \return A pointer to the logging context, or NULL.
+*/
+logging_state_t *t38_core_get_logging_state(t38_core_state_t *s);
 
 t38_core_state_t *t38_core_init(t38_core_state_t *s,
                                 t38_rx_indicator_handler_t *rx_indicator_handler,

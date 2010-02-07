@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.c,v 1.29 2008/07/02 14:48:25 steveu Exp $
+ * $Id: bell_r2_mf.c,v 1.30 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -54,6 +54,8 @@
 #include "spandsp/super_tone_rx.h"
 #include "spandsp/dtmf.h"
 #include "spandsp/bell_r2_mf.h"
+
+#include "spandsp/private/bell_r2_mf.h"
 
 #if !defined(M_PI)
 /* C99 systems may not define M_PI */

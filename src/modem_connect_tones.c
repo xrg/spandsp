@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.c,v 1.28 2008/09/07 12:45:16 steveu Exp $
+ * $Id: modem_connect_tones.c,v 1.29 2008/10/13 13:14:00 steveu Exp $
  */
  
 /*! \file */
@@ -55,6 +55,9 @@
 #include "spandsp/async.h"
 #include "spandsp/fsk.h"
 #include "spandsp/modem_connect_tones.h"
+
+#include "spandsp/private/fsk.h"
+#include "spandsp/private/modem_connect_tones.h"
 
 #define HDLC_FRAMING_OK_THRESHOLD       5
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g726_tests.c,v 1.28 2008/09/28 14:36:25 steveu Exp $
+ * $Id: g726_tests.c,v 1.29 2008/10/13 13:14:01 steveu Exp $
  */
 
 /*! \file */
@@ -60,6 +60,9 @@ The test file ../test-data/local/short_nb_voice.wav will be compressed to the sp
 decompressed, and the resulting audio stored in post_g726.wav.
 */
 
+/* Enable the following definition to enable direct probing into the FAX structures */
+//#define WITH_SPANDSP_INTERNALS
+
 #if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
@@ -74,6 +77,10 @@ decompressed, and the resulting audio stored in post_g726.wav.
 
 #include "spandsp.h"
 #include "spandsp-sim.h"
+
+#if 1 //defined(WITH_SPANDSP_INTERNALS)
+#include "spandsp/private/g726.h"
+#endif
 
 #define BLOCK_LEN           320
 #define MAX_TEST_VECTOR_LEN 40000

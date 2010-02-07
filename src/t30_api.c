@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_api.c,v 1.8 2008/08/14 14:06:05 steveu Exp $
+ * $Id: t30_api.c,v 1.9 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -66,6 +66,9 @@
 #include "spandsp/t30.h"
 #include "spandsp/t30_api.h"
 #include "spandsp/t30_logging.h"
+
+#include "spandsp/private/t4.h"
+#include "spandsp/private/t30.h"
 
 #include "t30_local.h"
 
@@ -722,6 +725,12 @@ void t30_set_real_time_frame_handler(t30_state_t *s, t30_real_time_frame_handler
 {
     s->real_time_frame_handler = handler;
     s->real_time_frame_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+logging_state_t *t30_get_logging_state(t30_state_t *s)
+{
+    return &s->logging;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

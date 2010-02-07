@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.c,v 1.31 2008/09/07 12:45:17 steveu Exp $
+ * $Id: v8.c,v 1.33 2008/10/13 14:19:18 steveu Exp $
  */
  
 /*! \file */
@@ -56,6 +56,10 @@
 #include "spandsp/fsk.h"
 #include "spandsp/modem_connect_tones.h"
 #include "spandsp/v8.h"
+
+#include "spandsp/private/fsk.h"
+#include "spandsp/private/modem_connect_tones.h"
+#include "spandsp/private/v8.h"
 
 #define ms_to_samples(t)    (((t)*SAMPLE_RATE)/1000)
 
@@ -845,6 +849,12 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
+logging_state_t *v8_get_logging_state(v8_state_t *s)
+{
+    return &s->logging;
+}
+/*- End of function --------------------------------------------------------*/
+
 v8_state_t *v8_init(v8_state_t *s,
                     int caller,
                     int available_modulations,
@@ -882,6 +892,16 @@ v8_state_t *v8_init(v8_state_t *s,
 int v8_release(v8_state_t *s)
 {
     return queue_free(s->tx_queue);
+}
+/*- End of function --------------------------------------------------------*/
+
+int v8_free(v8_state_t *s)
+{
+    int ret;
+    
+    ret = queue_free(s->tx_queue);
+    free(s);
+    return ret;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.30 2008/07/25 13:56:54 steveu Exp $
+ * $Id: v22bis.h,v 1.31 2008/10/13 13:14:01 steveu Exp $
  */
 
 /*! \file */
@@ -302,6 +302,8 @@ v22bis_state_t *v22bis_init(v22bis_state_t *s,
     \param s The modem context.
     \return 0 for OK */
 int v22bis_free(v22bis_state_t *s);
+
+logging_state_t *v22bis_get_logging_state(v22bis_state_t *s);
 
 /*! Change the get_bit function associated with a V.22bis modem context.
     \brief Change the get_bit function associated with a V.22bis modem context.

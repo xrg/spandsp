@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g722_tests.c,v 1.27 2008/09/19 14:02:05 steveu Exp $
+ * $Id: g722_tests.c,v 1.28 2008/10/13 13:14:01 steveu Exp $
  */
 
 /*! \file */
@@ -56,6 +56,9 @@ The file ../test-data/local/short_wb_voice.wav will be compressed to the specifi
 and the resulting audio stored in post_g722.wav.
 */
 
+/* Enable the following definition to enable direct probing into the FAX structures */
+//#define WITH_SPANDSP_INTERNALS
+
 #if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
@@ -69,6 +72,10 @@ and the resulting audio stored in post_g722.wav.
 #include <audiofile.h>
 
 #include "spandsp.h"
+
+#if 1 //defined(WITH_SPANDSP_INTERNALS)
+#include "spandsp/private/g722.h"
+#endif
 
 #define G722_SAMPLE_RATE    16000
 

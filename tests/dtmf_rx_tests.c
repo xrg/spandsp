@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_rx_tests.c,v 1.42 2008/08/29 09:28:13 steveu Exp $
+ * $Id: dtmf_rx_tests.c,v 1.43 2008/10/13 13:14:01 steveu Exp $
  */
 
 /*
@@ -314,12 +314,12 @@ static void mitel_cm7291_side_1_tests(void)
     int nminus;
     float rrb;
     float rcfo;
-    dtmf_rx_state_t dtmf_state;
+    dtmf_rx_state_t *dtmf_state;
     awgn_state_t noise_source;
 
-    dtmf_rx_init(&dtmf_state, NULL, NULL);
+    dtmf_state = dtmf_rx_init(NULL, NULL, NULL);
     if (use_dialtone_filter)
-        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1, -99);
+        dtmf_rx_parms(dtmf_state, TRUE, -1, -1, -99);
 
     /* Test 1: Mitel's test 1 isn't really a test. Its a calibration step,
        which has no meaning here. */
@@ -342,9 +342,9 @@ static void mitel_cm7291_side_1_tests(void)
         {
             len = my_dtmf_generate(amp, digit);
             codec_munge(munge, amp, len);
-            dtmf_rx(&dtmf_state, amp, len);
+            dtmf_rx(dtmf_state, amp, len);
 
-            actual = dtmf_rx_get(&dtmf_state, buf, 128);
+            actual = dtmf_rx_get(dtmf_state, buf, 128);
 
             if (actual != 1  ||  buf[0] != digit[0])
             {
@@ -396,16 +396,16 @@ static void mitel_cm7291_side_1_tests(void)
             my_dtmf_gen_init((float) i/1000.0f, -17, 0.0f, -17, 50, 50);
             len = my_dtmf_generate(amp, digit);
             codec_munge(munge, amp, len);
-            dtmf_rx(&dtmf_state, amp, len);
-            nplus += dtmf_rx_get(&dtmf_state, buf, 128);
+            dtmf_rx(dtmf_state, amp, len);
+            nplus += dtmf_rx_get(dtmf_state, buf, 128);
         }
         for (nminus = 0, i = -1;  i >= -60;  i--)
         {
             my_dtmf_gen_init((float) i/1000.0f, -17, 0.0f, -17, 50, 50);
             len = my_dtmf_generate(amp, digit);
             codec_munge(munge, amp, len);
-            dtmf_rx(&dtmf_state, amp, len);
-            nminus += dtmf_rx_get(&dtmf_state, buf, 128);
+            dtmf_rx(dtmf_state, amp, len);
+            nminus += dtmf_rx_get(dtmf_state, buf, 128);
         }
         rrb = (float) (nplus + nminus)/10.0f;
         rcfo = (float) (nplus - nminus)/10.0f;
@@ -426,16 +426,16 @@ static void mitel_cm7291_side_1_tests(void)
             my_dtmf_gen_init(0.0f, -17, (float) i/1000.0f, -17, 50, 50);
             len = my_dtmf_generate(amp, digit);
             codec_munge(munge, amp, len);
-            dtmf_rx(&dtmf_state, amp, len);
-            nplus += dtmf_rx_get(&dtmf_state, buf, 128);
+            dtmf_rx(dtmf_state, amp, len);
+            nplus += dtmf_rx_get(dtmf_state, buf, 128);
         }
         for (nminus = 0, i = -1;  i >= -60;  i--)
         {
             my_dtmf_gen_init(0.0f, -17, (float) i/1000.0f, -17, 50, 50);
             len = my_dtmf_generate(amp, digit);
             codec_munge(munge, amp, len);
-            dtmf_rx(&dtmf_state, amp, len);
-            nminus += dtmf_rx_get(&dtmf_state, buf, 128);
+            dtmf_rx(dtmf_state, amp, len);
+            nminus += dtmf_rx_get(dtmf_state, buf, 128);
         }
         rrb = (float) (nplus + nminus)/10.0f;
         rcfo = (float) (nplus - nminus)/10.0f;
@@ -488,8 +488,8 @@ static void mitel_cm7291_side_1_tests(void)
 
             len = my_dtmf_generate(amp, digit);
             codec_munge(munge, amp, len);
-            dtmf_rx(&dtmf_state, amp, len);
-            nplus += dtmf_rx_get(&dtmf_state, buf, 128);
+            dtmf_rx(dtmf_state, amp, len);
+            nplus += dtmf_rx_get(dtmf_state, buf, 128);
         }
         printf("    %c normal twist  = %.2fdB\n", digit[0], (float) nplus/10.0);
         if (nplus < 80)
@@ -503,8 +503,8 @@ static void mitel_cm7291_side_1_tests(void)
 
             len = my_dtmf_generate(amp, digit);
             codec_munge(munge, amp, len);
-            dtmf_rx(&dtmf_state, amp, len);
-            nminus += dtmf_rx_get(&dtmf_state, buf, 128);
+            dtmf_rx(dtmf_state, amp, len);
+            nminus += dtmf_rx_get(dtmf_state, buf, 128);
         }
         printf("    %c reverse twist = %.2fdB\n", digit[0], (float) nminus/10.0);
         if (nminus < 40)
@@ -531,8 +531,8 @@ static void mitel_cm7291_side_1_tests(void)
 
         len = my_dtmf_generate(amp, "1");
         codec_munge(munge, amp, len);
-        dtmf_rx(&dtmf_state, amp, len);
-        nplus += dtmf_rx_get(&dtmf_state, buf, 128);
+        dtmf_rx(dtmf_state, amp, len);
+        nplus += dtmf_rx_get(dtmf_state, buf, 128);
     }
     printf("    Dynamic range = %ddB\n", nplus);
     /* We ought to set some pass/fail condition, even if Mitel did not. If
@@ -560,8 +560,8 @@ static void mitel_cm7291_side_1_tests(void)
 
         len = my_dtmf_generate(amp, "1");
         codec_munge(munge, amp, len);
-        dtmf_rx(&dtmf_state, amp, len);
-        nplus += dtmf_rx_get(&dtmf_state, buf, 128);
+        dtmf_rx(dtmf_state, amp, len);
+        nplus += dtmf_rx_get(dtmf_state, buf, 128);
     }
     printf("    Guard time = %dms\n", (500 - nplus)/10);
     printf("    Passed\n");
@@ -593,9 +593,9 @@ static void mitel_cm7291_side_1_tests(void)
                 amp[sample] = saturate(amp[sample] + awgn(&noise_source));
             
             codec_munge(munge, amp, len);
-            dtmf_rx(&dtmf_state, amp, len);
+            dtmf_rx(dtmf_state, amp, len);
 
-            if (dtmf_rx_get(&dtmf_state, buf, 128) != 1)
+            if (dtmf_rx_get(dtmf_state, buf, 128) != 1)
                 break;
         }
         if (i == 1000)
@@ -621,11 +621,11 @@ static void mitel_cm7291_side_2_and_bellcore_tests(void)
     char buf[128 + 1];
     AFfilehandle inhandle;
     int frames;
-    dtmf_rx_state_t dtmf_state;
+    dtmf_rx_state_t *dtmf_state;
 
-    dtmf_rx_init(&dtmf_state, NULL, NULL);
+    dtmf_state = dtmf_rx_init(NULL, NULL, NULL);
     if (use_dialtone_filter)
-        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1, -99);
+        dtmf_rx_parms(dtmf_state, TRUE, -1, -1, -99);
 
     /* The remainder of the Mitel tape is the talk-off test */
     /* Here we use the Bellcore test tapes (much tougher), in six
@@ -645,8 +645,8 @@ static void mitel_cm7291_side_2_and_bellcore_tests(void)
         hits = 0;
         while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, SAMPLE_RATE)))
         {
-            dtmf_rx(&dtmf_state, amp, frames);
-            len = dtmf_rx_get(&dtmf_state, buf, 128);
+            dtmf_rx(dtmf_state, amp, frames);
+            len = dtmf_rx_get(dtmf_state, buf, 128);
             if (len > 0)
             {
                 for (i = 0;  i < len;  i++)
@@ -686,13 +686,13 @@ static void dial_tone_tolerance_tests(void)
     int len;
     int sample;
     char buf[128 + 1];
-    dtmf_rx_state_t dtmf_state;
+    dtmf_rx_state_t *dtmf_state;
     tone_gen_descriptor_t dial_tone_desc;
     tone_gen_state_t dial_tone;
 
-    dtmf_rx_init(&dtmf_state, NULL, NULL);
+    dtmf_state = dtmf_rx_init(NULL, NULL, NULL);
     if (use_dialtone_filter)
-        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1, -99);
+        dtmf_rx_parms(dtmf_state, TRUE, -1, -1, -99);
 
     /* Test dial tone tolerance */
     printf("Test: Dial tone tolerance.\n");
@@ -710,9 +710,9 @@ static void dial_tone_tolerance_tests(void)
             for (sample = 0;  sample < len;  sample++)
                 amp[sample] = saturate(amp[sample] + amp2[sample]);
             codec_munge(munge, amp, len);
-            dtmf_rx(&dtmf_state, amp, len);
+            dtmf_rx(dtmf_state, amp, len);
 
-            if (dtmf_rx_get(&dtmf_state, buf, 128) != strlen(ALL_POSSIBLE_DIGITS))
+            if (dtmf_rx_get(dtmf_state, buf, 128) != strlen(ALL_POSSIBLE_DIGITS))
                 break;
         }
         if (i != 10)
@@ -736,23 +736,23 @@ static void callback_function_tests(void)
     int j;
     int len;
     int sample;
-    dtmf_rx_state_t dtmf_state;
+    dtmf_rx_state_t *dtmf_state;
 
     /* Test the callback mode for delivering detected digits */
     printf("Test: Callback digit delivery mode.\n");
     callback_hit = FALSE;
     callback_ok = TRUE;
     callback_roll = 0;
-    dtmf_rx_init(&dtmf_state, digit_delivery, (void *) 0x12345678);
+    dtmf_state = dtmf_rx_init(NULL, digit_delivery, (void *) 0x12345678);
     if (use_dialtone_filter)
-        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1, -99);
+        dtmf_rx_parms(dtmf_state, TRUE, -1, -1, -99);
     my_dtmf_gen_init(0.0f, DEFAULT_DTMF_TX_LEVEL, 0.0f, DEFAULT_DTMF_TX_LEVEL, DEFAULT_DTMF_TX_ON_TIME, DEFAULT_DTMF_TX_OFF_TIME);
     for (i = 1;  i < 10;  i++)
     {
         len = 0;
         for (j = 0;  j < i;  j++)
             len += my_dtmf_generate(amp + len, ALL_POSSIBLE_DIGITS);
-        dtmf_rx(&dtmf_state, amp, len);
+        dtmf_rx(dtmf_state, amp, len);
         if (!callback_hit  ||  !callback_ok)
             break;
     }
@@ -768,10 +768,10 @@ static void callback_function_tests(void)
     callback_hit = FALSE;
     callback_ok = TRUE;
     callback_roll = 0;
-    dtmf_rx_init(&dtmf_state, NULL, NULL);
-    dtmf_rx_set_realtime_callback(&dtmf_state, digit_status, (void *) 0x12345678);
+    dtmf_rx_init(dtmf_state, NULL, NULL);
+    dtmf_rx_set_realtime_callback(dtmf_state, digit_status, (void *) 0x12345678);
     if (use_dialtone_filter)
-        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1, -99);
+        dtmf_rx_parms(dtmf_state, TRUE, -1, -1, -99);
     my_dtmf_gen_init(0.0f, DEFAULT_DTMF_TX_LEVEL, 0.0f, DEFAULT_DTMF_TX_LEVEL, DEFAULT_DTMF_TX_ON_TIME, DEFAULT_DTMF_TX_OFF_TIME);
     step = 0;
     for (i = 1;  i < 10;  i++)
@@ -781,7 +781,7 @@ static void callback_function_tests(void)
             len += my_dtmf_generate(amp + len, ALL_POSSIBLE_DIGITS);
         for (sample = 0, j = SAMPLES_PER_CHUNK;  sample < len;  sample += SAMPLES_PER_CHUNK, j = ((len - sample) >= SAMPLES_PER_CHUNK)  ?  SAMPLES_PER_CHUNK  :  (len - sample))
         {
-            dtmf_rx(&dtmf_state, &amp[sample], j);
+            dtmf_rx(dtmf_state, &amp[sample], j);
             if (!callback_ok)
                 break;
             step += j;
@@ -801,15 +801,15 @@ static void decode_test(const char *test_file)
 {
     int16_t amp[SAMPLES_PER_CHUNK];
     AFfilehandle inhandle;
-    dtmf_rx_state_t dtmf_state;
+    dtmf_rx_state_t *dtmf_state;
     char buf[128 + 1];
     int actual;
     int samples;
     int total;
 
-    dtmf_rx_init(&dtmf_state, NULL, NULL);
+    dtmf_state = dtmf_rx_init(NULL, NULL, NULL);
     if (use_dialtone_filter)
-        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1, -99);
+        dtmf_rx_parms(dtmf_state, TRUE, -1, -1, -99);
 
     /* We will decode the audio from a wave file. */
     
@@ -823,9 +823,9 @@ static void decode_test(const char *test_file)
     while ((samples = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, SAMPLES_PER_CHUNK)) > 0)
     {
         codec_munge(munge, amp, samples);
-        dtmf_rx(&dtmf_state, amp, samples);
-        //printf("Status 0x%X\n", dtmf_rx_status(&dtmf_state));
-        if ((actual = dtmf_rx_get(&dtmf_state, buf, 128)) > 0)
+        dtmf_rx(dtmf_state, amp, samples);
+        //printf("Status 0x%X\n", dtmf_rx_status(dtmf_state));
+        if ((actual = dtmf_rx_get(dtmf_state, buf, 128)) > 0)
             printf("Received '%s'\n", buf);
         total += actual;
     }

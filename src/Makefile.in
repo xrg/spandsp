@@ -274,7 +274,8 @@ EXTRA_DIST = floating_fudge.h \
              msvc/msvcproj.head \
              msvc/msvcproj.foot \
              msvc/vc8proj.head \
-             msvc/vc8proj.foot
+             msvc/vc8proj.foot \
+             spandsp/private/README
 
 INCLUDES = -I$(top_builddir)
 lib_LTLIBRARIES = libspandsp.la
@@ -430,7 +431,29 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/v8.h \
                          spandsp/vector_float.h \
                          spandsp/vector_int.h \
-                         spandsp/version.h
+                         spandsp/version.h \
+                         spandsp/private/adsi.h \
+                         spandsp/private/bell_r2_mf.h \
+                         spandsp/private/dtmf.h \
+                         spandsp/private/fax.h \
+                         spandsp/private/fax_modems.h \
+                         spandsp/private/fsk.h \
+                         spandsp/private/g722.h \
+                         spandsp/private/g726.h \
+                         spandsp/private/modem_connect_tones.h \
+                         spandsp/private/t30.h \
+                         spandsp/private/t31.h \
+                         spandsp/private/t38_gateway.h \
+                         spandsp/private/t38_non_ecm_buffer.h \
+                         spandsp/private/t38_terminal.h \
+                         spandsp/private/t4.h \
+                         spandsp/private/v17rx.h \
+                         spandsp/private/v17tx.h \
+                         spandsp/private/v27ter_rx.h \
+                         spandsp/private/v27ter_tx.h \
+                         spandsp/private/v29rx.h \
+                         spandsp/private/v29tx.h \
+                         spandsp/private/v8.h
 
 nodist_include_HEADERS = spandsp.h
 noinst_HEADERS = faxfont.h \
@@ -750,7 +773,7 @@ distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 
 distdir: $(DISTFILES)
-	$(mkdir_p) $(distdir)/.. $(distdir)/msvc $(distdir)/msvc/sys $(distdir)/spandsp
+	$(mkdir_p) $(distdir)/.. $(distdir)/msvc $(distdir)/msvc/sys $(distdir)/spandsp $(distdir)/spandsp/private
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.c,v 1.66 2008/09/07 12:45:17 steveu Exp $
+ * $Id: v27ter_tx.c,v 1.67 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -53,6 +53,7 @@
 #include "spandsp/power_meter.h"
 
 #include "spandsp/v27ter_tx.h"
+#include "spandsp/private/v27ter_tx.h"
 
 #if defined(SPANDSP_USE_FIXED_POINT)
 #include "v27ter_tx_4800_fixed_rrc.h"
@@ -368,6 +369,12 @@ void v27ter_tx_set_modem_status_handler(v27ter_tx_state_t *s, modem_tx_status_fu
 {
     s->status_handler = handler;
     s->status_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+logging_state_t *v27ter_tx_get_logging_state(v27ter_tx_state_t *s)
+{
+    return &s->logging;
 }
 /*- End of function --------------------------------------------------------*/
 

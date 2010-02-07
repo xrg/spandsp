@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.79 2008/08/13 00:11:30 steveu Exp $
+ * $Id: fax.c,v 1.80 2008/10/13 13:14:00 steveu Exp $
  */
 
 /*! \file */
@@ -63,12 +63,12 @@
 #include "spandsp/hdlc.h"
 #include "spandsp/silence_gen.h"
 #include "spandsp/fsk.h"
-#include "spandsp/v29rx.h"
 #include "spandsp/v29tx.h"
-#include "spandsp/v27ter_rx.h"
+#include "spandsp/v29rx.h"
 #include "spandsp/v27ter_tx.h"
-#include "spandsp/v17rx.h"
+#include "spandsp/v27ter_rx.h"
 #include "spandsp/v17tx.h"
+#include "spandsp/v17rx.h"
 #include "spandsp/super_tone_rx.h"
 #include "spandsp/modem_connect_tones.h"
 #include "spandsp/t4.h"
@@ -81,6 +81,19 @@
 
 #include "spandsp/fax_modems.h"
 #include "spandsp/fax.h"
+
+#include "spandsp/private/fsk.h"
+#include "spandsp/private/v17tx.h"
+#include "spandsp/private/v17rx.h"
+#include "spandsp/private/v27ter_tx.h"
+#include "spandsp/private/v27ter_rx.h"
+#include "spandsp/private/v29tx.h"
+#include "spandsp/private/v29rx.h"
+#include "spandsp/private/modem_connect_tones.h"
+#include "spandsp/private/fax_modems.h"
+#include "spandsp/private/t4.h"
+#include "spandsp/private/t30.h"
+#include "spandsp/private/fax.h"
 
 #define HDLC_FRAMING_OK_THRESHOLD       5
 
@@ -514,6 +527,12 @@ void fax_set_tep_mode(fax_state_t *s, int use_tep)
 t30_state_t *fax_get_t30_state(fax_state_t *s)
 {
     return &s->t30;
+}
+/*- End of function --------------------------------------------------------*/
+
+logging_state_t *fax_get_logging_state(fax_state_t *s)
+{
+    return &s->logging;
 }
 /*- End of function --------------------------------------------------------*/
 

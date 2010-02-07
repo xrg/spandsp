@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.60 2008/09/07 12:45:16 steveu Exp $
+ * $Id: adsi.c,v 1.62 2008/10/13 14:19:18 steveu Exp $
  */
 
 /*! \file */
@@ -59,6 +59,10 @@
 #include "spandsp/super_tone_rx.h"
 #include "spandsp/dtmf.h"
 #include "spandsp/adsi.h"
+
+#include "spandsp/private/fsk.h"
+#include "spandsp/private/dtmf.h"
+#include "spandsp/private/adsi.h"
 
 #define BAUDOT_FIGURE_SHIFT     0x1B
 #define BAUDOT_LETTER_SHIFT     0x1F
@@ -440,6 +444,13 @@ adsi_rx_state_t *adsi_rx_init(adsi_rx_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
+int adsi_rx_free(adsi_rx_state_t *s)
+{
+    free(s);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
 int adsi_tx(adsi_tx_state_t *s, int16_t *amp, int max_len)
 {
     int len;
@@ -639,6 +650,13 @@ adsi_tx_state_t *adsi_tx_init(adsi_tx_state_t *s, int standard)
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     start_tx(s);
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int adsi_tx_free(adsi_tx_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 

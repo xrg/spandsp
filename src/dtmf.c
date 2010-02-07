@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.43 2008/07/02 14:48:25 steveu Exp $
+ * $Id: dtmf.c,v 1.44 2008/10/13 13:14:00 steveu Exp $
  */
  
 /*! \file dtmf.h */
@@ -53,6 +53,8 @@
 #include "spandsp/tone_generate.h"
 #include "spandsp/super_tone_rx.h"
 #include "spandsp/dtmf.h"
+
+#include "spandsp/private/dtmf.h"
 
 #define DEFAULT_DTMF_TX_LEVEL       -10
 #define DEFAULT_DTMF_TX_ON_TIME     50
