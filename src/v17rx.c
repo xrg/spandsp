@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.139 2009/04/17 14:37:52 steveu Exp $
+ * $Id: v17rx.c,v 1.142 2009/04/19 13:45:35 steveu Exp $
  */
 
 /*! \file */
@@ -613,10 +613,13 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
     case TRAINING_STAGE_SYMBOL_ACQUISITION:
         /* Allow time for the symbol synchronisation to settle the symbol timing. */
         target = &zero;
-#if defined(IAXMODEM_STUFF)
+#if 1 //defined(IAXMODEM_STUFF)
         if (++s->training_count >= 100)
 #else
-        if (++s->training_count >= 50)
+        ++s->training_count;
+        if ((!s->short_train  &&  s->training_count >= 50)
+            ||
+            (s->short_train  &&  s->training_count >= 100))
 #endif
         {
             /* Record the current phase angle */
@@ -747,8 +750,9 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
             s->carrier_phase += (angle - 219937506);
 
             /* We have just seen the first symbol of the scrambled sequence, so skip it. */
-            descramble(s, 1);
-            descramble(s, 1);
+            bit = descramble(s, 1);
+            bit = (bit << 1) | descramble(s, 1);
+            target = &cdba[bit];
             s->training_count = 1;
             s->training_stage = TRAINING_STAGE_COARSE_TRAIN_ON_CDBA;
             report_status_change(s, SIG_STATUS_TRAINING_IN_PROGRESS);
@@ -850,7 +854,6 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
         }
         break;
     case TRAINING_STAGE_SHORT_WAIT_FOR_CDBA:
-        target = &cdba[(s->training_count & 1) + 2];
         /* Look for the initial ABAB sequence to display a phase reversal, which will
            signal the start of the scrambled CDBA segment */
         angle = arctan2(z.im, z.re);
@@ -859,13 +862,15 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
         {
             /* We seem to have a phase reversal */
             /* We have just seen the first symbol of the scrambled sequence, so skip it. */
-            descramble(s, 1);
-            descramble(s, 1);
+            bit = descramble(s, 1);
+            bit = (bit << 1) | descramble(s, 1);
+            target = &cdba[bit];
             s->training_count = 1;
             s->training_error = 0.0f;
             s->training_stage = TRAINING_STAGE_SHORT_TRAIN_ON_CDBA_AND_TEST;
             break;
         }
+        target = &cdba[(s->training_count & 1) + 2];
         track_carrier(s, &z, target);
         if (++s->training_count > V17_TRAINING_SEG_1_LEN)
         {
