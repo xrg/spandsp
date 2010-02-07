@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.127 2009/05/16 03:34:45 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.128 2009/05/19 14:15:09 steveu Exp $
  */
 
 /*! \file */
@@ -522,13 +522,23 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
     {
         0, 4
     };
-    complexf_t z;
     complexf_t zz;
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    complexf_t z1;
+    complexi16_t z;
+    const complexi16_t *target;
+    static const complexi16_t zero = {0, 0};
+#else
+    complexf_t z;
+    const complexf_t *target;
+    static const complexf_t zero = {0.0f, 0.0f};
+#endif
     float p;
     int i;
     int j;
     int32_t angle;
     int32_t ang;
+    int constellation_state;
 
     /* Add a sample to the equalizer's circular buffer, but don't calculate anything
        at this time. */
@@ -550,16 +560,20 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
     z = equalizer_get(s);
 
     //span_log(&s->logging, SPAN_LOG_FLOW, "Equalized symbol - %15.5f %15.5f\n", z.re, z.im);
+    constellation_state = s->constellation_state;
     switch (s->training_stage)
     {
     case TRAINING_STAGE_NORMAL_OPERATION:
         decode_baud(s, &z);
+        constellation_state = (s->bit_rate == 4800)  ?  s->constellation_state  :  (s->constellation_state << 1);
+        target = &v27ter_constellation[constellation_state];
         break;
     case TRAINING_STAGE_SYMBOL_ACQUISITION:
         /* Allow time for the Gardner algorithm to settle the baud timing */
         /* Don't start narrowing the bandwidth of the Gardner algorithm too early.
            Some modems are a bit wobbly when they start sending the signal. Also, we start
            this analysis before our filter buffers have completely filled. */
+        target = &zero;
         if (++s->training_count >= 30)
         {
             s->gardner_step = 32;
@@ -570,6 +584,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
         break;
     case TRAINING_STAGE_LOG_PHASE:
         /* Record the current alternate phase angle */
+        target = &zero;
         angle = arctan2(z.im, z.re);
         s->angles[1] =
         s->start_angles[1] = angle;
@@ -577,6 +592,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
         s->training_stage = TRAINING_STAGE_WAIT_FOR_HOP;
         break;
     case TRAINING_STAGE_WAIT_FOR_HOP:
+        target = &zero;
         angle = arctan2(z.im, z.re);
         /* Look for the initial ABAB sequence to display a phase reversal, which will
            signal the start of the scrambled ABAB segment */
@@ -634,14 +650,15 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
                 s->eq_buf[i] = complex_mulf(&s->eq_buf[i], &zz);
 #endif
             s->carrier_phase += angle;
-
             s->gardner_step = 2;
             /* We have just seen the first element of the scrambled sequence so skip it. */
             s->training_bc = 1;
             s->training_bc ^= descramble(s, 1);
             descramble(s, 1);
             descramble(s, 1);
+            constellation_state =
             s->constellation_state = abab_pos[s->training_bc];
+            target = &v27ter_constellation[constellation_state];
             s->training_count = 1;
             s->training_stage = TRAINING_STAGE_TRAIN_ON_ABAB;
             report_status_change(s, SIG_STATUS_TRAINING_IN_PROGRESS);
@@ -661,41 +678,40 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
         s->training_bc ^= descramble(s, 1);
         descramble(s, 1);
         descramble(s, 1);
+        constellation_state =
         s->constellation_state = abab_pos[s->training_bc];
-        track_carrier(s, &z, &v27ter_constellation[s->constellation_state]);
-        tune_equalizer(s, &z, &v27ter_constellation[s->constellation_state]);
+        target = &v27ter_constellation[constellation_state];
+        track_carrier(s, &z, target);
+        tune_equalizer(s, &z, target);
 
+#if defined(SPANDSP_USE_FIXED_POINTx)
+        s->carrier_track_i = 400 + (200000 - 400)*(float) (V27TER_TRAINING_SEG_5_LEN - s->training_count)/(float) V27TER_TRAINING_SEG_5_LEN;
+        s->carrier_track_p = 1000000 + (10000000 - 1000000)*(float) (V27TER_TRAINING_SEG_5_LEN - s->training_count)/(float) V27TER_TRAINING_SEG_5_LEN;
+#else
+        s->carrier_track_i = 400.0f + (200000.0f - 400.0f)*(float) (V27TER_TRAINING_SEG_5_LEN - s->training_count)/(float) V27TER_TRAINING_SEG_5_LEN;
+        s->carrier_track_p = 1000000.0f + (10000000.0f - 1000000.0f)*(float) (V27TER_TRAINING_SEG_5_LEN - s->training_count)/(float) V27TER_TRAINING_SEG_5_LEN;
+#endif
         if (++s->training_count >= V27TER_TRAINING_SEG_5_LEN)
         {
+            constellation_state = 4;
             s->constellation_state = (s->bit_rate == 4800)  ?  4  :  2;
             s->training_count = 0;
             s->training_stage = TRAINING_STAGE_TEST_ONES;
-#if defined(SPANDSP_USE_FIXED_POINTx)
-            s->carrier_track_i = 400;
-            s->carrier_track_p = 1000000;
-#else
-            s->carrier_track_i = 400.0f;
-            s->carrier_track_p = 1000000.0f;
-#endif
         }
         break;
     case TRAINING_STAGE_TEST_ONES:
         decode_baud(s, &z);
+        constellation_state = (s->bit_rate == 4800)  ?  s->constellation_state  :  (s->constellation_state << 1);
+        target = &v27ter_constellation[constellation_state];
         /* Measure the training error */
 #if defined(SPANDSP_USE_FIXED_POINTx)
         z1.re = z.re/(float) FP_FACTOR;
         z1.im = z.im/(float) FP_FACTOR;
-        if (s->bit_rate == 4800)
-            zz = complex_subf(&z, &v27ter_constellation[s->constellation_state]);
-        else
-            zz = complex_subf(&z, &v27ter_constellation[s->constellation_state << 1]);
+        zz = complex_subf(&z, target);
         zz = complex_subf(&z1, &zz);
         s->training_error += powerf(&zz);
 #else
-        if (s->bit_rate == 4800)
-            zz = complex_subf(&z, &v27ter_constellation[s->constellation_state]);
-        else
-            zz = complex_subf(&z, &v27ter_constellation[s->constellation_state << 1]);
+        zz = complex_subf(&z, target);
         s->training_error += powerf(&zz);
 #endif
         if (++s->training_count >= V27TER_TRAINING_SEG_6_LEN)
@@ -730,6 +746,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
     case TRAINING_STAGE_PARKED:
         /* We failed to train! */
         /* Park here until the carrier drops. */
+        target = &zero;
         break;
     }
     if (s->qam_report)
@@ -737,17 +754,11 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
 #if defined(SPANDSP_USE_FIXED_POINTx)
         z1.re = z.re/(float) FP_FACTOR;
         z1.im = z.im/(float) FP_FACTOR;
-        zz.re = v27ter_constellation[s->constellation_state].re;
-        zz.im = v27ter_constellation[s->constellation_state].im;
-        s->qam_report(s->qam_user_data,
-                      &z1,
-                      &zz,
-                      s->constellation_state);
+        zz.re = target->re;
+        zz.im = target->im;
+        s->qam_report(s->qam_user_data, &z1, &zz, s->constellation_state);
 #else
-        s->qam_report(s->qam_user_data,
-                      &z,
-                      &v27ter_constellation[s->constellation_state],
-                      s->constellation_state);
+        s->qam_report(s->qam_user_data, &z, target, s->constellation_state);
 #endif
     }
 }
