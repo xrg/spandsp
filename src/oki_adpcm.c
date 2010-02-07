@@ -27,7 +27,7 @@
  * The actual OKI ADPCM encode and decode method is derived from freely
  * available code, whose exact origins seem uncertain.
  *
- * $Id: oki_adpcm.c,v 1.28 2008/11/30 10:17:31 steveu Exp $
+ * $Id: oki_adpcm.c,v 1.29 2008/12/12 15:46:55 steveu Exp $
  */
 
 /*! \file */
@@ -47,15 +47,16 @@
 /* Routines to convert 12 bit linear samples to the Oki ADPCM coding format,
    widely used in CTI, because Dialogic use it. */
 
+/* OKI ADPCM step variation table */
 static const int16_t step_size[49] =
 {
-      16,   17,   19,   21,   23,   25,   28,   31,
-      34,   37,   41,   45,   50,   55,   60,   66,
-      73,   80,   88,   97,  107,  118,  130,  143,
-     157,  173,  190,  209,  230,  253,  279,  307,
-     337,  371,  408,  449,  494,  544,  598,  658,
-     724,  796,  876,  963, 1060, 1166, 1282, 1408,
-    1552
+       16,    17,    19,    21,    23,    25,    28,    31,
+       34,    37,    41,    45,    50,    55,    60,    66,
+       73,    80,    88,    97,   107,   118,   130,   143,
+      157,   173,   190,   209,   230,   253,   279,   307,
+      337,   371,   408,   449,   494,   544,   598,   658,
+      724,   796,   876,   963,  1060,  1166,  1282,  1411,
+     1552
 };
 
 static const int16_t step_adjustment[8] =

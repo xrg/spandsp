@@ -399,6 +399,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/queue.h \
                          spandsp/saturated.h \
                          spandsp/schedule.h \
+                         spandsp/sig_tone.h \
                          spandsp/silence_gen.h \
                          spandsp/super_tone_rx.h \
                          spandsp/super_tone_tx.h \
@@ -470,6 +471,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/private/tone_generate.h \
                          spandsp/private/v17rx.h \
                          spandsp/private/v17tx.h \
+                         spandsp/private/v22bis.h \
                          spandsp/private/v27ter_rx.h \
                          spandsp/private/v27ter_tx.h \
                          spandsp/private/v29rx.h \

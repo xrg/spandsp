@@ -298,6 +298,7 @@
 <File RelativePath="spandsp/queue.h"></File>
 <File RelativePath="spandsp/saturated.h"></File>
 <File RelativePath="spandsp/schedule.h"></File>
+<File RelativePath="spandsp/sig_tone.h"></File>
 <File RelativePath="spandsp/silence_gen.h"></File>
 <File RelativePath="spandsp/super_tone_rx.h"></File>
 <File RelativePath="spandsp/super_tone_tx.h"></File>
@@ -369,6 +370,7 @@
 <File RelativePath="spandsp/private/tone_generate.h"></File>
 <File RelativePath="spandsp/private/v17rx.h"></File>
 <File RelativePath="spandsp/private/v17tx.h"></File>
+<File RelativePath="spandsp/private/v22bis.h"></File>
 <File RelativePath="spandsp/private/v27ter_rx.h"></File>
 <File RelativePath="spandsp/private/v27ter_tx.h"></File>
 <File RelativePath="spandsp/private/v29rx.h"></File>

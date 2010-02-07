@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.114 2008/11/30 13:44:35 steveu Exp $
+## $Id: Makefile.am,v 1.116 2008/12/12 13:18:21 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -165,6 +165,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/queue.h \
                          spandsp/saturated.h \
                          spandsp/schedule.h \
+                         spandsp/sig_tone.h \
                          spandsp/silence_gen.h \
                          spandsp/super_tone_rx.h \
                          spandsp/super_tone_tx.h \
@@ -236,6 +237,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/private/tone_generate.h \
                          spandsp/private/v17rx.h \
                          spandsp/private/v17tx.h \
+                         spandsp/private/v22bis.h \
                          spandsp/private/v27ter_rx.h \
                          spandsp/private/v27ter_tx.h \
                          spandsp/private/v29rx.h \

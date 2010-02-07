@@ -571,6 +571,10 @@ SOURCE=.\spandsp/schedule.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\spandsp/sig_tone.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\spandsp/silence_gen.h
 # End Source File
 # Begin Source File
@@ -852,6 +856,10 @@ SOURCE=.\spandsp/private/v17rx.h
 # Begin Source File
 
 SOURCE=.\spandsp/private/v17tx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/v22bis.h
 # End Source File
 # Begin Source File
 
