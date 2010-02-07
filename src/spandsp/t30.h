@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.112 2008/07/31 12:55:30 steveu Exp $
+ * $Id: t30.h,v 1.113 2008/08/04 14:03:17 steveu Exp $
  */
 
 /*! \file */
@@ -615,13 +615,11 @@ struct t30_state_s
         running until V.21 modulation is sent or received.
         T1 is the remote terminal identification timeout (in audio samples). */
     int timer_t0_t1;
-    /*! \brief T2 and T2A are the HDLC command timeouts.
-               T4 and T4A are the HDLC response timeouts (in audio samples). */
+    /*! \brief T2, T2A and T2B are the HDLC command timeouts.
+               T4, T4A and T4B are the HDLC response timeouts (in audio samples). */
     int timer_t2_t4;
     /*! \brief A value specifying which of the possible timers is currently running in timer_t2_t4 */
     int timer_t2_t4_is;
-    /*! \brief T2B and T4B are the short carrier drop persistency check timers. */
-    int timer_t2b_t4b;
     /*! \brief Procedural interrupt timeout (in audio samples). */
     int timer_t3;
     /*! \brief This is only used in error correcting mode. */
@@ -667,8 +665,10 @@ struct t30_state_s
     /*! \brief A bit map of the OK ECM frames, constructed as a PPR frame. */
     uint8_t ecm_frame_map[3 + 32];
     
-    /*! \brief The current page number, in ECM mode */
-    int ecm_page;
+    /*! \brief The current page number for receiving, in ECM mode. This is reset at the start of a call. */
+    int ecm_rx_page;
+    /*! \brief The current page number for sending, in ECM mode. This is reset at the start of a call. */
+    int ecm_tx_page;
     /*! \brief The current block number, in ECM mode */
     int ecm_block;
     /*! \brief The number of frames in the current block number, in ECM mode */

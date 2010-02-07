@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_modems.h,v 1.2 2008/07/26 04:53:00 steveu Exp $
+ * $Id: fax_modems.h,v 1.3 2008/08/06 14:49:11 steveu Exp $
  */
 
 /*! \file */
@@ -92,6 +92,10 @@ typedef struct
     /*! The current transmit signal handler */
     span_tx_handler_t *tx_handler;
     void *tx_user_data;
+
+    /*! The next transmit signal handler */
+    span_tx_handler_t *next_tx_handler;
+    void *next_tx_user_data;
 
     /*! \brief Audio logging file handle for received audio. */
     int audio_rx_log;

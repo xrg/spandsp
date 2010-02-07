@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tsb85_tests.c,v 1.11 2008/08/01 17:59:46 steveu Exp $
+ * $Id: tsb85_tests.c,v 1.15 2008/08/05 16:01:13 steveu Exp $
  */
 
 /*! \file */
@@ -233,15 +233,13 @@ static void faxtester_real_time_frame_handler(faxtester_state_t *s,
                                               const uint8_t *msg,
                                               int len)
 {
-    int i;
-
     if (msg == NULL)
     {
         next_step(s);
     }
     else
     {
-        printf("Tester: Real time frame handler - %s, %s, length = %d\n",
+        printf("Real time frame handler - %s, %s, length = %d\n",
                (direction)  ?  "line->tester"  : "tester->line",
                t30_frametype(msg[2]),
                len);
@@ -253,16 +251,8 @@ static void faxtester_real_time_frame_handler(faxtester_state_t *s,
                 ||
                 memcmp(msg, awaited, abs(awaited_len)) != 0)
             {
-                printf("Expected %d -", awaited_len);
-                for (i = 0;  i < abs(awaited_len);  i++)
-                    printf(" %02X", awaited[i]);
-                if (awaited_len < 0)
-                    printf(" ...");
-                printf("\n");
-                printf("Received %d -", len);
-                for (i = 0;  i < len;  i++)
-                    printf(" %02X", msg[i]);
-                printf("\n");
+                span_log_buf(&s->logging, SPAN_LOG_FLOW, "Expected", awaited, awaited_len);
+                span_log_buf(&s->logging, SPAN_LOG_FLOW, "Received", msg, len);
                 exit(2);
             }
         }
@@ -280,7 +270,7 @@ static void faxtester_front_end_step_complete_handler(faxtester_state_t *s, void
 
 static void faxtester_front_end_step_timeout_handler(faxtester_state_t *s, void *user_data)
 {
-    printf("FAX tester step timed out\n");
+    span_log(&s->logging, SPAN_LOG_FLOW, "FAX tester step timed out\n");
     exit(2);
 }
 /*- End of function --------------------------------------------------------*/
@@ -338,6 +328,8 @@ static void fax_prepare(void)
     span_log_set_tag(&fax.fe.modems.v27ter_rx.logging, "A");
     span_log_set_level(&fax.fe.modems.v29_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
     span_log_set_tag(&fax.fe.modems.v29_rx.logging, "A");
+    span_log_set_level(&fax.fe.modems.v17_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+    span_log_set_tag(&fax.fe.modems.v17_rx.logging, "A");
     span_log_set_level(&fax.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
     span_log_set_tag(&fax.logging, "A");
 }
@@ -447,7 +439,7 @@ static int string_test(void)
 /*- End of function --------------------------------------------------------*/
 #endif
 
-static void corrupt_image(uint8_t image[], int len, const char *bad_rows)
+static void corrupt_image(faxtester_state_t *s, uint8_t image[], int len, const char *bad_rows)
 {
     int i;
     int j;
@@ -457,22 +449,22 @@ static void corrupt_image(uint8_t image[], int len, const char *bad_rows)
     int list[1000];
     int x;
     int row;
-    const char *s;
+    const char *t;
 
     /* Form the list of rows to be hit */
     x = 0;
-    s = bad_rows;
-    while (*s)
+    t = bad_rows;
+    while (*t)
     {
-        while (isspace(*s))
-            s++;
-        if (sscanf(s, "%d", &list[x]) < 1)
+        while (isspace(*t))
+            t++;
+        if (sscanf(t, "%d", &list[x]) < 1)
             break;
         x++;
-        while (isdigit(*s))
-            s++;
-        if (*s == ',')
-            s++;
+        while (isdigit(*t))
+            t++;
+        if (*t == ',')
+            t++;
     }
 
     /* Go through the image, and corrupt the first bit of every listed row */
@@ -503,7 +495,7 @@ static void corrupt_image(uint8_t image[], int len, const char *bad_rows)
         }
         image[i] = (bitsx >> 3) & 0xFF;
     }
-    printf("%d rows found. %d corrupted\n", row, x);
+    span_log(&s->logging, SPAN_LOG_FLOW, "%d rows found. %d corrupted\n", row, x);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -517,7 +509,7 @@ static int next_step(faxtester_state_t *s)
     xmlChar *value;
     xmlChar *tag;
     xmlChar *bad_rows;
-    xmlChar *crc;
+    xmlChar *crc_error;
     xmlChar *pattern;
     xmlChar *timeout;
     uint8_t buf[1000];
@@ -562,30 +554,34 @@ static int next_step(faxtester_state_t *s)
     value = xmlGetProp(s->cur, (const xmlChar *) "value");
     tag = xmlGetProp(s->cur, (const xmlChar *) "tag");
     bad_rows = xmlGetProp(s->cur, (const xmlChar *) "bad_rows");
-    crc = xmlGetProp(s->cur, (const xmlChar *) "crc");
+    crc_error = xmlGetProp(s->cur, (const xmlChar *) "crc_error");
     pattern = xmlGetProp(s->cur, (const xmlChar *) "pattern");
     timeout = xmlGetProp(s->cur, (const xmlChar *) "timeout");
 
     s->cur = s->cur->next;
 
-    printf("Dir - %s, type - %s, modem - %s, value - %s, timeout - %s, tag - %s\n",
-           (dir)  ?  (const char *) dir  :  "",
-           (type)  ?  (const char *) type  :  "",
-           (modem)  ?  (const char *) modem  :  "",
-           (value)  ?  (const char *) value  :  "",
-           (timeout)  ?  (const char *) timeout  :  "",
-           (tag)  ?  (const char *) tag  :  "");
+    span_log(&s->logging,
+             SPAN_LOG_FLOW, 
+             "Dir - %s, type - %s, modem - %s, value - %s, timeout - %s, tag - %s\n",
+             (dir)  ?  (const char *) dir  :  "",
+             (type)  ?  (const char *) type  :  "",
+             (modem)  ?  (const char *) modem  :  "",
+             (value)  ?  (const char *) value  :  "",
+             (timeout)  ?  (const char *) timeout  :  "",
+             (tag)  ?  (const char *) tag  :  "");
     if (type == NULL)
         return 1;
-    /*endif*/
     if (timeout)
         timer = atoi((const char *) timeout);
     else
         timer = -1;
-    faxtester_set_timeout(s, timer);
 
     if (dir  &&  strcasecmp((const char *) dir, "R") == 0)
     {
+        /* Receive always has a timeout applied. */
+        if (timer < 0)
+            timer = 7000;
+        faxtester_set_timeout(s, timer);
         if (modem)
         {
             hdlc = (strcasecmp((const char *) type, "PREAMBLE") == 0);
@@ -629,18 +625,23 @@ static int next_step(faxtester_state_t *s)
             }
             else
             {
-                printf("Unrecognised modem\n");
+                span_log(&s->logging, SPAN_LOG_FLOW, "Unrecognised modem\n");
             }
         }
 
-        if (strcasecmp((const char *) type, "HDLC") == 0)
+        if (strcasecmp((const char *) type, "CNG") == 0)
+        {
+            return 0;
+        }
+        else if (strcasecmp((const char *) type, "CED") == 0)
+        {
+            return 0;
+        }
+        else if (strcasecmp((const char *) type, "HDLC") == 0)
         {
             i = string_to_msg(buf, mask, (const char *) value);
             bit_reverse(awaited, buf, abs(i));
             awaited_len = i;
-        }
-        else if (strcasecmp((const char *) type, "HDLC") == 0)
-        {
         }
         else if (strcasecmp((const char *) type, "TCF") == 0)
         {
@@ -657,11 +658,13 @@ static int next_step(faxtester_state_t *s)
         }
         else
         {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Unrecognised type '%s'\n", (const char *) type);
             return 0;
         }
     }
     else
     {
+        faxtester_set_timeout(s, timer);
         if (modem)
         {
             hdlc = (strcasecmp((const char *) type, "PREAMBLE") == 0);
@@ -705,7 +708,7 @@ static int next_step(faxtester_state_t *s)
             }
             else
             {
-                printf("Unrecognised modem\n");
+                span_log(&s->logging, SPAN_LOG_FLOW, "Unrecognised modem\n");
             }
         }
 
@@ -758,7 +761,7 @@ static int next_step(faxtester_state_t *s)
         {
             i = string_to_msg(buf, mask, (const char *) value);
             bit_reverse(buf, buf, abs(i));
-            if (crc  &&  strcasecmp((const char *) crc, "BAD") == 0)
+            if (crc_error  &&  strcasecmp((const char *) crc_error, "0") == 0)
                 faxtester_send_hdlc_msg(s, buf, abs(i), FALSE);
             else
                 faxtester_send_hdlc_msg(s, buf, abs(i), TRUE);
@@ -781,7 +784,7 @@ static int next_step(faxtester_state_t *s)
             {
                 memset(image, 0, i);
             }
-            faxtester_set_image_buffer(s, image, i);
+            faxtester_set_non_ecm_image_buffer(s, image, i);
         }
         else if (strcasecmp((const char *) type, "MSG") == 0)
         {
@@ -790,7 +793,7 @@ static int next_step(faxtester_state_t *s)
             compression_step = 0;
             if (t4_tx_init(&t4_state, (const char *) value, -1, -1) == NULL)
             {
-                printf("Failed to init T.4 send\n");
+                span_log(&s->logging, SPAN_LOG_FLOW, "Failed to init T.4 send\n");
                 exit(2);
             }
             t4_tx_set_min_row_bits(&t4_state, min_row_bits);
@@ -810,17 +813,17 @@ static int next_step(faxtester_state_t *s)
             t4_tx_set_tx_encoding(&t4_state, compression);
             if (t4_tx_start_page(&t4_state))
             {
-                printf("Failed to start T.4 send\n");
+                span_log(&s->logging, SPAN_LOG_FLOW, "Failed to start T.4 send\n");
                 exit(2);
             }
             len = t4_tx_get_chunk(&t4_state, image, sizeof(image));
             if (bad_rows)
             {
-                printf("We need to corrupt the image\n");
-                corrupt_image(image, len, (const char *) bad_rows);
+                span_log(&s->logging, SPAN_LOG_FLOW, "We need to corrupt the image\n");
+                corrupt_image(s, image, len, (const char *) bad_rows);
             }
             t4_tx_end(&t4_state);
-            faxtester_set_image_buffer(s, image, len);
+            faxtester_set_non_ecm_image_buffer(s, image, len);
         }
         else if (strcasecmp((const char *) type, "PP") == 0)
         {
@@ -829,7 +832,7 @@ static int next_step(faxtester_state_t *s)
             compression_step = 0;
             if (t4_tx_init(&t4_state, (const char *) value, -1, -1) == NULL)
             {
-                printf("Failed to init T.4 send\n");
+                span_log(&s->logging, SPAN_LOG_FLOW, "Failed to init T.4 send\n");
                 exit(2);
             }
             t4_tx_set_min_row_bits(&t4_state, min_row_bits);
@@ -849,20 +852,28 @@ static int next_step(faxtester_state_t *s)
             t4_tx_set_tx_encoding(&t4_state, compression);
             if (t4_tx_start_page(&t4_state))
             {
-                printf("Failed to start T.4 send\n");
+                span_log(&s->logging, SPAN_LOG_FLOW, "Failed to start T.4 send\n");
                 exit(2);
             }
+            /*endif*/
             len = t4_tx_get_chunk(&t4_state, image, sizeof(image));
             if (bad_rows)
             {
-                printf("We need to corrupt the image\n");
-                corrupt_image(image, len, (const char *) bad_rows);
+                span_log(&s->logging, SPAN_LOG_FLOW, "We need to corrupt the image\n");
+                corrupt_image(s, image, len, (const char *) bad_rows);
             }
+            /*endif*/
             t4_tx_end(&t4_state);
-            faxtester_set_image_buffer(s, image, len);
+            if (crc_error)
+                i = atoi((const char *) crc_error);
+            else
+                i = -1;
+            /*endif*/
+            faxtester_set_ecm_image_buffer(s, image, len, 64, i);
         }
         else
         {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Unrecognised type '%s'\n", (const char *) type);
             return 0;
         }
         /*endif*/
@@ -892,6 +903,7 @@ static void exchange(faxtester_state_t *s)
             fprintf(stderr, "    Failed to create file setup\n");
             exit(2);
         }
+        /*endif*/
         afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
         afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
         afInitFileFormat(filesetup, AF_FILE_WAVE);
@@ -902,7 +914,9 @@ static void exchange(faxtester_state_t *s)
             fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
             exit(2);
         }
+        /*endif*/
     }
+    /*endif*/
 
     total_audio_time = 0;
 
@@ -916,6 +930,7 @@ static void exchange(faxtester_state_t *s)
 
     while (next_step(s) == 0)
         ;
+    /*endwhile*/
     for (;;)
     {
         len = fax_tx(&fax, amp, SAMPLES_PER_CHUNK);
@@ -924,25 +939,34 @@ static void exchange(faxtester_state_t *s)
         {
             for (i = 0;  i < len;  i++)
                 out_amp[2*i + 0] = amp[i];
+            /*endfor*/
         }
+        /*endif*/
 
         total_audio_time += SAMPLES_PER_CHUNK;
         span_log_bump_samples(&fax.t30.logging, len);
-        span_log_bump_samples(&fax.fe.modems.v29_rx.logging, len);
         span_log_bump_samples(&fax.fe.modems.v27ter_rx.logging, len);
+        span_log_bump_samples(&fax.fe.modems.v29_rx.logging, len);
+        span_log_bump_samples(&fax.fe.modems.v17_rx.logging, len);
         span_log_bump_samples(&fax.logging, len);
+        span_log_bump_samples(&s->logging, len);
                 
         len = faxtester_tx(s, amp, 160);
         if (fax_rx(&fax, amp, len))
             break;
+        /*endif*/
         if (log_audio)
         {
             for (i = 0;  i < len;  i++)
                 out_amp[2*i + 1] = amp[i];
+            /*endfor*/
             if (afWriteFrames(out_handle, AF_DEFAULT_TRACK, out_amp, SAMPLES_PER_CHUNK) != SAMPLES_PER_CHUNK)
                 break;
+            /*endif*/
         }
+        /*endif*/
     }
+    /*endfor*/
     if (log_audio)
     {
         if (afCloseFile(out_handle))
@@ -950,8 +974,10 @@ static void exchange(faxtester_state_t *s)
             fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
             exit(2);
         }
+        /*endif*/
         afFreeFileSetup(filesetup);
     }
+    /*endif*/
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -967,7 +993,7 @@ static int parse_test_group(faxtester_state_t *s, xmlDocPtr doc, xmlNsPtr ns, xm
             {
                 if (xmlStrcmp(x, (const xmlChar *) test) == 0)
                 {
-                    printf("Found '%s'\n", (char *) x);
+                    span_log(&s->logging, SPAN_LOG_FLOW, "Found '%s'\n", (char *) x);
                     s->cur = cur->xmlChildrenNode;
                     return 0;
                 }
@@ -998,7 +1024,7 @@ static int get_test_set(faxtester_state_t *s, const char *test_file, const char 
     doc = xmlParseFile(test_file);
     if (doc == NULL)
     {
-        fprintf(stderr, "No document\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "No document\n");
         exit(2);
     }
     /*endif*/
@@ -1006,7 +1032,7 @@ static int get_test_set(faxtester_state_t *s, const char *test_file, const char 
 #if 0
     if (!xmlValidateDocument(&valid, doc))
     {
-        fprintf(stderr, "Invalid document\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Invalid document\n");
         exit(2);
     }
     /*endif*/
@@ -1014,14 +1040,14 @@ static int get_test_set(faxtester_state_t *s, const char *test_file, const char 
     /* Check the document is of the right kind */
     if ((cur = xmlDocGetRootElement(doc)) == NULL)
     {
-        fprintf(stderr, "Empty document\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Empty document\n");
         xmlFreeDoc(doc);
         exit(2);
     }
     /*endif*/
     if (xmlStrcmp(cur->name, (const xmlChar *) "fax-tests"))
     {
-        fprintf(stderr, "Document of the wrong type, root node != fax-tests");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Document of the wrong type, root node != fax-tests");
         xmlFreeDoc(doc);
         exit(2);
     }

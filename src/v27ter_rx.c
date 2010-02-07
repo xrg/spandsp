@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.96 2008/07/16 17:01:49 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.97 2008/08/04 14:03:17 steveu Exp $
  */
 
 /*! \file */
@@ -559,7 +559,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
         s->training_error += powerf(&zz);
         if (++s->training_count >= V27TER_TRAINING_SEG_6_LEN)
         {
-            if ((s->bit_rate == 4800  &&  s->training_error < 1.0f)
+            if ((s->bit_rate == 4800  &&  s->training_error < 0.5f)
                 ||
                 (s->bit_rate == 2400  &&  s->training_error < 1.0f))
             {

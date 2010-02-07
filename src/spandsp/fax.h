@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.h,v 1.33 2008/07/26 04:53:00 steveu Exp $
+ * $Id: fax.h,v 1.34 2008/08/06 14:49:11 steveu Exp $
  */
 
 /*! \file */
@@ -51,10 +51,6 @@ typedef struct
 
     fax_flush_handler_t *flush_handler;
     void *flush_user_data;
-
-    /*! The transmit signal handler to be used when the current one has finished sending. */
-    span_tx_handler_t *next_tx_handler;
-    void *next_tx_user_data;
 
     /*! If TRUE, transmission is in progress */
     int transmit;

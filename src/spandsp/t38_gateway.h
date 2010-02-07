@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.52 2008/07/26 04:53:00 steveu Exp $
+ * $Id: t38_gateway.h,v 1.53 2008/08/06 14:49:11 steveu Exp $
  */
 
 /*! \file */
@@ -103,11 +103,6 @@ typedef struct
 
     /*! \brief Progressively calculated CRC for HDLC messaging received from a modem. */
     uint16_t crc;
-
-    /*! \brief The transmit signal handler to be used when the current one has finished sending. */
-    span_tx_handler_t *next_tx_handler;
-    /*! \brief An opaque pointer, passed to next_tx_handler. */
-    void *next_tx_user_data;
 
     /*! \brief The current receive signal handler. Actual receiving hop between this
                and a dummy receive routine. */

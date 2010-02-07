@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.117 2008/08/01 17:59:46 steveu Exp $
+ * $Id: t31.c,v 1.118 2008/08/05 16:01:13 steveu Exp $
  */
 
 /*! \file */
@@ -142,9 +142,9 @@ enum
 
 static int restart_modem(t31_state_t *s, int new_modem);
 static void hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok);
-static int early_v17_rx(void *user_data, const int16_t amp[], int len);
-static int early_v27ter_rx(void *user_data, const int16_t amp[], int len);
-static int early_v29_rx(void *user_data, const int16_t amp[], int len);
+static int v17_v21_rx(void *user_data, const int16_t amp[], int len);
+static int v27ter_v21_rx(void *user_data, const int16_t amp[], int len);
+static int v29_v21_rx(void *user_data, const int16_t amp[], int len);
 static int silence_rx(void *user_data, const int16_t amp[], int len);
 static int cng_rx(void *user_data, const int16_t amp[], int len);
 
@@ -1189,7 +1189,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
     case T31_V17_RX:
         if (!s->t38_mode)
         {
-            s->audio.modems.rx_handler = (span_rx_handler_t *) &early_v17_rx;
+            s->audio.modems.rx_handler = (span_rx_handler_t *) &v17_v21_rx;
             s->audio.modems.rx_user_data = s;
             v17_rx_restart(&(s->audio.modems.v17_rx), s->bit_rate, s->short_train);
             /* Allow for +FCERROR/+FRH:3 */
@@ -1226,7 +1226,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
     case T31_V27TER_RX:
         if (!s->t38_mode)
         {
-            s->audio.modems.rx_handler = (span_rx_handler_t *) &early_v27ter_rx;
+            s->audio.modems.rx_handler = (span_rx_handler_t *) &v27ter_v21_rx;
             s->audio.modems.rx_user_data = s;
             v27ter_rx_restart(&(s->audio.modems.v27ter_rx), s->bit_rate, FALSE);
             /* Allow for +FCERROR/+FRH:3 */
@@ -1263,7 +1263,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
     case T31_V29_RX:
         if (!s->t38_mode)
         {
-            s->audio.modems.rx_handler = (span_rx_handler_t *) &early_v29_rx;
+            s->audio.modems.rx_handler = (span_rx_handler_t *) &v29_v21_rx;
             s->audio.modems.rx_user_data = s;
             v29_rx_restart(&(s->audio.modems.v29_rx), s->bit_rate, FALSE);
             /* Allow for +FCERROR/+FRH:3 */
@@ -1677,90 +1677,96 @@ static int cng_rx(void *user_data, const int16_t amp[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int early_v17_rx(void *user_data, const int16_t amp[], int len)
+static int v17_v21_rx(void *user_data, const int16_t amp[], int len)
 {
-    t31_state_t *s;
+    t31_state_t *t;
+    fax_modems_state_t *s;
 
-    s = (t31_state_t *) user_data;
-    v17_rx(&(s->audio.modems.v17_rx), amp, len);
-    if (s->at_state.rx_trained)
+    t = (t31_state_t *) user_data;
+    s = &t->audio.modems;
+    v17_rx(&s->v17_rx, amp, len);
+    if (t->at_state.rx_trained)
     {
         /* The fast modem has trained, so we no longer need to run the slow
            one in parallel. */
-        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&(s->audio.modems.v17_rx)));
-        s->audio.modems.rx_handler = (span_rx_handler_t *) &v17_rx;
-        s->audio.modems.rx_user_data = &(s->audio.modems.v17_rx);
+        span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&s->v17_rx));
+        s->rx_handler = (span_rx_handler_t *) &v17_rx;
+        s->rx_user_data = &s->v17_rx;
     }
     else
     {
-        fsk_rx(&(s->audio.modems.v21_rx), amp, len);
-        if (s->rx_frame_received)
+        fsk_rx(&s->v21_rx, amp, len);
+        if (t->rx_frame_received)
         {
             /* We have received something, and the fast modem has not trained. We must
                be receiving valid V.21 */
-            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.21\n");
-            s->audio.modems.rx_handler = (span_rx_handler_t *) &fsk_rx;
-            s->audio.modems.rx_user_data = &(s->audio.modems.v21_rx);
+            span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&s->v21_rx));
+            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            s->rx_user_data = &s->v21_rx;
         }
     }
     return len;
 }
 /*- End of function --------------------------------------------------------*/
 
-static int early_v27ter_rx(void *user_data, const int16_t amp[], int len)
+static int v27ter_v21_rx(void *user_data, const int16_t amp[], int len)
 {
-    t31_state_t *s;
+    t31_state_t *t;
+    fax_modems_state_t *s;
 
-    s = (t31_state_t *) user_data;
-    v27ter_rx(&(s->audio.modems.v27ter_rx), amp, len);
-    if (s->at_state.rx_trained)
+    t = (t31_state_t *) user_data;
+    s = &t->audio.modems;
+    v27ter_rx(&s->v27ter_rx, amp, len);
+    if (t->at_state.rx_trained)
     {
         /* The fast modem has trained, so we no longer need to run the slow
            one in parallel. */
-        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.27ter (%.2fdBm0)\n", v27ter_rx_signal_power(&(s->audio.modems.v27ter_rx)));
-        s->audio.modems.rx_handler = (span_rx_handler_t *) &v27ter_rx;
-        s->audio.modems.rx_user_data = &(s->audio.modems.v27ter_rx);
+        span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.27ter (%.2fdBm0)\n", v27ter_rx_signal_power(&s->v27ter_rx));
+        s->rx_handler = (span_rx_handler_t *) &v27ter_rx;
+        s->rx_user_data = &s->v27ter_rx;
     }
     else
     {
-        fsk_rx(&(s->audio.modems.v21_rx), amp, len);
-        if (s->rx_frame_received)
+        fsk_rx(&s->v21_rx, amp, len);
+        if (t->rx_frame_received)
         {
             /* We have received something, and the fast modem has not trained. We must
                be receiving valid V.21 */
-            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.21\n");
-            s->audio.modems.rx_handler = (span_rx_handler_t *) &fsk_rx;
-            s->audio.modems.rx_user_data = &(s->audio.modems.v21_rx);
+            span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&s->v21_rx));
+            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            s->rx_user_data = &s->v21_rx;
         }
     }
     return len;
 }
 /*- End of function --------------------------------------------------------*/
 
-static int early_v29_rx(void *user_data, const int16_t amp[], int len)
+static int v29_v21_rx(void *user_data, const int16_t amp[], int len)
 {
-    t31_state_t *s;
+    t31_state_t *t;
+    fax_modems_state_t *s;
 
-    s = (t31_state_t *) user_data;
-    v29_rx(&(s->audio.modems.v29_rx), amp, len);
-    if (s->at_state.rx_trained)
+    t = (t31_state_t *) user_data;
+    s = &t->audio.modems;
+    v29_rx(&s->v29_rx, amp, len);
+    if (t->at_state.rx_trained)
     {
         /* The fast modem has trained, so we no longer need to run the slow
            one in parallel. */
-        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&(s->audio.modems.v29_rx)));
-        s->audio.modems.rx_handler = (span_rx_handler_t *) &v29_rx;
-        s->audio.modems.rx_user_data = &(s->audio.modems.v29_rx);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&s->v29_rx));
+        s->rx_handler = (span_rx_handler_t *) &v29_rx;
+        s->rx_user_data = &s->v29_rx;
     }
     else
     {
-        fsk_rx(&(s->audio.modems.v21_rx), amp, len);
-        if (s->rx_frame_received)
+        fsk_rx(&s->v21_rx, amp, len);
+        if (t->rx_frame_received)
         {
             /* We have received something, and the fast modem has not trained. We must
                be receiving valid V.21 */
-            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.21\n");
-            s->audio.modems.rx_handler = (span_rx_handler_t *) &fsk_rx;
-            s->audio.modems.rx_user_data = &(s->audio.modems.v21_rx);
+            span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&s->v21_rx));
+            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            s->rx_user_data = &s->v21_rx;
         }
     }
     return len;

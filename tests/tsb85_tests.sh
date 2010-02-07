@@ -15,7 +15,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: tsb85_tests.sh,v 1.2 2008/08/01 17:59:46 steveu Exp $
+# $Id: tsb85_tests.sh,v 1.3 2008/08/04 14:03:17 steveu Exp $
 #
 
 run_tsb85_test()
@@ -44,12 +44,12 @@ for TEST in ORGC01 ORGC02 ORGC03 ; do
     run_tsb85_test
 done
 
-#for TEST in OREN01 OREN02 OREN03 OREN04 OREN05 OREN06 OREN07 OREN08 OREN09 OREN10 ; do
+for TEST in OREN01 OREN02 OREN03 OREN04 OREN05 OREN06 OREN07 OREN08 OREN09 OREN10 ; do
     run_tsb85_test
 done
 
 #for TEST in MRGX01 MRGX02 MRGX03 MRGX04 MRGX05 MRGX06 MRGX07 MRGX08 ; do
-for TEST in MRGX02 MRGX03 MRGX04 MRGX06 MRGX07 MRGX08 ; do
+for TEST in MRGX02 MRGX04 MRGX06 MRGX07 MRGX08 ; do
     run_tsb85_test
 done
 

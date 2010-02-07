@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tester.c,v 1.6 2008/08/01 17:59:46 steveu Exp $
+ * $Id: fax_tester.c,v 1.9 2008/08/06 14:49:11 steveu Exp $
  */
 
 /*! \file */
@@ -98,8 +98,45 @@ void faxtester_send_hdlc_msg(faxtester_state_t *s, const uint8_t *msg, int len, 
 static void hdlc_underflow_handler(void *user_data)
 {
     faxtester_state_t *s;
+    uint8_t buf[400];
 
     s = (faxtester_state_t *) user_data;
+    
+    if (s->image_buffer)
+    {
+        /* We are sending an ECM image */
+        if (s->image_ptr < s->image_len)
+        {
+            buf[0] = 0xFF;
+            buf[1] = 0x03;
+            buf[2] = 0x06;
+            buf[3] = s->image_ptr/s->ecm_frame_size;
+            memcpy(buf + 4, &s->image_buffer[s->image_ptr], s->ecm_frame_size);
+            hdlc_tx_frame(&(s->modems.hdlc_tx), buf, 4 + s->ecm_frame_size);
+            if (s->corrupt_crc >= 0  &&  s->corrupt_crc == s->image_ptr/s->ecm_frame_size)
+                hdlc_tx_corrupt_frame(&(s->modems.hdlc_tx));
+            s->image_ptr += s->ecm_frame_size;
+            return;
+        }
+        else
+        {
+            /* The actual image is over. We are sending the final RCP frames. */
+            if (s->image_bit_ptr > 2)
+            {
+                s->image_bit_ptr--;
+                buf[0] = 0xFF;
+                buf[1] = 0x03;
+                buf[2] = 0x86;
+                hdlc_tx_frame(&(s->modems.hdlc_tx), buf, 3);
+                return;
+            }
+            else
+            {
+                /* All done. */
+                s->image_buffer = NULL;
+            }
+        }
+    }
     front_end_step_complete(s);
 }
 /*- End of function --------------------------------------------------------*/
@@ -112,14 +149,14 @@ static int modem_tx_status(void *user_data, int status)
     switch (status)
     {
     case MODEM_TX_STATUS_DATA_EXHAUSTED:
-        printf("Tx data exhausted\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Tx data exhausted\n");
         break;
     case MODEM_TX_STATUS_SHUTDOWN_COMPLETE:
-        printf("Tx shutdown complete\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Tx shutdown complete\n");
         front_end_step_complete(s);
         break;
     default:
-        printf("Tx status is %d\n", status);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Tx status is %d\n", status);
         break;
     }
     return 0;
@@ -135,7 +172,10 @@ static int non_ecm_get_bit(void *user_data)
     if (s->image_bit_ptr == 0)
     {
         if (s->image_ptr >= s->image_len)
+        {
+            s->image_buffer = NULL;
             return PUTBIT_END_OF_DATA;
+        }
         s->image_bit_ptr = 8;
         s->image_ptr++;
     }
@@ -146,12 +186,25 @@ static int non_ecm_get_bit(void *user_data)
 }
 /*- End of function --------------------------------------------------------*/
 
-void faxtester_set_image_buffer(faxtester_state_t *s, const uint8_t *buf, int len)
+void faxtester_set_non_ecm_image_buffer(faxtester_state_t *s, const uint8_t *buf, int len)
 {
     s->image_ptr = 0;
     s->image_bit_ptr = 8;
     s->image_len = len;
     s->image_buffer = buf;
+}
+/*- End of function --------------------------------------------------------*/
+
+void faxtester_set_ecm_image_buffer(faxtester_state_t *s, const uint8_t *buf, int len, int frame_size, int crc_hit)
+{
+    s->ecm_frame_size = frame_size;
+    s->image_ptr = 0;
+    s->image_bit_ptr = 8;
+    s->image_len = len;
+    s->image_buffer = buf;
+    s->corrupt_crc = crc_hit;
+    /* Send the first frame */
+    hdlc_underflow_handler(s);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -262,58 +315,64 @@ static void hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int early_v17_rx(void *user_data, const int16_t amp[], int len)
+static int v17_v21_rx(void *user_data, const int16_t amp[], int len)
 {
-    faxtester_state_t *s;
+    faxtester_state_t *t;
+    fax_modems_state_t *s;
 
-    s = (faxtester_state_t *) user_data;
-    v17_rx(&(s->modems.v17_rx), amp, len);
-    fsk_rx(&(s->modems.v21_rx), amp, len);
-    if (s->modems.rx_trained)
+    t = (faxtester_state_t *) user_data;
+    s = &t->modems;
+    v17_rx(&s->v17_rx, amp, len);
+    fsk_rx(&s->v21_rx, amp, len);
+    if (s->rx_trained)
     {
         /* The fast modem has trained, so we no longer need to run the slow
            one in parallel. */
-        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&(s->modems.v17_rx)));
-        s->modems.rx_handler = (span_rx_handler_t *) &v17_rx;
-        s->modems.rx_user_data = &(s->modems.v17_rx);
+        span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&s->v17_rx));
+        s->rx_handler = (span_rx_handler_t *) &v17_rx;
+        s->rx_user_data = &s->v17_rx;
     }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-static int early_v27ter_rx(void *user_data, const int16_t amp[], int len)
+static int v27ter_v21_rx(void *user_data, const int16_t amp[], int len)
 {
-    faxtester_state_t *s;
+    faxtester_state_t *t;
+    fax_modems_state_t *s;
 
-    s = (faxtester_state_t *) user_data;
-    v27ter_rx(&(s->modems.v27ter_rx), amp, len);
-    fsk_rx(&(s->modems.v21_rx), amp, len);
-    if (s->modems.rx_trained)
+    t = (faxtester_state_t *) user_data;
+    s = &t->modems;
+    v27ter_rx(&s->v27ter_rx, amp, len);
+    fsk_rx(&s->v21_rx, amp, len);
+    if (s->rx_trained)
     {
         /* The fast modem has trained, so we no longer need to run the slow
            one in parallel. */
-        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.27ter (%.2fdBm0)\n", v27ter_rx_signal_power(&(s->modems.v27ter_rx)));
-        s->modems.rx_handler = (span_rx_handler_t *) &v27ter_rx;
-        s->modems.rx_user_data = &(s->modems.v27ter_rx);
+        span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.27ter (%.2fdBm0)\n", v27ter_rx_signal_power(&s->v27ter_rx));
+        s->rx_handler = (span_rx_handler_t *) &v27ter_rx;
+        s->rx_user_data = &s->v27ter_rx;
     }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-static int early_v29_rx(void *user_data, const int16_t amp[], int len)
+static int v29_v21_rx(void *user_data, const int16_t amp[], int len)
 {
-    faxtester_state_t *s;
+    faxtester_state_t *t;
+    fax_modems_state_t *s;
 
-    s = (faxtester_state_t *) user_data;
-    v29_rx(&(s->modems.v29_rx), amp, len);
-    fsk_rx(&(s->modems.v21_rx), amp, len);
-    if (s->modems.rx_trained)
+    t = (faxtester_state_t *) user_data;
+    s = &t->modems;
+    v29_rx(&s->v29_rx, amp, len);
+    fsk_rx(&s->v21_rx, amp, len);
+    if (s->rx_trained)
     {
         /* The fast modem has trained, so we no longer need to run the slow
            one in parallel. */
-        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&(s->modems.v29_rx)));
-        s->modems.rx_handler = (span_rx_handler_t *) &v29_rx;
-        s->modems.rx_user_data = &(s->modems.v29_rx);
+        span_log(&t->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&s->v29_rx));
+        s->rx_handler = (span_rx_handler_t *) &v29_rx;
+        s->rx_user_data = &s->v29_rx;
     }
     return 0;
 }
@@ -388,8 +447,10 @@ void faxtester_set_rx_type(void *user_data, int type, int short_train, int use_h
     faxtester_state_t *s;
     put_bit_func_t put_bit_func;
     void *put_bit_user_data;
+    fax_modems_state_t *t;
 
     s = (faxtester_state_t *) user_data;
+    t = &s->modems;
     span_log(&s->logging, SPAN_LOG_FLOW, "Set rx type %d\n", type);
     if (s->current_rx_type == type)
         return;
@@ -397,8 +458,8 @@ void faxtester_set_rx_type(void *user_data, int type, int short_train, int use_h
     if (use_hdlc)
     {
         put_bit_func = (put_bit_func_t) hdlc_rx_put_bit;
-        put_bit_user_data = (void *) &(s->modems.hdlc_rx);
-        hdlc_rx_init(&(s->modems.hdlc_rx), FALSE, FALSE, HDLC_FRAMING_OK_THRESHOLD, hdlc_accept, s);
+        put_bit_user_data = (void *) &t->hdlc_rx;
+        hdlc_rx_init(&t->hdlc_rx, FALSE, FALSE, HDLC_FRAMING_OK_THRESHOLD, hdlc_accept, s);
     }
     else
     {
@@ -410,64 +471,64 @@ void faxtester_set_rx_type(void *user_data, int type, int short_train, int use_h
     case T30_MODEM_V21:
         if (s->flush_handler)
             s->flush_handler(s, s->flush_user_data, 3);
-        fsk_rx_init(&(s->modems.v21_rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, put_bit_user_data);
-        fsk_rx_signal_cutoff(&(s->modems.v21_rx), -45.5);
-        s->modems.rx_handler = (span_rx_handler_t *) &fsk_rx;
-        s->modems.rx_user_data = &(s->modems.v21_rx);
+        fsk_rx_init(&t->v21_rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, put_bit_user_data);
+        fsk_rx_signal_cutoff(&t->v21_rx, -45.5);
+        t->rx_handler = (span_rx_handler_t *) &fsk_rx;
+        t->rx_user_data = &t->v21_rx;
         break;
     case T30_MODEM_V27TER_2400:
-        v27ter_rx_restart(&(s->modems.v27ter_rx), 2400, FALSE);
-        v27ter_rx_set_put_bit(&(s->modems.v27ter_rx), put_bit_func, put_bit_user_data);
-        s->modems.rx_handler = (span_rx_handler_t *) &early_v27ter_rx;
-        s->modems.rx_user_data = s;
+        v27ter_rx_restart(&t->v27ter_rx, 2400, FALSE);
+        v27ter_rx_set_put_bit(&t->v27ter_rx, put_bit_func, put_bit_user_data);
+        t->rx_handler = (span_rx_handler_t *) &v27ter_v21_rx;
+        t->rx_user_data = s;
         break;
     case T30_MODEM_V27TER_4800:
-        v27ter_rx_restart(&(s->modems.v27ter_rx), 4800, FALSE);
-        v27ter_rx_set_put_bit(&(s->modems.v27ter_rx), put_bit_func, put_bit_user_data);
-        s->modems.rx_handler = (span_rx_handler_t *) &early_v27ter_rx;
-        s->modems.rx_user_data = s;
+        v27ter_rx_restart(&t->v27ter_rx, 4800, FALSE);
+        v27ter_rx_set_put_bit(&t->v27ter_rx, put_bit_func, put_bit_user_data);
+        t->rx_handler = (span_rx_handler_t *) &v27ter_v21_rx;
+        t->rx_user_data = s;
         break;
     case T30_MODEM_V29_7200:
-        v29_rx_restart(&(s->modems.v29_rx), 7200, FALSE);
-        v29_rx_set_put_bit(&(s->modems.v29_rx), put_bit_func, put_bit_user_data);
-        s->modems.rx_handler = (span_rx_handler_t *) &early_v29_rx;
-        s->modems.rx_user_data = s;
+        v29_rx_restart(&t->v29_rx, 7200, FALSE);
+        v29_rx_set_put_bit(&t->v29_rx, put_bit_func, put_bit_user_data);
+        t->rx_handler = (span_rx_handler_t *) &v29_v21_rx;
+        t->rx_user_data = s;
         break;
     case T30_MODEM_V29_9600:
-        v29_rx_restart(&(s->modems.v29_rx), 9600, FALSE);
-        v29_rx_set_put_bit(&(s->modems.v29_rx), put_bit_func, put_bit_user_data);
-        s->modems.rx_handler = (span_rx_handler_t *) &early_v29_rx;
-        s->modems.rx_user_data = s;
+        v29_rx_restart(&t->v29_rx, 9600, FALSE);
+        v29_rx_set_put_bit(&t->v29_rx, put_bit_func, put_bit_user_data);
+        t->rx_handler = (span_rx_handler_t *) &v29_v21_rx;
+        t->rx_user_data = s;
         break;
     case T30_MODEM_V17_7200:
-        v17_rx_restart(&(s->modems.v17_rx), 7200, short_train);
-        v17_rx_set_put_bit(&(s->modems.v17_rx), put_bit_func, put_bit_user_data);
-        s->modems.rx_handler = (span_rx_handler_t *) &early_v17_rx;
-        s->modems.rx_user_data = s;
+        v17_rx_restart(&t->v17_rx, 7200, short_train);
+        v17_rx_set_put_bit(&t->v17_rx, put_bit_func, put_bit_user_data);
+        t->rx_handler = (span_rx_handler_t *) &v17_v21_rx;
+        t->rx_user_data = s;
         break;
     case T30_MODEM_V17_9600:
-        v17_rx_restart(&(s->modems.v17_rx), 9600, short_train);
-        v17_rx_set_put_bit(&(s->modems.v17_rx), put_bit_func, put_bit_user_data);
-        s->modems.rx_handler = (span_rx_handler_t *) &early_v17_rx;
-        s->modems.rx_user_data = s;
+        v17_rx_restart(&t->v17_rx, 9600, short_train);
+        v17_rx_set_put_bit(&t->v17_rx, put_bit_func, put_bit_user_data);
+        t->rx_handler = (span_rx_handler_t *) &v17_v21_rx;
+        t->rx_user_data = s;
         break;
     case T30_MODEM_V17_12000:
-        v17_rx_restart(&(s->modems.v17_rx), 12000, short_train);
-        v17_rx_set_put_bit(&(s->modems.v17_rx), put_bit_func, put_bit_user_data);
-        s->modems.rx_handler = (span_rx_handler_t *) &early_v17_rx;
-        s->modems.rx_user_data = s;
+        v17_rx_restart(&t->v17_rx, 12000, short_train);
+        v17_rx_set_put_bit(&t->v17_rx, put_bit_func, put_bit_user_data);
+        t->rx_handler = (span_rx_handler_t *) &v17_v21_rx;
+        t->rx_user_data = s;
         break;
     case T30_MODEM_V17_14400:
-        v17_rx_restart(&(s->modems.v17_rx), 14400, short_train);
-        v17_rx_set_put_bit(&(s->modems.v17_rx), put_bit_func, put_bit_user_data);
-        s->modems.rx_handler = (span_rx_handler_t *) &early_v17_rx;
-        s->modems.rx_user_data = s;
+        v17_rx_restart(&t->v17_rx, 14400, short_train);
+        v17_rx_set_put_bit(&t->v17_rx, put_bit_func, put_bit_user_data);
+        t->rx_handler = (span_rx_handler_t *) &v17_v21_rx;
+        t->rx_user_data = s;
         break;
     case T30_MODEM_DONE:
         span_log(&s->logging, SPAN_LOG_FLOW, "FAX exchange complete\n");
     default:
-        s->modems.rx_handler = (span_rx_handler_t *) &span_dummy_rx;
-        s->modems.rx_user_data = s;
+        t->rx_handler = (span_rx_handler_t *) &span_dummy_rx;
+        t->rx_user_data = s;
         break;
     }
 }
@@ -479,15 +540,17 @@ void faxtester_set_tx_type(void *user_data, int type, int short_train, int use_h
     tone_gen_descriptor_t tone_desc;
     get_bit_func_t get_bit_func;
     void *get_bit_user_data;
+    fax_modems_state_t *t;
 
     s = (faxtester_state_t *) user_data;
+    t = &s->modems;
     span_log(&s->logging, SPAN_LOG_FLOW, "Set tx type %d\n", type);
     if (s->current_tx_type == type)
         return;
     if (use_hdlc)
     {
         get_bit_func = (get_bit_func_t) hdlc_tx_get_bit;
-        get_bit_user_data = (void *) &(s->modems.hdlc_tx);
+        get_bit_user_data = (void *) &t->hdlc_tx;
     }
     else
     {
@@ -497,9 +560,9 @@ void faxtester_set_tx_type(void *user_data, int type, int short_train, int use_h
     switch (type)
     {
     case T30_MODEM_PAUSE:
-        silence_gen_alter(&(s->modems.silence_gen), ms_to_samples(short_train));
-        s->modems.tx_handler = (span_tx_handler_t *) &silence_gen;
-        s->modems.tx_user_data = &(s->modems.silence_gen);
+        silence_gen_alter(&t->silence_gen, ms_to_samples(short_train));
+        t->tx_handler = (span_tx_handler_t *) &silence_gen;
+        t->tx_user_data = &t->silence_gen;
         s->transmit = TRUE;
         break;
     case T30_MODEM_CNG:
@@ -514,15 +577,15 @@ void faxtester_set_tx_type(void *user_data, int type, int short_train, int use_h
                                  0,
                                  0,
                                  TRUE);
-        tone_gen_init(&(s->modems.tone_gen), &tone_desc);
-        s->modems.tx_handler = (span_tx_handler_t *) &tone_gen;
-        s->modems.tx_user_data = &(s->modems.tone_gen);
+        tone_gen_init(&t->tone_gen, &tone_desc);
+        t->tx_handler = (span_tx_handler_t *) &tone_gen;
+        t->tx_user_data = &t->tone_gen;
         s->transmit = TRUE;
         break;
     case T30_MODEM_CED:
         /* 0.2s of silence, then 2.6s to 4s of 2100Hz+-15Hz tone, then 75ms of silence. The 75ms of silence
            will be inserted by the pre V.21 pause we use for any switch to V.21. */
-        silence_gen_alter(&(s->modems.silence_gen), ms_to_samples(200));
+        silence_gen_alter(&t->silence_gen, ms_to_samples(200));
         make_tone_gen_descriptor(&tone_desc,
                                  2100,
                                  -11,
@@ -533,97 +596,97 @@ void faxtester_set_tx_type(void *user_data, int type, int short_train, int use_h
                                  0,
                                  0,
                                  FALSE);
-        tone_gen_init(&(s->modems.tone_gen), &tone_desc);
-        s->modems.tx_handler = (span_tx_handler_t *) &tone_gen;
-        s->modems.tx_user_data = &(s->modems.tone_gen);
+        tone_gen_init(&t->tone_gen, &tone_desc);
+        t->tx_handler = (span_tx_handler_t *) &tone_gen;
+        t->tx_user_data = &t->tone_gen;
         s->transmit = TRUE;
         break;
     case T30_MODEM_V21:
-        fsk_tx_init(&(s->modems.v21_tx), &preset_fsk_specs[FSK_V21CH2], get_bit_func, get_bit_user_data);
-        fsk_tx_set_modem_status_handler(&(s->modems.v21_tx), modem_tx_status, (void *) s);
-        s->modems.tx_handler = (span_tx_handler_t *) &fsk_tx;
-        s->modems.tx_user_data = &(s->modems.v21_tx);
+        fsk_tx_init(&t->v21_tx, &preset_fsk_specs[FSK_V21CH2], get_bit_func, get_bit_user_data);
+        fsk_tx_set_modem_status_handler(&t->v21_tx, modem_tx_status, (void *) s);
+        t->tx_handler = (span_tx_handler_t *) &fsk_tx;
+        t->tx_user_data = &t->v21_tx;
         s->transmit = TRUE;
         break;
     case T30_MODEM_V27TER_2400:
-        v27ter_tx_restart(&(s->modems.v27ter_tx), 2400, s->modems.use_tep);
-        v27ter_tx_set_get_bit(&(s->modems.v27ter_tx), get_bit_func, get_bit_user_data);
-        v27ter_tx_set_modem_status_handler(&(s->modems.v27ter_tx), modem_tx_status, (void *) s);
-        s->modems.tx_handler = (span_tx_handler_t *) &v27ter_tx;
-        s->modems.tx_user_data = &(s->modems.v27ter_tx);
-        hdlc_tx_flags(&(s->modems.hdlc_tx), 60);
+        v27ter_tx_restart(&t->v27ter_tx, 2400, t->use_tep);
+        v27ter_tx_set_get_bit(&t->v27ter_tx, get_bit_func, get_bit_user_data);
+        v27ter_tx_set_modem_status_handler(&t->v27ter_tx, modem_tx_status, (void *) s);
+        t->tx_handler = (span_tx_handler_t *) &v27ter_tx;
+        t->tx_user_data = &t->v27ter_tx;
+        hdlc_tx_flags(&t->hdlc_tx, 60);
         s->transmit = TRUE;
         break;
     case T30_MODEM_V27TER_4800:
-        v27ter_tx_restart(&(s->modems.v27ter_tx), 4800, s->modems.use_tep);
-        v27ter_tx_set_get_bit(&(s->modems.v27ter_tx), get_bit_func, get_bit_user_data);
-        v27ter_tx_set_modem_status_handler(&(s->modems.v27ter_tx), modem_tx_status, (void *) s);
-        s->modems.tx_handler = (span_tx_handler_t *) &v27ter_tx;
-        s->modems.tx_user_data = &(s->modems.v27ter_tx);
-        hdlc_tx_flags(&(s->modems.hdlc_tx), 120);
+        v27ter_tx_restart(&t->v27ter_tx, 4800, t->use_tep);
+        v27ter_tx_set_get_bit(&t->v27ter_tx, get_bit_func, get_bit_user_data);
+        v27ter_tx_set_modem_status_handler(&t->v27ter_tx, modem_tx_status, (void *) s);
+        t->tx_handler = (span_tx_handler_t *) &v27ter_tx;
+        t->tx_user_data = &t->v27ter_tx;
+        hdlc_tx_flags(&t->hdlc_tx, 120);
         s->transmit = TRUE;
         break;
     case T30_MODEM_V29_7200:
-        v29_tx_restart(&(s->modems.v29_tx), 7200, s->modems.use_tep);
-        v29_tx_set_get_bit(&(s->modems.v29_tx), get_bit_func, get_bit_user_data);
-        v29_tx_set_modem_status_handler(&(s->modems.v29_tx), modem_tx_status, (void *) s);
-        s->modems.tx_handler = (span_tx_handler_t *) &v29_tx;
-        s->modems.tx_user_data = &(s->modems.v29_tx);
-        hdlc_tx_flags(&(s->modems.hdlc_tx), 180);
+        v29_tx_restart(&t->v29_tx, 7200, t->use_tep);
+        v29_tx_set_get_bit(&t->v29_tx, get_bit_func, get_bit_user_data);
+        v29_tx_set_modem_status_handler(&t->v29_tx, modem_tx_status, (void *) s);
+        t->tx_handler = (span_tx_handler_t *) &v29_tx;
+        t->tx_user_data = &t->v29_tx;
+        hdlc_tx_flags(&t->hdlc_tx, 180);
         s->transmit = TRUE;
         break;
     case T30_MODEM_V29_9600:
-        v29_tx_restart(&(s->modems.v29_tx), 9600, s->modems.use_tep);
-        v29_tx_set_get_bit(&(s->modems.v29_tx), get_bit_func, get_bit_user_data);
-        v29_tx_set_modem_status_handler(&(s->modems.v29_tx), modem_tx_status, (void *) s);
-        s->modems.tx_handler = (span_tx_handler_t *) &v29_tx;
-        s->modems.tx_user_data = &(s->modems.v29_tx);
-        hdlc_tx_flags(&(s->modems.hdlc_tx), 240);
+        v29_tx_restart(&t->v29_tx, 9600, t->use_tep);
+        v29_tx_set_get_bit(&t->v29_tx, get_bit_func, get_bit_user_data);
+        v29_tx_set_modem_status_handler(&t->v29_tx, modem_tx_status, (void *) s);
+        t->tx_handler = (span_tx_handler_t *) &v29_tx;
+        t->tx_user_data = &t->v29_tx;
+        hdlc_tx_flags(&t->hdlc_tx, 240);
         s->transmit = TRUE;
         break;
     case T30_MODEM_V17_7200:
-        v17_tx_restart(&(s->modems.v17_tx), 7200, s->modems.use_tep, short_train);
-        v17_tx_set_get_bit(&(s->modems.v17_tx), get_bit_func, get_bit_user_data);
-        v17_tx_set_modem_status_handler(&(s->modems.v17_tx), modem_tx_status, (void *) s);
-        s->modems.tx_handler = (span_tx_handler_t *) &v17_tx;
-        s->modems.tx_user_data = &(s->modems.v17_tx);
-        hdlc_tx_flags(&(s->modems.hdlc_tx), 180);
+        v17_tx_restart(&t->v17_tx, 7200, t->use_tep, short_train);
+        v17_tx_set_get_bit(&t->v17_tx, get_bit_func, get_bit_user_data);
+        v17_tx_set_modem_status_handler(&t->v17_tx, modem_tx_status, (void *) s);
+        t->tx_handler = (span_tx_handler_t *) &v17_tx;
+        t->tx_user_data = &t->v17_tx;
+        hdlc_tx_flags(&t->hdlc_tx, 180);
         s->transmit = TRUE;
         break;
     case T30_MODEM_V17_9600:
-        v17_tx_restart(&(s->modems.v17_tx), 9600, s->modems.use_tep, short_train);
-        v17_tx_set_get_bit(&(s->modems.v17_tx), get_bit_func, get_bit_user_data);
-        v17_tx_set_modem_status_handler(&(s->modems.v17_tx), modem_tx_status, (void *) s);
-        s->modems.tx_handler = (span_tx_handler_t *) &v17_tx;
-        s->modems.tx_user_data = &(s->modems.v17_tx);
-        hdlc_tx_flags(&(s->modems.hdlc_tx), 240);
+        v17_tx_restart(&t->v17_tx, 9600, t->use_tep, short_train);
+        v17_tx_set_get_bit(&t->v17_tx, get_bit_func, get_bit_user_data);
+        v17_tx_set_modem_status_handler(&t->v17_tx, modem_tx_status, (void *) s);
+        t->tx_handler = (span_tx_handler_t *) &v17_tx;
+        t->tx_user_data = &t->v17_tx;
+        hdlc_tx_flags(&t->hdlc_tx, 240);
         s->transmit = TRUE;
         break;
     case T30_MODEM_V17_12000:
-        v17_tx_restart(&(s->modems.v17_tx), 12000, s->modems.use_tep, short_train);
-        v17_tx_set_get_bit(&(s->modems.v17_tx), get_bit_func, get_bit_user_data);
-        v17_tx_set_modem_status_handler(&(s->modems.v17_tx), modem_tx_status, (void *) s);
-        s->modems.tx_handler = (span_tx_handler_t *) &v17_tx;
-        s->modems.tx_user_data = &(s->modems.v17_tx);
-        hdlc_tx_flags(&(s->modems.hdlc_tx), 300);
+        v17_tx_restart(&t->v17_tx, 12000, t->use_tep, short_train);
+        v17_tx_set_get_bit(&t->v17_tx, get_bit_func, get_bit_user_data);
+        v17_tx_set_modem_status_handler(&t->v17_tx, modem_tx_status, (void *) s);
+        t->tx_handler = (span_tx_handler_t *) &v17_tx;
+        t->tx_user_data = &t->v17_tx;
+        hdlc_tx_flags(&t->hdlc_tx, 300);
         s->transmit = TRUE;
         break;
     case T30_MODEM_V17_14400:
-        v17_tx_restart(&(s->modems.v17_tx), 14400, s->modems.use_tep, short_train);
-        v17_tx_set_get_bit(&(s->modems.v17_tx), get_bit_func, get_bit_user_data);
-        v17_tx_set_modem_status_handler(&(s->modems.v17_tx), modem_tx_status, (void *) s);
-        s->modems.tx_handler = (span_tx_handler_t *) &v17_tx;
-        s->modems.tx_user_data = &(s->modems.v17_tx);
-        hdlc_tx_flags(&(s->modems.hdlc_tx), 360);
+        v17_tx_restart(&t->v17_tx, 14400, t->use_tep, short_train);
+        v17_tx_set_get_bit(&t->v17_tx, get_bit_func, get_bit_user_data);
+        v17_tx_set_modem_status_handler(&t->v17_tx, modem_tx_status, (void *) s);
+        t->tx_handler = (span_tx_handler_t *) &v17_tx;
+        t->tx_user_data = &t->v17_tx;
+        hdlc_tx_flags(&t->hdlc_tx, 360);
         s->transmit = TRUE;
         break;
     case T30_MODEM_DONE:
         span_log(&s->logging, SPAN_LOG_FLOW, "FAX exchange complete\n");
         /* Fall through */
     default:
-        silence_gen_alter(&(s->modems.silence_gen), 0);
-        s->modems.tx_handler = (span_tx_handler_t *) &silence_gen;
-        s->modems.tx_user_data = &(s->modems.silence_gen);
+        silence_gen_alter(&t->silence_gen, 0);
+        t->tx_handler = (span_tx_handler_t *) &silence_gen;
+        t->tx_user_data = &t->silence_gen;
         s->transmit = FALSE;
         break;
     }

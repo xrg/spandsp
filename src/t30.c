@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.256 2008/08/03 03:44:00 steveu Exp $
+ * $Id: t30.c,v 1.259 2008/08/04 15:13:55 steveu Exp $
  */
 
 /*! \file */
@@ -307,8 +307,12 @@ enum
 {
     TIMER_IS_T2 = 0,
     TIMER_IS_T2A = 1,
-    TIMER_IS_T4 = 2,
-    TIMER_IS_T4A = 3
+    TIMER_IS_T2B = 2,
+    TIMER_IS_T2C = 3,
+    TIMER_IS_T4 = 4,
+    TIMER_IS_T4A = 5,
+    TIMER_IS_T4B = 6,
+    TIMER_IS_T4C = 7
 };
 
 /* Start points in the fallback table for different capabilities */
@@ -349,8 +353,10 @@ static int set_min_scan_time_code(t30_state_t *s);
 static int send_cfr_sequence(t30_state_t *s, int start);
 static void timer_t2_start(t30_state_t *s);
 static void timer_t2a_start(t30_state_t *s);
+static void timer_t2b_start(t30_state_t *s);
 static void timer_t4_start(t30_state_t *s);
 static void timer_t4a_start(t30_state_t *s);
+static void timer_t4b_start(t30_state_t *s);
 
 #define test_ctrl_bit(s,bit) ((s)[3 + ((bit - 1)/8)] & (1 << ((bit - 1)%8)))
 #define set_ctrl_bit(s,bit) (s)[3 + ((bit - 1)/8)] |= (1 << ((bit - 1)%8))
@@ -365,9 +371,9 @@ static int tx_start_page(t30_state_t *s)
         s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
         return -1;
     }
-    s->ecm_page++;
+    s->ecm_tx_page++;
     s->ecm_block = 0;
-    span_log(&s->logging, SPAN_LOG_FLOW, "Starting page %d of transfer\n", s->ecm_page + 1);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Starting page %d of transfer\n", s->ecm_tx_page + 1);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -392,7 +398,7 @@ static int rx_start_page(t30_state_t *s)
     /* Clear the buffer */
     for (i = 0;  i < 256;  i++)
         s->ecm_len[i] = -1;
-    s->ecm_page++;
+    s->ecm_rx_page++;
     s->ecm_block = 0;
     s->ecm_frames = -1;
     s->ecm_frames_this_tx_burst = 0;
@@ -549,7 +555,11 @@ static int check_next_tx_step(t30_state_t *s)
     else
         more = FALSE;
     if (more)
+    {
+        //if (test_ctrl_bit(s->far_dis_dtc_frame, 34))
+        //    return T30_EOS;
         return (s->local_interrupt_pending)  ?  T30_PRI_EOM  :  T30_EOM;
+    }
     return (s->local_interrupt_pending)  ?  T30_PRI_EOP  :  T30_EOP;
 }
 /*- End of function --------------------------------------------------------*/
@@ -604,8 +614,10 @@ static int get_partial_ecm_page(t30_state_t *s)
 static int t30_ecm_commit_partial_page(t30_state_t *s)
 {
     int i;
+    int image_ended;
 
-    span_log(&s->logging, SPAN_LOG_FLOW, "Commiting partial page - %d frames\n", s->ecm_frames);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Commiting partial page - block %d, %d frames\n", s->ecm_block, s->ecm_frames);
+    image_ended = FALSE;
     for (i = 0;  i < s->ecm_frames;  i++)
     {
         if (t4_rx_put_chunk(&(s->t4), s->ecm_data[i], s->ecm_len[i]))
@@ -615,14 +627,16 @@ static int t30_ecm_commit_partial_page(t30_state_t *s)
             for (i = 0;  i < 256;  i++)
                 s->ecm_len[i] = -1;
             s->ecm_frames = -1;
-            return -1;
+            image_ended = TRUE;
+            break;
         }
     }
     /* Clear the buffer */
     for (i = 0;  i < 256;  i++)
         s->ecm_len[i] = -1;
+    s->ecm_block++;
     s->ecm_frames = -1;
-    return 0;
+    return (image_ended)  ?  -1  :  0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -933,7 +947,7 @@ static int send_pps_frame(t30_state_t *s)
     frame[1] = 0x13;
     frame[2] = (uint8_t) (T30_PPS | s->dis_received);
     frame[3] = (s->ecm_at_page_end)  ?  ((uint8_t) (s->next_tx_step | s->dis_received))  :  T30_NULL;
-    frame[4] = (uint8_t) (s->ecm_page & 0xFF);
+    frame[4] = (uint8_t) (s->ecm_tx_page & 0xFF);
     frame[5] = (uint8_t) (s->ecm_block & 0xFF);
     frame[6] = (uint8_t) ((s->ecm_frames_this_tx_burst == 0)  ?  0  :  (s->ecm_frames_this_tx_burst - 1));
     span_log(&s->logging, SPAN_LOG_FLOW, "Sending PPS + %s\n", t30_frametype(frame[3]));
@@ -1783,7 +1797,6 @@ static int start_sending_document(t30_state_t *s)
     span_log(&s->logging, SPAN_LOG_FLOW, "Minimum bits per row will be %d\n", min_row_bits);
     t4_tx_set_min_row_bits(&(s->t4), min_row_bits);
 
-    s->ecm_page = -1;
     if (tx_start_page(s))
         return -1;
     s->image_width = t4_tx_get_image_width(&(s->t4));
@@ -1817,7 +1830,6 @@ static int start_receiving_document(t30_state_t *s)
     span_log(&s->logging, SPAN_LOG_FLOW, "Start receiving document\n");
     queue_phase(s, T30_PHASE_B_TX);
     s->dis_received = FALSE;
-    s->ecm_page = 0;
     s->ecm_block = 0;
     send_dis_or_dtc_sequence(s, TRUE);
     return 0;
@@ -2215,6 +2227,7 @@ static int process_rx_pps(t30_state_t *s, const uint8_t *msg, int len)
     s->last_pps_fcf2 = msg[3] & 0xFE;
     page = msg[4];
     block = msg[5];
+
     /* The frames count is not well specified in T.30. In practice it seems it might be the
        number of frames in the current block, or it might be the number of frames in the
        current burst of transmission. For a burst of resent frames this would make it smaller
@@ -2238,7 +2251,15 @@ static int process_rx_pps(t30_state_t *s, const uint8_t *msg, int len)
             frames = 0;
         }
     }
-    span_log(&s->logging, SPAN_LOG_FLOW, "Received PPS + %s\n", t30_frametype(msg[3]));
+    span_log(&s->logging, SPAN_LOG_FLOW, "Received PPS + %s - page %d, block %d, %d frames\n", t30_frametype(msg[3]), page, block, frames);
+    if (page != s->ecm_rx_page)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "ECM rx page mismatch - expected %d, but received %d.\n", s->ecm_rx_page, page);
+    }
+    if (block != s->ecm_block)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "ECM rx block mismatch - expected %d, but received %d.\n", s->ecm_block, block);
+    }
     /* Build a bit map of which frames we now have stored OK */
     frame_no = 0;
     s->ecm_first_bad_frame = 256;
@@ -2261,10 +2282,11 @@ static int process_rx_pps(t30_state_t *s, const uint8_t *msg, int len)
     {
     case T30_NULL:
     case T30_EOP:
-    case T30_EOM:
-    case T30_MPS:
     case T30_PRI_EOP:
+    case T30_EOM:
     case T30_PRI_EOM:
+    case T30_EOS:
+    case T30_MPS:
     case T30_PRI_MPS:
         if (s->receiver_not_ready_count > 0)
         {
@@ -2750,7 +2772,7 @@ static void process_state_f_doc_non_ecm(t30_state_t *s, const uint8_t *msg, int 
         /* Treat this as a bad quality page. */
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, msg[2] & 0xFE);
-        s->next_rx_step = T30_MPS;
+        s->next_rx_step = msg[2] & 0xFE;
         queue_phase(s, T30_PHASE_D_TX);
         set_state(s, T30_STATE_III_Q_RTN);
         send_simple_frame(s, T30_RTN);
@@ -2762,14 +2784,15 @@ static void process_state_f_doc_non_ecm(t30_state_t *s, const uint8_t *msg, int 
             s->phase_d_handler(s, s->phase_d_user_data, msg[2] & 0xFE);
             s->timer_t3 = ms_to_samples(DEFAULT_TIMER_T3);
         }
-        s->next_rx_step = T30_PRI_MPS;
+        s->next_rx_step = msg[2] & 0xFE;
         set_state(s, T30_STATE_III_Q_RTN);
         break;
     case T30_EOM:
+    case T30_EOS:
         /* Treat this as a bad quality page. */
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, msg[2] & 0xFE);
-        s->next_rx_step = T30_EOM;
+        s->next_rx_step = msg[2] & 0xFE;
         /* Return to phase B */
         queue_phase(s, T30_PHASE_B_TX);
         set_state(s, T30_STATE_III_Q_RTN);
@@ -2789,7 +2812,7 @@ static void process_state_f_doc_non_ecm(t30_state_t *s, const uint8_t *msg, int 
         /* Treat this as a bad quality page. */
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, msg[2] & 0xFE);
-        s->next_rx_step = T30_EOP;
+        s->next_rx_step = msg[2] & 0xFE;
         queue_phase(s, T30_PHASE_D_TX);
         set_state(s, T30_STATE_III_Q_RTN);
         send_simple_frame(s, T30_RTN);
@@ -2801,7 +2824,7 @@ static void process_state_f_doc_non_ecm(t30_state_t *s, const uint8_t *msg, int 
             s->phase_d_handler(s, s->phase_d_user_data, msg[2] & 0xFE);
             s->timer_t3 = ms_to_samples(DEFAULT_TIMER_T3);
         }
-        s->next_rx_step = T30_PRI_EOP;
+        s->next_rx_step = msg[2] & 0xFE;
         set_state(s, T30_STATE_III_Q_RTN);
         break;
     case T30_DCN:
@@ -2829,7 +2852,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
     case T30_MPS:
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, msg[2] & 0xFE);
-        s->next_rx_step = T30_MPS;
+        s->next_rx_step = msg[2] & 0xFE;
         queue_phase(s, T30_PHASE_D_TX);
         switch (copy_quality(s))
         {
@@ -2859,7 +2882,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
             s->phase_d_handler(s, s->phase_d_user_data, msg[2] & 0xFE);
             s->timer_t3 = ms_to_samples(DEFAULT_TIMER_T3);
         }
-        s->next_rx_step = T30_PRI_MPS;
+        s->next_rx_step = msg[2] & 0xFE;
         switch (copy_quality(s))
         {
         case T30_COPY_QUALITY_PERFECT:
@@ -2883,9 +2906,10 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
         }
         break;
     case T30_EOM:
+    case T30_EOS:
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, msg[2] & 0xFE);
-        s->next_rx_step = T30_EOM;
+        s->next_rx_step = msg[2] & 0xFE;
         /* Return to phase B */
         queue_phase(s, T30_PHASE_B_TX);
         switch (copy_quality(s))
@@ -2916,7 +2940,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
             s->phase_d_handler(s, s->phase_d_user_data, msg[2] & 0xFE);
             s->timer_t3 = ms_to_samples(DEFAULT_TIMER_T3);
         }
-        s->next_rx_step = T30_PRI_EOM;
+        s->next_rx_step = msg[2] & 0xFE;
         switch (copy_quality(s))
         {
         case T30_COPY_QUALITY_PERFECT:
@@ -2942,7 +2966,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
     case T30_EOP:
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, msg[2] & 0xFE);
-        s->next_rx_step = T30_EOP;
+        s->next_rx_step = msg[2] & 0xFE;
         queue_phase(s, T30_PHASE_D_TX);
         switch (copy_quality(s))
         {
@@ -2975,7 +2999,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
             s->phase_d_handler(s, s->phase_d_user_data, msg[2] & 0xFE);
             s->timer_t3 = ms_to_samples(DEFAULT_TIMER_T3);
         }
-        s->next_rx_step = T30_PRI_EOP;
+        s->next_rx_step = msg[2] & 0xFE;
         switch (copy_quality(s))
         {
         case T30_COPY_QUALITY_PERFECT:
@@ -3052,16 +3076,16 @@ static void process_state_f_doc_ecm(t30_state_t *s, const uint8_t *msg, int len)
         span_log(&s->logging, SPAN_LOG_FLOW, "Received EOR + %s\n", t30_frametype(msg[3]));
         switch (fcf2)
         {
-        case T30_NULL:
-            break;
+        case T30_PRI_EOP:
         case T30_PRI_EOM:
         case T30_PRI_MPS:
-        case T30_PRI_EOP:
             /* TODO: Alert operator */
             /* Fall through */
-        case T30_EOM:
-        case T30_MPS:
+        case T30_NULL:
         case T30_EOP:
+        case T30_EOM:
+        case T30_EOS:
+        case T30_MPS:
             s->next_rx_step = fcf2;
             queue_phase(s, T30_PHASE_D_TX);
             set_state(s, T30_STATE_F_DOC_ECM);
@@ -3288,6 +3312,7 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
             break;
         case T30_EOM:
         case T30_PRI_EOM:
+        case T30_EOS:
             s->retries = 0;
             t4_tx_end_page(&(s->t4));
             if (s->phase_d_handler)
@@ -3340,6 +3365,7 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
             break;
         case T30_EOM:
         case T30_PRI_EOM:
+        case T30_EOS:
             s->retries = 0;
             if (s->phase_d_handler)
                 s->phase_d_handler(s, s->phase_d_user_data, T30_RTP);
@@ -3384,10 +3410,11 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
             queue_phase(s, T30_PHASE_B_TX);
             restart_sending_document(s);
             break;
-        case T30_EOM:
-        case T30_PRI_EOM:
         case T30_EOP:
         case T30_PRI_EOP:
+        case T30_EOM:
+        case T30_PRI_EOM:
+        case T30_EOS:
             s->retries = 0;
             if (s->phase_d_handler)
                 s->phase_d_handler(s, s->phase_d_user_data, T30_RTN);
@@ -3419,7 +3446,8 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
         case T30_PRI_MPS:
         case T30_EOM:
         case T30_PRI_EOM:
-            /* Unexpected DCN after EOM or MPS sequence */
+        case T30_EOS:
+            /* Unexpected DCN after EOM, EOS or MPS sequence */
             s->current_status = T30_ERR_RX_DCNPHD;
             break;
         default:
@@ -3446,9 +3474,10 @@ static void process_state_iii_q_mcf(t30_state_t *s, const uint8_t *msg, int len)
 {
     switch (msg[2] & 0xFE)
     {
-    case T30_MPS:
-    case T30_EOM:
     case T30_EOP:
+    case T30_EOM:
+    case T30_EOS:
+    case T30_MPS:
         /* Looks like they didn't see our signal. Repeat it */
         queue_phase(s, T30_PHASE_D_TX);
         set_state(s, T30_STATE_III_Q_MCF);
@@ -3479,9 +3508,10 @@ static void process_state_iii_q_rtp(t30_state_t *s, const uint8_t *msg, int len)
 {
     switch (msg[2] & 0xFE)
     {
-    case T30_MPS:
-    case T30_EOM:
     case T30_EOP:
+    case T30_EOM:
+    case T30_EOS:
+    case T30_MPS:
         /* Looks like they didn't see our signal. Repeat it */
         queue_phase(s, T30_PHASE_D_TX);
         set_state(s, T30_STATE_III_Q_RTP);
@@ -3509,9 +3539,10 @@ static void process_state_iii_q_rtn(t30_state_t *s, const uint8_t *msg, int len)
 {
     switch (msg[2] & 0xFE)
     {
-    case T30_MPS:
-    case T30_EOM:
     case T30_EOP:
+    case T30_EOM:
+    case T30_EOS:
+    case T30_MPS:
         /* Looks like they didn't see our signal. Repeat it */
         queue_phase(s, T30_PHASE_D_TX);
         set_state(s, T30_STATE_III_Q_RTN);
@@ -3601,6 +3632,7 @@ static void process_state_iv_pps_null(t30_state_t *s, const uint8_t *msg, int le
                 break;
             case T30_EOM:
             case T30_PRI_EOM:
+            case T30_EOS:
                 s->retries = 0;
                 t4_tx_end_page(&(s->t4));
                 if (s->phase_d_handler)
@@ -3706,6 +3738,7 @@ static void process_state_iv_pps_q(t30_state_t *s, const uint8_t *msg, int len)
                 break;
             case T30_EOM:
             case T30_PRI_EOM:
+            case T30_EOS:
                 s->retries = 0;
                 t4_tx_end_page(&(s->t4));
                 if (s->phase_d_handler)
@@ -3826,6 +3859,7 @@ static void process_state_iv_pps_rnr(t30_state_t *s, const uint8_t *msg, int len
                 break;
             case T30_EOM:
             case T30_PRI_EOM:
+            case T30_EOS:
                 s->retries = 0;
                 t4_tx_end_page(&(s->t4));
                 if (s->phase_d_handler)
@@ -4031,15 +4065,13 @@ static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
             switch (s->timer_t2_t4_is)
             {
             case TIMER_IS_T2:
-                timer_t2a_start(s);
-                break;
             case TIMER_IS_T2A:
+            case TIMER_IS_T2B:
                 timer_t2a_start(s);
                 break;
             case TIMER_IS_T4:
-                timer_t4_start(s);
-                break;
             case TIMER_IS_T4A:
+            case TIMER_IS_T4B:
                 timer_t4a_start(s);
                 break;
             }
@@ -4486,6 +4518,7 @@ static void repeat_last_command(t30_state_t *s)
 
 static void timer_t2_start(t30_state_t *s)
 {
+    span_log(&s->logging, SPAN_LOG_FLOW, "Start T2\n");
     s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
     s->timer_t2_t4_is = TIMER_IS_T2;
 }
@@ -4493,13 +4526,23 @@ static void timer_t2_start(t30_state_t *s)
 
 static void timer_t2a_start(t30_state_t *s)
 {
+    span_log(&s->logging, SPAN_LOG_FLOW, "Start T2A\n");
     s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2A);
     s->timer_t2_t4_is = TIMER_IS_T2A;
 }
 /*- End of function --------------------------------------------------------*/
 
+static void timer_t2b_start(t30_state_t *s)
+{
+    span_log(&s->logging, SPAN_LOG_FLOW, "Start T2B\n");
+    s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2B);
+    s->timer_t2_t4_is = TIMER_IS_T2B;
+}
+/*- End of function --------------------------------------------------------*/
+
 static void timer_t4_start(t30_state_t *s)
 {
+    span_log(&s->logging, SPAN_LOG_FLOW, "Start T4\n");
     s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T4);
     s->timer_t2_t4_is = TIMER_IS_T4;
 }
@@ -4507,8 +4550,17 @@ static void timer_t4_start(t30_state_t *s)
 
 static void timer_t4a_start(t30_state_t *s)
 {
+    span_log(&s->logging, SPAN_LOG_FLOW, "Start T4A\n");
     s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T4A);
     s->timer_t2_t4_is = TIMER_IS_T4A;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void timer_t4b_start(t30_state_t *s)
+{
+    span_log(&s->logging, SPAN_LOG_FLOW, "Start T4B\n");
+    s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T4B);
+    s->timer_t2_t4_is = TIMER_IS_T4B;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -4559,9 +4611,10 @@ static void timer_t2_expired(t30_state_t *s)
         {
         case T30_EOM:
         case T30_PRI_EOM:
+        case T30_EOS:
             /* We didn't receive a response to our T30_MCF after T30_EOM, so we must be OK
                to proceed to phase B, and pretty act like its the beginning of a call. */
-            span_log(&s->logging, SPAN_LOG_FLOW, "Returning to phase B after EOM\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Returning to phase B after %s\n", t30_frametype(s->next_rx_step));
             set_phase(s, T30_PHASE_B_TX);
             timer_t2_start(s);
             s->dis_received = FALSE;
@@ -4614,9 +4667,16 @@ static void timer_t2_expired(t30_state_t *s)
 
 static void timer_t2a_expired(t30_state_t *s)
 {
-    span_log(&s->logging, SPAN_LOG_FLOW, "T2A did not stop in a timely manner in phase %s, state %d\n", phase_names[s->phase], s->state);
+    span_log(&s->logging, SPAN_LOG_FLOW, "T2A expired in phase %s, state %d. An HDLC frame lasted too long.\n", phase_names[s->phase], s->state);
     s->current_status = T30_ERR_HDLC_CARRIER;
     disconnect(s);
+}
+/*- End of function --------------------------------------------------------*/
+
+static void timer_t2b_expired(t30_state_t *s)
+{
+    span_log(&s->logging, SPAN_LOG_FLOW, "T2B expired in phase %s, state %d. The line is now quiet.\n", phase_names[s->phase], s->state);
+    timer_t2_expired(s);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -4668,9 +4728,16 @@ static void timer_t4_expired(t30_state_t *s)
 
 static void timer_t4a_expired(t30_state_t *s)
 {
-    span_log(&s->logging, SPAN_LOG_FLOW, "T4A did not stop in a timely manner in phase %s, state %d\n", phase_names[s->phase], s->state);
+    span_log(&s->logging, SPAN_LOG_FLOW, "T4A expired in phase %s, state %d. An HDLC frame lasted too long.\n", phase_names[s->phase], s->state);
     s->current_status = T30_ERR_HDLC_CARRIER;
     disconnect(s);
+}
+/*- End of function --------------------------------------------------------*/
+
+static void timer_t4b_expired(t30_state_t *s)
+{
+    span_log(&s->logging, SPAN_LOG_FLOW, "T4B expired in phase %s, state %d. The line is now quiet.\n", phase_names[s->phase], s->state);
+    timer_t4_expired(s);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -5096,6 +5163,17 @@ static void t30_hdlc_rx_status(void *user_data, int status)
     case PUTBIT_CARRIER_UP:
         span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier up in state %d\n", s->state);
         s->rx_signal_present = TRUE;
+        switch (s->timer_t2_t4_is)
+        {
+        case TIMER_IS_T2B:
+            s->timer_t2_t4_is = TIMER_IS_T2C;
+            s->timer_t2_t4 = 0;
+            break;
+        case TIMER_IS_T4B:
+            s->timer_t2_t4_is = TIMER_IS_T4C;
+            s->timer_t2_t4 = 0;
+            break;
+        }
         break;
     case PUTBIT_CARRIER_DOWN:
         span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier down in state %d\n", s->state);
@@ -5116,10 +5194,12 @@ static void t30_hdlc_rx_status(void *user_data, int status)
             switch (s->timer_t2_t4_is)
             {
             case TIMER_IS_T2A:
-                timer_t2_start(s);
+            case TIMER_IS_T2C:
+                timer_t2b_start(s);
                 break;
             case TIMER_IS_T4A:
-                timer_t4_start(s);
+            case TIMER_IS_T4C:
+                timer_t4b_start(s);
                 break;
             }
         }
@@ -5140,14 +5220,10 @@ static void t30_hdlc_rx_status(void *user_data, int status)
             switch(s->timer_t2_t4_is)
             {
             case TIMER_IS_T2:
-                timer_t2a_start(s);
-                break;
             case TIMER_IS_T2A:
                 timer_t2a_start(s);
                 break;
             case TIMER_IS_T4:
-                timer_t4a_start(s);
-                break;
             case TIMER_IS_T4A:
                 timer_t4a_start(s);
                 break;
@@ -5185,7 +5261,7 @@ void t30_hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
        The 2.55s maximum seems to limit signalling frames to no more than 95 octets,
        including FCS, and flag octets (assuming the use of V.21).
     */
-    if (!ok)
+    if (!ok  &&  s->phase != T30_PHASE_C_ECM_RX)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Bad CRC received\n");
         /* We either force a resend, or we wait until a resend occurs through a timeout. */
@@ -5317,6 +5393,7 @@ void t30_front_end_status(void *user_data, int status)
                     break;
                 case T30_EOM:
                 case T30_PRI_EOM:
+                case T30_EOS:
                     /* See if we get something back, before moving to phase B. */
                     timer_t2_start(s);
                     set_phase(s, T30_PHASE_D_RX);
@@ -5480,10 +5557,10 @@ void t30_front_end_status(void *user_data, int status)
         switch (s->phase)
         {
         case T30_PHASE_C_NON_ECM_RX:
-            t30_non_ecm_put_bit(s, PUTBIT_CARRIER_DOWN);
+            t30_non_ecm_rx_status(s, PUTBIT_CARRIER_DOWN);
             break;
         default:
-            t30_hdlc_accept(s, NULL, PUTBIT_CARRIER_DOWN, TRUE);
+            t30_hdlc_rx_status(s, PUTBIT_CARRIER_DOWN);
             break;
         }
         break;
@@ -5505,8 +5582,8 @@ void t30_front_end_status(void *user_data, int status)
         case T30_PHASE_D_RX:
             /* We are running a V.21 receive modem, where an explicit training indication
                will not occur. */
-            t30_hdlc_accept(s, NULL, PUTBIT_CARRIER_UP, TRUE);
-            t30_hdlc_accept(s, NULL, PUTBIT_FRAMING_OK, TRUE);
+            t30_hdlc_rx_status(s, PUTBIT_CARRIER_UP);
+            t30_hdlc_rx_status(s, PUTBIT_FRAMING_OK);
             break;
         default:
             /* Cancel any receive timeout, and declare that a receive signal is present,
@@ -5556,11 +5633,17 @@ void t30_timer_update(t30_state_t *s, int samples)
             case TIMER_IS_T2A:
                 timer_t2a_expired(s);
                 break;
+            case TIMER_IS_T2B:
+                timer_t2b_expired(s);
+                break;
             case TIMER_IS_T4:
                 timer_t4_expired(s);
                 break;
             case TIMER_IS_T4A:
                 timer_t4a_expired(s);
+                break;
+            case TIMER_IS_T4B:
+                timer_t4b_expired(s);
                 break;
             }
         }
@@ -5666,6 +5749,8 @@ int t30_restart(t30_state_t *s)
     s->far_end_detected = FALSE;
     s->timer_t0_t1 = ms_to_samples(DEFAULT_TIMER_T0);
     release_resources(s);
+    s->ecm_rx_page = -1;
+    s->ecm_tx_page = -1;
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
