@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.122 2008/06/16 13:35:48 steveu Exp $
+ * $Id: t38_gateway.c,v 1.123 2008/06/17 13:38:33 steveu Exp $
  */
 
 /*! \file */
@@ -118,6 +118,14 @@ enum
 {
     FLAG_INDICATOR = 0x100,
     FLAG_DATA = 0x200
+};
+
+#define MAX_NSX_SUPPRESSION     10
+
+static uint8_t xmask[2][MAX_NSX_SUPPRESSION] =
+{
+    {0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 };
 
 static int restart_rx_modem(t38_gateway_state_t *s);
@@ -582,6 +590,16 @@ static void pump_out_final_hdlc(t38_gateway_state_t *s, int good_fcs)
 
 static void edit_control_messages(t38_gateway_state_t *s, uint8_t *buf, int len, int from_modem)
 {
+    if (s->corrupt_current_frame[from_modem])
+    {
+        /* We simply need to overwrite a section of the message, so it is not recognisable at
+           the receiver. This is used for the NSF, NSC, and NSS messages. Several strategies are
+           possible for the replacement data. If you have a manufacturer code of your own, the
+           sane thing is to overwrite the original data with that. */
+        if (len <= s->suppress_nsx_len[from_modem])
+            buf[len - 1] = xmask[from_modem][len - 4];
+        return;
+    }
     /* Edit the message, if we need to control the communication between the end points. */
     switch (len)
     {
@@ -591,16 +609,13 @@ static void edit_control_messages(t38_gateway_state_t *s, uint8_t *buf, int len,
         case T30_NSF:
         case T30_NSC:
         case T30_NSS:
-            if (s->suppress_nsx)
+            if (s->suppress_nsx_len[from_modem])
             {
                 /* Corrupt the message, so it will be ignored by the far end. If it were
                    processed, 2 machines which recognise each other might do special things
                    we cannot handle as a middle man. */
                 span_log(&s->logging, SPAN_LOG_FLOW, "Corrupting %s message to prevent recognition\n", t30_frametype(buf[2]));
-                if (from_modem)
-                    s->corrupt_the_frame_to_t38 = TRUE;
-                else
-                    s->corrupt_the_frame_from_t38 = TRUE;
+                s->corrupt_current_frame[from_modem] = TRUE;
             }
             break;
         }
@@ -930,35 +945,29 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         if (s->hdlc_len[s->hdlc_in] + len > T38_MAX_HDLC_LEN)
             break;
         s->hdlc_contents[s->hdlc_in] = (data_type | FLAG_DATA);
+        bit_reverse(&s->hdlc_buf[s->hdlc_in][s->hdlc_len[s->hdlc_in]], buf, len);
+        /* We need to send out the control messages as they are arriving. They are
+           too slow to capture a whole frame, and then pass it on.
+           For the faster frames, take in the whole frame before sending it out. Also, there
+           is no need to monitor, or modify, the contents of the faster frames. */
         if (data_type == T38_DATA_V21)
         {
-            /* We need to send out the control messages as they are arriving. They are
-               too slow to capture a whole frame, and then pass it on. */
-            for (i = 0;  i < len;  i++)
-            {
-                s->hdlc_buf[s->hdlc_in][s->hdlc_len[s->hdlc_in]++] = (s->corrupt_the_frame_from_t38)  ?  0  :  bit_reverse8(buf[i]);
-                edit_control_messages(s, s->hdlc_buf[s->hdlc_in], s->hdlc_len[s->hdlc_in], FALSE);
-            }
+            for (i = 1;  i <= len;  i++)
+                edit_control_messages(s, s->hdlc_buf[s->hdlc_in], s->hdlc_len[s->hdlc_in] + i, 0);
             /* Don't start pumping data into the actual output stream until there is
                enough backlog to create some elasticity for jitter tolerance. */
-            if (s->hdlc_len[s->hdlc_in] >= HDLC_START_BUFFER_LEVEL)
+            if (s->hdlc_len[s->hdlc_in] + len >= HDLC_START_BUFFER_LEVEL)
             {
                 if (s->hdlc_in == s->hdlc_out)
                 {
                     if ((s->hdlc_flags[s->hdlc_in] & HDLC_FLAG_PROCEED_WITH_OUTPUT) == 0)
                         previous = 0;
-                    hdlc_tx_frame(&s->hdlctx, s->hdlc_buf[s->hdlc_out] + previous, s->hdlc_len[s->hdlc_out] - previous);
+                    hdlc_tx_frame(&s->hdlctx, s->hdlc_buf[s->hdlc_out] + previous, s->hdlc_len[s->hdlc_out] - previous + len);
                 }
                 s->hdlc_flags[s->hdlc_in] |= HDLC_FLAG_PROCEED_WITH_OUTPUT;
             }
         }
-        else
-        {
-            /* For the faster frames, take in the whole frame before sending it out. Also, there
-               is no need to monitor, or modify, the contents of the faster frames. */
-            bit_reverse(&s->hdlc_buf[s->hdlc_in][s->hdlc_len[s->hdlc_in]], buf, len);
-            s->hdlc_len[s->hdlc_in] += len;
-        }
+        s->hdlc_len[s->hdlc_in] += len;
         break;
     case T38_FIELD_HDLC_FCS_OK:
         s->current_rx_field_class = T38_FIELD_CLASS_HDLC;
@@ -996,7 +1005,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         }
         s->hdlc_len[s->hdlc_in] = 0;
         s->hdlc_flags[s->hdlc_in] = 0;
-        s->corrupt_the_frame_from_t38 = FALSE;
+        s->corrupt_current_frame[0] = FALSE;
         break;
     case T38_FIELD_HDLC_FCS_BAD:
         s->current_rx_field_class = T38_FIELD_CLASS_HDLC;
@@ -1024,7 +1033,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         }
         s->hdlc_len[s->hdlc_in] = 0;
         s->hdlc_flags[s->hdlc_in] = 0;
-        s->corrupt_the_frame_from_t38 = FALSE;
+        s->corrupt_current_frame[0] = FALSE;
         break;
     case T38_FIELD_HDLC_FCS_OK_SIG_END:
         s->current_rx_field_class = T38_FIELD_CLASS_HDLC;
@@ -1054,7 +1063,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             queue_missing_indicator(s, T38_DATA_NONE);
             s->current_rx_field_class = T38_FIELD_CLASS_NONE;
         }
-        s->corrupt_the_frame_from_t38 = FALSE;
+        s->corrupt_current_frame[0] = FALSE;
         break;
     case T38_FIELD_HDLC_FCS_BAD_SIG_END:
         s->current_rx_field_class = T38_FIELD_CLASS_HDLC;
@@ -1085,7 +1094,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             queue_missing_indicator(s, T38_DATA_NONE);
             s->current_rx_field_class = T38_FIELD_CLASS_NONE;
         }
-        s->corrupt_the_frame_from_t38 = FALSE;
+        s->corrupt_current_frame[0] = FALSE;
         break;
     case T38_FIELD_HDLC_SIG_END:
         if (len > 0)
@@ -1124,14 +1133,14 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             queue_missing_indicator(s, T38_DATA_NONE);
             s->current_rx_field_class = T38_FIELD_CLASS_NONE;
         }
-        s->corrupt_the_frame_from_t38 = FALSE;
+        s->corrupt_current_frame[0] = FALSE;
         break;
     case T38_FIELD_T4_NON_ECM_DATA:
         s->current_rx_field_class = T38_FIELD_CLASS_NON_ECM;
         if (s->hdlc_contents[s->hdlc_in] != (data_type | FLAG_DATA))
             queue_missing_indicator(s, data_type);
         add_to_non_ecm_tx_buffer(s, buf, len);
-        s->corrupt_the_frame_from_t38 = FALSE;
+        s->corrupt_current_frame[0] = FALSE;
         break;
     case T38_FIELD_T4_NON_ECM_SIG_END:
         /* Some T.38 implementations send multiple T38_FIELD_T4_NON_ECM_SIG_END messages, in IFP packets with
@@ -1170,7 +1179,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             queue_missing_indicator(s, T38_DATA_NONE);
             s->current_rx_field_class = T38_FIELD_CLASS_NONE;
         }
-        s->corrupt_the_frame_from_t38 = FALSE;
+        s->corrupt_current_frame[0] = FALSE;
         break;
     case T38_FIELD_CM_MESSAGE:
     case T38_FIELD_JM_MESSAGE:
@@ -1652,7 +1661,7 @@ static void rx_flag_or_abort(hdlc_rx_state_t *t)
     t->len = 0;
     t->num_bits = 0;
     s->rx_data_ptr = 0;
-    s->corrupt_the_frame_to_t38 = FALSE;
+    s->corrupt_current_frame[1] = FALSE;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1700,10 +1709,7 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
     {
         /* The V.21 control messages need to be monitored, and possibly corrupted, to manage the
            man-in-the-middle role of T.38 */
-        if (s->corrupt_the_frame_to_t38)
-            t->buffer[t->len] = 0;
-        else
-            edit_control_messages(s, t->buffer, t->len, TRUE);
+        edit_control_messages(s, t->buffer, t->len, 1);
     }
     if (++s->rx_data_ptr >= s->octets_per_data_packet)
     {
@@ -1872,9 +1878,14 @@ void t38_gateway_set_supported_modems(t38_gateway_state_t *s, int supported_mode
 }
 /*- End of function --------------------------------------------------------*/
 
-void t38_gateway_set_nsx_suppression(t38_gateway_state_t *s, int suppress_nsx)
+void t38_gateway_set_nsx_suppression(t38_gateway_state_t *s,
+                                     const uint8_t *from_t38,
+                                     int from_t38_len,
+                                     const uint8_t *from_modem,
+                                     int from_modem_len)
 {
-    s->suppress_nsx = suppress_nsx;
+    s->suppress_nsx_len[0] = (from_t38_len < 0  ||  from_t38_len < MAX_NSX_SUPPRESSION)  ?  (from_t38_len + 3)  :  0;
+    s->suppress_nsx_len[1] = (from_modem_len < 0  ||  from_modem_len < MAX_NSX_SUPPRESSION)  ?  (from_modem_len + 3)  :  0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1912,7 +1923,6 @@ t38_gateway_state_t *t38_gateway_init(t38_gateway_state_t *s,
     hdlc_tx_init(&s->hdlctx, FALSE, 2, TRUE, hdlc_underflow_handler, s);
     s->octets_per_data_packet = 1;
     s->rx_signal_present = FALSE;
-    s->suppress_nsx = TRUE;
     s->tx_handler = (span_tx_handler_t *) &(silence_gen);
     s->tx_user_data = &(s->silence_gen);
     set_rx_active(s, TRUE);
@@ -1924,7 +1934,7 @@ t38_gateway_state_t *t38_gateway_init(t38_gateway_state_t *s,
                   tx_packet_handler,
                   tx_packet_user_data);
     t38_gateway_set_supported_modems(s, T30_SUPPORT_V27TER | T30_SUPPORT_V29);
-    t38_gateway_set_nsx_suppression(s, TRUE);
+    t38_gateway_set_nsx_suppression(s, "\x00\x00\x00", 3, "\x00\x00\x00", 3);
     s->t38.indicator_tx_count = INDICATOR_TX_COUNT;
     s->t38.data_tx_count = DATA_TX_COUNT;
     s->t38.data_end_tx_count = DATA_END_TX_COUNT;

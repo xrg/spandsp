@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.45 2008/05/08 12:21:09 steveu Exp $
+ * $Id: t38_gateway.h,v 1.46 2008/06/17 13:38:33 steveu Exp $
  */
 
 /*! \file */
@@ -62,7 +62,7 @@ typedef struct
     int ecm_allowed;
     /*! \brief TRUE if the NSF, NSC, and NSS are to be suppressed by altering
                their contents to something the far end will not recognise. */
-    int suppress_nsx;
+    int suppress_nsx_len[2];
 
     /*! \brief If TRUE, transmit silence when there is nothing else to transmit. If FALSE return only
                the actual generated audio. Note that this only affects untimed silences. Timed silences
@@ -219,11 +219,8 @@ typedef struct
     int short_train;
 
     /*! \brief TRUE if we need to corrupt the HDLC frame in progress, so the receiver cannot
-               interpret it. */
-    int corrupt_the_frame_to_t38;
-    /*! \brief TRUE if we need to corrupt the HDLC frame in progress, so the receiver cannot
-               interpret it. */
-    int corrupt_the_frame_from_t38;
+               interpret it. The two values are for the two directions. */
+    int corrupt_current_frame[2];
 
     /*! \brief The currently select receiver type */
     int current_rx_type;
@@ -312,9 +309,18 @@ void t38_gateway_set_supported_modems(t38_gateway_state_t *s, int supported_mode
     them look like manufacturer specific messages, from a manufacturer which does not exist.
     \brief Select whether NSC, NSF, and NSS should be suppressed.
     \param s The T.38 context.
-    \param suppress_nsx TRUE if NSC, NSF, and NSS should be suppressed.
+    \param from_t38 A string of bytes to overwrite the header of any NSC, NSF, and NSS
+           frames passing through the gateway from T.38 the the modem.
+    \param from_t38_len The length of the overwrite string.
+    \param from_modem A string of bytes to overwrite the header of any NSC, NSF, and NSS
+           frames passing through the gateway from the modem to T.38.
+    \param from_modem_len The length of the overwrite string.
 */
-void t38_gateway_set_nsx_suppression(t38_gateway_state_t *s, int suppress_nsx);
+void t38_gateway_set_nsx_suppression(t38_gateway_state_t *s,
+                                     const uint8_t *from_t38,
+                                     int from_t38_len,
+                                     const uint8_t *from_modem,
+                                     int from_modem_len);
 
 /*! Select whether talker echo protection tone will be sent for the image modems.
     \brief Select whether TEP will be sent for the image modems.
