@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.103 2007/12/13 11:31:32 steveu Exp $
+ * $Id: t4.c,v 1.104 2007/12/14 13:27:30 steveu Exp $
  */
 
 /*
@@ -769,6 +769,14 @@ int t4_rx_end_page(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
+static __inline__ void drop_rx_bits(t4_state_t *s, int bits)
+{
+    s->row_bits += bits;
+    s->rx_bits -= bits;
+    s->rx_bitstream >>= bits;
+}
+/*- End of function --------------------------------------------------------*/
+
 static int t4_rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
 {
     int bits;
@@ -790,8 +798,7 @@ static int t4_rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
                 return FALSE;
         }
         i = (s->line_encoding == T4_COMPRESSION_ITU_T4_1D)  ?  12  :  13;
-        s->rx_bits -= i;
-        s->rx_bitstream >>= i;
+        drop_rx_bits(s, i);
         s->first_eol_seen = TRUE;
         return FALSE;
     }
@@ -815,17 +822,20 @@ static int t4_rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
                 s->consecutive_eols = 0;
                 if (put_decoded_row(s))
                     return TRUE;
+                if (s->row_bits > s->max_row_bits)
+                    s->max_row_bits = s->row_bits;
+                if (s->row_bits < s->min_row_bits)
+                    s->min_row_bits = s->row_bits;
+                s->row_bits = 0;
             }
             if (s->line_encoding == T4_COMPRESSION_ITU_T4_1D)
             {
-                s->rx_bits -= 12;
-                s->rx_bitstream >>= 12;
+                drop_rx_bits(s, 12);
             }
             else
             {
                 s->row_is_2d = !(s->rx_bitstream & 0x1000);
-                s->rx_bits -= 13;
-                s->rx_bitstream >>= 13;
+                drop_rx_bits(s, 13);
             }
             s->its_black = FALSE;
             s->black_white = 0;
@@ -841,8 +851,7 @@ static int t4_rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
                         t4_2d_table[bits].width);
             if (s->row_len >= s->image_width)
             {
-                s->rx_bits -= t4_2d_table[bits].width;
-                s->rx_bitstream >>= t4_2d_table[bits].width;
+                drop_rx_bits(s, t4_2d_table[bits].width);
                 continue;
             }
             if (s->a_cursor)
@@ -915,8 +924,7 @@ static int t4_rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
                 span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected T.4 state %d\n", t4_2d_table[bits].state);
                 break;
             }
-            s->rx_bits -= t4_2d_table[bits].width;
-            s->rx_bitstream >>= t4_2d_table[bits].width;
+            drop_rx_bits(s, t4_2d_table[bits].width);
         }
         else
         {
@@ -952,8 +960,7 @@ static int t4_rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
                     s->black_white = 0;
                     break;
                 }
-                s->rx_bits -= t4_1d_black_table[bits].width;
-                s->rx_bitstream >>= t4_1d_black_table[bits].width;
+                drop_rx_bits(s, t4_1d_black_table[bits].width);
             }
             else
             {
@@ -987,8 +994,7 @@ static int t4_rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
                     s->black_white = 0;
                     break;
                 }
-                s->rx_bits -= t4_1d_white_table[bits].width;
-                s->rx_bitstream >>= t4_1d_white_table[bits].width;
+                drop_rx_bits(s, t4_1d_white_table[bits].width);
             }
         }
         if (s->a0 >= s->image_width)
@@ -1005,6 +1011,11 @@ static int t4_rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
                 STATE_TRACE("EOL T.6\n");
                 if (s->run_length > 0)
                     add_run_to_row(s);
+                if (s->row_bits > s->max_row_bits)
+                    s->max_row_bits = s->row_bits;
+                if (s->row_bits < s->min_row_bits)
+                    s->min_row_bits = s->row_bits;
+                s->row_bits = 0;
                 if (put_decoded_row(s))
                     return TRUE;
                 s->its_black = FALSE;
@@ -1134,6 +1145,9 @@ int t4_rx_start_page(t4_state_t *s)
 
     s->rx_bits = 0;
     s->rx_bitstream = 0;
+    s->row_bits = 0;
+    s->min_row_bits = INT_MAX;
+    s->max_row_bits = 0;
 
     s->row_is_2d = (s->line_encoding == T4_COMPRESSION_ITU_T6);
     s->first_eol_seen = (s->line_encoding == T4_COMPRESSION_ITU_T6);
@@ -1309,7 +1323,7 @@ static __inline__ int put_1d_span(t4_state_t *s, int32_t span, const t4_run_tabl
  */
 static void t4_encode_eol(t4_state_t *s)
 {
-    unsigned int code;
+    uint32_t code;
     int length;
 
     if (s->line_encoding == T4_COMPRESSION_ITU_T4_2D)
@@ -1323,10 +1337,22 @@ static void t4_encode_eol(t4_state_t *s)
         code = 0x800;
         length = 12;
     }
-    /* We may need to pad the row to a minimum length. */
-    if (s->row_bits + length < s->min_row_bits)
-        put_encoded_bits(s, 0, s->min_row_bits - (s->row_bits + length));
-    put_encoded_bits(s, code, length);
+    if (s->row_bits)
+    {
+        /* We may need to pad the row to a minimum length. */
+        if (s->row_bits + length < s->min_bits_per_row)
+            put_encoded_bits(s, 0, s->min_bits_per_row - (s->row_bits + length));
+        put_encoded_bits(s, code, length);
+        if (s->row_bits > s->max_row_bits)
+            s->max_row_bits = s->row_bits;
+        if (s->row_bits < s->min_row_bits)
+            s->min_row_bits = s->row_bits;
+    }
+    else
+    {
+        /* We don't pad zero length rows. They are the consecutive EOLs which end a page. */
+        put_encoded_bits(s, code, length);
+    }
     s->row_bits = 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1732,6 +1758,10 @@ int t4_tx_start_page(t4_state_t *s)
     s->ref_runs[3] = s->image_width;
     s->ref_steps = 1;
 
+    s->row_bits = 0;
+    s->min_row_bits = INT_MAX;
+    s->max_row_bits = 0;
+
     if (s->header_info  &&  s->header_info[0])
     {
         /* Modify the resulting image to include a header line, typical of hardware FAX machines */
@@ -1815,20 +1845,12 @@ int t4_tx_start_page(t4_state_t *s)
         /* Attach a return to control (RTC == 6 x EOLs) to the end of the page */
         s->row_is_2d = FALSE;
         for (i = 0;  i < 6;  i++)
-        {
             t4_encode_eol(s);
-            /* Suppress row padding between these EOLs */
-            s->row_bits = INT_MAX - 1000;
-        }
     }
     else
     {
         /* Attach an EOFB (end of facsimile block) to the end of the page */
-        /* Suppress row padding between these EOLs */
-        s->row_bits = INT_MAX - 1000;
         t4_encode_eol(s);
-        /* Suppress row padding between these EOLs */
-        s->row_bits = INT_MAX - 1000;
         t4_encode_eol(s);
     }
 
@@ -1836,7 +1858,6 @@ int t4_tx_start_page(t4_state_t *s)
     put_encoded_bits(s, 0, 7);
     s->bit_pos = 7;
     s->bit_ptr = 0;
-    s->row_bits = 0;
 
     return 0;
 }
@@ -1955,7 +1976,7 @@ void t4_tx_set_tx_encoding(t4_state_t *s, int encoding)
 
 void t4_tx_set_min_row_bits(t4_state_t *s, int bits)
 {
-    s->min_row_bits = bits;
+    s->min_bits_per_row = bits;
 }
 /*- End of function --------------------------------------------------------*/
 

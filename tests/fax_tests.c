@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.74 2007/12/08 15:25:29 steveu Exp $
+ * $Id: fax_tests.c,v 1.75 2007/12/14 13:40:34 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -100,7 +100,9 @@ static void phase_d_handler(t30_state_t *s, void *user_data, int result)
     printf("%d: Phase D: local ident '%s'\n", i, ident);
     t30_get_far_ident(s, ident);
     printf("%d: Phase D: remote ident '%s'\n", i, ident);
-    
+
+    printf("%d: Phase D: bits per row - min %d, max %d\n", i, s->t4.min_row_bits, s->t4.max_row_bits);
+
     if (use_receiver_not_ready)
         t30_set_receiver_not_ready(s, 3);
 
@@ -315,6 +317,8 @@ int main(int argc, char *argv[])
         t30_set_header_info(&mc->fax.t30_state, page_header_info);
         t30_set_local_nsf(&mc->fax.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
         t30_set_ecm_capability(&mc->fax.t30_state, use_ecm);
+        if ((mc->chan & 1))
+            mc->fax.t30_state.local_min_scan_time_code = 4;
         t30_set_supported_image_sizes(&mc->fax.t30_state,
                                       T30_SUPPORT_US_LETTER_LENGTH
                                     | T30_SUPPORT_US_LEGAL_LENGTH

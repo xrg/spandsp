@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.98 2007/12/13 11:31:31 steveu Exp $
+ * $Id: t31.c,v 1.99 2007/12/14 13:41:17 steveu Exp $
  */
 
 /*! \file */
@@ -1924,9 +1924,8 @@ t31_state_t *t31_init(t31_state_t *s,
     alloced = FALSE;
     if (s == NULL)
     {
-        s = (t31_state_t *) malloc(sizeof (*s));
-        if (s == NULL)
-            return  NULL;
+        if ((s = (t31_state_t *) malloc(sizeof (*s))) == NULL)
+            return NULL;
         alloced = TRUE;
     }
     memset(s, 0, sizeof(*s));

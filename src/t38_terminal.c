@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.80 2007/11/30 12:20:34 steveu Exp $
+ * $Id: t38_terminal.c,v 1.82 2007/12/14 13:41:17 steveu Exp $
  */
 
 /*! \file */
@@ -802,6 +802,16 @@ void t38_terminal_set_tep_mode(t38_terminal_state_t *s, int use_tep)
 }
 /*- End of function --------------------------------------------------------*/
 
+void t38_terminal_set_fill_bit_removal(t38_terminal_state_t *s, int remove)
+{
+    if (remove)
+        s->iaf |= T30_IAF_MODE_NO_FILL_BITS;
+    else
+        s->iaf &= ~T30_IAF_MODE_NO_FILL_BITS;
+    t30_set_iaf_mode(&(s->t30_state), s->iaf);
+}
+/*- End of function --------------------------------------------------------*/
+
 t38_terminal_state_t *t38_terminal_init(t38_terminal_state_t *s,
                                         int calling_party,
                                         t38_tx_packet_handler_t *tx_packet_handler,
@@ -846,13 +856,10 @@ t38_terminal_state_t *t38_terminal_init(t38_terminal_state_t *s,
              (void *) s,
              send_hdlc,
              (void *) s);
-    /* TODO: This needs to go where the operation starts up. The variable will not
-             have been set at this stage. */
-    if (s->t38.fill_bit_removal)
-        t30_set_min_non_ecm_row_bits(&(s->t30_state), 0);
+    s->iaf = T30_IAF_MODE_T37 | T30_IAF_MODE_T38;
+    t30_set_iaf_mode(&(s->t30_state), s->iaf);
     t30_set_supported_modems(&(s->t30_state),
                              T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17 | T30_SUPPORT_IAF);
-    t30_set_iaf_mode(&(s->t30_state), T30_IAF_MODE_T37 | T30_IAF_MODE_T38);
     t30_restart(&s->t30_state);
     return s;
 }

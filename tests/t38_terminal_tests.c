@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_tests.c,v 1.46 2007/11/29 00:13:29 steveu Exp $
+ * $Id: t38_terminal_tests.c,v 1.47 2007/12/14 13:38:55 steveu Exp $
  */
 
 /*! \file */
@@ -115,6 +115,8 @@ static void phase_d_handler(t30_state_t *s, void *user_data, int result)
     printf("%c: Phase D: local ident '%s'\n", i, ident);
     t30_get_far_ident(s, ident);
     printf("%c: Phase D: remote ident '%s'\n", i, ident);
+
+    printf("%c: Phase D: bits per row - min %d, max %d\n", i, s->t4.min_row_bits, s->t4.max_row_bits);
 }
 /*- End of function --------------------------------------------------------*/
 

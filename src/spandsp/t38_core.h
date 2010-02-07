@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.h,v 1.21 2007/12/13 11:31:33 steveu Exp $
+ * $Id: t38_core.h,v 1.22 2007/12/14 13:41:17 steveu Exp $
  */
 
 /*! \file */
@@ -214,16 +214,15 @@ struct t38_core_state_s
     int data_transport_protocol;
 
     /*! Indicates the capability to remove and insert fill bits in Phase C, non-ECM
-        data to reduce bandwidth in the packet network. Optional. See Note. */
+        data to reduce bandwidth in the packet network. */
     int fill_bit_removal;
 
     /*! Indicates the ability to convert to/from MMR from/to the line format to
         improve the compression of the data, and reduce the bandwidth, in the
-        packet network. Optional. See Note. */
+        packet network. */
     int mmr_transcoding;
 
-    /*! Indicates the ability to convert to/from JBIG to reduce bandwidth. Optional.
-        See Note. */
+    /*! Indicates the ability to convert to/from JBIG to reduce bandwidth. */
     int jbig_transcoding;
 
     /*! For UDP (UDPTL or RTP) modes, this option indicates the maximum

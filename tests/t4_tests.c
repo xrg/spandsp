@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.52 2007/11/26 13:58:06 steveu Exp $
+ * $Id: t4_tests.c,v 1.53 2007/12/14 13:27:30 steveu Exp $
  */
 
 /*! \file */
@@ -119,16 +119,17 @@ static void dump_image_as_xxx(t4_state_t *state)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void display_page_stats(t4_state_t *state)
+static void display_page_stats(t4_state_t *s)
 {
     t4_stats_t stats;
 
-    t4_get_transfer_statistics(state, &stats);
+    t4_get_transfer_statistics(s, &stats);
     printf("Pages = %d\n", stats.pages_transferred);
     printf("Image size = %d x %d pixels\n", stats.width, stats.length);
     printf("Image resolution = %d/m x %d/m\n", stats.x_resolution, stats.y_resolution);
     printf("Bad rows = %d\n", stats.bad_rows);
     printf("Longest bad row run = %d\n", stats.longest_bad_row_run);
+    printf("Bits per row - min %d, max %d\n", s->min_row_bits, s->max_row_bits);
 }
 /*- End of function --------------------------------------------------------*/
 

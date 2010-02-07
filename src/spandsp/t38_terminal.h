@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.25 2007/12/13 11:31:33 steveu Exp $
+ * $Id: t38_terminal.h,v 1.27 2007/12/14 13:41:17 steveu Exp $
  */
 
 /*! \file */
@@ -111,6 +111,9 @@ typedef struct
     int32_t next_tx_samples;
     int32_t timeout_rx_samples;
 
+    /*! \brief Internet Aware FAX mode bit mask. */
+    int iaf;
+
     logging_state_t logging;
 } t38_terminal_state_t;
 
@@ -130,7 +133,15 @@ void t38_terminal_set_config(t38_terminal_state_t *s, int without_pacing);
 */
 void t38_terminal_set_tep_mode(t38_terminal_state_t *s, int use_tep);
 
-    /*! \brief Initialise a termination mode T.38 context.
+
+/*! Select whether non-ECM fill bits are to be removed during transmission.
+    \brief Select whether non-ECM fill bits are to be removed during transmission.
+    \param s The T.38 context.
+    \param remove TRUE if fill bits are to be removed.
+*/
+void t38_terminal_set_fill_bit_removal(t38_terminal_state_t *s, int remove);
+
+/*! \brief Initialise a termination mode T.38 context.
     \param s The T.38 context.
     \param calling_party TRUE if the context is for a calling party. FALSE if the
            context is for an answering party.

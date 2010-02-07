@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.46 2007/12/13 11:31:33 steveu Exp $
+ * $Id: t4.h,v 1.47 2007/12/14 13:27:30 steveu Exp $
  */
 
 /*! \file */
@@ -198,7 +198,7 @@ typedef struct
     int line_encoding;
     /*! \brief The minimum number of encoded bits per row. This is a timing thing
                for hardware FAX machines. */
-    int min_row_bits;
+    int min_bits_per_row;
     
     /*! \brief The compression type for output to the TIFF file. */
     int output_compression;
@@ -326,6 +326,10 @@ typedef struct
     int rows_to_next_1d_row;
     /*! \brief The current number of bits in the current encoded row. */
     int row_bits;
+    /*! \brief The minimum bits in any row of the current page. For monitoring only. */
+    int min_row_bits;
+    /*! \brief The maximum bits in any row of the current page. For monitoring only. */
+    int max_row_bits;
 
     /*! \brief Error and flow logging control */
     logging_state_t logging;
