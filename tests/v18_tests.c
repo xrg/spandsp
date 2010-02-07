@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v18_tests.c,v 1.7 2009/05/24 04:35:28 steveu Exp $
+ * $Id: v18_tests.c,v 1.8 2009/05/30 15:23:14 steveu Exp $
  */
 
 /*! \page v18_tests_page V.18 tests
@@ -41,7 +41,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
-#include <audiofile.h>
+#include <sndfile.h>
 
 //#if defined(WITH_SPANDSP_INTERNALS)
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
@@ -58,7 +58,7 @@
 #define SAMPLES_PER_CHUNK   160
 
 int log_audio = FALSE;
-AFfilehandle outhandle = NULL;
+SNDFILE *outhandle = NULL;
 
 char *decode_test_file = NULL;
 
@@ -142,13 +142,10 @@ static void basic_tests(int mode)
         }
         if (log_audio)
         {
-            outframes = afWriteFrames(outhandle,
-                                      AF_DEFAULT_TRACK,
-                                      amp,
-                                      len);
+            outframes = sf_writef_short(outhandle, amp, len);
             if (outframes != len)
             {
-                fprintf(stderr, "    Error writing wave file\n");
+                fprintf(stderr, "    Error writing audio file\n");
                 exit(2);
             }
         }
@@ -280,30 +277,27 @@ static int decode_test_data_file(int mode, const char *filename)
 {
     v18_state_t *v18_state;
     int16_t amp[SAMPLES_PER_CHUNK];
-    AFfilehandle inhandle;
+    SNDFILE *inhandle;
     int len;
 
     printf("Decoding as '%s'\n", v18_mode_to_str(mode));
-    /* We will decode the audio from a wave file. */
-    if ((inhandle = afOpenFile_telephony_read(decode_test_file, 1)) == AF_NULL_FILEHANDLE)
+    /* We will decode the audio from a file. */
+    if ((inhandle = sf_open_telephony_read(decode_test_file, 1)) == NULL)
     {
-        fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
+        fprintf(stderr, "    Cannot open audio file '%s'\n", decode_test_file);
         exit(2);
     }
     v18_state = v18_init(NULL, FALSE, mode, put_v18_msg, NULL);
     for (;;)
     {
-        len = afReadFrames(inhandle,
-                           AF_DEFAULT_TRACK,
-                           amp,
-                           SAMPLES_PER_CHUNK);
+        len = sf_readf_short(inhandle, amp, SAMPLES_PER_CHUNK);
         if (len == 0)
             break;
         v18_rx(v18_state, amp, len);
     }
-    if (afCloseFile(inhandle) != 0)
+    if (sf_close(inhandle) != 0)
     {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", decode_test_file);
+        fprintf(stderr, "    Cannot close audio file '%s'\n", decode_test_file);
         exit(2);
     }
     v18_free(v18_state);
@@ -453,12 +447,12 @@ int main(int argc, char *argv[])
     if (argc > 0)
         match = argv[0];
 
-    outhandle = AF_NULL_FILEHANDLE;
+    outhandle = NULL;
     if (log_audio)
     {
-        if ((outhandle = afOpenFile_telephony_write(OUTPUT_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
+        if ((outhandle = sf_open_telephony_write(OUTPUT_FILE_NAME, 1)) == NULL)
         {
-            fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
+            fprintf(stderr, "    Cannot create audio file '%s'\n", OUTPUT_FILE_NAME);
             exit(2);
         }
     }
@@ -501,9 +495,9 @@ int main(int argc, char *argv[])
     basic_tests(V18_MODE_5BIT_45);
     if (log_audio)
     {
-        if (afCloseFile(outhandle) != 0)
+        if (sf_close(outhandle) != 0)
         {
-            fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
+            fprintf(stderr, "    Cannot close audio file '%s'\n", OUTPUT_FILE_NAME);
             exit(2);
         }
     }

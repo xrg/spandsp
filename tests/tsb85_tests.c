@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tsb85_tests.c,v 1.31 2009/05/24 07:18:36 steveu Exp $
+ * $Id: tsb85_tests.c,v 1.32 2009/05/30 15:23:14 steveu Exp $
  */
 
 /*! \file */
@@ -47,7 +47,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <unistd.h>
-#include <audiofile.h>
+#include <sndfile.h>
 
 #if defined(HAVE_LIBXML_XMLMEMORY_H)
 #include <libxml/xmlmemory.h>
@@ -75,7 +75,7 @@
 
 #define SAMPLES_PER_CHUNK       160
 
-AFfilehandle out_handle;
+SNDFILE *out_handle;
 
 int use_receiver_not_ready = FALSE;
 int test_local_interrupt = FALSE;
@@ -1068,9 +1068,9 @@ static void exchange(faxtester_state_t *s)
 
     if (log_audio)
     {
-        if ((out_handle = afOpenFile_telephony_write(OUTPUT_FILE_NAME_WAVE, 2)) == AF_NULL_FILEHANDLE)
+        if ((out_handle = sf_open_telephony_write(OUTPUT_FILE_NAME_WAVE, 2)) == NULL)
         {
-            fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
+            fprintf(stderr, "    Cannot create audio file '%s'\n", OUTPUT_FILE_NAME_WAVE);
             printf("Test failed\n");
             exit(2);
         }
@@ -1127,7 +1127,7 @@ static void exchange(faxtester_state_t *s)
             for (i = 0;  i < len;  i++)
                 out_amp[2*i + 1] = amp[i];
             /*endfor*/
-            if (afWriteFrames(out_handle, AF_DEFAULT_TRACK, out_amp, SAMPLES_PER_CHUNK) != SAMPLES_PER_CHUNK)
+            if (sf_writef_short(out_handle, out_amp, SAMPLES_PER_CHUNK) != SAMPLES_PER_CHUNK)
                 break;
             /*endif*/
         }
@@ -1136,9 +1136,9 @@ static void exchange(faxtester_state_t *s)
     /*endfor*/
     if (log_audio)
     {
-        if (afCloseFile(out_handle))
+        if (sf_close(out_handle))
         {
-            fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
+            fprintf(stderr, "    Cannot close audio file '%s'\n", OUTPUT_FILE_NAME_WAVE);
             printf("Test failed\n");
             exit(2);
         }

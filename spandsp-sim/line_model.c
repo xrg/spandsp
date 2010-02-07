@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.c,v 1.9 2009/05/16 03:34:45 steveu Exp $
+ * $Id: line_model.c,v 1.10 2009/05/30 15:30:21 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -36,7 +36,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <audiofile.h>
+#include <sndfile.h>
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

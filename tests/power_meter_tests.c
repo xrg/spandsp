@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter_tests.c,v 1.23 2009/05/19 14:15:09 steveu Exp $
+ * $Id: power_meter_tests.c,v 1.24 2009/05/30 15:23:14 steveu Exp $
  */
 
 /*! \page power_meter_tests_page Power meter tests
@@ -44,7 +44,7 @@ Both tones and noise are used to check the meter's behaviour.
 #include <memory.h>
 #include <float.h>
 #include <time.h>
-#include <audiofile.h>
+#include <sndfile.h>
 
 //#if defined(WITH_SPANDSP_INTERNALS)
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
@@ -58,7 +58,7 @@ Both tones and noise are used to check the meter's behaviour.
 
 static int power_surge_detector_tests(void)
 {
-    AFfilehandle outhandle;
+    SNDFILE *outhandle;
     power_surge_detector_state_t *sig;
     int i;
     int sample;
@@ -75,9 +75,9 @@ static int power_surge_detector_tests(void)
     int ok;
     int extremes[4];
 
-    if ((outhandle = afOpenFile_telephony_write(OUT_FILE_NAME, 2)) == AF_NULL_FILEHANDLE)
+    if ((outhandle = sf_open_telephony_write(OUT_FILE_NAME, 2)) == NULL)
     {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
+        fprintf(stderr, "    Cannot create audio file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
     sig = power_surge_detector_init(NULL, -50.0f, 5.0f);
@@ -132,7 +132,7 @@ static int power_surge_detector_tests(void)
             amp_out[2*i] = amp[i];
             amp_out[2*i + 1] = signal_present*5000;
         }
-        afWriteFrames(outhandle, AF_DEFAULT_TRACK, amp_out, 8000);
+        sf_writef_short(outhandle, amp_out, 8000);
         if (ok != 2
             ||
             extremes[0] < 1
@@ -147,7 +147,7 @@ static int power_surge_detector_tests(void)
             exit(2);
         }
     }
-    afCloseFile(outhandle);
+    sf_close(outhandle);
     printf("Min on %d, max on %d, min off %d, max off %d\n", extremes[0], extremes[1], extremes[2], extremes[3]);
     return 0;
 }
@@ -155,8 +155,8 @@ static int power_surge_detector_tests(void)
 
 static int power_surge_detector_file_test(const char *file)
 {
-    AFfilehandle inhandle;
-    AFfilehandle outhandle;
+    SNDFILE *inhandle;
+    SNDFILE *outhandle;
     int inframes;
     power_surge_detector_state_t *sig;
     int i;
@@ -168,22 +168,22 @@ static int power_surge_detector_file_test(const char *file)
     int signal_present;
     int prev_signal_present;
 
-    if ((inhandle = afOpenFile_telephony_read(file, 1)) == AF_NULL_FILEHANDLE)
+    if ((inhandle = sf_open_telephony_read(file, 1)) == NULL)
     {
         printf("    Cannot open speech file '%s'\n", file);
         exit(2);
     }
 
-    if ((outhandle = afOpenFile_telephony_write(OUT_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
+    if ((outhandle = sf_open_telephony_write(OUT_FILE_NAME, 1)) == NULL)
     {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
+        fprintf(stderr, "    Cannot create audio file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
     sig = power_surge_detector_init(NULL, -50.0f, 6.0f);
     prev_signal_present = FALSE;
 
     sample = 0;
-    while ((inframes = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, 8000)))
+    while ((inframes = sf_readf_short(inhandle, amp, 8000)))
     {
         for (i = 0;  i < inframes;  i++)
         {
@@ -201,11 +201,11 @@ static int power_surge_detector_file_test(const char *file)
             amp_out[2*i] = amp[i];
             amp_out[2*i + 1] = signal_present*5000;
         }
-        afWriteFrames(outhandle, AF_DEFAULT_TRACK, amp_out, inframes);
+        sf_writef_short(outhandle, amp_out, inframes);
         sample += inframes;
     }
-    afCloseFile(inhandle);
-    afCloseFile(outhandle);
+    sf_close(inhandle);
+    sf_close(outhandle);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

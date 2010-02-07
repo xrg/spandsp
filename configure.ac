@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.68 2009/05/18 13:06:50 steveu Exp $
+# $Id: configure.ac,v 1.69 2009/05/30 15:30:21 steveu Exp $
 
 # @start 1
 
@@ -184,7 +184,7 @@ AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_HEADERS([sys/select.h])
 AC_CHECK_HEADERS([sys/ioctl.h])
 AC_CHECK_HEADERS([sys/fcntl.h])
-AC_CHECK_HEADERS([audiofile.h])
+AC_CHECK_HEADERS([sndfile.h])
 AC_CHECK_HEADERS([fftw3.h], , [AC_CHECK_HEADERS([fftw.h])])
 AC_CHECK_HEADERS([tiffio.h])
 AC_CHECK_HEADERS([pthread.h])
@@ -270,7 +270,7 @@ AC_CHECK_LIB([xml2], [xmlParseFile], [AC_DEFINE([HAVE_LIBXML2], [1], [Define to 
 
 if test -n "$enable_tests" ; then
     AC_LANG([C])
-    AC_CHECK_LIB([audiofile], [afOpenFile], SIMLIBS="$SIMLIBS -laudiofile", AC_MSG_ERROR("Can't make tests without libaudiofile (does your system require a libaudiofile-devel package?)"))
+    AC_CHECK_LIB([sndfile], [sf_open], SIMLIBS="$SIMLIBS -lsndfile", AC_MSG_ERROR("Can't make tests without libsndfile (does your system require a libsndfile-devel package?)"))
     AC_CHECK_LIB([fftw3], [fftw_plan_dft_1d], SIMLIBS="$SIMLIBS -lfftw3", [AC_CHECK_LIB([fftw], [fftw_create_plan], SIMLIBS="$SIMLIBS -lfftw", AC_MSG_ERROR("Can't make tests without FFTW 2 or 3 (does your system require an fftw?-devel package?)"))])
     AC_CHECK_LIB([pthread], [pthread_attr_init], TESTLIBS="$TESTLIBS -lpthread")
     AC_CHECK_LIB([dl], [dlopen], TESTLIBS="$TESTLIBS -ldl")

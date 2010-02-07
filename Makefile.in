@@ -235,18 +235,6 @@ noinst_SCRIPTS = spandsp.spec
 MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = autogen.sh \
              DueDiligence \
-             README.testdata \
-             spandsp.pc \
-             spandsp.spec \
-             wrapper.xsl \
-             unpack_g722_data.sh \
-             unpack_g726_data.sh \
-             unpack_gsm0610_data.sh \
-             unpack_v56ter_data.sh \
-             spandsp/fax-tests.dtd \
-             spandsp/global-tones.xml \
-             spandsp/tones.dtd \
-             spandsp/tsb85.xml \
              debian/changelog \
              debian/compat \
              debian/control \
@@ -255,7 +243,19 @@ EXTRA_DIST = autogen.sh \
              debian/libspandsp-dev.install \
              debian/libspandsp-doc.install \
              debian/rules \
-             debian/watch
+             debian/watch \
+             README.testdata \
+             spandsp.pc \
+             spandsp.spec \
+             spandsp/fax-tests.dtd \
+             spandsp/global-tones.xml \
+             spandsp/tones.dtd \
+             spandsp/tsb85.xml \
+             unpack_g722_data.sh \
+             unpack_g726_data.sh \
+             unpack_gsm0610_data.sh \
+             unpack_v56ter_data.sh \
+             wrapper.xsl
 
 @COND_DOC_TRUE@MAYBE_DOC = doc
 @COND_TESTDATA_TRUE@MAYBE_TESTDATA = test-data

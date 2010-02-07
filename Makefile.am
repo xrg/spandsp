@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.48 2009/05/25 12:37:38 steveu Exp $
+## $Id: Makefile.am,v 1.49 2009/05/30 05:55:22 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -27,18 +27,6 @@ MAINTAINERCLEANFILES = Makefile.in
 
 EXTRA_DIST = autogen.sh \
              DueDiligence \
-             README.testdata \
-             spandsp.pc \
-             spandsp.spec \
-             wrapper.xsl \
-             unpack_g722_data.sh \
-             unpack_g726_data.sh \
-             unpack_gsm0610_data.sh \
-             unpack_v56ter_data.sh \
-             spandsp/fax-tests.dtd \
-             spandsp/global-tones.xml \
-             spandsp/tones.dtd \
-             spandsp/tsb85.xml \
              debian/changelog \
              debian/compat \
              debian/control \
@@ -47,7 +35,19 @@ EXTRA_DIST = autogen.sh \
              debian/libspandsp-dev.install \
              debian/libspandsp-doc.install \
              debian/rules \
-             debian/watch
+             debian/watch \
+             README.testdata \
+             spandsp.pc \
+             spandsp.spec \
+             spandsp/fax-tests.dtd \
+             spandsp/global-tones.xml \
+             spandsp/tones.dtd \
+             spandsp/tsb85.xml \
+             unpack_g722_data.sh \
+             unpack_g726_data.sh \
+             unpack_gsm0610_data.sh \
+             unpack_v56ter_data.sh \
+             wrapper.xsl
 
 if COND_DOC
     MAYBE_DOC=doc

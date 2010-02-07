@@ -12,9 +12,6 @@
 /* Define to 1 if you have the atanf() function. */
 #undef HAVE_ATANF
 
-/* Define to 1 if you have the <audiofile.h> header file. */
-#undef HAVE_AUDIOFILE_H
-
 /* Define to 1 if you have the ceilf() function. */
 #undef HAVE_CEILF
 
@@ -145,6 +142,9 @@
 
 /* Define to 1 if you have the sinf() function. */
 #undef HAVE_SINF
+
+/* Define to 1 if you have the <sndfile.h> header file. */
+#undef HAVE_SNDFILE_H
 
 /* Define to 1 if you have the <socket.h> header file. */
 #undef HAVE_SOCKET_H
