@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fast_convert.h,v 1.5 2009/02/24 14:14:03 steveu Exp $
+ * $Id: fast_convert.h,v 1.6 2009/02/26 16:08:51 steveu Exp $
  */
 
 #if !defined(_SPANDSP_FAST_CONVERT_H_)
@@ -309,12 +309,12 @@ extern "C"
 
     __inline long int lrint(double x)
     {
-        return (long int) (x);
+		return (long int)_mm_cvtsd_si64x( _mm_loadu_pd ((const double*)&x) );
     }
 
     __inline long int lrintf(float x)
     {
-        return (long int) (x);
+		return _mm_cvt_ss2si( _mm_load_ss((const float*)&x) );
     }
 
     __inline long int lfastrint(double x)

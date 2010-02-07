@@ -962,6 +962,10 @@ at_interpreter.lo: at_interpreter_dictionary.h
 at_interpreter_dictionary.h: make_at_dictionary$(EXEEXT)
 	./make_at_dictionary$(EXEEXT) >at_interpreter_dictionary.h
 
+t4.$(OBJEXT): spandsp/version.h
+
+t4.lo: spandsp/version.h
+
 v17rx.$(OBJEXT): v17rx_fixed_rrc.h v17rx_floating_rrc.h
 
 v17rx.lo: v17rx_fixed_rrc.h v17rx_floating_rrc.h

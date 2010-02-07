@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bit_operations.h,v 1.25 2009/02/24 14:14:03 steveu Exp $
+ * $Id: bit_operations.h,v 1.26 2009/02/26 16:08:50 steveu Exp $
  */
 
 /*! \file */
@@ -64,7 +64,7 @@ static __inline__ int top_bit(unsigned int bits)
         dec eax
         bsr eax, bits
     }
-#elif defined(_M_X86)
+#elif defined(_M_X64)
     /* Visual Studio x86_64 */
     /* TODO: Need the appropriate x86_64 code */
     int res;
