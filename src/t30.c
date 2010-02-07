@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.215 2007/12/03 12:41:21 steveu Exp $
+ * $Id: t30.c,v 1.216 2007/12/07 13:36:31 steveu Exp $
  */
 
 /*! \file */
@@ -4714,51 +4714,51 @@ static void repeat_last_command(t30_state_t *s)
     {
     case T30_STATE_R:
         s->dis_received = FALSE;
-        set_phase(s, T30_PHASE_B_TX);
+        queue_phase(s, T30_PHASE_B_TX);
         send_dis_or_dtc_sequence(s);
         break;
     case T30_STATE_III_Q_MCF:
-        set_phase(s, T30_PHASE_D_TX);
+        queue_phase(s, T30_PHASE_D_TX);
         send_simple_frame(s, T30_MCF);
         break;
     case T30_STATE_III_Q_RTP:
-        set_phase(s, T30_PHASE_D_TX);
+        queue_phase(s, T30_PHASE_D_TX);
         send_simple_frame(s, T30_RTP);
         break;
     case T30_STATE_III_Q_RTN:
-        set_phase(s, T30_PHASE_D_TX);
+        queue_phase(s, T30_PHASE_D_TX);
         send_simple_frame(s, T30_RTN);
         break;
     case T30_STATE_II_Q:
-        set_phase(s, T30_PHASE_D_TX);
+        queue_phase(s, T30_PHASE_D_TX);
         send_simple_frame(s, s->next_tx_step);
         break;
     case T30_STATE_IV_PPS_NULL:
     case T30_STATE_IV_PPS_Q:
-        set_phase(s, T30_PHASE_D_TX);
+        queue_phase(s, T30_PHASE_D_TX);
         send_pps_frame(s);
         break;
     case T30_STATE_IV_PPS_RNR:
     case T30_STATE_IV_EOR_RNR:
-        set_phase(s, T30_PHASE_D_TX);
+        queue_phase(s, T30_PHASE_D_TX);
         send_simple_frame(s, T30_RNR);
         break;
     case T30_STATE_D:
-        set_phase(s, T30_PHASE_B_TX);
+        queue_phase(s, T30_PHASE_B_TX);
         send_dcs_sequence(s);
         break;
     case T30_STATE_F_FTT:
-        set_phase(s, T30_PHASE_B_TX);
+        queue_phase(s, T30_PHASE_B_TX);
         send_simple_frame(s, T30_FTT);
         break;
     case T30_STATE_F_CFR:
-        set_phase(s, T30_PHASE_B_TX);
+        queue_phase(s, T30_PHASE_B_TX);
         send_simple_frame(s, T30_CFR);
         break;
     case T30_STATE_D_POST_TCF:
         /* Need to send the whole training thing again */
         s->short_train = FALSE;
-        set_phase(s, T30_PHASE_B_TX);
+        queue_phase(s, T30_PHASE_B_TX);
         send_dcs_sequence(s);
         break;
     case T30_STATE_F_POST_RCP_RNR:
@@ -4768,7 +4768,8 @@ static void repeat_last_command(t30_state_t *s)
         span_log(&s->logging,
                  SPAN_LOG_FLOW,
                  "Repeat command called with nothing to repeat - phase %s, state %d\n",
-                 phase_names[s->phase], s->state);
+                 phase_names[s->phase],
+                 s->state);
         break;
     }
 }
@@ -4844,7 +4845,7 @@ static void timer_t2_expired(t30_state_t *s)
     case T30_STATE_F_FTT:
         break;
     }
-    set_phase(s, T30_PHASE_B_TX);
+    queue_phase(s, T30_PHASE_B_TX);
     start_receiving_document(s);
 }
 /*- End of function --------------------------------------------------------*/
