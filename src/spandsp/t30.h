@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.106 2008/05/05 12:42:06 steveu Exp $
+ * $Id: t30.h,v 1.107 2008/06/18 13:28:42 steveu Exp $
  */
 
 /*! \file */
@@ -164,6 +164,17 @@ typedef int (t30_phase_d_handler_t)(t30_state_t *s, void *user_data, int result)
     \param completion_code The phase E completion code.
 */
 typedef void (t30_phase_e_handler_t)(t30_state_t *s, void *user_data, int completion_code);
+
+/*!
+    T.30 real time frame handler.
+    \brief T.30 real time frame handler.
+    \param s The T.30 context.
+    \param user_data An opaque pointer.
+    \param direction TRUE for incoming, FALSE for outgoing.
+    \param msg The HDLC message.
+    \param len The length of the message.
+*/
+typedef void (t30_real_time_frame_handler_t)(t30_state_t *s, void *user_data, int direction, const uint8_t *msg, int len);
 
 /*!
     T.30 document handler.
@@ -497,6 +508,11 @@ struct t30_state_s
     t30_phase_e_handler_t *phase_e_handler;
     /*! \brief An opaque pointer supplied in event E callbacks. */
     void *phase_e_user_data;
+    /*! \brief A pointer to a callback routine to be called when frames are
+        exchanged. */
+    t30_real_time_frame_handler_t *real_time_frame_handler;
+    /*! \brief An opaque pointer supplied in real time frame callbacks. */
+    void *real_time_frame_user_data;
 
     /*! \brief A pointer to a callback routine to be called when document events
         (e.g. end of transmitted document) occur. */

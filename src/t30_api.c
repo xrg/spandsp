@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_api.c,v 1.5 2008/05/13 13:17:23 steveu Exp $
+ * $Id: t30_api.c,v 1.6 2008/06/18 13:28:42 steveu Exp $
  */
 
 /*! \file */
@@ -693,6 +693,13 @@ void t30_set_document_handler(t30_state_t *s, t30_document_handler_t *handler, v
 {
     s->document_handler = handler;
     s->document_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+void t30_set_real_time_frame_handler(t30_state_t *s, t30_real_time_frame_handler_t *handler, void *user_data)
+{
+    s->real_time_frame_handler = handler;
+    s->real_time_frame_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.91 2008/05/30 14:54:41 steveu Exp $
+ * $Id: t38_terminal.c,v 1.92 2008/06/18 13:28:42 steveu Exp $
  */
 
 /*! \file */
@@ -425,9 +425,30 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         s->timeout_rx_samples = 0;
         break;
     case T38_FIELD_CM_MESSAGE:
+        if (len >= 1)
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "CM profile %d\n", buf[0] - '0');
+        }
+        break;
     case T38_FIELD_JM_MESSAGE:
+        if (len >= 2)
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "JM response 0x%X 0x%X\n", buf[0], buf[1]);
+        }
+        break;
     case T38_FIELD_CI_MESSAGE:
+        if (len >= 1)
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "CI 0x%X\n", buf[0]);
+        }
+        break;
     case T38_FIELD_V34RATE:
+        if (len >= 3)
+        {
+            s->t38.v34_rate = (buf[0] - '0')*10000 + (buf[1] - '0')*1000 + (buf[2] - '0')*100;
+            span_log(&s->logging, SPAN_LOG_FLOW, "V.34 rate %d bps\n", s->t38.v34_rate);
+        }
+        break;
     default:
         break;
     }
@@ -875,6 +896,7 @@ void t38_terminal_set_config(t38_terminal_state_t *s, int without_pacing)
     if (without_pacing)
     {
         /* Continuous streaming mode, as used for TPKT over TCP transport */
+        /* Inhibit indicator packets */
         s->t38.indicator_tx_count = 0;
         s->t38.data_tx_count = 1;
         s->t38.data_end_tx_count = 1;

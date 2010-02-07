@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.87 2008/06/16 13:35:48 steveu Exp $
+ * $Id: fax_tests.c,v 1.88 2008/06/18 13:28:43 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -177,6 +177,21 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
         printf("%d: Phase E: Remote is model '%s'\n", i, u);
     machines[i].succeeded = (result == T30_ERR_OK)  &&  (t.pages_transferred == 12);
     machines[i].done = TRUE;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int real_time_frame_handler(t30_state_t *s, void *user_data, int direction, const uint8_t *msg, int len)
+{
+    int i;
+    
+    i = (intptr_t) user_data;
+    printf("%d: Real time frame handler on channel %d - %s, %s, length = %d\n",
+           i,
+           i,
+           (direction)  ?  "line->T.30"  : "T.30->line",
+           t30_frametype(msg[2]),
+           len);
+    return FALSE;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -400,6 +415,7 @@ int main(int argc, char *argv[])
         t30_set_phase_b_handler(&mc->fax.t30_state, phase_b_handler, (void *) (intptr_t) mc->chan);
         t30_set_phase_d_handler(&mc->fax.t30_state, phase_d_handler, (void *) (intptr_t) mc->chan);
         t30_set_phase_e_handler(&mc->fax.t30_state, phase_e_handler, (void *) (intptr_t) mc->chan);
+        t30_set_real_time_frame_handler(&mc->fax.t30_state, real_time_frame_handler, (void *) (intptr_t) mc->chan);
         t30_set_document_handler(&mc->fax.t30_state, document_handler, (void *) (intptr_t) mc->chan);
         sprintf(mc->tag, "FAX-%d", j + 1);
         span_log_set_level(&mc->fax.t30_state.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);

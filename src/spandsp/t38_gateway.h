@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.46 2008/06/17 13:38:33 steveu Exp $
+ * $Id: t38_gateway.h,v 1.47 2008/06/18 13:28:42 steveu Exp $
  */
 
 /*! \file */
@@ -205,6 +205,12 @@ typedef struct
     /*! \brief An opaque pointer, passed to next_tx_handler. */
     void *next_tx_user_data;
 
+    /*! \brief A pointer to a callback routine to be called when frames are
+        exchanged. */
+    t30_real_time_frame_handler_t *real_time_frame_handler;
+    /*! \brief An opaque pointer supplied in real time frame callbacks. */
+    void *real_time_frame_user_data;
+
     /*! \brief The number of octets to send in each image packet (non-ECM or ECM) at the current
                rate and the current specified packet interval. */
     int octets_per_data_packet;
@@ -334,6 +340,14 @@ void t38_gateway_set_tep_mode(t38_gateway_state_t *s, int use_tep);
     \param s The T.38 context.
     \param t A pointer to a buffer for the statistics. */
 void t38_gateway_get_transfer_statistics(t38_gateway_state_t *s, t38_stats_t *t);
+
+/*! Set a callback function for T.30 frame exchange monitoring. This is called from the heart
+    of the signal processing, so don't take too long in the handler routine.
+    \brief Set a callback function for T.30 frame exchange monitoring.
+    \param s The T.30 context.
+    \param handler The callback function.
+    \param user_data An opaque pointer passed to the callback function. */
+void t38_gateway_set_real_time_frame_handler(t38_gateway_state_t *s, t30_real_time_frame_handler_t *handler, void *user_data);
 
 #if defined(__cplusplus)
 }

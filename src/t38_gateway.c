@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.123 2008/06/17 13:38:33 steveu Exp $
+ * $Id: t38_gateway.c,v 1.124 2008/06/18 13:28:42 steveu Exp $
  */
 
 /*! \file */
@@ -122,7 +122,7 @@ enum
 
 #define MAX_NSX_SUPPRESSION     10
 
-static uint8_t xmask[2][MAX_NSX_SUPPRESSION] =
+static uint8_t nsx_overwrite[2][MAX_NSX_SUPPRESSION] =
 {
     {0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -150,10 +150,7 @@ static void set_rx_handler(t38_gateway_state_t *s, span_rx_handler_t *handler, v
 
 static void set_rx_active(t38_gateway_state_t *s, int active)
 {
-    if (active)
-        s->immediate_rx_handler = s->rx_handler;
-    else
-        s->immediate_rx_handler = dummy_rx;
+    s->immediate_rx_handler = (active)  ?  s->rx_handler  :  dummy_rx;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -588,8 +585,10 @@ static void pump_out_final_hdlc(t38_gateway_state_t *s, int good_fcs)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void edit_control_messages(t38_gateway_state_t *s, uint8_t *buf, int len, int from_modem)
+static void edit_control_messages(t38_gateway_state_t *s, int from_modem, uint8_t *buf, int len)
 {
+    /* Frames need to be fed to this routine byte by byte as they arrive. It basically just
+       edits the last byte received, based on the frame up to that point. */
     if (s->corrupt_current_frame[from_modem])
     {
         /* We simply need to overwrite a section of the message, so it is not recognisable at
@@ -597,7 +596,7 @@ static void edit_control_messages(t38_gateway_state_t *s, uint8_t *buf, int len,
            possible for the replacement data. If you have a manufacturer code of your own, the
            sane thing is to overwrite the original data with that. */
         if (len <= s->suppress_nsx_len[from_modem])
-            buf[len - 1] = xmask[from_modem][len - 4];
+            buf[len - 1] = nsx_overwrite[from_modem][len - 4];
         return;
     }
     /* Edit the message, if we need to control the communication between the end points. */
@@ -663,29 +662,29 @@ static void edit_control_messages(t38_gateway_state_t *s, uint8_t *buf, int len,
         }
         break;
     case 7:
-        if (!s->ecm_allowed)
+        switch (buf[2])
         {
-            switch (buf[2])
+        case T30_DIS:
+            if (!s->ecm_allowed)
             {
-            case T30_DIS:
                 /* Do not allow ECM or T.6 coding */
                 span_log(&s->logging, SPAN_LOG_FLOW, "Inhibiting ECM\n");
                 buf[6] &= ~(DISBIT3 | DISBIT7);
-                break;
             }
+            break;
         }
         break;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int len, int from_modem)
+static void monitor_control_messages(t38_gateway_state_t *s, int from_modem, uint8_t *buf, int len)
 {
+    /* Monitor the control messages, at the point where we have the whole message, so we can
+       see what is happening to things like training success/failure. */
     span_log(&s->logging, SPAN_LOG_FLOW, "Monitoring %s\n", t30_frametype(buf[2]));
     if (len < 3)
         return;
-    /* Monitor the control messages, so we can see what is happening to things like
-       training success/failure. */
     s->tcf_mode_predictable_modem_start = 0;
     switch (buf[2])
     {
@@ -953,7 +952,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         if (data_type == T38_DATA_V21)
         {
             for (i = 1;  i <= len;  i++)
-                edit_control_messages(s, s->hdlc_buf[s->hdlc_in], s->hdlc_len[s->hdlc_in] + i, 0);
+                edit_control_messages(s, 0, s->hdlc_buf[s->hdlc_in], s->hdlc_len[s->hdlc_in] + i);
             /* Don't start pumping data into the actual output stream until there is
                enough backlog to create some elasticity for jitter tolerance. */
             if (s->hdlc_len[s->hdlc_in] + len >= HDLC_START_BUFFER_LEVEL)
@@ -991,7 +990,11 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             if (data_type == T38_DATA_V21)
             {
                 if ((s->hdlc_flags[s->hdlc_in] & HDLC_FLAG_MISSING_DATA) == 0)
-                    monitor_control_messages(s, s->hdlc_buf[s->hdlc_in], s->hdlc_len[s->hdlc_in], FALSE);
+                {
+                    monitor_control_messages(s, FALSE, s->hdlc_buf[s->hdlc_in], s->hdlc_len[s->hdlc_in]);
+                    if (s->real_time_frame_handler)
+                        s->real_time_frame_handler(s, s->real_time_frame_user_data, FALSE, s->hdlc_buf[s->hdlc_in], s->hdlc_len[s->hdlc_in]);
+                }
             }
             else
             {
@@ -1055,7 +1058,11 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
                 queue_missing_indicator(s, data_type);
             s->hdlc_contents[s->hdlc_in] = (data_type | FLAG_DATA);
             if (data_type == T38_DATA_V21  &&  (s->hdlc_flags[s->hdlc_in] & HDLC_FLAG_MISSING_DATA) == 0)
-                monitor_control_messages(s, s->hdlc_buf[s->hdlc_in], s->hdlc_len[s->hdlc_in], FALSE);
+            {
+                monitor_control_messages(s, FALSE, s->hdlc_buf[s->hdlc_in], s->hdlc_len[s->hdlc_in]);
+                if (s->real_time_frame_handler)
+                    s->real_time_frame_handler(s, s->real_time_frame_user_data, FALSE, s->hdlc_buf[s->hdlc_in], s->hdlc_len[s->hdlc_in]);
+            }
             pump_out_final_hdlc(s, (s->hdlc_flags[s->hdlc_in] & HDLC_FLAG_MISSING_DATA) == 0);
             s->hdlc_len[s->hdlc_in] = 0;
             s->hdlc_flags[s->hdlc_in] = 0;
@@ -1616,7 +1623,9 @@ static void rx_flag_or_abort(hdlc_rx_state_t *t)
                         span_log(&s->logging, SPAN_LOG_FLOW, "HDLC frame type %s, CRC OK\n", t30_frametype(t->buffer[2]));
                         if (s->current_tx_data_type == T38_DATA_V21)
                         {
-                            monitor_control_messages(s, t->buffer, t->len - 2, TRUE);
+                            monitor_control_messages(s, TRUE, t->buffer, t->len - 2);
+                            if (s->real_time_frame_handler)
+                                s->real_time_frame_handler(s, s->real_time_frame_user_data, TRUE, t->buffer, t->len - 2);
                         }
                         else
                         {
@@ -1624,7 +1633,8 @@ static void rx_flag_or_abort(hdlc_rx_state_t *t)
                                long training. Any successful HDLC frame received at a rate other than
                                V.21 is an adequate indication we should change. */
                             s->short_train = TRUE;
-                        }            
+                        }
+
                         /* It seems some boxes may not like us sending a _SIG_END here, and then another
                            when the carrier actually drops. Lets just send T38_FIELD_HDLC_FCS_OK here. */
                         t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_FCS_OK, NULL, 0, s->t38.data_tx_count);
@@ -1709,7 +1719,7 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
     {
         /* The V.21 control messages need to be monitored, and possibly corrupted, to manage the
            man-in-the-middle role of T.38 */
-        edit_control_messages(s, t->buffer, t->len, 1);
+        edit_control_messages(s, 1, t->buffer, t->len);
     }
     if (++s->rx_data_ptr >= s->octets_per_data_packet)
     {
@@ -1892,6 +1902,13 @@ void t38_gateway_set_nsx_suppression(t38_gateway_state_t *s,
 void t38_gateway_set_tep_mode(t38_gateway_state_t *s, int use_tep)
 {
     s->use_tep = use_tep;
+}
+/*- End of function --------------------------------------------------------*/
+
+void t38_gateway_set_real_time_frame_handler(t38_gateway_state_t *s, t30_real_time_frame_handler_t *handler, void *user_data)
+{
+    s->real_time_frame_handler = handler;
+    s->real_time_frame_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_api.h,v 1.4 2008/04/17 14:27:00 steveu Exp $
+ * $Id: t30_api.h,v 1.5 2008/06/18 13:28:42 steveu Exp $
  */
 
 /*! \file */
@@ -512,30 +512,38 @@ int t30_set_receiver_not_ready(t30_state_t *s, int count);
 /*! Set a callback function for T.30 phase B handling.
     \brief Set a callback function for T.30 phase B handling.
     \param s The T.30 context.
-    \param handler The callback function
+    \param handler The callback function.
     \param user_data An opaque pointer passed to the callback function. */
 void t30_set_phase_b_handler(t30_state_t *s, t30_phase_b_handler_t *handler, void *user_data);
 
 /*! Set a callback function for T.30 phase D handling.
     \brief Set a callback function for T.30 phase D handling.
     \param s The T.30 context.
-    \param handler The callback function
+    \param handler The callback function.
     \param user_data An opaque pointer passed to the callback function. */
 void t30_set_phase_d_handler(t30_state_t *s, t30_phase_d_handler_t *handler, void *user_data);
 
 /*! Set a callback function for T.30 phase E handling.
     \brief Set a callback function for T.30 phase E handling.
     \param s The T.30 context.
-    \param handler The callback function
+    \param handler The callback function.
     \param user_data An opaque pointer passed to the callback function. */
 void t30_set_phase_e_handler(t30_state_t *s, t30_phase_e_handler_t *handler, void *user_data);
 
 /*! Set a callback function for T.30 end of document handling.
     \brief Set a callback function for T.30 end of document handling.
     \param s The T.30 context.
-    \param handler The callback function
+    \param handler The callback function.
     \param user_data An opaque pointer passed to the callback function. */
 void t30_set_document_handler(t30_state_t *s, t30_document_handler_t *handler, void *user_data);
+
+/*! Set a callback function for T.30 frame exchange monitoring. This is called from the heart
+    of the signal processing, so don't take too long in the handler routine.
+    \brief Set a callback function for T.30 frame exchange monitoring.
+    \param s The T.30 context.
+    \param handler The callback function.
+    \param user_data An opaque pointer passed to the callback function. */
+void t30_set_real_time_frame_handler(t30_state_t *s, t30_real_time_frame_handler_t *handler, void *user_data);
 
 #if defined(__cplusplus)
 }

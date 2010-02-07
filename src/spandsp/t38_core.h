@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.h,v 1.26 2008/05/16 12:31:23 steveu Exp $
+ * $Id: t38_core.h,v 1.27 2008/06/18 13:28:42 steveu Exp $
  */
 
 /*! \file */
@@ -276,6 +276,8 @@ struct t38_core_state_s
     int current_rx_field_type;
     /*! The current transmit indicator - i.e. the last indicator transmitted */
     int current_tx_indicator;
+    /*! The bit rate for V.34 operation */
+    int v34_rate;
 
     /*! A count of missing receive packets. This count might not be accurate if the
         received packet numbers jump wildly. */

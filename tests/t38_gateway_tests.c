@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_tests.c,v 1.71 2008/06/16 13:35:48 steveu Exp $
+ * $Id: t38_gateway_tests.c,v 1.72 2008/06/18 13:28:43 steveu Exp $
  */
 
 /*! \file */
@@ -153,6 +153,21 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
         printf("%c: Phase E: remote ident '%s'\n", i, u);
     succeeded[i - 'A'] = (result == T30_ERR_OK)  &&  (t.pages_transferred == 12);
     done[i - 'A'] = TRUE;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int real_time_frame_handler(t38_gateway_state_t *s, void *user_data, int direction, const uint8_t *msg, int len)
+{
+    int i;
+    
+    i = (intptr_t) user_data;
+    printf("%d: Real time frame handler on channel %d - %s, %s, length = %d\n",
+           i,
+           i,
+           (direction)  ?  "PSTN->T.38"  : "T.38->PSTN",
+           t30_frametype(msg[2]),
+           len);
+    return FALSE;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -382,7 +397,8 @@ int main(int argc, char *argv[])
     }
     t38_gateway_set_transmit_on_idle(&t38_state_a, use_transmit_on_idle);
     t38_gateway_set_supported_modems(&t38_state_a, supported_modems);
-    //t38_gateway_set_nsx_suppression(&t38_state_a, FALSE);
+    //t38_gateway_set_nsx_suppression(&t38_state_a, NULL, 0, NULL, 0);
+    t38_gateway_set_real_time_frame_handler(&t38_state_a, real_time_frame_handler, NULL);
     t38_set_t38_version(&t38_state_a.t38, t38_version);
     t38_gateway_set_ecm_capability(&t38_state_a, use_ecm);
     span_log_set_level(&t38_state_a.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.246 2008/06/16 13:56:06 steveu Exp $
+ * $Id: t30.c,v 1.247 2008/06/18 13:28:42 steveu Exp $
  */
 
 /*! \file */
@@ -598,24 +598,26 @@ static int send_first_ecm_frame(t30_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void print_frame(t30_state_t *s, const char *io, const uint8_t *fr, int frlen)
+static void print_frame(t30_state_t *s, const char *io, const uint8_t *msg, int len)
 {
     span_log(&s->logging,
              SPAN_LOG_FLOW,
              "%s %s with%s final frame tag\n",
              io,
-             t30_frametype(fr[2]),
-             (fr[1] & 0x10)  ?  ""  :  "out");
-    span_log_buf(&s->logging, SPAN_LOG_FLOW, io, fr, frlen);
+             t30_frametype(msg[2]),
+             (msg[1] & 0x10)  ?  ""  :  "out");
+    span_log_buf(&s->logging, SPAN_LOG_FLOW, io, msg, len);
 }
 /*- End of function --------------------------------------------------------*/
 
-static void send_frame(t30_state_t *s, const uint8_t *fr, int frlen)
+static void send_frame(t30_state_t *s, const uint8_t *msg, int len)
 {
-    print_frame(s, "Tx: ", fr, frlen);
+    print_frame(s, "Tx: ", msg, len);
 
+    if (s->real_time_frame_handler)
+        s->real_time_frame_handler(s, s->real_time_frame_user_data, FALSE, msg, len);
     if (s->send_hdlc_handler)
-        s->send_hdlc_handler(s->send_hdlc_user_data, fr, frlen);
+        s->send_hdlc_handler(s->send_hdlc_user_data, msg, len);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -3896,8 +3898,25 @@ static void process_state_call_finished(t30_state_t *s, const uint8_t *msg, int 
 }
 /*- End of function --------------------------------------------------------*/
 
-static void hdlc_accept_control_msg(t30_state_t *s, const uint8_t *msg, int len, int ok)
+static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
 {
+    /* We should only get good frames here. */
+    print_frame(s, "Rx: ", msg, len);
+    if (s->real_time_frame_handler)
+        s->real_time_frame_handler(s, s->real_time_frame_user_data, TRUE, msg, len);
+
+    switch (s->phase)
+    {
+    case T30_PHASE_A_CED:
+    case T30_PHASE_A_CNG:
+    case T30_PHASE_B_RX:
+    case T30_PHASE_C_ECM_RX:
+    case T30_PHASE_D_RX:
+        break;
+    default:
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected HDLC frame received in phase %s, state %d\n", phase_names[s->phase], s->state);
+        break;
+    }
     if ((msg[1] & 0x10) == 0)
     {
         /* This is not a final frame */
@@ -4958,21 +4977,7 @@ void t30_hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
         span_log(&s->logging, SPAN_LOG_FLOW, "Bad HDLC frame header - %02x %02x\n", msg[0], msg[1]);
         return;
     }
-    print_frame(s, "Rx: ", msg, len);
-
-    switch (s->phase)
-    {
-    case T30_PHASE_A_CED:
-    case T30_PHASE_A_CNG:
-    case T30_PHASE_B_RX:
-    case T30_PHASE_C_ECM_RX:
-    case T30_PHASE_D_RX:
-        break;
-    default:
-        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected HDLC frame received in phase %s, state %d\n", phase_names[s->phase], s->state);
-        break;
-    }
-    hdlc_accept_control_msg(s, msg, len, ok);
+    process_rx_control_msg(s, msg, len);
 }
 /*- End of function --------------------------------------------------------*/
 
