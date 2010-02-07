@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.43 2008/04/17 14:27:00 steveu Exp $
+ * $Id: t38_gateway.h,v 1.44 2008/05/07 12:41:40 steveu Exp $
  */
 
 /*! \file */
@@ -54,21 +54,21 @@ typedef struct
     /*! Core T.38 support */
     t38_core_state_t t38;
 
-    /*! \brief TRUE if ECM FAX mode is allowed through the gateway. */
-    int ecm_allowed;
+    /*! \brief A bit mask of the currently supported modem types. */
+    int supported_modems;
     /*! \brief Use talker echo protection when transmitting. */
     int use_tep;    
+    /*! \brief TRUE if ECM FAX mode is allowed through the gateway. */
+    int ecm_allowed;
+    /*! \brief TRUE if the NSF, NSC, and NSS are to be suppressed by altering
+               their contents to something the far end will not recognise. */
+    int suppress_nsx;
 
     /*! \brief If TRUE, transmit silence when there is nothing else to transmit. If FALSE return only
                the actual generated audio. Note that this only affects untimed silences. Timed silences
                (e.g. the 75ms silence between V.21 and a high speed modem) will alway be transmitted as
                silent audio. */
     int transmit_on_idle;
-
-    /*! \brief A bit mask of the currently supported modem types. */
-    int supported_modems;
-    
-    int suppress_nsx;
 
     /*! \brief The number of pages for which a confirm (MCF) message was returned. */
     int pages_confirmed;

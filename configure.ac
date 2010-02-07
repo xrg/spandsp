@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.50 2008/05/05 11:25:01 steveu Exp $
+# $Id: configure.ac,v 1.51 2008/05/07 14:38:30 steveu Exp $
 
 # @start 1
 
@@ -61,11 +61,12 @@ then
   # If we are doing a Canadian Cross, in which the host and build systems
   # are not the same, we set reasonable default values for the tools.
 
+  CC_FOR_BUILD=${CC_FOR_BUILD-gcc}
+  CPPFLAGS_FOR_BUILD="\$(CPPFLAGS)"
   CC=${CC-${host_alias}-gcc}
   CFLAGS=${CFLAGS-"-g -O2"}
   CXX=${CXX-${host_alias}-c++}
   CXXFLAGS=${CXXFLAGS-"-g -O2"}
-  CC_FOR_BUILD=${CC_FOR_BUILD-gcc}
 else
   # Set reasonable default values for some tools even if not Canadian.
   # Of course, these are different reasonable default values, originally
@@ -75,6 +76,7 @@ else
   # in Makefile.in, so can still be overridden by fragments.
   # This is all going to change when we autoconfiscate...
   CC_FOR_BUILD="\$(CC)"
+  CPPFLAGS_FOR_BUILD="\$(CPPFLAGS)"
   AC_PROG_CC
 
   # We must set the default linker to the linker used by gcc for the correct
@@ -310,6 +312,7 @@ else
 fi
 
 AC_SUBST(CC_FOR_BUILD)
+AC_SUBST(CPPFLAGS_FOR_BUILD)
 AC_SUBST(COMP_VENDOR_CFLAGS)
 AC_SUBST(COMP_VENDOR_LDFLAGS)
 AC_SUBST(TESTLIBS)

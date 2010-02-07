@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.91 2008/05/03 13:05:04 steveu Exp $
+## $Id: Makefile.am,v 1.92 2008/05/07 14:38:30 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -227,7 +227,7 @@ at_interpreter_dictionary.h: at_dictionary_gen$(EXEEXT)
 	./at_dictionary_gen$(EXEEXT) >at_interpreter_dictionary.h
 
 at_dictionary_gen$(EXEEXT): at_dictionary_gen.c config.h
-	$(CC_FOR_BUILD) -o $@ $<
+	$(CC_FOR_BUILD) $(CPPFLAGS_FOR_BUILD) -o $@ $<
 
 v17rx.$(OBJEXT): v17rx_fixed_rrc.h v17rx_floating_rrc.h
 
@@ -346,7 +346,7 @@ v29tx_floating_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.29 -t >v29tx_floating_rrc.h
 
 make_modem_filter$(EXEEXT): make_modem_filter.c filter_tools.c filter_tools.h config.h
-	$(CC_FOR_BUILD) -I. -o $@ make_modem_filter.c filter_tools.c -lm
+	$(CC_FOR_BUILD) $(CPPFLAGS_FOR_BUILD) -I. -o $@ make_modem_filter.c filter_tools.c -lm
 
 DSP = libspandsp.dsp
 VCPROJ = libspandsp.vcproj
