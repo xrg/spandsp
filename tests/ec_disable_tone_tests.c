@@ -23,15 +23,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ec_disable_detector_tests.c,v 1.6 2005/09/01 17:06:45 steveu Exp $
+ * $Id: ec_disable_tone_tests.c,v 1.8 2006/01/31 05:34:27 steveu Exp $
  */
 
-/*! \page echo_cancellor_disable_tone_detection_tests_page Echo canceller disable tone tests
-\section echo_cancellor_disable_tone_detection_tests_page_sec_1 What does it do?
+/*! \page echo_can_disable_tone_tests_page Echo canceller disable tone tests
+\section echo_can_disable_tone_tests_page_sec_1 What does it do?
+These tests connect an echo canceller disable tone generator to a tone detector,
+and assess the performance of the detector.
 */
 
-#define _ISOC9X_SOURCE  1
-#define _ISOC99_SOURCE  1
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -45,7 +48,9 @@
 
 #include "spandsp.h"
 
-#define BELLCORE_DIR    "/home/iso/bellcore/"
+#define OUTPUT_FILE_NAME    "ec_disable.wav"
+
+#define BELLCORE_DIR        "../itutests/bellcore/"
 
 #define FALSE 0
 #define TRUE (!FALSE)
@@ -92,10 +97,10 @@ int main(int argc, char *argv[])
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
 
     printf("Test 1: Simple generation to a file\n");
-    outhandle = afOpenFile("ec_disable.wav", "w", filesetup);
+    outhandle = afOpenFile("OUTPUT_FILE_NAME", "w", filesetup);
     if (outhandle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", "ec_disable.wav");
+        fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
     /* Some with modulation */
@@ -130,7 +135,7 @@ int main(int argc, char *argv[])
     }
     if (afCloseFile(outhandle) != 0)
     {
-        printf("    Cannot close wave file '%s'\n", "ec_disable.wav");
+        printf("    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
     
@@ -142,7 +147,7 @@ int main(int argc, char *argv[])
         echo_can_disable_tone_tx_init(&echo_dis, FALSE);
         /* Fudge things for the test */
         echo_dis.tone_phase_rate = dds_phase_step(pitch);
-        echo_dis.level = dds_scaling(-25);
+        echo_dis.level = dds_scaling_dbm0(-25);
         echo_can_disable_tone_rx_init(&echo_det);
         for (i = 0;  i < 500;  i++)
         {
@@ -167,17 +172,25 @@ int main(int argc, char *argv[])
     echo_can_disable_tone_rx_init(&echo_det);
     for (j = 0;  bellcore_files[j][0];  j++)
     {
-        inhandle = afOpenFile(bellcore_files[j], "r", 0);
-        if (inhandle == AF_NULL_FILEHANDLE)
+        if ((inhandle = afOpenFile(bellcore_files[j], "r", 0)) == AF_NULL_FILEHANDLE)
         {
             printf ("    Cannot open speech file '%s'\n", bellcore_files[j]);
             exit (2);
         }
-        x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1);
-        if (x != 2.0)
+        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
         {
             printf ("    Unexpected frame size in speech file '%s'\n", bellcore_files[j]);
             exit (2);
+        }
+        if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
+        {
+            printf("    Unexpected sample rate in speech file '%s'\n", bellcore_files[j]);
+            exit(2);
+        }
+        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
+        {
+            printf("    Unexpected number of channels in speech file '%s'\n", bellcore_files[j]);
+            exit(2);
         }
 
         hits = 0;
@@ -187,7 +200,7 @@ int main(int argc, char *argv[])
            the wave files are the expected ones in 16 bit little endian PCM. */
         while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, 8000)))
         {
-            if (echo_can_disable_tone_rx(&echo_det, amp, len/sizeof (int16_t)))
+            if (echo_can_disable_tone_rx(&echo_det, amp, frames))
             {
                 /* This is not a true measure of hits, as there might be more
                    than one in a block of data. However, since the only good
@@ -202,6 +215,7 @@ int main(int argc, char *argv[])
         }
         printf("    File %d gave %d false hits.\n", j + 1, hits);
     }
+    afFreeFileSetup(filesetup);
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

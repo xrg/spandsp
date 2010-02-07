@@ -23,21 +23,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.h,v 1.3 2005/02/04 19:19:31 steveu Exp $
+ * $Id: time_scale.h,v 1.5 2005/11/24 13:04:52 steveu Exp $
  */
 
 #if !defined(_TIME_SCALE_H_)
 #define _TIME_SCALE_H_
 
-/*! \page time_scaling_page Time scaling speech
-\section time_scaling_page_sec_1 What does it do?
+/*! \page time_scale_page Time scaling speech
+\section time_scale_page_sec_1 What does it do?
 The time scaling module allows speech files to be played back at a
 different speed, from the speed at which they were recorded. If this
 were done by simply speeding up or slowing down replay, the pitch of
 the voice would change, and sound very odd. This modules keeps the pitch
 of the voice normal.
 
-\section time_scaling_page_sec_2 How does it work?
+\section time_scale_page_sec_2 How does it work?
 The time scaling module is based on the Pointer Interval Controlled
 OverLap and Add (PICOLA) method, developed by Morita Naotaka.
 Mikio Ikeda has an excellent web page on this subject at
@@ -66,9 +66,30 @@ typedef struct
 extern "C" {
 #endif
 
-int time_scale(time_scale_t *s, int16_t out[], int16_t in[], int len);
-int time_scale_rate(time_scale_t *s, float rate);
+/*! Initialise a time scale context. This must be called before the first
+    use of the context, to initialise its contents.
+    \brief Initialise a time scale context.
+    \param s The time scale context.
+    \param rate The ratio between the output speed and the input speed.
+    \return 0 if initialised OK, else -1. */
 int time_scale_init(time_scale_t *s, float rate);
+
+/*! Change the time scale rate.
+    \brief Change the time scale rate.
+    \param s The time scale context.
+    \param rate The ratio between the output speed and the input speed.
+    \return 0 if changed OK, else -1. */
+int time_scale_rate(time_scale_t *s, float rate);
+
+/*! Time scale a chunk of audio samples.
+    \brief Time scale a chunk of audio samples.
+    \param s The time sclae context.
+    \param out The output audio sample buffer.
+    \param in The input audio sample buffer.
+    \param len The number of input samples.
+    \return The number of output samples.
+*/
+int time_scale(time_scale_t *s, int16_t out[], int16_t in[], int len);
 
 #ifdef __cplusplus
 }

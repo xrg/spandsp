@@ -50,3 +50,6 @@ from freely available implementations of T.4. These have existed for a number
 of years without IP issues. The standard is old enough for any patents to have
 expired, anyway.
 
+V.42bis compression uses the LZW algorithm. This is the same algorithm used in
+GIF files. Unisys patented this algorithm. However, the Unisys patent has now
+expired.

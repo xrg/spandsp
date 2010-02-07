@@ -27,7 +27,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm.h,v 1.2 2005/01/18 14:05:49 steveu Exp $
+ * $Id: ima_adpcm.h,v 1.5 2005/11/27 12:36:22 steveu Exp $
  */
 
 /*! \file */
@@ -35,14 +35,14 @@
 #if !defined(_IMA_ADPCM_H_)
 #define _IMA_ADPCM_H_
 
-/*! \page IMA_ADPCM_page IMA/DVI/Intel ADPCM encoding and decoding
-\section IMA_ADPCM_page_sec_1 What does it do?
+/*! \page ima_adpcm_page IMA/DVI/Intel ADPCM encoding and decoding
+\section ima_adpcm_page_sec_1 What does it do?
 IMA ADPCM offers a good balance of simplicity and quality at a rate of
 32kbps.
 
-\section IMA_ADPCM_page_sec_2 How does it work?
+\section ima_adpcm_page_sec_2 How does it work?
 
-\section IMA_ADPCM_page_sec_3 How do I use it?
+\section ima_adpcm_page_sec_3 How do I use it?
 */
 
 /*!
@@ -62,14 +62,15 @@ typedef struct
 extern "C" {
 #endif
 
-/*! Create an IMA ADPCM encode or decode context.
-    \return The newly created context, or NULL for error. */
-ima_adpcm_state_t *ima_adpcm_create(void);
+/*! Initialise an IMA ADPCM encode or decode context.
+    \param s The IMA ADPCM context
+    \return A pointer to the IMA ADPCM context, or NULL for error. */
+ima_adpcm_state_t *ima_adpcm_init(ima_adpcm_state_t *s);
 
 /*! Free an IMA ADPCM encode or decode context.
     \param s The IMA ADPCM context.
     \return 0 for OK. */
-int ima_adpcm_free(ima_adpcm_state_t *s);
+int ima_adpcm_release(ima_adpcm_state_t *s);
 
 /*! Decode a buffer of IMA ADPCM data to linear PCM.
     \param s The IMA ADPCM context.

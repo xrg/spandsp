@@ -23,11 +23,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oss.h,v 1.2 2004/03/30 14:29:41 steveu Exp $
+ * $Id: oss.h,v 1.3 2005/11/23 17:09:47 steveu Exp $
  */
 
 #if !defined(_OSS_H_)
 #define _OSS_H_
+
+/*! \page oss_page OSS audio I/O
+\section oss_page_sec_1 What does it do?
+*/
 
 #ifdef __cplusplus
 extern "C" {

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc.c,v 1.7 2005/08/31 19:27:52 steveu Exp $
+ * $Id: plc.c,v 1.8 2005/11/25 14:51:59 steveu Exp $
  */
 
 /*! \file */
@@ -234,8 +234,20 @@ int plc_fillin(plc_state_t *s, int16_t amp[], int len)
 
 plc_state_t *plc_init(plc_state_t *s)
 {
+    if (s == NULL)
+    {
+        if ((s = (plc_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, 0, sizeof(*s));
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int plc_release(plc_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

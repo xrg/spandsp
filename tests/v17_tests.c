@@ -24,15 +24,28 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17_tests.c,v 1.23 2005/09/28 17:11:50 steveu Exp $
+ * $Id: v17_tests.c,v 1.32 2006/01/19 15:19:30 steveu Exp $
  */
 
 /*! \page v17_tests_page V.17 modem tests
 \section v17_tests_page_sec_1 What does it do?
-*/
+These tests test one way paths, as V.17 is a half-duplex modem. They allow either:
 
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
+ - A V.17 transmit modem to feed a V.17 receive modem through a telephone line
+   model. BER testing is then used to evaluate performance under various line
+   conditions. This is effective for testing the basic performance of the
+   receive modem. It is also the only test mode provided for evaluating the
+   transmit modem.
+
+ - A V.17 receive modem is used to decode V.17 audio, stored in a wave file.
+   This is good way to evaluate performance with audio recorded from other
+   models of modem, and with real world problematic telephone lines.
+
+If the appropriate GUI environment exists, the tests are built such that a visual
+display of modem status is maintained.
+
+\section v17_tests_page_sec_2 How is it used?
+*/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -56,7 +69,7 @@
 #include "spandsp.h"
 #include "line_model.h"
 #if defined(ENABLE_GUI)
-#include "constel.h"
+#include "modem_monitor.h"
 #endif
 
 #define BLOCK_LEN       160
@@ -149,7 +162,6 @@ static void v17putbit(void *user_data, int bit)
             printf("Carrier up\n");
             break;
         case PUTBIT_CARRIER_DOWN:
-            v17_rx_restart(rx, test_bps, TRUE);
             printf("Carrier down\n");
             break;
         default:
@@ -326,24 +338,29 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
             exit(2);
         }
+
+        v17_tx_init(&tx, test_bps, tep, v17getbit, NULL);
+        /* Move the carrier off a bit */
+        tx.carrier_phase_rate = dds_phase_stepf(1797.0);
+        tx.carrier_phase = 0x40000000;
+
+        noise_level = -70;
+
+        bert_init(&bert, 50000, BERT_PATTERN_ITU_O152_11, test_bps, 20);
+        bert_set_report(&bert, 10000, reporter, &bert);
+
+        if ((line_model = one_way_line_model_init(line_model_no, noise_level)) == NULL)
+        {
+            fprintf(stderr, "    Failed to create line model\n");
+            exit(2);
+        }
     }
 
-    v17_tx_init(&tx, test_bps, tep, v17getbit, NULL);
-    /* Move the carrier off a bit */
-    tx.carrier_phase_rate = dds_phase_stepf(1797.0);
     v17_rx_init(&rx, test_bps, v17putbit, &rx);
     v17_rx_set_qam_report_handler(&rx, qam_report, (void *) &rx);
+    rx.logging.level = SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW;
+    rx.logging.tag = "V.17 rx";
 
-    noise_level = -70;
-
-    bert_init(&bert, 50000, BERT_PATTERN_ITU_O152_11, test_bps, 20);
-    bert_set_report(&bert, 10000, reporter, &bert);
-
-    if ((line_model = one_way_line_model_init(line_model_no, -50)) == NULL)
-    {
-        fprintf(stderr, "    Failed to create line model\n");
-        exit(2);
-    }
 #if defined(ENABLE_GUI)
     if (use_gui)
         start_qam_monitor(9.0);
@@ -401,7 +418,9 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
             exit(2);
         }
+        one_way_line_model_release(line_model);
     }
+    afFreeFileSetup(filesetup);
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

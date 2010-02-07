@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.26 2005/10/10 22:17:17 steveu Exp $
+ * $Id: t31.c,v 1.32 2005/12/01 14:34:42 steveu Exp $
  */
 
 /*! \file */
@@ -37,13 +37,31 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <string.h>
+#include <memory.h>
+#include <strings.h>
+#include <ctype.h>
 #include <math.h>
 #include <assert.h>
 
-#include <tiffio.h>
+#include "spandsp/telephony.h"
+#include "spandsp/logging.h"
+#include "spandsp/queue.h"
+#include "spandsp/power_meter.h"
+#include "spandsp/complex.h"
+#include "spandsp/tone_generate.h"
+#include "spandsp/async.h"
+#include "spandsp/hdlc.h"
+#include "spandsp/fsk.h"
+#include "spandsp/v29rx.h"
+#include "spandsp/v29tx.h"
+#include "spandsp/v27ter_rx.h"
+#include "spandsp/v27ter_tx.h"
+#if defined(ENABLE_V17)
+#include "spandsp/v17rx.h"
+#include "spandsp/v17tx.h"
+#endif
 
-#include "spandsp.h"
+#include "spandsp/t31.h"
 
 #define ms_to_samples(t)    (((t)*SAMPLE_RATE)/1000)
 
@@ -82,12 +100,12 @@ typedef struct
     at_cmd_service_t serv;
 } at_cmd_item_t;
 
-static char *manufacturer = "www.opencall.org";
+static char *manufacturer = "www.soft-switch.org";
 static char *model = "spandsp";
-static char *revision = "0.0.2";
+static char *revision = "0.0.3";
 
-#define DLE 0x10
 #define ETX 0x03
+#define DLE 0x10
 #define SUB 0x1A
 
 enum
@@ -271,13 +289,28 @@ static int fast_getbit(void *user_data)
 {
     t31_state_t *s;
     int bit;
+    int fill;
 
     s = (t31_state_t *) user_data;
     if (s->bit_no <= 0)
     {
-        if (s->tx_data_bytes < s->tx_in_bytes)
+        if (s->tx_out_bytes != s->tx_in_bytes)
         {
-            s->current_byte = s->tx_data[s->tx_data_bytes++];
+            s->current_byte = s->tx_data[s->tx_out_bytes];
+            s->tx_out_bytes = (s->tx_out_bytes + 1) & (T31_TX_BUF_LEN - 1);
+            if (s->tx_holding)
+            {
+                /* See if the buffer is approaching empty. It might be time to release flow control. */
+                fill = (s->tx_in_bytes - s->tx_out_bytes);
+                if (s->tx_in_bytes < s->tx_out_bytes)
+                    fill += (T31_TX_BUF_LEN + 1);
+                if (fill < 1024)
+                {
+                    s->tx_holding = FALSE;
+                    /* Tell the application to release further data */
+                    s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_CTS, (void *) 1);
+                }
+            }
         }
         else
         {
@@ -501,7 +534,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
 #if defined(ENABLE_V17)
     case T31_V17_TX:
         v17_tx_restart(&(s->v17tx), s->bit_rate, FALSE, s->short_train);
-        s->tx_data_bytes = 0;
+        s->tx_out_bytes = 0;
         s->transmit = TRUE;
         break;
     case T31_V17_RX:
@@ -513,7 +546,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
 #endif
     case T31_V27TER_TX:
         v27ter_tx_restart(&(s->v27ter_tx), s->bit_rate, FALSE);
-        s->tx_data_bytes = 0;
+        s->tx_out_bytes = 0;
         s->transmit = TRUE;
         break;
     case T31_V27TER_RX:
@@ -524,7 +557,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
         break;
     case T31_V29_TX:
         v29_tx_restart(&(s->v29tx), s->bit_rate, FALSE);
-        s->tx_data_bytes = 0;
+        s->tx_out_bytes = 0;
         s->transmit = TRUE;
         break;
     case T31_V29_RX:
@@ -585,6 +618,8 @@ static __inline__ void dle_unstuff_hdlc(t31_state_t *s, const char *stuffed, int
 static __inline__ void dle_unstuff(t31_state_t *s, const char *stuffed, int len)
 {
     int i;
+    int fill;
+    int next;
     
     for (i = 0;  i < len;  i++)
     {
@@ -593,19 +628,36 @@ static __inline__ void dle_unstuff(t31_state_t *s, const char *stuffed, int len)
             s->dled = FALSE;
             if (stuffed[i] == ETX)
             {
-                fprintf(stderr, "%d byte data\n", s->tx_in_bytes);
                 s->data_final = TRUE;
                 s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
                 return;
             }
-            s->tx_data[s->tx_in_bytes++] = stuffed[i];
         }
-        else
+        else if (stuffed[i] == DLE)
         {
-            if (stuffed[i] == DLE)
-                s->dled = TRUE;
-            else
-                s->tx_data[s->tx_in_bytes++] = stuffed[i];
+            s->dled = TRUE;
+            continue;
+        }
+        s->tx_data[s->tx_in_bytes] = stuffed[i];
+        next = (s->tx_in_bytes + 1) & (T31_TX_BUF_LEN - 1);
+        if (next == s->tx_out_bytes)
+        {
+            /* Oops. We hit the end of the buffer. Give up. Loose stuff. :-( */
+            return;
+        }
+        s->tx_in_bytes = next;
+    }
+    if (!s->tx_holding)
+    {
+        /* See if the buffer is approaching full. We might need to apply flow control. */
+        fill = (s->tx_in_bytes - s->tx_out_bytes);
+        if (s->tx_in_bytes < s->tx_out_bytes)
+            fill += (T31_TX_BUF_LEN + 1);
+        if (fill > T31_TX_BUF_LEN - 1024)
+        {
+            s->tx_holding = TRUE;
+            /* Tell the application to hold further data */
+            s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_CTS, (void *) 0);
         }
     }
 }
@@ -1148,7 +1200,7 @@ static const char *at_cmd_A(t31_state_t *s, const char *t)
 
     /* V.250 6.3.5 - Answer (abortable) */ 
     t += 1;
-    if ((ok = s->call_control_handler(s, s->call_control_user_data, "")) < 0)
+    if ((ok = s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_ANSWER, NULL)) < 0)
     {
         at_put_response_code(s, RESPONSE_CODE_ERROR);
         return NULL;
@@ -1156,6 +1208,7 @@ static const char *at_cmd_A(t31_state_t *s, const char *t)
     /* Answering should now be in progress. No AT response should be
        issued at this point. */
     s->call_samples = 0;
+    s->dohangup = FALSE;
     return (const char *) -1;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1170,6 +1223,7 @@ static const char *at_cmd_D(t31_state_t *s, const char *t)
 
     /* V.250 6.3.1 - Dial (abortable) */ 
     t31_reset_callid(s);
+    s->dohangup = FALSE;
     t += 1;
     ok = FALSE;
     /* There are a numbers of options in a dial command string.
@@ -1235,7 +1289,7 @@ static const char *at_cmd_D(t31_state_t *s, const char *t)
         }
     }
     *u = '\0';
-    if ((ok = s->call_control_handler(s, s->call_control_user_data, num)) < 0)
+    if ((ok = s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_CALL, num)) < 0)
         return NULL;
     /* Dialing should now be in progress. No AT response should be
        issued at this point. */
@@ -1266,7 +1320,18 @@ static const char *at_cmd_H(t31_state_t *s, const char *t)
     if ((val = parse_num(&t, 0)) < 0)
         return NULL;
     t31_reset_callid(s);
-    s->call_control_handler(s, s->call_control_user_data, NULL);
+    if (s->at_rx_mode != AT_MODE_ONHOOK_COMMAND)
+    {
+        /* Send 200ms of silence to "push" the last audio out */
+        s->transmit = TRUE;
+        s->modem = T31_SILENCE;
+        s->silent_samples += 200*8;
+        s->dohangup = TRUE;
+        s->at_rx_mode = AT_MODE_CONNECTED;
+        return (const char*) -1;
+    }
+    s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_HANGUP, NULL);
+    s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
     return t;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1511,7 +1576,7 @@ static const char *at_cmd_Z(t31_state_t *s, const char *t)
     if ((val = parse_num(&t, sizeof(profiles)/sizeof(profiles[0]) - 1)) < 0)
         return NULL;
     /* Just make sure we are on hook */
-    s->call_control_handler(s, s->call_control_user_data, NULL);
+    s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_HANGUP, NULL);
     s->p = profiles[val];
     t31_reset_callid(s);
     return t;
@@ -1551,7 +1616,7 @@ static const char *at_cmd_amp_F(t31_state_t *s, const char *t)
 
     /* V.250 6.1.2 - Set to factory-defined configuration */ 
     /* Just make sure we are on hook */
-    s->call_control_handler(s, s->call_control_user_data, NULL);
+    s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_HANGUP, NULL);
     s->p = profiles[0];
     return t;
 }
@@ -4238,11 +4303,13 @@ void t31_call_event(t31_state_t *s, int event)
     switch (event)
     {
     case T31_CALL_EVENT_ALERTING:
+        s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_RNG, (void *) 1);
         if (s->display_callid && !s->callid_displayed)
             t31_display_callid(s);
         at_put_response_code(s, RESPONSE_CODE_RING);
         break;
     case T31_CALL_EVENT_ANSWERED:
+        s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_RNG, (void *) 0);
         if (s->fclass_mode == 0)
         {
             /* Normal data modem connection */
@@ -4258,6 +4325,7 @@ void t31_call_event(t31_state_t *s, int event)
         break;
     case T31_CALL_EVENT_CONNECTED:
         span_log(&s->logging, SPAN_LOG_FLOW, "Dial call - connected. fclass=%d\n", s->fclass_mode);
+        s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_RNG, (void *) 0);
         if (s->fclass_mode == 0)
         {
             /* Normal data modem connection */
@@ -4286,6 +4354,7 @@ void t31_call_event(t31_state_t *s, int event)
         break;
     case T31_CALL_EVENT_HANGUP:
         span_log(&s->logging, SPAN_LOG_FLOW, "Hangup... at_rx_mode %d\n", s->at_rx_mode);
+        s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_RNG, (void *) 0);
         if (s->at_rx_mode != AT_MODE_OFFHOOK_COMMAND && s->at_rx_mode != AT_MODE_ONHOOK_COMMAND)
             at_put_response_code(s, RESPONSE_CODE_NO_CARRIER);
         s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
@@ -4307,7 +4376,7 @@ int t31_at_rx(t31_state_t *s, const char *t, int len)
         at_interpreter(s, t, len);
         break;
     case AT_MODE_DELIVERY:
-        /* data from the DTE in this state returns us to command mode */
+        /* Data from the DTE in this state returns us to command mode */
         s->rx_data_bytes = 0;
         s->transmit = FALSE;
         s->modem = T31_SILENCE;
@@ -4318,13 +4387,6 @@ int t31_at_rx(t31_state_t *s, const char *t, int len)
         dle_unstuff_hdlc(s, t, len);
         break;
     case AT_MODE_STUFFED:
-        /* TODO: This buffer management is not very nice */
-        /* Make room for new data in existing data buffer. */
-        s->tx_in_bytes = &(s->tx_data[s->tx_in_bytes]) - &(s->tx_data[s->tx_data_bytes]);
-        memmove(&(s->tx_data[0]), &(s->tx_data[s->tx_data_bytes]), s->tx_in_bytes);
-        s->tx_data_bytes = 0;
-        if (len > T31_TX_BUF_LEN - s->tx_in_bytes)
-            len = T31_TX_BUF_LEN - s->tx_in_bytes;
         dle_unstuff(s, t, len);
         break;
     }
@@ -4429,11 +4491,22 @@ int t31_tx(t31_state_t *s, int16_t *buf, int max_len)
             s->silent_samples -= len;
             max_len -= len;
             memset(buf, 0, len*sizeof(int16_t));
-            if (max_len > 0  &&  s->modem == T31_SILENCE)
+            if ((max_len > 0  ||  !s->silent_samples)
+                &&
+                s->modem == T31_SILENCE)
             {
                 at_put_response_code(s, RESPONSE_CODE_OK);
                 max_len = 0;
-                s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
+                if (s->dohangup)
+                {
+                    s->modem_control_handler(s, s->modem_control_user_data, T31_MODEM_CONTROL_HANGUP, NULL);
+                    s->dohangup = FALSE;
+                    s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
+                }
+                else
+                {
+                    s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
+                }
             }
         }
         if (max_len > 0)
@@ -4494,11 +4567,11 @@ int t31_tx(t31_state_t *s, int16_t *buf, int max_len)
 int t31_init(t31_state_t *s,
              t31_at_tx_handler_t *at_tx_handler,
              void *at_tx_user_data,
-             t31_call_control_handler_t *call_control_handler,
-             void *call_control_user_data)
+             t31_modem_control_handler_t *modem_control_handler,
+             void *modem_control_user_data)
 {
     memset(s, 0, sizeof(*s));
-    if (at_tx_handler == NULL  ||  call_control_handler == NULL)
+    if (at_tx_handler == NULL  ||  modem_control_handler == NULL)
         return -1;
 #if defined(ENABLE_V17)
     v17_rx_init(&(s->v17rx), 14400, fast_putbit, s);
@@ -4509,10 +4582,11 @@ int t31_init(t31_state_t *s,
     v27ter_rx_init(&(s->v27ter_rx), 4800, fast_putbit, s);
     v27ter_tx_init(&(s->v27ter_tx), 4800, FALSE, fast_getbit, s);
     power_meter_init(&(s->rx_power), 4);
-    s->silence_threshold_power = power_meter_level(-30);
+    s->silence_threshold_power = power_meter_level_dbm0(-30);
     s->rx_signal_present = FALSE;
 
     t31_reset_callid(s);
+    s->dohangup = FALSE;
     s->display_callid = 0;
     s->line_ptr = 0;
     s->silent_samples = 0;
@@ -4525,8 +4599,8 @@ int t31_init(t31_state_t *s,
     s->p = profiles[0];
     if (queue_create(&(s->rx_queue), 4096, QUEUE_WRITE_ATOMIC | QUEUE_READ_ATOMIC) < 0)
         return -1;
-    s->call_control_handler = call_control_handler;
-    s->call_control_user_data = call_control_user_data;
+    s->modem_control_handler = modem_control_handler;
+    s->modem_control_user_data = modem_control_user_data;
     s->at_tx_handler = at_tx_handler;
     s->at_tx_user_data = at_tx_user_data;
     return 0;

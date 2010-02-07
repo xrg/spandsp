@@ -23,13 +23,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.h,v 1.10 2005/03/28 08:15:21 steveu Exp $
+ * $Id: fsk.h,v 1.12 2005/11/25 14:52:00 steveu Exp $
  */
 
 /*! \file */
-
-#if !defined(_FSK_H_)
-#define _FSK_H_
 
 /*! \page fsk_page FSK modems
 \section fsk_page_sec_1 What does it do?
@@ -37,11 +34,11 @@ Most of the oldest telephony modems use incorent FSK modulation. This module can
 be used to implement both the trasmit and receive sides of a number of these
 modems. There are integrated definitions for: 
 
-    - V.21
-    - V.23
-    - Bell 103
-    - Bell 202
-    - Weitbrecht (Used for TDD - Telecoms Device for the Deaf)
+ - V.21
+ - V.23
+ - Bell 103
+ - Bell 202
+ - Weitbrecht (Used for TDD - Telecoms Device for the Deaf)
 
 The audio output or input is a stream of 16 bit samples, at 8000 samples/second.
 The transmit and receive sides can be used independantly. 
@@ -67,30 +64,27 @@ interval. Because the transmission is totally asynchronous, the demodulation
 process must run sample by sample to find the symbol transitions. The
 correlation is performed on a sliding window basis, so the computational load of
 demodulating sample by sample is not great. 
+
+Two modes of symbol synchronisation are provided:
+
+    - In synchronous mode, symbol transitions are smoothed, to track their true
+      position in the prescence of high timing jitter. This provides the most
+      reliable symbol recovery in poor signal to noise conditions. However, it
+      takes a little time to settle, so it not really suitable for data streams
+      which must start up instantaneously (e.g. the TDD systems used by hearing
+      impaired people).
+
+    - In asynchronous mode each transition is taken at face value, with no temporal
+      smoothing. There is no settling time for this mode, but when the signal to
+      noise ratio is very poor it does not perform as well as the synchronous mode.
 */
 
-/* Special "bit" values for put_bit_func_t */
-#define PUTBIT_CARRIER_DOWN         -1
-#define PUTBIT_CARRIER_UP           -2
-#define PUTBIT_TRAINING_SUCCEEDED   -3
-#define PUTBIT_TRAINING_FAILED      -4
-#define PUTBIT_FRAMING_OK           -5
-
-/* Message I/O functions for data pumps */
-typedef void (*put_msg_func_t)(void *user_data, const uint8_t *msg, int len);
-typedef int (*get_msg_func_t)(void *user_data, uint8_t *msg, int max_len);
-
-/* Byte I/O functions for data pumps */
-typedef void (*put_byte_func_t)(void *user_data, int byte);
-typedef int (*get_byte_func_t)(void *user_data);
-
-/* Bit I/O functions for data pumps */
-typedef void (*put_bit_func_t)(void *user_data, int bit);
-typedef int (*get_bit_func_t)(void *user_data);
+#if !defined(_FSK_H_)
+#define _FSK_H_
 
 /*!
     FSK modem specification. This defines the frequencies, signal levels and
-    baud rate (== bit rate) for a single channel of an FSK modem.
+    baud rate (== bit rate for simple FSK) for a single channel of an FSK modem.
 */
 typedef struct
 {
@@ -168,65 +162,6 @@ typedef struct
     int scaling_shift;
 } fsk_rx_state_t;
 
-#define ASYNC_PARITY_NONE   0
-#define ASYNC_PARITY_EVEN   1
-#define ASYNC_PARITY_ODD    2
-
-/*!
-    Asynchronous data transmit descriptor. This defines the state of a single
-    working instance of a byte to asynchronous serial converter, for use
-    in FSK modems.
-*/
-typedef struct
-{
-    /*! \brief The number of data bits per character. */
-    int data_bits;
-    /*! \brief The type of parity. */
-    int parity;
-    /*! \brief The number of stop bits per character. */
-    int stop_bits;
-    /*! \brief A pointer to the callback routine used to get characters to be transmitted. */
-    get_byte_func_t get_byte;
-    /*! \brief An opaque pointer passed when calling get_byte. */
-    void *user_data;
-
-    /*! \brief A current, partially transmitted, character. */
-    int byte_in_progress;
-    /*! \brief The current bit position within a partially transmitted character. */
-    int bitpos;
-    int parity_bit;
-} async_tx_state_t;
-
-/*!
-    Asynchronous data receive descriptor. This defines the state of a single
-    working instance of an asynchronous serial to byte converter, for use
-    in FSK modems.
-*/
-typedef struct
-{
-    /*! \brief The number of data bits per character. */
-    int data_bits;
-    /*! \brief The type of parity. */
-    int parity;
-    /*! \brief The number of stop bits per character. */
-    int stop_bits;
-    /*! \brief TRUE if V.14 rate adaption processing should be performed. */
-    int use_v14;
-    /*! \brief A pointer to the callback routine used to handle received characters. */
-    put_byte_func_t put_byte;
-    /*! \brief An opaque pointer passed when calling put_byte. */
-    void *user_data;
-
-    /*! \brief A current, partially complete, character. */
-    int byte_in_progress;
-    /*! \brief The current bit position within a partially complete character. */
-    int bitpos;
-    int parity_bit;
-
-    int parity_errors;
-    int framing_errors;
-} async_rx_state_t;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -236,11 +171,12 @@ extern "C" {
     \param s The modem context.
     \param spec The specification of the modem tones and rate.
     \param get_bit The callback routine used to get the data to be transmitted.
-    \param user_data An opaque pointer. */
-void fsk_tx_init(fsk_tx_state_t *s,
-                 fsk_spec_t *spec,
-                 get_bit_func_t get_bit,
-                 void *user_data);
+    \param user_data An opaque pointer.
+    \return A pointer to the modem context, or NULL if there was a problem. */
+fsk_tx_state_t *fsk_tx_init(fsk_tx_state_t *s,
+                            fsk_spec_t *spec,
+                            get_bit_func_t get_bit,
+                            void *user_data);
 
 /*! Adjust an FSK modem transmit context's power output.
     \brief Adjust an FSK modem transmit context's power output.
@@ -276,12 +212,13 @@ void fsk_rx_signal_cutoff(fsk_rx_state_t *s, float cutoff);
     \param spec The specification of the modem tones and rate.
     \param sync_mode TRUE for synchronous modem. FALSE for asynchronous mode.
     \param put_bit The callback routine used to put the received data.
-    \param user_data An opaque pointer. */
-void fsk_rx_init(fsk_rx_state_t *s,
-                 fsk_spec_t *spec,
-                 int sync_mode,
-                 put_bit_func_t put_bit,
-                 void *user_data);
+    \param user_data An opaque pointer.
+    \return A pointer to the modem context, or NULL if there was a problem. */
+fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
+                            fsk_spec_t *spec,
+                            int sync_mode,
+                            put_bit_func_t put_bit,
+                            void *user_data);
 
 /*! Process a block of received FSK modem audio samples.
     \brief Process a block of received FSK modem audio samples.
@@ -293,43 +230,6 @@ void fsk_rx_init(fsk_rx_state_t *s,
 int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len);
 
 void fsk_rx_set_put_bit(fsk_rx_state_t *s, put_bit_func_t put_bit, void *user_data);
-
-/*! Initialise an asynchronous data transmit context.
-    \brief Initialise an asynchronous data transmit context.
-    \param s The transmitter context.
-    \param data_bits The number of data bit.
-    \param parity_bits The type of parity.
-    \param stop_bits The number of stop bits.
-    \param use_v14 TRUE if V.14 rate adaption processing should be used.
-    \param get_byte The callback routine used to get the data to be transmitted.
-    \param user_data An opaque pointer. */
-void async_tx_init(async_tx_state_t *s,
-                   int data_bits,
-                   int parity_bits,
-                   int stop_bits,
-                   int use_v14,
-                   get_byte_func_t get_byte,
-                   void *user_data);
-
-int async_tx_bit(void *user_data);
-/*! Initialise an asynchronous data receiver context.
-    \brief Initialise an asynchronous data receiver context.
-    \param s The receiver context.
-    \param data_bits The number of data bit.
-    \param parity_bits The type of parity.
-    \param stop_bits The number of stop bits.
-    \param use_v14 TRUE if V.14 rate adaption processing should be used.
-    \param put_byte The callback routine used to put the received data.
-    \param user_data An opaque pointer. */
-void async_rx_init(async_rx_state_t *s,
-                   int data_bits,
-                   int parity_bits,
-                   int stop_bits,
-                   int use_v14,
-                   put_byte_func_t put_byte,
-                   void *user_data);
-
-void async_rx_bit(void *user_data, int bit);
 
 #ifdef __cplusplus
 }

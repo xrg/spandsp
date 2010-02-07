@@ -28,7 +28,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm.c,v 1.10 2005/08/31 19:27:52 steveu Exp $
+ * $Id: oki_adpcm.c,v 1.11 2005/11/25 14:51:59 steveu Exp $
  */
 
 /*! \file */
@@ -242,15 +242,15 @@ static uint8_t okiadpcm_encode(oki_adpcm_state_t *s, int16_t linear)
 }
 /*- End of function --------------------------------------------------------*/
 
-oki_adpcm_state_t *oki_adpcm_create(int bit_rate)
+oki_adpcm_state_t *oki_adpcm_init(oki_adpcm_state_t *s, int bit_rate)
 {
-    oki_adpcm_state_t *s;
-
     if (bit_rate != 32000  &&  bit_rate != 24000)
         return NULL;
-    s = (oki_adpcm_state_t *) malloc(sizeof(*s));
     if (s == NULL)
-    	return  NULL;
+    {
+        if ((s = (oki_adpcm_state_t *) malloc(sizeof(*s))) == NULL)
+        	return  NULL;
+    }
     memset(s, 0, sizeof(*s));
     s->bit_rate = bit_rate;
     
@@ -258,7 +258,7 @@ oki_adpcm_state_t *oki_adpcm_create(int bit_rate)
 }
 /*- End of function --------------------------------------------------------*/
 
-int oki_adpcm_free(oki_adpcm_state_t *s)
+int oki_adpcm_release(oki_adpcm_state_t *s)
 {
     free(s);
     return 0;

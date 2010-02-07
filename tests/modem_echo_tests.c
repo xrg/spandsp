@@ -23,10 +23,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo_tests.c,v 1.4 2005/09/01 17:06:45 steveu Exp $
+ * $Id: modem_echo_tests.c,v 1.11 2006/01/11 08:06:10 steveu Exp $
  */
 
-/*! \page modem_echo_can_tests_page Modem echo cancellation tests
+/*! \page modem_echo_can_tests_page Line echo cancellation for modems tests
 \section modem_echo_can_tests_page_sec_1 What does it do?
 Currently the echo cancellation tests only provide simple exercising of the
 cancellor in the way it might be used for line echo cancellation. The test code
@@ -68,15 +68,12 @@ at 8kHz. These should be called local_sound.wav and far_sound.wav. A third wave
 file will be produced. This very crudely starts with the first 256 bytes from
 the local_sound.wav file, followed by the results of the echo cancellation. The
 resulting audio is also played to the /dev/dsp device. A printf near the end of
-echo_tests.c is commented out with a #if. If this is enabled, detailed
+echo_tests.c is commented out with a \#if. If this is enabled, detailed
 information about the results of the echo cancellation will be written to
 stdout. By saving this into a file, Grace (recommended), GnuPlot, or some other
 plotting package may be used to graphically display the functioning of the
 cancellor.  
 */
-
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -101,6 +98,7 @@ cancellor.
 
 #include "spandsp.h"
 #include "spandsp/g168models.h"
+#include "echo_monitor.h"
 
 #if !defined(NULL)
 #define NULL (void *) 0
@@ -152,16 +150,24 @@ static void signal_load(signal_source_t *sig, char *name)
     float x;
 
     sig->name = name;
-    sig->handle = afOpenFile(sig->name, "r", 0);
-    if (sig->handle == AF_NULL_FILEHANDLE)
+    if ((sig->handle = afOpenFile(sig->name, "r", 0)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot open sound file '%s'\n", sig->name);
         exit(2);
     }
-    x = afGetFrameSize(sig->handle, AF_DEFAULT_TRACK, 1);
-    if (x != 2.0)
+    if ((x = afGetFrameSize(sig->handle, AF_DEFAULT_TRACK, 1)) != 2.0)
     {
-        fprintf(stderr, "    Unexpected frame size in sound file '%s'\n", sig->name);
+        fprintf(stderr, "    Unexpected frame size in wave file '%s'\n", sig->name);
+        exit(2);
+    }
+    if ((x = afGetRate(sig->handle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
+    {
+        printf("    Unexpected sample rate in wave file '%s'\n", sig->name);
+        exit(2);
+    }
+    if ((x = afGetChannels(sig->handle, AF_DEFAULT_TRACK)) != 1.0)
+    {
+        printf("    Unexpected number of channels in wave file '%s'\n", sig->name);
         exit(2);
     }
     sig->max = afReadFrames(sig->handle, AF_DEFAULT_TRACK, sig->signal, 8000);
@@ -268,6 +274,7 @@ int main(int argc, char *argv[])
     int clean;
     int16_t rx;
     int16_t tx;
+    int16_t amp[2];
     int local_cur;
     int far_cur;
     int result_cur;
@@ -331,6 +338,7 @@ int main(int argc, char *argv[])
         clean = modem_echo_can_update(ctx, 0, 0);
         put_residue(0, clean);
     }
+
     for (i = 0;  i < 8000*50;  i++)
     {
         tx = signal_amp(&local_css);
@@ -344,6 +352,8 @@ int main(int argc, char *argv[])
 #if defined(ENABLE_GUI)
         echo_can_monitor_can_update(ctx->fir_taps16, 256);
 #endif
+        amp[0] = tx;
+        echo_can_monitor_line_spectrum_update(amp, 1);
     }
     modem_echo_can_free(ctx);
 
@@ -354,7 +364,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot close speech file '%s'\n", "result_sound.wav");
         exit(2);
     }
-    
+    afFreeFileSetup(filesetup);
+
 #if defined(ENABLE_GUI)
     echo_can_monitor_wait_to_end();
 #endif

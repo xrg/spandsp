@@ -24,11 +24,25 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm_tests.c,v 1.2 2005/09/01 17:06:45 steveu Exp $
+ * $Id: oki_adpcm_tests.c,v 1.8 2006/01/11 08:06:10 steveu Exp $
  */
 
-#define _ISOC9X_SOURCE  1
-#define _ISOC99_SOURCE  1
+/*! \file */
+
+/*! \page oki_adpcm_tests_page OKI (Dialogic) ADPCM tests
+\section oki_adpcm_tests_page_sec_1 What does it do?
+These tests require a file of speech, recorded at 16 bits/sample, 8000 samples/second.
+The file should be called "pre_oki_adpcm.wav". The tests compress this file, decompress
+it, and store the results in another file called "post_oki_adpcm.wav". Listening tests
+may be used to evaluate the degradation in quality caused by the compression. Both 32k bps
+and 24k bps compression may be tested.
+
+\section oki_adpcm_tests_page_sec_2 How is it used?
+*/
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -85,20 +99,27 @@ int main(int argc, char *argv[])
         }
     }
 
-    inhandle = afOpenFile(IN_FILE_NAME, "r", 0);
-    if (inhandle == AF_NULL_FILEHANDLE)
+    if ((inhandle = afOpenFile(IN_FILE_NAME, "r", 0)) == AF_NULL_FILEHANDLE)
     {
         printf("    Cannot open wave file '%s'\n", IN_FILE_NAME);
         exit(2);
     }
-    x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1);
-    if (x != 2.0)
+    if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
     {
         printf("    Unexpected frame size in wave file '%s'\n", IN_FILE_NAME);
         exit(2);
     }
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
+    if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
+    {
+        printf("    Unexpected sample rate in wave file '%s'\n", IN_FILE_NAME);
+        exit(2);
+    }
+    if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
+    {
+        printf("    Unexpected number of channels in wave file '%s'\n", IN_FILE_NAME);
+        exit(2);
+    }
+    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
     {
         fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
@@ -115,13 +136,13 @@ int main(int argc, char *argv[])
         exit(2);
     }
 
-    if ((oki_enc_state = oki_adpcm_create(bit_rate)) == NULL)
+    if ((oki_enc_state = oki_adpcm_init(NULL, bit_rate)) == NULL)
     {
         fprintf(stderr, "    Cannot create encoder\n");
         exit(2);
     }
         
-    if ((oki_dec_state = oki_adpcm_create(bit_rate)) == NULL)
+    if ((oki_dec_state = oki_adpcm_init(NULL, bit_rate)) == NULL)
     {
         fprintf(stderr, "    Cannot create decoder\n");
         exit(2);
@@ -143,8 +164,9 @@ int main(int argc, char *argv[])
         printf("    Cannot close wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
-    oki_adpcm_free(oki_enc_state);
-    oki_adpcm_free(oki_dec_state);
+    afFreeFileSetup(filesetup);
+    oki_adpcm_release(oki_enc_state);
+    oki_adpcm_release(oki_dec_state);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

@@ -23,10 +23,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.c,v 1.10 2005/10/08 04:40:58 steveu Exp $
+ * $Id: v42.c,v 1.15 2005/12/25 17:33:37 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
+
+/*! \file */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -41,8 +43,7 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
-#include "spandsp/power_meter.h"
-#include "spandsp/fsk.h"
+#include "spandsp/async.h"
 #include "spandsp/hdlc.h"
 #include "spandsp/schedule.h"
 #include "spandsp/queue.h"
@@ -119,6 +120,7 @@ static void lapm_send_ua(lapm_state_t *s, int pfbit)
 
     lapm_init_header(frame, !s->we_are_originator);
     frame[1] = 0x63 | (pfbit << 4);
+    frame[2] = 0;
     if ((s->debug & LAPM_DEBUG_LAPM_STATE))
         span_log(&s->logging, SPAN_LOG_FLOW, "Sending unnumbered acknowledgement\n");
     /*endif*/
@@ -135,6 +137,7 @@ static void lapm_send_sabme(sp_sched_state_t *ss, void *user_data)
     s->t401_timer = sp_schedule_event(&s->sched, T_401, lapm_send_sabme, s);
     lapm_init_header(frame, s->we_are_originator);
     frame[1] = 0x7F;
+    frame[2] = 0;
     if ((s->debug & LAPM_DEBUG_LAPM_STATE))
         span_log(&s->logging, SPAN_LOG_FLOW, "Sending Set Asynchronous Balanced Mode Extended\n");
     /*endif*/
@@ -339,7 +342,6 @@ static void t401_expired(sp_sched_state_t *ss, void *user_data)
     /*endif*/
 }
 /*- End of function --------------------------------------------------------*/
-
 
 int lapm_tx(lapm_state_t *s, const void *buf, int len)
 {
@@ -1315,6 +1317,13 @@ void v42_init(v42_state_t *s, int caller, int detect, v42_frame_handler_t frame_
     if (queue_create(&(s->lapm.tx_queue), 16384, 0) < 0)
         return;
     v42_restart(s);
+}
+/*- End of function --------------------------------------------------------*/
+
+int v42_release(v42_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

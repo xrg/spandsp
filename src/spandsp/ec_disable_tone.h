@@ -1,9 +1,9 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * ec_disable_detector.h - A detector which should eventually meet the
- *                         G.164/G.165 requirements for detecting the
- *                         2100Hz echo cancellor disable tone.
+ * ec_disable_tone.h - A detector which should eventually meet the
+ *                     G.164/G.165 requirements for detecting the
+ *                     2100Hz echo cancellor disable tone.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -25,13 +25,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ec_disable_detector.h,v 1.5 2005/01/18 14:05:48 steveu Exp $
+ * $Id: ec_disable_tone.h,v 1.2 2005/11/25 14:52:00 steveu Exp $
  */
  
 /*! \file */
 
-#if !defined(_EC_DISABLE_DETECTOR_H_)
-#define _EC_DISABLE_DETECTOR_H_
+#if !defined(_EC_DISABLE_TONE_H_)
+#define _EC_DISABLE_TONE_H_
 
 /*! \page echo_can_disable_page Echo cancellor disable tone detection
 
@@ -53,6 +53,10 @@ bandpass implemented as an IIR filter rings badly, The reciprocal notch filter
 is very well behaved. 
 */
 
+/*!
+    Echo canceller disable tone generator descriptor. This defines the state
+    of a single working instance of the tone generator.
+*/
 typedef struct
 {
     /*! \brief TRUE if we are generating the version with some 15Hz AM content,
@@ -70,8 +74,8 @@ typedef struct
 } echo_can_disable_tx_state_t;
 
 /*!
-    Echo canceller disable tone detector descriptor. This defines the state
-    of a single working instance of the detector.
+    Echo canceller disable tone receiver descriptor. This defines the state
+    of a single working instance of the tone detector.
 */
 typedef struct
 {
@@ -92,9 +96,16 @@ extern "C" {
     \param s The context.
 */
 void echo_can_disable_tone_tx_init(echo_can_disable_tx_state_t *s, int with_am);
+
+/*! \brief Generate a block of echo canceller disable tone samples.
+    \param s The context.
+    \param amp An array of signal samples.
+    \param len The number of samples to generate.
+    \return The number of samples generated.
+*/
 int echo_can_disable_tone_tx(echo_can_disable_tx_state_t *s,
                              int16_t *amp,
-                             int samples);
+                             int len);
 
 /*! \brief Initialse an instance of the echo canceller disable tone detector.
     \param s The context.
@@ -105,12 +116,12 @@ void echo_can_disable_tone_rx_init(echo_can_disable_rx_state_t *s);
            disable tone detector.
     \param s The context.
     \param amp An array of signal samples.
-    \param samples The number of samples in the array.
+    \param len The number of samples in the array.
     \return The number of unprocessed samples.
 */
 int echo_can_disable_tone_rx(echo_can_disable_rx_state_t *s,
                              const int16_t *amp,
-                             int samples);
+                             int len);
 
 #ifdef __cplusplus
 }

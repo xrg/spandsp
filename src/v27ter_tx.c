@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.c,v 1.22 2005/08/31 19:27:53 steveu Exp $
+ * $Id: v27ter_tx.c,v 1.28 2005/12/06 14:34:03 steveu Exp $
  */
 
 /*! \file */
@@ -36,10 +36,11 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+#include <tgmath.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
+#include "spandsp/async.h"
 #include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/power_meter.h"
@@ -49,13 +50,13 @@
 /* Segments of the training sequence */
 /* V.27ter defines a long and a short sequence. FAX doesn't use the
    short sequence, so it is not implemented here. */
-#define V27_TRAINING_TEP_LEN        320
-#define V27_TRAINING_SEG_2          0
-#define V27_TRAINING_SEG_3          (V27_TRAINING_SEG_2 + 32)
-#define V27_TRAINING_SEG_4          (V27_TRAINING_SEG_3 + 50)
-#define V27_TRAINING_SEG_5          (V27_TRAINING_SEG_4 + 1074)
-#define V27_TRAINING_END            (V27_TRAINING_SEG_5 + 8)
-#define V27_TRAINING_SHUTDOWN_END   (V27_TRAINING_END + 10)
+#define V27TER_TRAINING_TEP_LEN         320
+#define V27TER_TRAINING_SEG_2           0
+#define V27TER_TRAINING_SEG_3           (V27TER_TRAINING_SEG_2 + 32)
+#define V27TER_TRAINING_SEG_4           (V27TER_TRAINING_SEG_3 + 50)
+#define V27TER_TRAINING_SEG_5           (V27TER_TRAINING_SEG_4 + 1074)
+#define V27TER_TRAINING_END             (V27TER_TRAINING_SEG_5 + 8)
+#define V27TER_TRAINING_SHUTDOWN_END    (V27TER_TRAINING_END + 10)
 
 static int fake_get_bit(void *user_data)
 {
@@ -137,19 +138,19 @@ static complex_t getbaud(v27ter_tx_state_t *s)
             s->tep_step--;
             return constellation[0];
         }
-        if (++s->training_step <= V27_TRAINING_SEG_5)
+        if (++s->training_step <= V27TER_TRAINING_SEG_5)
         {
-            if (s->training_step <= V27_TRAINING_SEG_2)
+            if (s->training_step <= V27TER_TRAINING_SEG_2)
             {
                 /* Segment 1: Unmodulated carrier (talker echo protection) */
                 return constellation[0];
             }
-            if (s->training_step <= V27_TRAINING_SEG_3)
+            if (s->training_step <= V27TER_TRAINING_SEG_3)
             {
                 /* Segment 2: Silence */
                 return complex_set(0.0, 0.0);
             }
-            if (s->training_step <= V27_TRAINING_SEG_4)
+            if (s->training_step <= V27TER_TRAINING_SEG_4)
             {
                 /* Segment 3: Regular reversals... */
                 s->constellation_state = (s->constellation_state + 4) & 7;
@@ -168,7 +169,7 @@ static complex_t getbaud(v27ter_tx_state_t *s)
         /* There is no graceful shutdown procedure defined for V.27ter. Just
            send some ones, to ensure we get the real data bits through, even
            with bad ISI. */
-        if (s->training_step == V27_TRAINING_END + 1)
+        if (s->training_step == V27TER_TRAINING_END + 1)
         {
             /* End of the last segment - segment 5: All ones */
             /* Switch from the fake get_bit routine, to the user supplied real
@@ -204,8 +205,8 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t *amp, int len)
     int sample;
     static const float weights[4] = {0.0, 0.68, 0.32, 0.0};
 
-    #define PULSESHAPER_4800_GAIN       4.998714163
-    #define V27TX_4800_FILTER_STEPS     41
+    #define PULSESHAPER_4800_GAIN           4.998714163
+    #define V27TER_TX_4800_FILTER_STEPS     41
     static const float pulseshaper_4800[] =
     {
         /* Raised root cosine pulse shaping; Beta = 0.5; 4 symbols either
@@ -234,8 +235,8 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t *amp, int len)
         +1.1366196464
     };
 
-    #define PULSESHAPER_2400_GAIN       6.681678162
-    #define V27TX_2400_FILTER_STEPS     53
+    #define PULSESHAPER_2400_GAIN           6.681678162
+    #define V27TER_TX_2400_FILTER_STEPS     53
     static const float pulseshaper_2400[] =
     {
         /* Raised root cosine pulse shaping; Beta = 0.5; 4 symbols either
@@ -270,7 +271,7 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t *amp, int len)
         +1.1366222191
     };
 
-    if (s->training_step >= V27_TRAINING_SHUTDOWN_END)
+    if (s->training_step >= V27TER_TRAINING_SHUTDOWN_END)
     {
         /* Once we have sent the shutdown symbols, we stop sending completely. */
         return 0;
@@ -288,20 +289,21 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t *amp, int len)
                 s->current_point = getbaud(s);
             }
             s->rrc_filter[s->rrc_filter_step] =
-            s->rrc_filter[s->rrc_filter_step + V27TX_4800_FILTER_STEPS] = s->current_point;
-            if (++s->rrc_filter_step >= V27TX_4800_FILTER_STEPS)
+            s->rrc_filter[s->rrc_filter_step + V27TER_TX_4800_FILTER_STEPS] = s->current_point;
+            if (++s->rrc_filter_step >= V27TER_TX_4800_FILTER_STEPS)
                 s->rrc_filter_step = 0;
             /* Root raised cosine pulse shaping at baseband */
-            x.re = pulseshaper_4800[V27TX_4800_FILTER_STEPS >> 1]*s->rrc_filter[(V27TX_4800_FILTER_STEPS >> 1) + s->rrc_filter_step].re;
-            x.im = pulseshaper_4800[V27TX_4800_FILTER_STEPS >> 1]*s->rrc_filter[(V27TX_4800_FILTER_STEPS >> 1) + s->rrc_filter_step].im;
-            for (i = 0;  i < (V27TX_4800_FILTER_STEPS >> 1);  i++)
+            x.re = pulseshaper_4800[V27TER_TX_4800_FILTER_STEPS >> 1]*s->rrc_filter[(V27TER_TX_4800_FILTER_STEPS >> 1) + s->rrc_filter_step].re;
+            x.im = pulseshaper_4800[V27TER_TX_4800_FILTER_STEPS >> 1]*s->rrc_filter[(V27TER_TX_4800_FILTER_STEPS >> 1) + s->rrc_filter_step].im;
+            for (i = 0;  i < (V27TER_TX_4800_FILTER_STEPS >> 1);  i++)
             {
-                x.re += pulseshaper_4800[i]*(s->rrc_filter[i + s->rrc_filter_step].re + s->rrc_filter[V27TX_4800_FILTER_STEPS - 1 - i + s->rrc_filter_step].re);
-                x.im += pulseshaper_4800[i]*(s->rrc_filter[i + s->rrc_filter_step].im + s->rrc_filter[V27TX_4800_FILTER_STEPS - 1 - i + s->rrc_filter_step].im);
+                x.re += pulseshaper_4800[i]*(s->rrc_filter[i + s->rrc_filter_step].re + s->rrc_filter[V27TER_TX_4800_FILTER_STEPS - 1 - i + s->rrc_filter_step].re);
+                x.im += pulseshaper_4800[i]*(s->rrc_filter[i + s->rrc_filter_step].im + s->rrc_filter[V27TER_TX_4800_FILTER_STEPS - 1 - i + s->rrc_filter_step].im);
             }
             /* Now create and modulate the carrier */
             z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
-            amp[sample] = (int16_t) ((x.re*z.re + x.im*z.im)*s->gain_4800);
+            /* Don't bother saturating. We should never clip. */
+            amp[sample] = (int16_t) lrintf((x.re*z.re + x.im*z.im)*s->gain_4800);
         }
     }
     else
@@ -315,29 +317,30 @@ int v27ter_tx(v27ter_tx_state_t *s, int16_t *amp, int len)
                 /* Use a weighted value for the first sample of the baud to correct
                    for a baud not being an integral number of samples long */
                 s->rrc_filter[s->rrc_filter_step].re =
-                s->rrc_filter[s->rrc_filter_step + V27TX_2400_FILTER_STEPS].re = x.re - (x.re - s->current_point.re)*weights[s->baud_phase];
+                s->rrc_filter[s->rrc_filter_step + V27TER_TX_2400_FILTER_STEPS].re = x.re - (x.re - s->current_point.re)*weights[s->baud_phase];
                 s->rrc_filter[s->rrc_filter_step].im =
-                s->rrc_filter[s->rrc_filter_step + V27TX_2400_FILTER_STEPS].im = x.im - (x.im - s->current_point.im)*weights[s->baud_phase];
+                s->rrc_filter[s->rrc_filter_step + V27TER_TX_2400_FILTER_STEPS].im = x.im - (x.im - s->current_point.im)*weights[s->baud_phase];
                 s->current_point = x;
             }
             else
             {
                 s->rrc_filter[s->rrc_filter_step] =
-                s->rrc_filter[s->rrc_filter_step + V27TX_2400_FILTER_STEPS] = s->current_point;
+                s->rrc_filter[s->rrc_filter_step + V27TER_TX_2400_FILTER_STEPS] = s->current_point;
             }
-            if (++s->rrc_filter_step >= V27TX_2400_FILTER_STEPS)
+            if (++s->rrc_filter_step >= V27TER_TX_2400_FILTER_STEPS)
                 s->rrc_filter_step = 0;
             /* Root raised cosine pulse shaping at baseband */
-            x.re = pulseshaper_2400[V27TX_2400_FILTER_STEPS >> 1]*s->rrc_filter[(V27TX_2400_FILTER_STEPS >> 1) + s->rrc_filter_step].re;
-            x.im = pulseshaper_2400[V27TX_2400_FILTER_STEPS >> 1]*s->rrc_filter[(V27TX_2400_FILTER_STEPS >> 1) + s->rrc_filter_step].im;
-            for (i = 0;  i < (V27TX_2400_FILTER_STEPS >> 1);  i++)
+            x.re = pulseshaper_2400[V27TER_TX_2400_FILTER_STEPS >> 1]*s->rrc_filter[(V27TER_TX_2400_FILTER_STEPS >> 1) + s->rrc_filter_step].re;
+            x.im = pulseshaper_2400[V27TER_TX_2400_FILTER_STEPS >> 1]*s->rrc_filter[(V27TER_TX_2400_FILTER_STEPS >> 1) + s->rrc_filter_step].im;
+            for (i = 0;  i < (V27TER_TX_2400_FILTER_STEPS >> 1);  i++)
             {
-                x.re += pulseshaper_2400[i]*(s->rrc_filter[i + s->rrc_filter_step].re + s->rrc_filter[V27TX_2400_FILTER_STEPS - 1 - i + s->rrc_filter_step].re);
-                x.im += pulseshaper_2400[i]*(s->rrc_filter[i + s->rrc_filter_step].im + s->rrc_filter[V27TX_2400_FILTER_STEPS - 1 - i + s->rrc_filter_step].im);
+                x.re += pulseshaper_2400[i]*(s->rrc_filter[i + s->rrc_filter_step].re + s->rrc_filter[V27TER_TX_2400_FILTER_STEPS - 1 - i + s->rrc_filter_step].re);
+                x.im += pulseshaper_2400[i]*(s->rrc_filter[i + s->rrc_filter_step].im + s->rrc_filter[V27TER_TX_2400_FILTER_STEPS - 1 - i + s->rrc_filter_step].im);
             }
             /* Now create and modulate the carrier */
             z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
-            amp[sample] = (int16_t) ((x.re*z.re + x.im*z.im)*s->gain_2400);
+            /* Don't bother saturating. We should never clip. */
+            amp[sample] = (int16_t) lrintf((x.re*z.re + x.im*z.im)*s->gain_2400);
         }
     }
     return sample;
@@ -374,7 +377,7 @@ int v27ter_tx_restart(v27ter_tx_state_t *s, int rate, int tep)
     s->scramble_reg = 0x3C;
     s->scrambler_pattern_count = 0;
     s->in_training = TRUE;
-    s->tep_step = (tep) ?  V27_TRAINING_TEP_LEN  :  0;
+    s->tep_step = (tep)  ?  V27TER_TRAINING_TEP_LEN  :  0;
     s->training_step = 0;
     s->carrier_phase = 0;
     s->baud_phase = 0;
@@ -384,14 +387,27 @@ int v27ter_tx_restart(v27ter_tx_state_t *s, int rate, int tep)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v27ter_tx_init(v27ter_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data)
+v27ter_tx_state_t *v27ter_tx_init(v27ter_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data)
 {
+    if (s == NULL)
+    {
+        if ((s = (v27ter_tx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, 0, sizeof(*s));
     s->get_bit = get_bit;
     s->user_data = user_data;
     s->carrier_phase_rate = dds_phase_stepf(1800.0);
     v27ter_tx_power(s, -12.0);
     v27ter_tx_restart(s, rate, tep);
+    return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int v27ter_tx_release(v27ter_tx_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

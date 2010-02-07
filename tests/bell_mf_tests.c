@@ -24,21 +24,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_mf_tests.c,v 1.4 2005/09/01 17:06:45 steveu Exp $
+ * $Id: bell_mf_tests.c,v 1.9 2005/12/29 09:54:24 steveu Exp $
  */
 
-/*
- * These tests are fashioned after those on the CM7291 test tape from
- * Mitel. Those tests are for DTMF, rather than Bell MF, but make a
- * fair starting point for a set of meaningful tests of Bell MF.
- *
- * These tests include conversion to and from A-law. I assume the
- * distortion this produces is comparable to u-law, so it should be
- * a fair test of performance in a real PSTN channel.
- */
+/*! \file */
 
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
+/*! \page bell_mf_tests_page Bell MF tone generation and detection tests
+\section bell_mf_tests_page_sec_1 What does it do?
+These tests are fashioned after those on the CM7291 test tape from
+Mitel. Those tests are for DTMF, rather than Bell MF, but make a
+fair starting point for a set of meaningful tests of Bell MF.
+
+These tests include conversion to and from A-law. It is assumed the
+distortion this produces is comparable to u-law, so it should be
+a fair test of performance in a real PSTN channel.
+*/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -181,7 +181,7 @@ static void alaw_munge(int16_t amp[], int len)
 
 #define ALL_POSSIBLE_DIGITS     "1234567890CA*B#"
 
-static void digit_delivery(void *data, char *digits, int len)
+static void digit_delivery(void *data, const char *digits, int len)
 {
     int i;
     int seg;
@@ -214,6 +214,8 @@ static void digit_delivery(void *data, char *digits, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
+static int16_t amp[1000000];
+
 int main(int argc, char *argv[])
 {
     int duration;
@@ -229,7 +231,6 @@ int main(int argc, char *argv[])
     int nminus;
     float rrb;
     float rcfo;
-    int16_t amp[1000000];
     time_t now;
     bell_mf_rx_state_t mf_state;
     awgn_state_t noise_source;

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule.c,v 1.5 2005/08/31 19:27:52 steveu Exp $
+ * $Id: schedule.c,v 1.6 2005/12/29 12:46:20 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -131,9 +131,21 @@ void sp_schedule_del(sp_sched_state_t *s, int i)
 }
 /*- End of function --------------------------------------------------------*/
 
-void sp_schedule_init(sp_sched_state_t *s)
+sp_sched_state_t *sp_schedule_init(sp_sched_state_t *s)
 {
     memset(s, 0, sizeof(*s));
+    return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int sp_schedule_release(sp_sched_state_t *s)
+{
+    if (s->sched)
+    {
+        free(s->sched);
+        s->sched = NULL;
+    }
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

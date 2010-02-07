@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.h,v 1.9 2005/01/18 14:05:49 steveu Exp $
+ * $Id: tone_generate.h,v 1.15 2006/01/31 05:34:27 steveu Exp $
  */
 
 /*! \file */
@@ -47,29 +47,34 @@ use an exhaustive test to prove the oscillator is stable under all the
 conditions in which we will use it. 
 */
 
-/*! \page DTMF_tx_page DTMF tone generation
-\section DTMF_tx_page_sec_1 What does it do?
+/*! \page dtmf_tx_page DTMF tone generation
+\section dtmf_tx_page_sec_1 What does it do?
 
 The DTMF tone generation module provides for the generation of the
 repertoire of 16 DTMF dual tones. 
 
-\section DTMF_tx_page_sec_2 How does it work?
+\section dtmf_tx_page_sec_2 How does it work?
 */
 
-/*! \page MFC_R2_tone_generation_page MFC/R2 tone generation
-\section MFC_R2_tone_generation_page_sec_1 What does it do?
+/*! \page mfc_r2_tone_generation_page MFC/R2 tone generation
+\section mfc_r2_tone_generation_page_sec_1 What does it do?
 The MFC/R2 tone generation module provides for the generation of the
 repertoire of 15 dual tones needs for the digital MFC/R2 signalling protocol. 
 
-\section MFC_R2_tone_generation_page_sec_2 How does it work?
+\section mfc_r2_tone_generation_page_sec_2 How does it work?
 */
 
-/*! \page Bell_MF_tone_generation_page Bell MF tone generation
-\section Bell_MF_tone_generation_page_sec_1 What does it do?
+/*! \page bell_mf_tone_generation_page Bell MF tone generation
+\section bell_mf_tone_generation_page_sec_1 What does it do?
 The Bell MF tone generation module provides for the generation of the
 repertoire of 15 dual tones needs for various Bell MF signalling protocols. 
 
-\section Bell_MF_tone_generation_page_sec_2 How does it work?
+\section bell_mf_tone_generation_page_sec_2 How does it work?
+Basic Bell MF tone generation specs:
+    - Tone on time = KP: 100+-7ms. All other signals: 68+-7ms
+    - Tone off time (between digits) = 68+-7ms
+    - Frequency tolerance +- 1.5%
+    - Signal level -7+-1dBm per frequency
 */
 
 #if !defined(MAX_DTMF_DIGITS)
@@ -81,23 +86,8 @@ repertoire of 15 dual tones needs for various Bell MF signalling protocols.
 */
 typedef struct
 {
-#if defined(PURE_INTEGER_DSP)
-    int v2_1;
-    int v3_1;
-    int fac_1;
-
-    int v2_2;
-    int v3_2;
-    int fac_2;
-#else
-    float v2_1;
-    float v3_1;
-    float fac_1;
-
-    float v2_2;
-    float v3_2;
-    float fac_2;
-#endif
+    int32_t phase_rate[2];
+    int gain[2];
     
     int duration[4];
 
@@ -110,23 +100,11 @@ typedef struct
 */
 typedef struct
 {
-#if defined(PURE_INTEGER_DSP)
-    int v2_1;
-    int v3_1;
-    int fac_1;
+    int32_t phase_rate[2];
+    int gain[2];
 
-    int v2_2;
-    int v3_2;
-    int fac_2;
-#else
-    float v2_1;
-    float v3_1;
-    float fac_1;
+    uint32_t phase[2];
 
-    float v2_2;
-    float v3_2;
-    float fac_2;
-#endif
     int duration[4];
     
     int repeat;
@@ -148,7 +126,7 @@ typedef enum
 */
 typedef struct
 {
-    char *tone_codes;
+    const char *tone_codes;
     tone_gen_descriptor_t *tone_descriptors;
     tone_gen_state_t tones;
     char digits[MAX_DTMF_DIGITS + 1];
@@ -186,60 +164,54 @@ void make_tone_gen_descriptor(tone_gen_descriptor_t *s,
                               int repeat);
 
 void tone_gen_init(tone_gen_state_t *s, tone_gen_descriptor_t *t);
-int tone_gen(tone_gen_state_t *s, int16_t *amp, int max_samples);
+int tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples);
 
 /*! \brief Initialise DTMF tone generation. This should be called before
-           any other use of the DTMF tone features.
-*/
+           any other use of the DTMF tone features. */
 void dtmf_gen_init(void);
 
 /*! \brief Initialise a DTMF tone generator context.
     \param s The DTMF generator context.
-*/
-void dtmf_tx_init(dtmf_tx_state_t *s);
+    \return A pointer to the DTMF generator context. */
+dtmf_tx_state_t *dtmf_tx_init(dtmf_tx_state_t *s);
 
 /*! \brief Generate a buffer of DTMF tones.
     \param s The DTMF generator context.
     \param amp The buffer for the generated signal.
     \param max_samples The required number of generated samples.
     \return The number of samples actually generated. This may be less than 
-            samples if the input buffer empties.
-*/
-int dtmf_tx(dtmf_tx_state_t *s, int16_t *amp, int max_samples);
+            samples if the input buffer empties. */
+int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples);
 
 /*! \brief Put a string of digits in a DTMF generator's input buffer.
     \param s The DTMF generator context.
     \param digits The string of digits to be added.
     \return The number of digits actually added. This may be less than the
-            length of the digit string, if the buffer fills up.
-*/
+            length of the digit string, if the buffer fills up. */
 int dtmf_put(dtmf_tx_state_t *s, const char *digits);
 
 /*! \brief Initialise Bell MF tone generation. This should be called before
-           any other use of the Bell MF tone features.
-*/
+           any other use of the Bell MF tone features. */
 void bell_mf_gen_init(void);
 
-/*! \brief Initialise a Bell MF tone generator context.
+/*! \brief Initialise a Bell MF generator context.
     \param s The Bell MF generator context (same type as a DTMF context).
-*/
-void bell_mf_tx_init(dtmf_tx_state_t *s);
+    \return A pointer to the Bell MF generator context.*/
+dtmf_tx_state_t *bell_mf_tx_init(dtmf_tx_state_t *s);
 
 /*! \brief Initialise MFC/R2 tone generation. This should be called before
-           any other use of the MFC/R2 tone features.
-*/
+           any other use of the MFC/R2 tone features. */
 void r2_mf_tx_init(void);
 
-/*! \brief Generate a buffer of MFC/R2 tones.
-    \param s The tone generate context.
+/*! \brief Generate a block of R2 MF tones.
+    \param s The R2 MF generate context.
     \param amp The buffer for the generated signal.
     \param samples The required number of generated samples.
     \param fwd TRUE to use the forward tone set. FALSE to use the reverse tone set.
     \param digit The digit to be generated. When continuing to generate the same
            digit as during the last call to this function, digit should be set to 0x7F.
-    \return The number of samples actually generated.
-*/
-int r2_mf_tx(tone_gen_state_t *s, int16_t *amp, int samples, int fwd, char digit);
+    \return The number of samples actually generated. */
+int r2_mf_tx(tone_gen_state_t *s, int16_t amp[], int samples, int fwd, char digit);
 
 #ifdef __cplusplus
 }

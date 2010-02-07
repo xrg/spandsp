@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.15 2005/06/04 11:31:49 steveu Exp $
+ * $Id: v17rx.h,v 1.22 2005/12/06 14:34:03 steveu Exp $
  */
 
 /*! \file */
@@ -31,17 +31,15 @@
 #if !defined(_V17RX_H_)
 #define _V17RX_H_
 
-#include "fsk.h"
-
-/*! \page V17rx_page The V.17 receiver
-\section V17rx_page_sec_1 What does it do?
+/*! \page v17rx_page The V.17 receiver
+\section v17rx_page_sec_1 What does it do?
 The V.17 receiver implements the receive side of a V.17 modem. This can operate
 at data rates of 14400, 12000, 9600 and 7200 bits/second. The audio input is a stream
 of 16 bit samples, at 8000 samples/second. The transmit and receive side of V.17
 modems operate independantly. V.17 is mostly used for FAX transmission over PSTN
 lines, where it provides the standard 14400 bits/second rate. 
 
-\section V17rx_page_sec_2 How does it work?
+\section v17rx_page_sec_2 How does it work?
 V.17 uses QAM modulation, and trellis coding. It specifies a training sequence at
 the start of transmission, which makes the design of a V.17 receiver relatively
 straightforward. The first stage of the training sequence consists of 256
@@ -212,6 +210,8 @@ TCM absolutely transformed the phone line modem business.
 
 #define V17RX_FILTER_STEPS  27
 
+#define V17_TRELLIS_DEPTH   16
+
 /*!
     V.17 modem receive side descriptor. This defines the working state for a
     single instance of a V.17 modem receiver.
@@ -222,13 +222,13 @@ typedef struct
     int bit_rate;
     /*! \brief The callback function used to put each bit received. */
     put_bit_func_t put_bit;
-    /*! \brief A user specified opaque pointer passed to the callback function. */
+    /*! \brief A user specified opaque pointer passed to the put_but routine. */
     void *user_data;
     /*! \brief A callback function which may be enabled to report every symbol's
                constellation position. */
     qam_report_handler_t *qam_report;
     /*! \brief A user specified opaque pointer passed to the qam_report callback
-               function. */
+               routine. */
     void *qam_user_data;
 
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
@@ -261,6 +261,7 @@ typedef struct
     int32_t carrier_on_power;
     int32_t carrier_off_power;
     float agc_scaling;
+    float agc_scaling_save;
 
     float eq_delta;
     /*! \brief The adaptive equalizer coefficients */
@@ -289,16 +290,16 @@ typedef struct
     const complex_t *constellation;
     /*! \brief A pointer to the current space map. There is a space map for
                each trellis state. */
-    uint8_t (*space_map)[90][8];
+    int space_map;
     /*! \brief The number of bits in each symbol at the current bit rate. */
     int bits_per_symbol;
 
     /*! \brief Current pointer to the trellis buffers */
     int trellis_ptr;
     /*! \brief The trellis. */
-    int full_path_to_past_state_locations[16][8];
+    int full_path_to_past_state_locations[V17_TRELLIS_DEPTH][8];
     /*! \brief The trellis. */
-    int past_state_locations[16][8];
+    int past_state_locations[V17_TRELLIS_DEPTH][8];
     /*! \brief Euclidean distances (actually the sqaures of the distances)
                from the last states of the trellis. */
     float distances[8];
@@ -320,8 +321,9 @@ extern "C" {
     \param s The modem context.
     \param rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
     \param put_bit The callback routine used to put the received data.
-    \param user_data An opaque pointer. */
-void v17_rx_init(v17_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data);
+    \param user_data An opaque pointer passed to the put_bit routine.
+    \return A pointer to the modem context, or NULL if there was a problem. */
+v17_rx_state_t *v17_rx_init(v17_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data);
 
 /*! Reinitialise an existing V.17 modem receive context.
     \brief Reinitialise an existing V.17 modem receive context.
@@ -331,6 +333,17 @@ void v17_rx_init(v17_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user
     \return 0 for OK, -1 for bad parameter */
 int v17_rx_restart(v17_rx_state_t *s, int rate, int short_train);
 
+/*! Release a V.17 modem receive context.
+    \brief Release a V.17 modem receive context.
+    \param s The modem context.
+    \return 0 for OK */
+int v17_rx_release(v17_rx_state_t *s);
+
+/*! Change the put_bit function associated with a V.17 modem receive context.
+    \brief Change the put_bit function associated with a V.17 modem receive context.
+    \param s The modem context.
+    \param put_bit The callback routine used to handle received bits.
+    \param user_data An opaque pointer. */
 void v17_rx_set_put_bit(v17_rx_state_t *s, put_bit_func_t put_bit, void *user_data);
 
 /*! Process a block of received V.17 modem audio samples.
@@ -348,11 +361,14 @@ void v17_rx(v17_rx_state_t *s, const int16_t *amp, int len);
     \return The number of coefficients in the vector. */
 int v17_rx_equalizer_state(v17_rx_state_t *s, complex_t **coeffs);
 
-/*! Get a current received carrier frequency.
+/*! Get the current received carrier frequency.
     \param s The modem context.
     \return The frequency, in Hertz. */
 float v17_rx_carrier_frequency(v17_rx_state_t *s);
 
+/*! Get the current symbol timing correction since startup.
+    \param s The modem context.
+    \return The correction. */
 float v17_rx_symbol_timing_correction(v17_rx_state_t *s);
 
 /*! Get a current received signal power.

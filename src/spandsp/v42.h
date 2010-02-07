@@ -23,21 +23,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.h,v 1.8 2005/06/04 11:31:49 steveu Exp $
+ * $Id: v42.h,v 1.12 2005/12/06 14:34:03 steveu Exp $
  */
 
-#if !defined(_V42_H_)
-#define _V42_H_
-
-/*! \page V42_page V.42 modem error correction
-\section V42_page_sec_1 What does it do?
+/*! \page v42_page V.42 modem error correction
+\section v42_page_sec_1 What does it do?
 The V.42 specification defines an error correcting protocol for PSTN modems, based on
 HDLC and LAP. This makes it similar to an X.25 link. A special variant of LAP, known
 as LAP-M, is defined in the V.42 specification. A means for modems to determine if the
 far modem supports V.42 is also defined.
 
-\section V42_page_sec_2 How does it work?
+\section v42_page_sec_2 How does it work?
 */
+
+#if !defined(_V42_H_)
+#define _V42_H_
 
 enum
 {
@@ -61,6 +61,9 @@ typedef struct lapm_frame_queue_s
     uint8_t frame[0];
 } lapm_frame_queue_t;
 
+/*!
+    LAP-M descriptor. This defines the working state for a single instance of LAP-M.
+*/
 typedef struct
 {
     int handle;
@@ -116,6 +119,9 @@ typedef struct
     logging_state_t logging;
 } lapm_state_t;
 
+/*!
+    V.42 descriptor. This defines the working state for a single instance of V.42.
+*/
 typedef struct
 {
     /*! TRUE if we are the calling party, otherwise FALSE */
@@ -165,6 +171,10 @@ void lapm_dump(lapm_state_t *s, const uint8_t *frame, int len, int showraw, int 
 */
 void lapm_receive(void *user_data, int ok, const uint8_t *buf, int len);
 
+/*! Transmit a LAP.M frame
+*/
+int lapm_tx(lapm_state_t *s, const void *buf, int len);
+
 /*! Transmit a LAP.M information frame
 */
 int lapm_tx_iframe(lapm_state_t *s, const void *buf, int len, int cr);
@@ -182,12 +192,22 @@ void v42_rx_bit(void *user_data, int bit);
 int v42_tx_bit(void *user_data);
 
 /*! Initialise a V.42 context.
+    \param s The V.42 context.
+    \param caller TRUE if caller mode, else answerer mode.
+    \param frame_handler A callback function to handle received frames of data.
+    \param user_data An opaque pointer passed to the frame handler routine.
 */
 void v42_init(v42_state_t *s, int caller, int detect, v42_frame_handler_t frame_handler, void *user_data);
 
 /*! Restart a V.42 context.
+    \param s The V.42 context.
 */
 void v42_restart(v42_state_t *s);
+
+/*! Release a V.42 context.
+    \param s The V.42 context.
+    \return 0 if OK */
+int v42_release(v42_state_t *s);
 
 #ifdef __cplusplus
 }

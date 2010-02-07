@@ -23,12 +23,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: alaw_ulaw.h,v 1.6 2005/01/18 14:05:48 steveu Exp $
+ * $Id: alaw_ulaw.h,v 1.13 2006/01/18 13:21:37 steveu Exp $
  */
 
 /*! \file */
 
-/*! \page ALaw_uLaw_page A-law and mu-law handling
+/*! \page alaw_ulaw_page A-law and mu-law handling
 Lookup tables for A-law and u-law look attractive, until you consider the impact
 on the CPU cache. If it causes a substantial area of your processor cache to get
 hit too often, cache sloshing will severely slow things down. The main reason
@@ -58,10 +58,8 @@ static __inline__ int top_bit(unsigned int bits)
 {
     int res;
 
-    __asm__ __volatile__(" bsrl %%eax,%%edx;"
-                         " jnz  1f;\n"
-                         " movl $-1,%%edx;\n"
-                         "1:\n"
+    __asm__ __volatile__(" movl $-1,%%edx;\n"
+                         " bsrl %%eax,%%edx;\n"
                          : "=d" (res)
                          : "a" (bits));
     return res;
@@ -72,10 +70,8 @@ static __inline__ int bottom_bit(unsigned int bits)
 {
     int res;
 
-    __asm__ __volatile__(" bsfl %%eax,%%edx;"
-                         " jnz  1f;\n"
-                         " movl $-1,%%edx;\n"
-                         "1:\n"
+    __asm__ __volatile__(" movl $-1,%%edx;\n"
+                         " bsfl %%eax,%%edx;\n"
                          : "=d" (res)
                          : "a" (bits));
     return res;
@@ -86,10 +82,8 @@ static __inline__ int top_bit(unsigned int bits)
 {
     int res;
 
-    __asm__ __volatile__(" bsrq %%rax,%%rdx;"
-                         " jnz  1f;\n"
-                         " movq $-1,%%rdx;\n"
-                         "1:\n"
+    __asm__ __volatile__(" movq $-1,%%rdx;\n"
+                         " bsrq %%rax,%%rdx;\n"
                          : "=d" (res)
                          : "a" (bits));
     return res;
@@ -100,10 +94,8 @@ static __inline__ int bottom_bit(unsigned int bits)
 {
     int res;
 
-    __asm__ __volatile__(" bsfq %%eax,%%edx;"
-                         " jnz  1f;\n"
-                         " movq $-1,%%rdx;\n"
-                         "1:\n"
+    __asm__ __volatile__(" movq $-1,%%rdx;\n"
+                         " bsfq %%eax,%%edx;\n"
                          : "=d" (res)
                          : "a" (bits));
     return res;
@@ -219,45 +211,28 @@ static __inline__ int bottom_bit(unsigned int bits)
  * John Wiley & Sons, pps 98-111 and 472-476.
  */
 
-#define ZEROTRAP                        /* turn on the trap as per the MIL-STD */
+//#define ZEROTRAP                      /* turn on the trap as per the MIL-STD */
 #define BIAS             0x84           /* Bias for linear code. */
 
-static inline uint8_t linear_to_ulaw(int16_t linear)
+static __inline__ uint8_t linear_to_ulaw(int linear)
 {
     uint8_t u_val;
     int mask;
     int seg;
-    int pcm_val;
-#if !defined(__i386__)
-    static short seg_end[8] =
-    {
-         0xFF, 0x1FF, 0x3FF, 0x7FF, 0xFFF, 0x1FFF, 0x3FFF, 0x7FFF
-    };
-#endif
 
-    pcm_val = linear;
     /* Get the sign and the magnitude of the value. */
-    if (pcm_val < 0)
+    if (linear < 0)
     {
-        pcm_val = BIAS - pcm_val;
+        linear = BIAS - linear;
         mask = 0x7F;
     }
     else
     {
-        pcm_val = BIAS + pcm_val;
+        linear = BIAS + linear;
         mask = 0xFF;
     }
 
-#if defined(__i386__)
-    seg = top_bit(pcm_val | 0xFF) - 7;
-#else
-    /* Convert the scaled magnitude to segment number. */
-    for (seg = 0;  seg < 8;  seg++)
-    {
-        if (pcm_val <= seg_end[seg])
-            break;
-    }
-#endif
+    seg = top_bit(linear | 0xFF) - 7;
 
     /*
      * Combine the sign, segment, quantization bits,
@@ -266,9 +241,9 @@ static inline uint8_t linear_to_ulaw(int16_t linear)
     if (seg >= 8)
         u_val = 0x7F ^ mask;
     else
-        u_val = ((seg << 4) | ((pcm_val >> (seg + 3)) & 0xF)) ^ mask;
+        u_val = ((seg << 4) | ((linear >> (seg + 3)) & 0xF)) ^ mask;
 #ifdef ZEROTRAP
-    /* optional CCITT trap */
+    /* optional ITU trap */
     if (u_val == 0)
         u_val = 0x02;
 #endif
@@ -276,7 +251,7 @@ static inline uint8_t linear_to_ulaw(int16_t linear)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int16_t ulaw_to_linear(uint8_t ulaw)
+static __inline__ int16_t ulaw_to_linear(uint8_t ulaw)
 {
     int t;
     
@@ -311,47 +286,41 @@ static inline int16_t ulaw_to_linear(uint8_t ulaw)
 
 #define AMI_MASK        0x55
 
-static inline uint8_t linear_to_alaw(int16_t linear)
+static __inline__ uint8_t linear_to_alaw(int linear)
 {
     int mask;
     int seg;
-    int pcm_val;
-#if !defined(__i386__)
-    static int seg_end[8] =
-    {
-         0xFF, 0x1FF, 0x3FF, 0x7FF, 0xFFF, 0x1FFF, 0x3FFF, 0x7FFF
-    };
-#endif
     
-    pcm_val = linear;
-    if (pcm_val >= 0)
+    if (linear >= 0)
     {
         /* Sign (7th) bit = 1 */
         mask = AMI_MASK | 0x80;
     }
     else
     {
-        /* Sign bit = 0 */
+        /* Sign (7th) bit = 0 */
         mask = AMI_MASK;
-        pcm_val = -pcm_val;
+        linear = -linear - 8;
     }
 
     /* Convert the scaled magnitude to segment number. */
-#if defined(__i386__)
-    seg = top_bit(pcm_val | 0xFF) - 7;
-#else
-    for (seg = 0;  seg < 8;  seg++)
+    seg = top_bit(linear | 0xFF) - 7;
+    if (seg >= 8)
     {
-        if (pcm_val <= seg_end[seg])
-            break;
+        if (linear >= 0)
+        {
+            /* Out of range. Return maximum value. */
+            return (0x7F ^ mask);
+        }
+        /* We must be just a tiny step below zero */
+        return (0x00 ^ mask);
     }
-#endif
     /* Combine the sign, segment, and quantization bits. */
-    return  ((seg << 4) | ((pcm_val >> ((seg)  ?  (seg + 3)  :  4)) & 0x0F)) ^ mask;
+    return  ((seg << 4) | ((linear >> ((seg)  ?  (seg + 3)  :  4)) & 0x0F)) ^ mask;
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int16_t alaw_to_linear(uint8_t alaw)
+static __inline__ int16_t alaw_to_linear(uint8_t alaw)
 {
     int i;
     int seg;
@@ -360,8 +329,10 @@ static inline int16_t alaw_to_linear(uint8_t alaw)
     i = ((alaw & 0x0F) << 4);
     seg = (((int) alaw & 0x70) >> 4);
     if (seg)
-        i = (i + 0x100) << (seg - 1);
-    return (short int) ((alaw & 0x80)  ?  i  :  -i);
+        i = (i + 0x108) << (seg - 1);
+    else
+        i += 8;
+    return (int16_t) ((alaw & 0x80)  ?  i  :  -i);
 }
 /*- End of function --------------------------------------------------------*/
 

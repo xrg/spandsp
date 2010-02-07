@@ -23,10 +23,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule.h,v 1.2 2004/12/31 15:23:01 steveu Exp $
+ * $Id: schedule.h,v 1.4 2005/12/29 12:46:20 steveu Exp $
  */
 
 /*! \file */
+
+/*! \page schedule_page Scheduling
+\section schedule_page_sec_1 What does it do?
+???.
+
+\section schedule_page_sec_2 How does it work?
+???.
+*/
 
 #if !defined(_SCHEDULE_H_)
 #define _SCHEDULE_H_
@@ -62,7 +70,8 @@ int sp_schedule_event(sp_sched_state_t *s, int ms, void (*function)(sp_sched_sta
 void sp_schedule_update(sp_sched_state_t *s, int samples);
 void sp_schedule_del(sp_sched_state_t *s, int id);
 
-void sp_schedule_init(sp_sched_state_t *s);
+sp_sched_state_t *sp_schedule_init(sp_sched_state_t *s);
+int sp_schedule_release(sp_sched_state_t *s);
 
 #ifdef __cplusplus
 }

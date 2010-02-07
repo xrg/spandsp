@@ -23,17 +23,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis.h,v 1.3 2005/06/10 16:03:12 steveu Exp $
+ * $Id: v42bis.h,v 1.10 2006/01/27 14:29:09 steveu Exp $
  */
+
+/*! \page v42bis_page V.42bis modem data compression
+\section v42bis_page_sec_1 What does it do?
+The v.42bis specification defines a data compression scheme, to work in
+conjunction with the error correction scheme defined in V.42.
+
+\section v42bis_page_sec_2 How does it work?
+*/
 
 #if !defined(_V42BIS_H_)
 #define _V42BIS_H_
-
-/*! \page V42bis_page V.42bis modem data compression
-\section V42bis_page_sec_1 What does it do?
-
-\section V42bis_page_sec_2 How does it work?
-*/
 
 #define V42BIS_MAX_BITS         12
 #define V42BIS_MAX_CODEWORDS    4096    /* 2^V42BIS_MAX_BITS */
@@ -53,67 +55,94 @@ typedef void (*v42bis_data_handler_t)(void *user_data, const uint8_t *buf, int l
 
 typedef struct
 {
+    /*! \brief Callback function to handle received frames. */
+    v42bis_frame_handler_t handler;
+    /*! \brief An opaque pointer passed in calls to frame_handler. */
+    void *user_data;
+    /*! \brief The maximum frame length allowed */
+    int max_len;
+
+    uint32_t string_code;
+    int string_length;
+    uint32_t output_bit_buffer;
+    int output_bit_count;
+    int output_octet_count;
+    uint8_t output_buf[1024];
+    /*! \brief The code hash table. */
+    uint16_t code[V42BIS_TABLE_SIZE];
+    /*! \brief The prior code for each defined code. */
+    uint16_t prior_code[V42BIS_MAX_CODEWORDS];
+    /*! \brief The number of leaf nodes this node has */
+    int16_t leaves[V42BIS_MAX_CODEWORDS];
+    /*! \brief This leaf octet for each defined code. */
+    uint8_t node_octet[V42BIS_MAX_CODEWORDS];
+    /*! \brief TRUE if we are in transparent (i.e. uncompressable) mode */
+    int transparent;
+    int compressibility_filter;
+
+    /*! \brief Next empty dictionary entry */
+    uint32_t v42bis_parm_c1;
+    /*! \brief Current codeword size */
+    int v42bis_parm_c2;
+    /*! \brief Threshold for codeword size change */
+    uint32_t v42bis_parm_c3;
+
+    /*! \brief Mark that this is the first octet/code to be processed */
+    int first;
+    uint8_t escape_code;
+} v42bis_compress_state_t;
+
+typedef struct
+{
+    /*! \brief Callback function to handle decompressed data. */
+    v42bis_data_handler_t handler;
+    /*! \brief An opaque pointer passed in calls to data_handler. */
+    void *user_data;
+    /*! \brief The maximum decompressed data block length allowed */
+    int max_len;
+
+    uint32_t old_code;
+    uint32_t input_bit_buffer;
+    int input_bit_count;
+    int octet;
+    int last_length;
+    int output_octet_count;
+    uint8_t output_buf[1024];
+    /*! \brief The prior code for each defined code. */
+    uint16_t prior_code[V42BIS_MAX_CODEWORDS];
+    /*! \brief The number of leaf nodes this node has */
+    int16_t leaves[V42BIS_MAX_CODEWORDS];
+    /*! \brief This leaf octet for each defined code. */
+    uint8_t node_octet[V42BIS_MAX_CODEWORDS];
+    /*! \brief This buffer holds the decoded string */
+    uint8_t decode_buf[V42BIS_MAX_STRING_SIZE];
+    /*! \brief TRUE if we are in transparent (i.e. uncompressable) mode */
+    int transparent;
+
+    /*! \brief Next empty dictionary entry */
+    int v42bis_parm_c1;
+    /*! \brief Current codeword size */
+    int v42bis_parm_c2;
+    /*! \brief Threshold for codeword size change */
+    int v42bis_parm_c3;
+        
+    /*! \brief Mark that this is the first octet/code to be processed */
+    int first;
+    uint8_t escape_code;
+    int escaped;
+} v42bis_decompress_state_t;
+
+/*!
+    V.42bis compression/decompression descriptor. This defines the working state for a
+    single instance of V.42bis compress/decompression.
+*/
+typedef struct
+{
     /*! \brief V.42bis data compression directions. */
     int v42bis_parm_p0;
 
-    v42bis_frame_handler_t frame_handler;
-    void *frame_user_data;
-
-    v42bis_data_handler_t data_handler;
-    void *data_user_data;
-
-    struct
-    {
-        uint32_t string_code;
-        int string_length;
-        uint32_t output_bit_buffer;
-        int output_bit_count;
-        /*! \brief The code hash table. */
-        uint16_t code[V42BIS_TABLE_SIZE];
-        /*! \brief The prior code for each defined code. */
-        uint16_t prior_code[V42BIS_MAX_CODEWORDS];
-        /*! \brief This leaf octet for each defined code. */
-        uint8_t node_octet[V42BIS_MAX_CODEWORDS];
-        /*! \brief TRUE if we are in transparent (i.e. uncompressable) mode */
-        int transparent;
-
-        /*! \brief Next empty dictionary entry */
-        uint32_t v42bis_parm_c1;
-        /*! \brief Current codeword size */
-        int v42bis_parm_c2;
-        /*! \brief Threshold for codeword size change */
-        uint32_t v42bis_parm_c3;
-
-        /*! \brief Mark that this is the first octet/code to be processed */
-        int first;
-        uint8_t escape_code;
-    } compress;
-    struct
-    {
-        uint32_t old_code;
-        uint32_t input_bit_buffer;
-        int input_bit_count;
-        int octet;
-        /*! \brief The prior code for each defined code. */
-        uint16_t prior_code[V42BIS_MAX_CODEWORDS];
-        /*! \brief This leaf octet for each defined code. */
-        uint8_t node_octet[V42BIS_MAX_CODEWORDS];
-        /*! \brief This buffer holds the decoded string */
-        uint8_t decode_buf[V42BIS_MAX_STRING_SIZE];
-        /*! \brief TRUE if we are in transparent (i.e. uncompressable) mode */
-        int transparent;
-
-        /*! \brief Next empty dictionary entry */
-        int v42bis_parm_c1;
-        /*! \brief Current codeword size */
-        int v42bis_parm_c2;
-        /*! \brief Threshold for codeword size change */
-        int v42bis_parm_c3;
-        
-        /*! \brief Mark that this is the first octet/code to be processed */
-        int first;
-        uint8_t escape_code;
-    } decompress;
+    v42bis_compress_state_t compress;
+    v42bis_decompress_state_t decompress;
     
     /*! \brief Maximum codeword size (bits) */
     int v42bis_parm_n1;
@@ -127,19 +156,57 @@ typedef struct
 extern "C" {
 #endif
 
+/*! Compress a block of octets.
+    \param s The V.42bis context.
+    \param buf The data to be compressed.
+    \param len The length of the data buffer.
+    \return 0 */
 int v42bis_compress(v42bis_state_t *s, const uint8_t *buf, int len);
-int v42bis_flush(v42bis_state_t *s);
 
+/*! Flush out any data remaining in a compression buffer.
+    \param s The V.42bis context.
+    \return 0 */
+int v42bis_compress_flush(v42bis_state_t *s);
+
+/*! Decompress a block of octets.
+    \param s The V.42bis context.
+    \param buf The data to be decompressed.
+    \param len The length of the data buffer.
+    \return 0 */
 int v42bis_decompress(v42bis_state_t *s, const uint8_t *buf, int len);
+    
+/*! Flush out any data remaining in the decompression buffer.
+    \param s The V.42bis context.
+    \return 0 */
+int v42bis_decompress_flush(v42bis_state_t *s);
 
-int v42bis_init(v42bis_state_t *s,
-                int negotiated_p0,
-                int negotiated_p1,
-                int negotiated_p2,
-                v42bis_frame_handler_t frame_handler,
-                void *frame_user_data,
-                v42bis_data_handler_t data_handler,
-                void *data_user_data);
+/*! Initialise a V.42bis context.
+    \param s The V.42bis context.
+    \param negotiated_p0 The negotiated P0 parameter, from the V.42bis spec.
+    \param negotiated_p1 The negotiated P1 parameter, from the V.42bis spec.
+    \param negotiated_p2 The negotiated P2 parameter, from the V.42bis spec.
+    \param frame_handler .
+    \param frame_user_data .
+    \param max_frame_len The maximum length that should be passed to the frame handler.
+    \param data_handler .
+    \param data_user_data .
+    \param max_data_len The maximum length that should be passed to the data handler.
+    \return The V.42bis context. */
+v42bis_state_t *v42bis_init(v42bis_state_t *s,
+                            int negotiated_p0,
+                            int negotiated_p1,
+                            int negotiated_p2,
+                            v42bis_frame_handler_t frame_handler,
+                            void *frame_user_data,
+                            int max_frame_len,
+                            v42bis_data_handler_t data_handler,
+                            void *data_user_data,
+                            int max_data_len);
+
+/*! Release a V.42bis context.
+    \param s The V.42bis context.
+    \return 0 if OK */
+int v42bis_release(v42bis_state_t *s);
 
 #ifdef __cplusplus
 }

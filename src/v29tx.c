@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.c,v 1.25 2005/09/28 17:11:49 steveu Exp $
+ * $Id: v29tx.c,v 1.34 2005/12/06 14:34:03 steveu Exp $
  */
 
 /*! \file */
@@ -36,10 +36,11 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+#include <tgmath.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
+#include "spandsp/async.h"
 #include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/power_meter.h"
@@ -173,8 +174,8 @@ static complex_t getbaud(v29_tx_state_t *s)
             s->in_training = FALSE;
         }
     }
-    /* 9600bps uses the full constellation
-       7200bps uses the first half only (i.e no amplitude modulation)
+    /* 9600bps uses the full constellation.
+       7200bps uses only the first half of the full constellation.
        4800bps uses the smaller constellation. */
     amp = 0;
     /* We only use an amplitude bit at 9600bps */
@@ -208,26 +209,27 @@ int v29_tx(v29_tx_state_t *s, int16_t *amp, int len)
        simulation - minimise the variance between a 3 times oversampled approach
        and the weighted approach. */
     static const float weights[4] = {0.0, 0.68, 0.32, 0.0};
-#define PULSESHAPER_GAIN        3.335
+    /* Raised root cosine pulse shaping; Beta = 0.25; 4 symbols either
+       side of the centre. Only one side of the filter is here, as the
+       other half is just a mirror image. */
+    /* Created with mkshape -r 0.15 0.25 27 -l */
+#define PULSESHAPER_GAIN        3.3228378059e+00
     static const float pulseshaper[] =
     {
-        /* Raised root cosine pulse shaping; Beta = 0.5; 4 symbols either
-           side of the centre. Only one side of the filter is here, as the
-           other half is just a mirror image. */
-        -0.0092658380,
-        +0.0048917854,
-        +0.0167934357,
-        +0.0030315309,
-        -0.0185987362,
-        -0.0053888117,
-        +0.0355135142,
-        +0.0267182228,
-        -0.0750263963,
-        -0.1612000030,
-        -0.0269213894,
-        +0.4006012745,
-        +0.9082627339,
-        +1.1366197172
+         1.9357009515e-02,
+        -5.9810032110e-03,
+        -3.9460620247e-02,
+        -3.7515142524e-02,
+         1.7896477926e-02,
+         8.3252211468e-02,
+         7.8945341508e-02,
+        -3.0142376919e-02,
+        -1.7030019557e-01,
+        -1.8629387050e-01,
+         3.9369836860e-02,
+         4.6704236727e-01,
+         8.9109531202e-01,
+         1.0683071107e+00
     };
 
     if (s->training_step >= V29_TRAINING_SHUTDOWN_END)
@@ -268,7 +270,8 @@ int v29_tx(v29_tx_state_t *s, int16_t *amp, int len)
         }
         /* Now create and modulate the carrier */
         z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
-        amp[sample] = (int16_t) ((x.re*z.re + x.im*z.im)*s->gain);
+        /* Don't bother saturating. We should never clip. */
+        amp[sample] = rint((x.re*z.re + x.im*z.im)*s->gain);
     }
     return sample;
 }
@@ -316,7 +319,7 @@ int v29_tx_restart(v29_tx_state_t *s, int rate, int tep)
     s->scramble_reg = 0;
     s->training_scramble_reg = 0x2A;
     s->in_training = TRUE;
-    s->tep_step = (tep) ?  V29_TRAINING_TEP_LEN  :  0;
+    s->tep_step = (tep)  ?  V29_TRAINING_TEP_LEN  :  0;
     s->training_step = 0;
     s->carrier_phase = 0;
     s->baud_phase = 0;
@@ -326,14 +329,27 @@ int v29_tx_restart(v29_tx_state_t *s, int rate, int tep)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v29_tx_init(v29_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data)
+v29_tx_state_t *v29_tx_init(v29_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data)
 {
+    if (s == NULL)
+    {
+        if ((s = (v29_tx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, 0, sizeof(*s));
     s->get_bit = get_bit;
     s->user_data = user_data;
     s->carrier_phase_rate = dds_phase_stepf(1700.0);
     v29_tx_power(s, -10.0);
     v29_tx_restart(s, rate, tep);
+    return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int v29_tx_release(v29_tx_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

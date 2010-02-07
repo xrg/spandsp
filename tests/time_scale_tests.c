@@ -23,15 +23,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale_tests.c,v 1.5 2005/09/01 17:06:45 steveu Exp $
+ * $Id: time_scale_tests.c,v 1.9 2006/01/11 08:06:10 steveu Exp $
  */
 
 /*! \page time_scale_tests_page Time scaling tests
 \section time_scale_tests_page_sec_1 What does it do?
+These tests run a speech file through the time scaling routines.
+
+\section time_scale_tests_page_sec_2 How are the tests run?
+These tests process a speech file called pre_time_scale.wav. This file should contain
+8000 sample/second 16 bits/sample linear audio. The tests read this file, change the
+time scale of its contents, and write the resulting audio to post_time_scale.wav.
+This file also contains 8000 sample/second 16 bits/sample linear audio.
 */
 
-//#define _ISOC9X_SOURCE  1
-//#define _ISOC99_SOURCE  1
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -65,20 +73,28 @@ int main(int argc, char *argv[])
     int16_t in[160];
     int16_t out[5*160];
     
-    inhandle = afOpenFile(IN_FILE_NAME, "r", 0);
-    if (inhandle == AF_NULL_FILEHANDLE)
+    if ((inhandle = afOpenFile(IN_FILE_NAME, "r", 0)) == AF_NULL_FILEHANDLE)
     {
         printf("    Cannot open wave file '%s'\n", IN_FILE_NAME);
         exit(2);
     }
-    x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1);
-    if (x != 2.0)
+    if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
     {
         printf("    Unexpected frame size in wave file '%s'\n", IN_FILE_NAME);
         exit(2);
     }
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
+    if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
+    {
+        printf("    Unexpected sample rate in wave file '%s'\n", IN_FILE_NAME);
+        exit(2);
+    }
+    if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
+    {
+        printf("    Unexpected number of channels in wave file '%s'\n", IN_FILE_NAME);
+        exit(2);
+    }
+
+    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
     {
         fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
@@ -87,9 +103,7 @@ int main(int argc, char *argv[])
     afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
-
-    outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
@@ -131,6 +145,7 @@ int main(int argc, char *argv[])
         printf("    Cannot close wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
+    afFreeFileSetup(filesetup);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

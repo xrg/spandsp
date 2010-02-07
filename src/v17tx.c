@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.c,v 1.13 2005/08/31 19:27:53 steveu Exp $
+ * $Id: v17tx.c,v 1.24 2005/12/25 15:08:36 steveu Exp $
  */
 
 /*! \file */
@@ -42,6 +42,7 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
+#include "spandsp/async.h"
 #include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/power_meter.h"
@@ -346,10 +347,13 @@ static __inline__ complex_t training_get(v17_tx_state_t *s)
         1, 0, 2, 3
     };
     int bits;
+    int shift;
 
     /* V.17 training sequence */
     if (s->tep_step)
     {
+        /* We are in the optional TEP segment - a timed burst of unmodulated carrier followed
+           by a timed period of silence. */
         s->tep_step--;
         if (s->tep_step < V17_TRAINING_TEP_SEG_2)
             return complex_set(0.0, 0.0);
@@ -367,8 +371,7 @@ static __inline__ complex_t training_get(v17_tx_state_t *s)
         /* Apply the scrambler */
         bits = scramble(s, 1);
         bits = (bits << 1) | scramble(s, 1);
-        bits = cdba_to_abcd[bits];
-        s->constellation_state = bits;
+        s->constellation_state = cdba_to_abcd[bits];
         if (s->short_train  &&  s->training_step == V17_TRAINING_SHORT_SEG_4)
         {
             /* Go straight to the ones test. */
@@ -377,8 +380,10 @@ static __inline__ complex_t training_get(v17_tx_state_t *s)
         return abcd[s->constellation_state];
     }
     /* Segment 3: Bridge... */
-    bits = scramble(s, V17_BRIDGE_WORD >> (((s->training_step - V17_TRAINING_SEG_3 - 1) & 0x7) << 1));
-    bits = (bits << 1) | scramble(s, V17_BRIDGE_WORD >> ((((s->training_step - V17_TRAINING_SEG_3 - 1) & 0x7) << 1) + 1));
+    shift = ((s->training_step - V17_TRAINING_SEG_3 - 1) & 0x7) << 1;
+    span_log(&s->logging, SPAN_LOG_FLOW, "Seg 3 shift %d\n", shift);
+    bits = scramble(s, V17_BRIDGE_WORD >> shift);
+    bits = (bits << 1) | scramble(s, V17_BRIDGE_WORD >> (shift + 1));
     s->constellation_state = (s->constellation_state + dibit_to_step[bits]) & 3;
     return abcd[s->constellation_state];
 }
@@ -456,8 +461,7 @@ static complex_t getbaud(v17_tx_state_t *s)
         }
         bits |= (scramble(s, bit) << i);
     }
-    s->constellation_state = diff_and_convolutional_encode(s, bits);
-    return s->constellation[s->constellation_state];
+    return s->constellation[diff_and_convolutional_encode(s, bits)];
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -472,26 +476,27 @@ int v17_tx(v17_tx_state_t *s, int16_t *amp, int len)
        simulation - minimise the variance between a 3 times oversampled approach
        and the weighted approach. */
     static const float weights[4] = {0.0, 0.68, 0.32, 0.0};
-#define PULSESHAPER_GAIN        3.335
+    /* Raised root cosine pulse shaping; Beta = 0.25; 4 symbols either
+       side of the centre. Only one side of the filter is here, as the
+       other half is just a mirror image. */
+    /* Created with mkshape -r 0.15 0.25 27 -l */
+#define PULSESHAPER_GAIN        3.3228378059e+00
     static const float pulseshaper[] =
     {
-        /* Raised root cosine pulse shaping; Beta = 0.5; 4 symbols either
-           side of the centre. Only one side of the filter is here, as the
-           other half is just a mirror image. */
-        -0.0092658380,
-        +0.0048917854,
-        +0.0167934357,
-        +0.0030315309,
-        -0.0185987362,
-        -0.0053888117,
-        +0.0355135142,
-        +0.0267182228,
-        -0.0750263963,
-        -0.1612000030,
-        -0.0269213894,
-        +0.4006012745,
-        +0.9082627339,
-        +1.1366197172
+         1.9357009515e-02,
+        -5.9810032110e-03,
+        -3.9460620247e-02,
+        -3.7515142524e-02,
+         1.7896477926e-02,
+         8.3252211468e-02,
+         7.8945341508e-02,
+        -3.0142376919e-02,
+        -1.7030019557e-01,
+        -1.8629387050e-01,
+         3.9369836860e-02,
+         4.6704236727e-01,
+         8.9109531202e-01,
+         1.0683071107e+00
     };
 
     if (s->shutdown > 80)
@@ -529,7 +534,8 @@ int v17_tx(v17_tx_state_t *s, int16_t *amp, int len)
         }
         /* Now create and modulate the carrier */
         z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
-        amp[sample] = (int16_t) ((x.re*z.re + x.im*z.im)*s->gain);
+        /* Don't bother saturating. We should never clip. */
+        amp[sample] = (int16_t) lrintf((x.re*z.re + x.im*z.im)*s->gain);
     }
     return sample;
 }
@@ -582,10 +588,11 @@ int v17_tx_restart(v17_tx_state_t *s, int rate, int tep, int short_train)
     if (short_train)
     {
         s->diff = 0;
+        /* Reuse the previous phase rate */
     }
     else
     {
-        s->diff = 1;
+        s->diff = 1; /* some modems seem to use 3 here */
         s->carrier_phase_rate = dds_phase_stepf(1800.0);
     }
     s->bit_rate = rate;
@@ -607,13 +614,26 @@ int v17_tx_restart(v17_tx_state_t *s, int rate, int tep, int short_train)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v17_tx_init(v17_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data)
+v17_tx_state_t *v17_tx_init(v17_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data)
 {
+    if (s == NULL)
+    {
+        if ((s = (v17_tx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, 0, sizeof(*s));
     s->get_bit = get_bit;
     s->user_data = user_data;
     v17_tx_power(s, -12.0);
     v17_tx_restart(s, rate, tep, FALSE);
+    return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int v17_tx_release(v17_tx_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

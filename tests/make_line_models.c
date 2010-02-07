@@ -23,15 +23,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: make_line_models.c,v 1.8 2005/09/01 17:06:45 steveu Exp $
+ * $Id: make_line_models.c,v 1.12 2005/11/28 13:43:35 steveu Exp $
  */
+
+/*! \page make_line_models_page Telephony line model construction
+\section make_line_models_page_sec_1 What does it do?
+???.
+
+\section make_line_models_page_sec_2 How does it work?
+???.
+*/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
-//#define _ISOC9X_SOURCE  1
-//#define _ISOC99_SOURCE  1
 
 #include <inttypes.h>
 #include <string.h>
@@ -47,19 +52,8 @@
 
 #include "spandsp.h"
 
-#if defined(HAVE_FFTW3_H)
-/* Compatibility fiddle factor between FFTW2 and FFTW3 */
-typedef union
-{
-    struct
-    {
-        double re;
-        double im;
-    };
-    double fftw[2];
-} fftwx_complex;
-#else
-typedef fftw_complex fftwx_complex;
+#if !defined(M_PI)
+# define M_PI           3.14159265358979323846  /* pi */
 #endif
 
 #define SAMPLE_RATE         8000
@@ -611,7 +605,8 @@ struct
     {3600,   3.0,    6.6,   12.1,   13.9,    7.8,   15.5},
     {3700,   5.7,    8.9,   15.8,   17.3,   10.3,   20.5},
     {3800,  13.5,   15.7,   24.4,   25.7,   16.2,   32.4},
-    {3900,  31.2,   31.1,   42.2,   43.3,   29.9,   59.9}
+    {3900,  31.2,   31.1,   42.2,   43.3,   29.9,   59.9},
+    {4000,  31.2,   31.1,   42.2,   43.3,   29.9,   59.9}
 };
 
 /* V.56bis EDD-1 EDD-2 EDD-3 */
@@ -656,7 +651,12 @@ struct
     {3200,    0.83,    1.78,    3.20},
     {3300,    1.07,    1.78,    4.00},
     {3400,    1.39,    1.78,    4.00},
-    {3500,    1.39,    1.78,    4.00}
+    {3500,    1.39,    1.78,    4.00},
+    {3600,    1.39,    1.78,    4.00},
+    {3700,    1.39,    1.78,    4.00},
+    {3800,    1.39,    1.78,    4.00},
+    {3900,    1.39,    1.78,    4.00},
+    {4000,    1.39,    1.78,    4.00}
 };
 
 /* V.56bis PCM AD-1, AD-2, AD-3 */
@@ -712,7 +712,8 @@ struct
     {3750,    18.1,    32.1,    46.2},
     {3800,    24.3,    41.2,    58.2},
     {3850,    32.5,    52.6,    72.7},
-    {3900,    43.4,    66.6,    89.8}
+    {3900,    43.4,    66.6,    89.8},
+    {4000,    43.4,    66.6,    89.8}
 };
 
 /* V.56bis PCM EDD-1, EDD-2, EDD-3 */
@@ -763,7 +764,11 @@ struct
     {3450,    0.79,    1.6,    2.4},
     {3500,    0.83,    1.7,    2.5},
     {3550,    0.84,    1.7,    2.5},
-    {3600,    0.81,    1.6,    2.4}
+    {3600,    0.81,    1.6,    2.4},
+    {3700,    0.81,    1.6,    2.4},
+    {3800,    0.81,    1.6,    2.4},
+    {3900,    0.81,    1.6,    2.4},
+    {4000,    0.81,    1.6,    2.4}
 };
 
 FILE *outfile;
@@ -777,8 +782,13 @@ void generate_ad_edd(void)
     float delay;
     float pw;
     int index;
-    fftwx_complex in[FFT_SIZE];
-    fftwx_complex out[FFT_SIZE];
+#if defined(HAVE_FFTW3_H)
+    double in[FFT_SIZE][2];
+    double out[FFT_SIZE][2];
+#else
+    fftw_complex in[FFT_SIZE];
+    fftw_complex out[FFT_SIZE];
+#endif
     fftw_plan p;
     int i;
     int j;
@@ -786,7 +796,7 @@ void generate_ad_edd(void)
     int l;
 
 #if defined(HAVE_FFTW3_H)
-    p = fftw_plan_dft_1d(FFT_SIZE, &(in[0].fftw), &(out[0].fftw), FFTW_BACKWARD, FFTW_ESTIMATE);
+    p = fftw_plan_dft_1d(FFT_SIZE, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
 #else
     p = fftw_create_plan(FFT_SIZE, FFTW_BACKWARD, FFTW_ESTIMATE);
 #endif
@@ -796,8 +806,13 @@ void generate_ad_edd(void)
         {
             for (i = 0;  i < FFT_SIZE;  i++)
             {
+#if defined(HAVE_FFTW3_H)
+                in[i][0] =
+                in[i][1] = 0.0;
+#else
                 in[i].re =
                 in[i].im = 0.0;
+#endif
             }
             for (i = 1;  i < FFT_SIZE/2;  i++)
             {
@@ -827,19 +842,21 @@ void generate_ad_edd(void)
                 }
                 phase = 2.0*M_PI*f*delay*0.001;
     
+#if defined(HAVE_FFTW3_H)    
+                in[i][0] = amp*cos(phase);
+                in[i][1] = amp*sin(phase);
+                in[FFT_SIZE - i][0] = in[i][0];
+                in[FFT_SIZE - i][1] = -in[i][1];
+#else
                 in[i].re = amp*cos(phase);
                 in[i].im = amp*sin(phase);
                 in[FFT_SIZE - i].re = in[i].re;
                 in[FFT_SIZE - i].im = -in[i].im;
+#endif
             }
-
 #if 0
             for (i = 0;  i < FFT_SIZE;  i++)
-            {
-                fprintf(outfile, "%15.5f,%15.5f\n", in[l].re, in[l].im);
-                if (++l == FFT_SIZE)
-                    l = 0;
-            }
+                fprintf(outfile, "%5d %15.5f,%15.5f\n", i, in[i].re, in[i].im);
 #endif
 #if defined(HAVE_FFTW3_H)    
             fftw_execute(p);
@@ -856,7 +873,11 @@ void generate_ad_edd(void)
             l = FFT_SIZE - (LINE_FILTER_SIZE - 1)/2;
             for (i = 0;  i < LINE_FILTER_SIZE;  i++)
             {
+#if defined(HAVE_FFTW3_H)
+                pw += out[l][0]*out[l][0];
+#else
                 pw += out[l].re*out[l].re;
+#endif
                 if (++l == FFT_SIZE)
                     l = 0;
             }
@@ -864,7 +885,11 @@ void generate_ad_edd(void)
             l = FFT_SIZE - (LINE_FILTER_SIZE - 1)/2;
             for (i = 0;  i < LINE_FILTER_SIZE;  i++)
             {
+#if defined(HAVE_FFTW3_H)
+                fprintf(outfile, "%15.5f,\n", out[l][0]/pw);
+#else
                 fprintf(outfile, "%15.5f,\n", out[l].re/pw);
+#endif
                 if (++l == FFT_SIZE)
                     l = 0;
             }
@@ -885,19 +910,29 @@ void generate_proakis(void)
     int index;
     int i;
     int l;
-    fftwx_complex in[FFT_SIZE];
-    fftwx_complex out[FFT_SIZE];
+#if defined(HAVE_FFTW3_H)
+    double in[FFT_SIZE][2];
+    double out[FFT_SIZE][2];
+#else
+    fftw_complex in[FFT_SIZE];
+    fftw_complex out[FFT_SIZE];
+#endif
     fftw_plan p;
 
 #if defined(HAVE_FFTW3_H)
-    p = fftw_plan_dft_1d(FFT_SIZE, &(in[0].fftw), &(out[0].fftw), FFTW_BACKWARD, FFTW_ESTIMATE);
+    p = fftw_plan_dft_1d(FFT_SIZE, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
 #else
     p = fftw_create_plan(FFT_SIZE, FFTW_BACKWARD, FFTW_ESTIMATE);
 #endif
     for (i = 0;  i < FFT_SIZE;  i++)
     {
+#if defined(HAVE_FFTW3_H)
+        in[i][0] =
+        in[i][1] = 0.0;
+#else
         in[i].re =
         in[i].im = 0.0;
+#endif
     }
     for (i = 1;  i < FFT_SIZE/2;  i++)
     {
@@ -911,10 +946,17 @@ void generate_proakis(void)
         delay = (1.0 - offset)*proakis[index].delay + offset*proakis[index + 1].delay;
         phase = 2.0*M_PI*f*delay*0.001;
 
-        in[i].re = amp*cos(phase);
-        in[i].im = amp*sin(phase);
+#if defined(HAVE_FFTW3_H)
+        in[i][0] = amp*cos(phase);
+        in[i][1] = amp*sin(phase);
+        in[FFT_SIZE - i][0] = in[i][0];
+        in[FFT_SIZE - i][1] = -in[i][1];
+#else
+        in[i].re = amp;//*cos(phase);
+        in[i].im = amp;//*sin(phase);
         in[FFT_SIZE - i].re = in[i].re;
         in[FFT_SIZE - i].im = -in[i].im;
+#endif
     }
 
 #if defined(HAVE_FFTW3_H)
@@ -933,7 +975,11 @@ void generate_proakis(void)
     l = FFT_SIZE - (LINE_FILTER_SIZE - 1)/2;
     for (i = 0;  i < LINE_FILTER_SIZE;  i++)
     {
+#if defined(HAVE_FFTW3_H)
+        pw += out[l][0]*out[l][0];
+#else
         pw += out[l].re*out[l].re;
+#endif
         if (++l == FFT_SIZE)
             l = 0;
     }
@@ -941,7 +987,11 @@ void generate_proakis(void)
     l = FFT_SIZE - (LINE_FILTER_SIZE - 1)/2;
     for (i = 0;  i < LINE_FILTER_SIZE;  i++)
     {
+#if defined(HAVE_FFTW3_H)
+        fprintf(outfile, "%15.5f,\n", out[l][0]/pw);
+#else
         fprintf(outfile, "%15.5f,\n", out[l].re/pw);
+#endif
         if (++l == FFT_SIZE)
             l = 0;
     }

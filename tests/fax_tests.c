@@ -68,7 +68,7 @@ void phase_d_handler(t30_state_t *s, void *user_data, int result)
 
     i = (intptr_t) user_data;
     printf("Phase D handler on channel %d - 0x%X\n", i, result);
-    fax_get_transfer_statistics(s, &t);
+    t30_get_transfer_statistics(s, &t);
     printf("Phase D: bit rate %d\n", t.bit_rate);
     printf("Phase D: pages transferred %d\n", t.pages_transferred);
     printf("Phase D: image size %d x %d\n", t.columns, t.rows);
@@ -77,9 +77,9 @@ void phase_d_handler(t30_state_t *s, void *user_data, int result)
     printf("Phase D: longest bad row run %d\n", t.longest_bad_row_run);
     printf("Phase D: compression type %d\n", t.encoding);
     printf("Phase D: image size %d\n", t.image_size);
-    fax_get_local_ident(s, ident);
+    t30_get_local_ident(s, ident);
     printf("Phase D: local ident '%s'\n", ident);
-    fax_get_far_ident(s, ident);
+    t30_get_far_ident(s, ident);
     printf("Phase D: remote ident '%s'\n", ident);
 }
 /*- End of function --------------------------------------------------------*/
@@ -140,19 +140,19 @@ int main(int argc, char *argv[])
         i = mc->chan + 1;
         sprintf(buf, "%d%d%d%d%d%d%d%d", i, i, i, i, i, i, i, i);
         fax_init(&mc->fax, (mc->chan & 1)  ?  FALSE  :  TRUE, NULL);
-        fax_set_local_ident(&mc->fax, buf);
+        t30_set_local_ident(&mc->fax, buf);
         if ((mc->chan & 1))
         {
             sprintf(buf, "rx%d.tif", (mc->chan + 1)/2);
-            fax_set_rx_file(&mc->fax, buf);
+            t30_set_rx_file(&mc->fax, buf, -1);
         }
         else
         {
-            fax_set_tx_file(&mc->fax, "itutests.tif");
+            t30_set_tx_file(&mc->fax, "itutests.tif", -1, -1);
         }
-        fax_set_phase_b_handler(&mc->fax, phase_b_handler, (void *) (intptr_t) mc->chan);
-        fax_set_phase_d_handler(&mc->fax, phase_d_handler, (void *) (intptr_t) mc->chan);
-        fax_set_phase_e_handler(&mc->fax, phase_e_handler, (void *) (intptr_t) mc->chan);
+        t30_set_phase_b_handler(&mc->fax, phase_b_handler, (void *) (intptr_t) mc->chan);
+        t30_set_phase_d_handler(&mc->fax, phase_d_handler, (void *) (intptr_t) mc->chan);
+        t30_set_phase_e_handler(&mc->fax, phase_e_handler, (void *) (intptr_t) mc->chan);
         mc->fax.logging.level = SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW;
         memset(mc->amp, 0, sizeof(mc->amp));
     }
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
         {
             mc = &machines[j];
 
-            mc->len = fax_tx_process(&mc->fax, mc->amp, SAMPLES_PER_CHUNK);
+            mc->len = fax_tx(&mc->fax, mc->amp, SAMPLES_PER_CHUNK);
             /* The receive side always expects a full block of samples, but the
                transmit side may not be sending any when it doesn't need to. We
                may need to pad with some silence. */
@@ -178,9 +178,9 @@ int main(int argc, char *argv[])
 #endif
             if (machines[j ^ 1].len < SAMPLES_PER_CHUNK)
                 memset(machines[j ^ 1].amp + machines[j ^ 1].len, 0, sizeof(int16_t)*(SAMPLES_PER_CHUNK - machines[j ^ 1].len));
-            if (fax_rx_process(&mc->fax, machines[j ^ 1].amp, SAMPLES_PER_CHUNK))
+            if (fax_rx(&mc->fax, machines[j ^ 1].amp, SAMPLES_PER_CHUNK))
                 break;
-            //if (fax_rx_process(&mc->fax, silence, SAMPLES_PER_CHUNK))
+            //if (fax_rx(&mc->fax, silence, SAMPLES_PER_CHUNK))
             //    break;
         }
         if (j < MACHINES)

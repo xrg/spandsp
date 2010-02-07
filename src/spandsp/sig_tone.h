@@ -24,13 +24,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.h,v 1.3 2005/06/26 16:43:58 steveu Exp $
+ * $Id: sig_tone.h,v 1.5 2005/11/25 14:52:00 steveu Exp $
  */
 
 /*! \file */
-
-#if !defined(_SIG_TONE_H_)
-#define _SIG_TONE_H_
 
 /*! \page sig_tone_page The signaling tone processor
 \section sig_tone_sec_1 What does it do?
@@ -40,6 +37,9 @@ in many analogue signaling procotols, and digital ones derived from them.
 \section sig_tone_sec_2 How does it work?
 TBD
 */
+
+#if !defined(_SIG_TONE_H_)
+#define _SIG_TONE_H_
 
 typedef int (*sig_tone_func_t)(void *user_data, int what);
 
@@ -171,8 +171,8 @@ typedef struct
     \param tone_type The type of signaling tone.
     \param sig_update Callback function to handle signaling updates.
     \param user_data An opaque pointer.
-    \return 0 for OK, -1 for bad parameter */
-int sig_tone_init(sig_tone_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data);
+    \return A pointer to the signalling tone context, or NULL if there was a problem. */
+sig_tone_state_t *sig_tone_init(sig_tone_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data);
 
 /*! Process a block of received audio samples.
     \brief Process a block of received audio samples.

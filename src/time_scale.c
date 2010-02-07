@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.c,v 1.7 2005/08/31 19:27:52 steveu Exp $
+ * $Id: time_scale.c,v 1.8 2005/12/01 14:34:42 steveu Exp $
  */
 
 /*! \file */
@@ -41,9 +41,9 @@
 #include <time.h>
 #include <limits.h>
 #include <tgmath.h>
-#include <tiffio.h>
 
-#include "spandsp.h"
+#include "spandsp/telephony.h"
+#include "spandsp/time_scale.h"
 
 /*
     Time scaling for speech, based on the Pointer Interval Controlled

@@ -84,7 +84,7 @@ AC_HEADER_TIME
 
 # Check for header files.
 AC_CHECK_HEADERS([socket.h])
-AC_CHECK_HEADERS([stdint.h])
+AC_CHECK_HEADERS([inttypes.h])
 AC_CHECK_HEADERS([unistd.h])
 AC_CHECK_HEADERS([stdlib.h])
 AC_CHECK_HEADERS([string.h])
@@ -142,6 +142,7 @@ AC_SUBST(TESTLIBS, $TESTLIBS)
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
                  itutests/Makefile
+                 itutests/fax/Makefile
                  src/Makefile
                  tests/Makefile
                  spandsp.spec])

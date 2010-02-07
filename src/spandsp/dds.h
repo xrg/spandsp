@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds.h,v 1.3 2004/10/16 07:29:59 steveu Exp $
+ * $Id: dds.h,v 1.5 2006/01/31 05:34:27 steveu Exp $
  */
 
 /*! \file */
@@ -47,7 +47,9 @@ int32_t dds_phase_step(float frequency);
     \param level The desired signal level, in dBm0.
     \return The scaling factor.
 */
-int dds_scaling(float level);
+int dds_scaling_dbm0(float level);
+
+int dds_scaling_dbov(float level);
 
 /*! \brief Find the amplitude for a particular phase.
     \param phase The desired phase 32 bit phase.
@@ -62,14 +64,14 @@ int16_t dds_lookup(uint32_t phase);
 */
 int16_t dds_offset(uint32_t phase_acc, int32_t phase_offset);
 
-/*! \brief Generate a sample.
+/*! \brief Generate an integer tone sample.
     \param phase_acc A pointer to a phase accumulator value.
     \param phase_rate The phase increment to be applied.
     \return The signal amplitude, between -32767 and 32767.
 */
 int16_t dds(uint32_t *phase_acc, int32_t phase_rate);
 
-/*! \brief Generate a sample, with modulation.
+/*! \brief Generate an integer tone sample, with modulation.
     \param phase_acc A pointer to a phase accumulator value.
     \param phase_rate The phase increment to be applied.
     \param scale The scaling factor.
@@ -78,14 +80,14 @@ int16_t dds(uint32_t *phase_acc, int32_t phase_rate);
 */
 int16_t dds_mod(uint32_t *phase_acc, int32_t phase_rate, int scale, int32_t phase);
 
-/*! \brief Generate a complex sample.
+/*! \brief Generate a complex integer tone sample.
     \param phase_acc A pointer to a phase accumulator value.
     \param phase_rate The phase increment to be applied.
     \return The complex signal amplitude, between -32767 and 32767.
 */
 icomplex_t dds_complex(uint32_t *phase_acc, int32_t phase_rate);
 
-/*! \brief Generate a complex sample, with modulation.
+/*! \brief Generate a complex integer tone sample, with modulation.
     \param phase_acc A pointer to a phase accumulator value.
     \param phase_rate The phase increment to be applied.
     \param scale The scaling factor.
@@ -95,11 +97,42 @@ icomplex_t dds_complex(uint32_t *phase_acc, int32_t phase_rate);
 icomplex_t dds_complex_mod(uint32_t *phase_acc, int32_t phase_rate, int scale, int32_t phase);
 
 int32_t dds_phase_stepf(float frequency);
-float dds_scalingf(float level);
+
+float dds_scaling_dbm0f(float level);
+
+float dds_scaling_dbovf(float level);
+
+/*! \brief Generate a floating point tone sample.
+    \param phase_acc A pointer to a phase accumulator value.
+    \param phase_rate The phase increment to be applied.
+    \return The signal amplitude, between -32767 and 32767.
+*/
 float ddsf(uint32_t *phase_acc, int32_t phase_rate);
+
+/*! \brief Generate a floating point tone sample, with modulation.
+    \param phase_acc A pointer to a phase accumulator value.
+    \param phase_rate The phase increment to be applied.
+    \param scale The scaling factor.
+    \param phase The phase offset.
+    \return The signal amplitude.
+*/
 float dds_modf(uint32_t *phase_acc, int32_t phase_rate, float scale, int32_t phase);
+
+/*! \brief Generate a complex floating point tone sample.
+    \param phase_acc A pointer to a phase accumulator value.
+    \param phase_rate The phase increment to be applied.
+    \return The complex signal amplitude, between -32767 and 32767.
+*/
 complex_t dds_complexf(uint32_t *phase_acc, int32_t phase_rate);
-complex_t dds_mod_complexf(uint32_t *phase_acc, int32_t phase_rate, float scale, int32_t phase);
+
+/*! \brief Generate a complex floating point tone sample, with modulation.
+    \param phase_acc A pointer to a phase accumulator value.
+    \param phase_rate The phase increment to be applied.
+    \param scale The scaling factor.
+    \param phase The phase offset.
+    \return The complex signal amplitude.
+*/
+complex_t dds_complex_modf(uint32_t *phase_acc, int32_t phase_rate, float scale, int32_t phase);
 
 #ifdef __cplusplus
 }

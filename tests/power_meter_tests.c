@@ -23,11 +23,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter_tests.c,v 1.5 2005/09/01 17:06:45 steveu Exp $
+ * $Id: power_meter_tests.c,v 1.9 2005/11/27 12:36:23 steveu Exp $
  */
 
-#define _ISOC9X_SOURCE  1
-#define _ISOC99_SOURCE  1
+/*! \page power_meter_tests_page Power meter tests
+\section power_meter_tests_page_sec_1 What does it do?
+These tests assess the accuracy of power meters built from the power meter module.
+Both tones and noise are used to check the meter's behaviour.
+
+\section power_meter_tests_page_sec_2 How does it work?
+???.
+*/
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -85,7 +91,7 @@ int main(int argc, char *argv[])
         level = power_meter_update(&meter, amp[i]);
         printf("%12d %f\n", level, power_meter_dbm0(&meter));
     }
-    level = power_meter_level(-10);
+    level = power_meter_level_dbm0(-10);
     printf("Expected level %d\n", level);
     return  0;
 }

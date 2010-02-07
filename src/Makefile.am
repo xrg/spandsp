@@ -16,6 +16,8 @@
 ##
 ## $Id: Makefile.am,v 1.24 2005/03/03 14:18:58 steveu Exp $
 
+AM_CFLAGS = -std=c99
+
 MAINTAINERCLEANFILES = Makefile.in
 
 INCLUDES = -I$(top_builddir)
@@ -23,16 +25,18 @@ INCLUDES = -I$(top_builddir)
 lib_LTLIBRARIES = libspandsp.la
 
 libspandsp_la_SOURCES = adsi.c \
+                        async.c \
                         awgn.c \
                         bert.c \
                         complex_dds.c \
                         complex_filters.c \
                         dds.c \
-                        ec_disable_detector.c \
+                        ec_disable_tone.c \
                         echo.c \
                         fsk.c \
                         g722_encode.c \
                         g722_decode.c \
+                        g726.c \
                         hdlc.c \
                         ima_adpcm.c \
                         logging.c \
@@ -72,6 +76,7 @@ libspandsp_la_LDFLAGS = -version-info @SPANDSP_LT_CURRENT@:@SPANDSP_LT_REVISION@
 nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/alaw_ulaw.h \
                         spandsp/arctan2.h \
+                        spandsp/async.h \
                         spandsp/awgn.h \
                         spandsp/bert.h \
                         spandsp/biquad.h \
@@ -79,12 +84,13 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/complex_filters.h \
                         spandsp/dc_restore.h \
                         spandsp/dds.h \
-                        spandsp/ec_disable_detector.h \
+                        spandsp/ec_disable_tone.h \
                         spandsp/echo.h \
                         spandsp/fir.h \
                         spandsp/fsk.h \
                         spandsp/g168models.h \
                         spandsp/g722.h \
+                        spandsp/g726.h \
                         spandsp/hdlc.h \
                         spandsp/ima_adpcm.h \
                         spandsp/logging.h \

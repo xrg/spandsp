@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g168models.h,v 1.2 2004/06/09 15:15:18 steveu Exp $
+ * $Id: g168models.h,v 1.3 2005/11/23 18:38:03 steveu Exp $
  */
 
 /*! \file */
@@ -32,7 +32,7 @@
 #if !defined(_G168MODELS_H_)
 #define _G168MODELS_H_
 
-/*! \page G168_test_data_page The test data from the G.168 specification
+/*! \page g168_test_data_page The test data from the G.168 specification
 */
 
 /*!

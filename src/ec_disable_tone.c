@@ -1,9 +1,9 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * ec_disable_detector.c - A detector which should eventually meet the
- *                         G.164/G.165 requirements for detecting the
- *                         2100Hz echo cancellor disable tone.
+ * ec_disable_tone.c - A detector which should eventually meet the
+ *                     G.164/G.165 requirements for detecting the
+ *                     2100Hz echo cancellor disable tone.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ec_disable_detector.c,v 1.8 2005/08/31 19:27:52 steveu Exp $
+ * $Id: ec_disable_tone.c,v 1.3 2006/01/31 05:34:27 steveu Exp $
  */
  
 /*! \file */
@@ -41,7 +41,7 @@
 #include "spandsp/telephony.h"
 #include "spandsp/biquad.h"
 #include "spandsp/dds.h"
-#include "spandsp/ec_disable_detector.h"
+#include "spandsp/ec_disable_tone.h"
 
 void echo_can_disable_tone_tx_init(echo_can_disable_tx_state_t *s, int with_am)
 {
@@ -51,7 +51,7 @@ void echo_can_disable_tone_tx_init(echo_can_disable_tx_state_t *s, int with_am)
     s->tone_phase = 0;
     s->mod_phase = 0;
     s->hop_timer = 450*8;
-    s->level = dds_scaling(-12);
+    s->level = dds_scaling_dbm0(-12);
     if (s->with_am)
         s->mod_level = s->level/5;
 }
@@ -59,12 +59,12 @@ void echo_can_disable_tone_tx_init(echo_can_disable_tx_state_t *s, int with_am)
 
 int echo_can_disable_tone_tx(echo_can_disable_tx_state_t *s,
                              int16_t *amp,
-                             int samples)
+                             int len)
 {
     int mod;
     int i;
 
-    for (i = 0;  i < samples;  i++)
+    for (i = 0;  i < len;  i++)
     {
         if (s->with_am)
             mod = s->level + dds_mod(&s->mod_phase, s->mod_phase_rate, s->mod_level, 0);
@@ -77,7 +77,7 @@ int echo_can_disable_tone_tx(echo_can_disable_tx_state_t *s,
         }
         amp[i] = dds_mod(&s->tone_phase, s->tone_phase_rate, mod, 0);
     }
-    return samples;
+    return len;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -104,12 +104,12 @@ void echo_can_disable_tone_rx_init(echo_can_disable_rx_state_t *s)
 
 int echo_can_disable_tone_rx(echo_can_disable_rx_state_t *s,
                              const int16_t *amp,
-                             int samples)
+                             int len)
 {
     int i;
     int16_t notched;
     
-    for (i = 0;  i < samples;  i++)
+    for (i = 0;  i < len;  i++)
     {
         notched = biquad2(&s->notch, amp[i]);
         /* Estimate the overall energy in the channel, and the energy in

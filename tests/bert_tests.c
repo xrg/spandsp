@@ -23,11 +23,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bert_tests.c,v 1.5 2005/09/01 17:06:45 steveu Exp $
+ * $Id: bert_tests.c,v 1.10 2005/12/29 09:54:24 steveu Exp $
  */
 
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
+/*! \file */
+
+/*! \page bert_tests_page BERT tests
+\section bert_tests_page_sec_1 What does it do?
+These tests exercise each of the BERT standards supported by the BERT module.
+*/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -90,7 +94,7 @@ void reporter(void *user_data, int reason)
 }
 /*- End of function --------------------------------------------------------*/
 
-char test[0x800000];
+int8_t test[0x800000];
 
 int main(int argc, char *argv[])
 {
@@ -195,7 +199,9 @@ int main(int argc, char *argv[])
         bert_put_bit(&rx_bert, bit);        
         test[tx_bert.tx_reg]++;
     }
-    for (i = 0;  i < 0x200;  i++)
+    if (test[0] != 0)
+        printf("XXX %d %d\n", 0, test[0]);
+    for (i = 1;  i < 0x200;  i++)
     {
         if (test[i] != 2)
             printf("XXX %d %d\n", i, test[i]);
@@ -225,7 +231,9 @@ int main(int argc, char *argv[])
         bert_put_bit(&rx_bert, bit);        
         test[tx_bert.tx_reg]++;
     }
-    for (i = 0;  i < 0x800;  i++)
+    if (test[0] != 0)
+        printf("XXX %d %d\n", 0, test[0]);
+    for (i = 1;  i < 0x800;  i++)
     {
         if (test[i] != 2)
             printf("XXX %d %d\n", i, test[i]);
@@ -255,7 +263,9 @@ int main(int argc, char *argv[])
         bert_put_bit(&rx_bert, bit);        
         test[tx_bert.tx_reg]++;
     }
-    for (i = 0;  i < 0x8000;  i++)
+    if (test[0] != 0)
+        printf("XXX %d %d\n", 0, test[0]);
+    for (i = 1;  i < 0x8000;  i++)
     {
         if (test[i] != 2)
             printf("XXX %d %d\n", i, test[i]);
@@ -285,7 +295,9 @@ int main(int argc, char *argv[])
         bert_put_bit(&rx_bert, bit);        
         test[tx_bert.tx_reg]++;
     }
-    for (i = 0;  i < 0x100000;  i++)
+    if (test[0] != 0)
+        printf("XXX %d %d\n", 0, test[0]);
+    for (i = 1;  i < 0x100000;  i++)
     {
         if (test[i] != 2)
             printf("XXX %d %d\n", i, test[i]);
@@ -315,13 +327,23 @@ int main(int argc, char *argv[])
         bert_put_bit(&rx_bert, bit);        
         test[tx_bert.tx_reg]++;
     }
-    for (i = 0;  i < 0x800000;  i++)
+    if (test[0] != 0)
+        printf("XXX %d %d\n", 0, test[0]);
+    for (i = 1;  i < 0x800000;  i++)
     {
         if (test[i] != 2)
             printf("XXX %d %d\n", i, test[i]);
     }
     printf("O.151(23): Bad bits %d/%d, max zeros %d\n", rx_bert.bad_bits, rx_bert.total_bits, max_zeros);
 
+    bert_init(&tx_bert, 0, BERT_PATTERN_QBF, 300, 20);
+    bert_init(&rx_bert, 0, BERT_PATTERN_QBF, 300, 20);
+    for (i = 0;  i < 100000;  i++)
+    {
+        bit = bert_get_bit(&tx_bert);
+        bert_put_bit(&rx_bert, bit);        
+    }
+    printf("QBF:       Bad bits %d/%d\n", rx_bert.bad_bits, rx_bert.total_bits);
 
     /* Test the mechanism for categorising the error rate into <10^x bands */
     bert_init(&bert, 15000000, BERT_PATTERN_ITU_O152_11, 300, 20);

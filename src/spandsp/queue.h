@@ -23,10 +23,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: queue.h,v 1.1 2004/07/26 16:23:01 steveu Exp $
+ * $Id: queue.h,v 1.2 2005/11/23 17:09:47 steveu Exp $
  */
 
 /*! \file */
+
+/*! \page queue_page Queuing
+\section queue_page_sec_1 What does it do?
+???.
+
+\section queue_page_sec_2 How does it work?
+???.
+*/
 
 #if !defined(_QUEUE_H_)
 #define _QUEUE_H_

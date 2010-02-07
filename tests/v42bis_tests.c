@@ -23,10 +23,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis_tests.c,v 1.5 2005/09/01 17:06:46 steveu Exp $
+ * $Id: v42bis_tests.c,v 1.11 2006/01/26 14:02:22 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
+
+/*! \page v42bis_tests_page V.42bis tests
+\section v42bis_tests_page_sec_1 What does it do?
+These tests compress the contents of a file specified on the command line, writing
+the compressed data to v42bis_tests.v42bis. They then read back the contents of the
+compressed file, decompress, and write the results to v42bis_tests.out. The contents
+of this file should exactly match the original file.
+*/
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -47,37 +55,42 @@
 
 #include "spandsp.h"
 
-int in_fd;
-int v42bis_fd;
-int out_fd;
+#define COMPRESSED_FILE_NAME        "v42bis_tests.v42bis"
+#define OUTPUT_FILE_NAME            "v42bis_tests.out"
+
+int in_octets_to_date = 0;
+int out_octets_to_date = 0;
 
 void frame_handler(void *user_data, const uint8_t *buf, int len)
 {
     int ret;
     
-    if ((ret = write(v42bis_fd, buf, len)) != len)
+    if ((ret = write((intptr_t) user_data, buf, len)) != len)
         fprintf(stderr, "Write error %d/%d\n", ret, errno);
+    out_octets_to_date += len;
 }
 
 void data_handler(void *user_data, const uint8_t *buf, int len)
 {
     int ret;
-    
-    if ((ret = write(out_fd, buf, len)) != len)
+
+    if ((ret = write((intptr_t) user_data, buf, len)) != len)
         fprintf(stderr, "Write error %d/%d\n", ret, errno);
+    out_octets_to_date += len;
 }
 
 int main(int argc, char *argv[])
 {
     int len;
-    v42bis_state_t state;
+    v42bis_state_t state_a;
+    v42bis_state_t state_b;
     int i;
     int octet;
     uint8_t buf[1024];
+    int in_fd;
+    int v42bis_fd;
+    int out_fd;
 
-    v42bis_init(&state, 3, 512, 6, frame_handler, NULL, data_handler, NULL);
-
-    /* Get the file name, open it up, and open up the lzw output file. */
     if (argc < 2)
     {
         fprintf(stderr, "Usage: %s <file>\n", argv[0]);
@@ -85,36 +98,60 @@ int main(int argc, char *argv[])
     }
     if ((in_fd = open(argv[1], O_RDONLY)) < 0)
     {
-        fprintf(stderr, "Error opening files.\n");
+        fprintf(stderr, "Error opening file '%s'.\n", argv[1]);
         exit(2);
-    };
-    if ((v42bis_fd = open("v42bis_tests.v42bis", O_WRONLY | O_CREAT | O_TRUNC, 0666)) < 0)
+    }
+    if ((v42bis_fd = open(COMPRESSED_FILE_NAME, O_WRONLY | O_CREAT | O_TRUNC, 0666)) < 0)
     {
-        fprintf(stderr, "Error opening files.\n");
+        fprintf(stderr, "Error opening file '%s'.\n", COMPRESSED_FILE_NAME);
         exit(2);
-    };
+    }
 
+    v42bis_init(&state_a, 3, 512, 6, frame_handler, (void *) (intptr_t) v42bis_fd, 512, data_handler, (void *) (intptr_t) out_fd, 512);
+
+    in_octets_to_date = 0;
+    out_octets_to_date = 0;
     while ((len = read(in_fd, buf, 1024)) > 0)
-        v42bis_compress(&state, buf, len);
-
+    {
+        if (v42bis_compress(&state_a, buf, len))
+        {
+            fprintf(stderr, "Bad return code from decompression\n");
+            exit(2);
+        }
+        in_octets_to_date += len;
+    }
+    v42bis_compress_flush(&state_a);
+    printf("%d bytes compressed to %d bytes\n", in_octets_to_date, out_octets_to_date);
     close(in_fd);
     close(v42bis_fd);
 
     /* Now open the files for the decompression. */
-    if ((v42bis_fd = open("v42bis_tests.v42bis", O_RDONLY)) < 0)
+    if ((v42bis_fd = open(COMPRESSED_FILE_NAME, O_RDONLY)) < 0)
     {
-        fprintf(stderr, "Error opening files.\n");
+        fprintf(stderr, "Error opening file '%s'.\n", COMPRESSED_FILE_NAME);
         exit(2);
-    };
-    if ((out_fd = open("v42bis_tests.out", O_WRONLY | O_CREAT | O_TRUNC, 0666)) < 0)
+    }
+    if ((out_fd = open(OUTPUT_FILE_NAME, O_WRONLY | O_CREAT | O_TRUNC, 0666)) < 0)
     {
-        fprintf(stderr, "Error opening files.\n");
+        fprintf(stderr, "Error opening file '%s'.\n", OUTPUT_FILE_NAME);
         exit(2);
-    };
+    }
 
+    v42bis_init(&state_b, 3, 512, 6, frame_handler, (void *) (intptr_t) v42bis_fd, 512, data_handler, (void *) (intptr_t) out_fd, 512);
+
+    in_octets_to_date = 0;
+    out_octets_to_date = 0;
     while ((len = read(v42bis_fd, buf, 1024)) > 0)
-        v42bis_decompress(&state, buf, len);
-
+    {
+        if (v42bis_decompress(&state_b, buf, len))
+        {
+            fprintf(stderr, "Bad return code from decompression\n");
+            exit(2);
+        }
+        in_octets_to_date += len;
+    }
+    v42bis_decompress_flush(&state_b);
+    printf("%d bytes decompressed to %d bytes\n", in_octets_to_date, out_octets_to_date);
     close(v42bis_fd);
     close(out_fd);
 

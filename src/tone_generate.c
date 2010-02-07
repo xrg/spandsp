@@ -24,13 +24,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.c,v 1.10 2005/08/31 19:27:52 steveu Exp $
+ * $Id: tone_generate.c,v 1.16 2006/01/31 05:34:27 steveu Exp $
  */
 
 /*! \file */
-
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -45,6 +42,7 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/dc_restore.h"
+#include "spandsp/dds.h"
 #include "spandsp/tone_generate.h"
 
 #if !defined(M_PI)
@@ -52,8 +50,10 @@
 #define M_PI 3.14159265358979323846264338327
 #endif
 
-#define DTMF_DURATION               380
-#define DTMF_PAUSE                  400
+#define ms_to_samples(t)            (((t)*SAMPLE_RATE)/1000)
+
+#define DTMF_DURATION               ms_to_samples(70)
+#define DTMF_PAUSE                  ms_to_samples(80)
 #define DTMF_CYCLE                  (DTMF_DURATION + DTMF_PAUSE)
 
 typedef struct
@@ -80,16 +80,16 @@ tone_gen_descriptor_t r2_mf_back_digit_tones[15];
 tone_gen_descriptor_t socotel_mf_digit_tones[18];
 #endif
 
-static float dtmf_row[] =
+static const float dtmf_row[] =
 {
      697.0,  770.0,  852.0,  941.0
 };
-static float dtmf_col[] =
+static const float dtmf_col[] =
 {
     1209.0, 1336.0, 1477.0, 1633.0
 };
 
-static char dtmf_tone_codes[] = "123A" "456B" "789C" "*0#D";
+static const char dtmf_tone_codes[] = "123A" "456B" "789C" "*0#D";
 
 /* Bell R1 tone generation specs.
  *  Power: -7dBm +- 1dB
@@ -99,7 +99,7 @@ static char dtmf_tone_codes[] = "123A" "456B" "789C" "*0#D";
  *  Tone duration: 68+-7ms, except KP which is 100+-7ms.
  *  Inter-tone gap: 68+-7ms.
  */
-static mf_digit_tones_t bell_mf_tones[] =
+static const mf_digit_tones_t bell_mf_tones[] =
 {
     { 700.0,  900.0, -7, -7,  68, 68},
     { 700.0, 1100.0, -7, -7,  68, 68},
@@ -120,7 +120,7 @@ static mf_digit_tones_t bell_mf_tones[] =
 };
 
 /* The order of the digits here must match the list above */
-static char bell_mf_tone_codes[] = "1234567890CA*B#";
+static const char bell_mf_tone_codes[] = "1234567890CA*B#";
 
 /* R2 tone generation specs.
  *  Power: -11.5dBm +- 1dB
@@ -128,7 +128,7 @@ static char bell_mf_tone_codes[] = "1234567890CA*B#";
  *  Mismatch between the start time of a pair of tones: <=1ms.
  *  Mismatch between the end time of a pair of tones: <=1ms.
  */
-static mf_digit_tones_t r2_mf_fwd_tones[] =
+static const mf_digit_tones_t r2_mf_fwd_tones[] =
 {
     {1380.0, 1500.0, -11, -11, 1, 0},
     {1380.0, 1620.0, -11, -11, 1, 0},
@@ -148,7 +148,7 @@ static mf_digit_tones_t r2_mf_fwd_tones[] =
     {0.0, 0.0, 0, 0}
 };
 
-static mf_digit_tones_t r2_mf_back_tones[] =
+static const mf_digit_tones_t r2_mf_back_tones[] =
 {
     {1140.0, 1020.0, -11, -11, 1, 0},
     {1140.0,  900.0, -11, -11, 1, 0},
@@ -169,10 +169,10 @@ static mf_digit_tones_t r2_mf_back_tones[] =
 };
 
 /* The order of the digits here must match the lists above */
-static char r2_mf_tone_codes[] = "1234567890ABCDE";
+static const char r2_mf_tone_codes[] = "1234567890ABCDE";
 
 #if 0
-static mf_digit_tones_t socotel_tones[] =
+static const mf_digit_tones_t socotel_tones[] =
 {
     {700.0,   900.0, -11, -11, 1, 0},
     {700.0,  1100.0, -11, -11, 1, 0},
@@ -211,40 +211,18 @@ void make_tone_gen_descriptor(tone_gen_descriptor_t *s,
 {
     float gain;
 
-    if (f1)
-    {    
-    	gain = pow(10.0, (l1 - 3.14)/20.0)*32768.0;
-#if defined(PURE_INTEGER_DSP)
-        s->fac_1 = 32768.0*2.0*cos(2.0*M_PI*f1/(float) SAMPLE_RATE);
-#else        
-    	s->fac_1 = 2.0*cos(2.0*M_PI*f1/(float) SAMPLE_RATE);
-#endif
-    	s->v2_1 = sin(-4.0*M_PI*f1/(float) SAMPLE_RATE)*gain;
-    	s->v3_1 = sin(-2.0*M_PI*f1/(float) SAMPLE_RATE)*gain;
-    }
-    else
+    memset(s, 0, sizeof(*s));
+    if (f1 >= 1)
     {
-    	s->fac_1 = 0.0;
-    	s->v2_1 = 0.0;
-    	s->v3_1 = 0.0;
+        s->phase_rate[0] = dds_phase_stepf(f1);
+        s->gain[0] = dds_scaling_dbm0f(l1);
     }
-    if (f2)
+    if (f2 >= 1)
     {
-    	gain = pow(10.0, (l2 - 3.14)/20.0)*32768.0;
-#if defined(PURE_INTEGER_DSP)
-        s->fac_2 = 32768.0*2.0*cos(2.0*M_PI*f2/(float) SAMPLE_RATE);
-#else        
-    	s->fac_2 = 2.0*cos(2.0*M_PI*f2/(float) SAMPLE_RATE);
-#endif
-    	s->v2_2 = sin(-4.0*M_PI*f2/(float) SAMPLE_RATE)*gain;
-    	s->v3_2 = sin(-2.0*M_PI*f2/(float) SAMPLE_RATE)*gain;
+        s->phase_rate[1] = dds_phase_stepf(f2);
+        s->gain[1] = dds_scaling_dbm0f(l2);
     }
-    else
-    {
-    	s->fac_2 = 0.0;
-    	s->v2_2 = 0.0;
-    	s->v3_2 = 0.0;
-    }
+
     s->duration[0] = d1*8;
     s->duration[1] = d2*8;
     s->duration[2] = d3*8;
@@ -273,66 +251,31 @@ void tone_gen_init(tone_gen_state_t *s, tone_gen_descriptor_t *t)
 {
     int i;
 
-    s->fac_1 = t->fac_1;
-    s->v2_1 = t->v2_1;
-    s->v3_1 = t->v3_1;
-
-    s->fac_2 = t->fac_2;
-    s->v2_2 = t->v2_2;
-    s->v3_2 = t->v3_2;
-
+    s->phase_rate[0] = t->phase_rate[0];
+    s->gain[0] = t->gain[0];
+    s->phase_rate[1] = t->phase_rate[1];
+    s->gain[1] = t->gain[1];
+    
     for (i = 0;  i < 4;  i++)
         s->duration[i] = t->duration[i];
     s->repeat = t->repeat;
+
+    s->phase[0] = 0;
+    s->phase[0] = 0;
 
     s->current_section = 0;
     s->current_position = 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-int tone_gen(tone_gen_state_t *s, int16_t *amp, int max_samples)
+int tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples)
 {
-#if defined(PURE_INTEGER_DSP)
-    int32_t xamp;
-    int32_t v1_1;
-    int32_t v2_1;
-    int32_t v3_1;
-    int32_t fac_1;
-    int32_t v1_2;
-    int32_t v2_2;
-    int32_t v3_2;
-    int32_t fac_2;
-#else
-    float xamp;
-    float v1_1;
-    float v2_1;
-    float v3_1;
-    float fac_1;
-    float v1_2;
-    float v2_2;
-    float v3_2;
-    float fac_2;
-#endif
     int samples;
     int limit;
+    float xamp;
 
     if (s->current_section < 0)
         return  0;
-
-    /* This is a second order IIR filter, configured to oscillate */
-    /* The equation is x(n) = 2*cos(2.0*PI*f))*x(n-1) - x(n-2) */
-    /* This isn't particularly accurate near the bottom of the band.
-       If you recast the equation as
-         x(n) = 2*x(n-1) - 2*(1 - cos(2.0*PI*f))*x(n-1) - x(n-2)
-       you get a better balance of errors as you move the frequency to be
-       generated across the band. It takes an extra operation, though. */
-
-    v2_1 = s->v2_1;
-    v3_1 = s->v3_1;
-    fac_1 = s->fac_1;
-    v2_2 = s->v2_2;
-    v3_2 = s->v3_2;
-    fac_2 = s->fac_2;
 
     for (samples = 0;  samples < max_samples;  )
     {
@@ -351,42 +294,16 @@ int tone_gen(tone_gen_state_t *s, int16_t *amp, int max_samples)
         {
             for (  ;  samples < limit;  samples++)
             {
-                xamp = 0;
-                if (fac_1)
-                {
-                    v1_1 = v2_1;
-                    v2_1 = v3_1;
-#if defined(PURE_INTEGER_DSP)
-                    v3_1 = (fac_1*v2_1 >> 15) - v1_1;
-#else
-                    v3_1 = fac_1*v2_1 - v1_1;
-#endif
-                    xamp += v3_1;
-                }
-                if (fac_2)
-                {
-                    v1_2 = v2_2;
-                    v2_2 = v3_2;
-#if defined(PURE_INTEGER_DSP)
-                    v3_2 = (fac_2*v2_2 >> 15) - v1_2;
-#else
-                    v3_2 = fac_2*v2_2 - v1_2;
-#endif
-                    xamp += v3_2;
-                }
+                xamp = 0.0;
+                if (s->phase_rate[0])
+                    xamp += dds_modf(&(s->phase[0]), s->phase_rate[0], s->gain[0], 0);
+                if (s->phase_rate[1])
+                    xamp += dds_modf(&(s->phase[1]), s->phase_rate[1], s->gain[1], 0);
                 /* Saturation of the answer is the right thing at this point.
                    However, we are normally generating well controlled tones,
                    that cannot clip. So, the overhead of doing saturation is
                    a waste of valuable time. */
-#if 0
-#if defined(PURE_INTEGER_DSP)
-                amp[samples] = saturate(xamp);
-#else
-                amp[samples] = fsaturate(xamp);
-#endif
-#else
-                amp[samples] = xamp;
-#endif
+                amp[samples] = (int16_t) lrintf(xamp);
             }
         }
         if (s->current_position >= s->duration[s->current_section])
@@ -407,10 +324,6 @@ int tone_gen(tone_gen_state_t *s, int16_t *amp, int max_samples)
             }
         }
     }
-    s->v2_1 = v2_1;
-    s->v3_1 = v3_1;
-    s->v2_2 = v2_2;
-    s->v3_2 = v3_2;
     return samples;
 }
 /*- End of function --------------------------------------------------------*/
@@ -442,7 +355,7 @@ void dtmf_gen_init(void)
 }
 /*- End of function --------------------------------------------------------*/
 
-void dtmf_tx_init(dtmf_tx_state_t *s)
+dtmf_tx_state_t *dtmf_tx_init(dtmf_tx_state_t *s)
 {
     if (!dtmf_gen_inited)
         dtmf_gen_init();
@@ -452,13 +365,14 @@ void dtmf_tx_init(dtmf_tx_state_t *s)
     s->current_sample = 0;
     s->current_digits = 0;
     s->tones.current_section = -1;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
 void bell_mf_gen_init(void)
 {
     int i;
-    mf_digit_tones_t *tones;
+    const mf_digit_tones_t *tones;
 
     if (bell_mf_gen_inited)
         return;
@@ -483,7 +397,7 @@ void bell_mf_gen_init(void)
 }
 /*- End of function --------------------------------------------------------*/
 
-void bell_mf_tx_init(dtmf_tx_state_t *s)
+dtmf_tx_state_t *bell_mf_tx_init(dtmf_tx_state_t *s)
 {
     if (!bell_mf_gen_inited)
         bell_mf_gen_init();
@@ -493,10 +407,11 @@ void bell_mf_tx_init(dtmf_tx_state_t *s)
     s->current_sample = 0;
     s->current_digits = 0;
     s->tones.current_section = -1;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
-int dtmf_tx(dtmf_tx_state_t *s, int16_t *amp, int max_samples)
+int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples)
 {
     int len;
     int dig;
@@ -554,7 +469,7 @@ int dtmf_put(dtmf_tx_state_t *s, const char *digits)
 void r2_mf_tx_init(void)
 {
     int i;
-    mf_digit_tones_t *tones;
+    const mf_digit_tones_t *tones;
 
     if (!r2_mf_gen_inited)
     {
@@ -595,16 +510,13 @@ void r2_mf_tx_init(void)
 }
 /*- End of function --------------------------------------------------------*/
 
-int r2_mf_tx(tone_gen_state_t *s, int16_t *amp, int samples, int fwd, char digit)
+int r2_mf_tx(tone_gen_state_t *s, int16_t amp[], int samples, int fwd, char digit)
 {
     int len;
     char *cp;
 
     len = 0;
-    /* TODO: Looking for bit 7 set is the new way looking for 0x7F is the
-             old way. When thing have properly migrated, remove the old
-             way. */
-    if ((digit & 0x80)  ||  digit == (char) 0x7F)
+    if ((digit & 0x80))
     {
         /* Continue generating the tone we started earlier. */
         len = tone_gen(s, amp, samples);

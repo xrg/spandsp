@@ -23,15 +23,28 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29_tests.c,v 1.40 2005/09/28 17:11:50 steveu Exp $
+ * $Id: v29_tests.c,v 1.48 2006/01/19 15:19:30 steveu Exp $
  */
 
 /*! \page v29_tests_page V.29 modem tests
 \section v29_tests_page_sec_1 What does it do?
-*/
+These tests test one way paths, as V.29 is a half-duplex modem. They allow either:
 
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
+ - A V.29 transmit modem to feed a V.29 receive modem through a telephone line
+   model. BER testing is then used to evaluate performance under various line
+   conditions. This is effective for testing the basic performance of the
+   receive modem. It is also the only test mode provided for evaluating the
+   transmit modem.
+
+ - A V.29 receive modem is used to decode V.29 audio, stored in a wave file.
+   This is good way to evaluate performance with audio recorded from other
+   models of modem, and with real world problematic telephone lines.
+
+If the appropriate GUI environment exists, the tests are built such that a visual
+display of modem status is maintained.
+
+\section v29_tests_page_sec_2 How is it used?
+*/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -47,7 +60,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
-#include <math.h>
+#include <tgmath.h>
 #include <assert.h>
 #include <audiofile.h>
 #include <tiffio.h>
@@ -55,7 +68,7 @@
 #include "spandsp.h"
 #include "line_model.h"
 #if defined(ENABLE_GUI)
-#include "constel.h"
+#include "modem_monitor.h"
 #endif
 
 #define BLOCK_LEN       160
@@ -185,8 +198,8 @@ void qam_report(void *user_data, const complex_t *constel, const complex_t *targ
         if (use_gui)
         {
             update_qam_monitor(constel);
-            //update_qam_carrier_tracking(v29_rx_carrier_frequency(rx));
-            update_qam_carrier_tracking((fpower)  ?  fpower  :  0.001);
+            update_qam_carrier_tracking(v29_rx_carrier_frequency(rx));
+            //update_qam_carrier_tracking((fpower)  ?  fpower  :  0.001);
             update_qam_symbol_tracking(v29_rx_symbol_timing_correction(rx));
         }
 #endif
@@ -312,23 +325,26 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
             exit(2);
         }
+        v29_tx_init(&tx, test_bps, tep, v29getbit, NULL);
+        v29_tx_power(&tx, -18.0);
+        /* Move the carrier off a bit */
+        tx.carrier_phase_rate = dds_phase_stepf(1692.0);
+
+        noise_level = -55;
+
+        bert_init(&bert, 50000, BERT_PATTERN_ITU_O152_11, test_bps, 20);
+        bert_set_report(&bert, 10000, reporter, &bert);
     }
-    v29_tx_init(&tx, test_bps, tep, v29getbit, NULL);
-    v29_tx_power(&tx, -18.0);
-    /* Move the carrier off a bit */
-    tx.carrier_phase_rate = dds_phase_stepf(1692.0);
+
     v29_rx_init(&rx, test_bps, v29putbit, &rx);
     v29_rx_set_qam_report_handler(&rx, qam_report, (void *) &rx);
     //v29_rx_signal_cutoff(&rx, -50.0);
     /* Rotate the starting phase */
     rx.carrier_phase = 0x80000000;
+    rx.logging.level = SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW;
+    rx.logging.tag = "V.27ter rx";
 
-    noise_level = -55;
-
-    bert_init(&bert, 50000, BERT_PATTERN_ITU_O152_11, test_bps, 20);
-    bert_set_report(&bert, 10000, reporter, &bert);
-
-    if ((line_model = one_way_line_model_init(line_model_no, -50)) == NULL)
+    if ((line_model = one_way_line_model_init(line_model_no, noise_level)) == NULL)
     {
         fprintf(stderr, "    Failed to create line model\n");
         exit(2);
@@ -363,8 +379,19 @@ int main(int argc, char *argv[])
                 v29_rx_restart(&rx, test_bps);
                 bert_init(&bert, 50000, BERT_PATTERN_ITU_O152_11, test_bps, 20);
                 bert_set_report(&bert, 10000, reporter, &bert);
+                one_way_line_model_release(line_model);
+                noise_level++;
+                if ((line_model = one_way_line_model_init(line_model_no, noise_level)) == NULL)
+                {
+                    fprintf(stderr, "    Failed to create line model\n");
+                    exit(2);
+                }
             }
+            for (i = 0;  i < samples;  i++)
+                power_meter_update(&power_meter, gen_amp[i]);
+            printf("smooth power %f\n", power_meter_dbm0(&power_meter));
             total_samples += samples;
+            one_way_line_model(line_model, amp, gen_amp, samples);
             outframes = afWriteFrames(outhandle,
                                       AF_DEFAULT_TRACK,
                                       gen_amp,
@@ -374,10 +401,6 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "    Error writing wave file\n");
                 exit(2);
             }
-            for (i = 0;  i < samples;  i++)
-                power_meter_update(&power_meter, gen_amp[i]);
-            one_way_line_model(line_model, amp, gen_amp, samples);
-            printf("smooth power %f\n", power_meter_dbm0(&power_meter));
         }
         v29_rx(&rx, amp, samples);
         if (decode_test_file == NULL  &&  block%500 == 0)
@@ -399,7 +422,9 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
             exit(2);
         }
+        one_way_line_model_release(line_model);
     }
+    afFreeFileSetup(filesetup);
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

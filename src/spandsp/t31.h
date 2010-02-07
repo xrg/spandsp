@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.17 2005/10/10 22:17:17 steveu Exp $
+ * $Id: t31.h,v 1.22 2005/11/24 13:04:52 steveu Exp $
  */
 
 /*! \file */
@@ -31,17 +31,17 @@
 #if !defined(_T31_H_)
 #define _T31_H_
 
-/*! \page T31_page T.31 Class 1 FAX modem protocol handling
-\section T31_page_sec_1 What does it do?
+/*! \page t31_page T.31 Class 1 FAX modem protocol handling
+\section t31_page_sec_1 What does it do?
 The T.31 class 1 FAX modem modules implements a class 1 interface to the FAX
 modems in spandsp.
 
-\section T31_page_sec_2 How does it work?
+\section t31_page_sec_2 How does it work?
 */
 
 typedef struct t31_state_s t31_state_t;
 
-typedef int (t31_call_control_handler_t)(t31_state_t *s, void *user_data, const char *num);
+typedef int (t31_modem_control_handler_t)(t31_state_t *s, void *user_data, int op, const char *num);
 typedef int (t31_at_tx_handler_t)(t31_state_t *s, void *user_data, const uint8_t *buf, int len);
 
 enum t31_rx_mode_e
@@ -65,19 +65,46 @@ enum t31_call_event_e
     T31_CALL_EVENT_HANGUP
 };
 
+enum t31_modem_control_operation_e
+{
+    T31_MODEM_CONTROL_CALL,
+    T31_MODEM_CONTROL_ANSWER,
+    T31_MODEM_CONTROL_HANGUP,
+    T31_MODEM_CONTROL_DTR,
+    T31_MODEM_CONTROL_RTS,
+    T31_MODEM_CONTROL_CTS,
+    T31_MODEM_CONTROL_CAR,
+    T31_MODEM_CONTROL_RNG,
+    T31_MODEM_CONTROL_DSR
+};
+
 #define T31_TX_BUF_LEN      (4096*32)
 
+/*!
+    T.31 profile.
+*/
 typedef struct
 {
+    /*! TRUE if character echo is enabled */
     int echo;
+    /*! TRUE if verbose reporting is enabled */
     int verbose;
+    /*! TRUE if result codes are verbose */
     int result_code_format;
+    /*! TRUE if pulse dialling is the default */
     int pulse_dial;
+    /*! ??? */
     int double_escape;
+    /*! ??? */
     int adaptive_receive;
+    /*! The state of all possible S registers */
     uint8_t s_regs[100];
 } t31_profile_t;
 
+/*!
+    T.31 descriptor. This defines the working state for a single instance of
+    a T.31 FAX modem.
+*/
 struct t31_state_s
 {
     int country_of_installation;
@@ -97,18 +124,19 @@ struct t31_state_s
     int fclass_mode;
     int display_callid;
     int callid_displayed;
-    char *call_date;
-    char *call_time;
-    char *originating_name;
-    char *originating_number;
-    char *originating_ani;
-    char *destination_number;
+    const char *call_date;
+    const char *call_time;
+    const char *originating_name;
+    const char *originating_number;
+    const char *originating_ani;
+    const char *destination_number;
     t31_profile_t p;
     uint8_t rx_data[256];
     int rx_data_bytes;
     uint8_t tx_data[T31_TX_BUF_LEN];
     int tx_in_bytes;
-    int tx_data_bytes;
+    int tx_out_bytes;
+    int tx_holding;
     int bit_no;
     int current_byte;
 
@@ -168,6 +196,7 @@ struct t31_state_s
     /*! \brief Samples elapsed in the current call */
     int64_t call_samples;
     int64_t last_dtedata_samples;
+    int dohangup;
     int modem;
     int transmit;
     int short_train;
@@ -179,8 +208,8 @@ struct t31_state_s
     int data_final;
     queue_t rx_queue;
 
-    t31_call_control_handler_t *call_control_handler;
-    void *call_control_user_data;
+    t31_modem_control_handler_t *modem_control_handler;
+    void *modem_control_user_data;
     t31_at_tx_handler_t *at_tx_handler;
     void *at_tx_user_data;
 
@@ -196,15 +225,37 @@ void t31_call_event(t31_state_t *s, int event);
 
 int t31_at_rx(t31_state_t *s, const char *t, int len);
 
-int t31_rx(t31_state_t *s, int16_t *buf, int max_len);
+/*! Process a block of received T.31 modem audio samples.
+    \brief Process a block of received T.31 modem audio samples.
+    \param s The T.31 modem context.
+    \param amp The audio sample buffer.
+    \param len The number of samples in the buffer.
+    \return The number of samples unprocessed. */
+int t31_rx(t31_state_t *s, int16_t *buf, int len);
 
+/*! Generate a block of T.31 modem audio samples.
+    \brief Generate a block of T.31 modem audio samples.
+    \param s The T.31 modem context.
+    \param amp The audio sample buffer.
+    \param max_len The number of samples to be generated.
+    \return The number of samples actually generated.
+*/
 int t31_tx(t31_state_t *s, int16_t *buf, int max_len);
 
+/*! Initialise a T.31 context. This must be called before the first
+    use of the context, to initialise its contents.
+    \brief Initialise a T.31 context.
+    \param s The T.31 context.
+    \param at_tx_handler ???.
+    \param at_tx_user_data ???.
+    \param modem_control_handler ???.
+    \param modem_control_user_data ???.
+    \return ???. */
 int t31_init(t31_state_t *s,
              t31_at_tx_handler_t *at_tx_handler,
              void *at_tx_user_data,
-             t31_call_control_handler_t *call_control_handler,
-             void *call_control_user_data);
+             t31_modem_control_handler_t *modem_control_handler,
+             void *modem_control_user_data);
 
 #ifdef __cplusplus
 }

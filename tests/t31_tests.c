@@ -23,11 +23,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31_tests.c,v 1.6 2004/11/02 15:15:25 steveu Exp $
+ * $Id: t31_tests.c,v 1.18 2005/12/25 15:08:37 steveu Exp $
  */
 
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
+/*! \file */
+
+/*! \page t31_tests_page T.31 tests
+\section t31_tests_page_sec_1 What does it do?
+*/
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#define _GNU_SOURCE
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -42,6 +51,9 @@
 
 #include "spandsp.h"
 #include "spandsp/t30_fcf.h"
+
+#define OUTPUT_FILE_NAME_T30    "t31_tests_t30.wav"
+#define OUTPUT_FILE_NAME_T31    "t31_tests_t31.wav"
 
 #define DLE 0x10
 #define ETX 0x03
@@ -306,7 +318,7 @@ void phase_d_handler(t30_state_t *s, void *user_data, int result)
 
     i = (intptr_t) user_data;
     printf("Phase D handler on channel %d - 0x%X\n", i, result);
-    fax_get_transfer_statistics(s, &t);
+    t30_get_transfer_statistics(s, &t);
     printf("Phase D: bit rate %d\n", t.bit_rate);
     printf("Phase D: pages transferred %d\n", t.pages_transferred);
     printf("Phase D: image size %d x %d\n", t.columns, t.rows);
@@ -315,9 +327,9 @@ void phase_d_handler(t30_state_t *s, void *user_data, int result)
     printf("Phase D: longest bad row run %d\n", t.longest_bad_row_run);
     printf("Phase D: coding method %d\n", t.encoding);
     printf("Phase D: image size %d\n", t.image_size);
-    fax_get_local_ident(s, ident);
+    t30_get_local_ident(s, ident);
     printf("Phase D: local ident '%s'\n", ident);
-    fax_get_far_ident(s, ident);
+    t30_get_far_ident(s, ident);
     printf("Phase D: remote ident '%s'\n", ident);
 }
 /*- End of function --------------------------------------------------------*/
@@ -331,28 +343,24 @@ void phase_e_handler(t30_state_t *s, void *user_data, int result)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int modem_call_control(t31_state_t *s, void *user_data, const char *num)
+static int modem_call_control(t31_state_t *s, void *user_data, int op, const char *num)
 {
-    if (num)
+    switch (op)
     {
-        if (num[0])
-        {
-            /* Dialing */
-            printf("\nDialing '%s'\n", num);
-        }
-        else
-        {
-            /* Answering */
-            printf("\nAnswering\n");
-        }
-        /*endif*/
-    }
-    else
-    {
-        /* Hang up */
+    case T31_MODEM_CONTROL_ANSWER:
+        printf("\nAnswering\n");
+        break;
+    case T31_MODEM_CONTROL_CALL:
+        printf("\nDialing '%s'\n", num);
+        break;
+    case T31_MODEM_CONTROL_HANGUP:
         printf("\nHanging up\n");
+        break;
+    default:
+        printf("\nModem control operation %d\n", op);
+        break;
     }
-    /*endif*/
+    /*endswitch*/
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -369,7 +377,6 @@ int at_tx_handler(t31_state_t *s, void *user_data, const uint8_t *buf, int len)
 
 int main(int argc, char *argv[])
 {
-    AFfilesetup filesetup;
     int i;
     int j;
     int outframes;
@@ -381,6 +388,7 @@ int main(int argc, char *argv[])
     int16_t t31_amp[SAMPLES_PER_CHUNK];
     int t30_len;
     int t31_len;
+    AFfilesetup filesetup;
     AFfilehandle t30_handle;
     AFfilehandle t31_handle;
     char *pts_name;
@@ -399,25 +407,25 @@ int main(int argc, char *argv[])
 
     memset(silence, 0, sizeof(silence));
  
-    t30_handle = afOpenFile("t30.wav", "w", filesetup);
+    t30_handle = afOpenFile(OUTPUT_FILE_NAME_T30, "w", filesetup);
     if (t30_handle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Cannot create wave file for T.30\n");
+        fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME_T30);
         exit(2);
     }
-    t31_handle = afOpenFile("t31.wav", "w", filesetup);
+    t31_handle = afOpenFile(OUTPUT_FILE_NAME_T31, "w", filesetup);
     if (t31_handle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Cannot create wave file for T.31\n");
+        fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME_T31);
         exit(2);
     }
 
     fax_init(&t30_state, TRUE, NULL);
-    fax_set_local_ident(&t30_state, "11111111");
-    fax_set_tx_file(&t30_state, "itutests.tif");
-    fax_set_phase_b_handler(&t30_state, phase_b_handler, (void *) 0);
-    fax_set_phase_d_handler(&t30_state, phase_d_handler, (void *) 0);
-    fax_set_phase_e_handler(&t30_state, phase_e_handler, (void *) 0);
+    t30_set_local_ident(&t30_state, "11111111");
+    t30_set_tx_file(&t30_state, "itutests.tif", -1, -1);
+    t30_set_phase_b_handler(&t30_state, phase_b_handler, (void *) 0);
+    t30_set_phase_d_handler(&t30_state, phase_d_handler, (void *) 0);
+    t30_set_phase_e_handler(&t30_state, phase_e_handler, (void *) 0);
     memset(t30_amp, 0, sizeof(t30_amp));
 
     if (t31_init(&t31_state, at_tx_handler, NULL, modem_call_control, NULL) < 0)
@@ -428,7 +436,7 @@ int main(int argc, char *argv[])
     countdown = 250;
     for (;;)
     {
-        t30_len = fax_tx_process(&t30_state, t30_amp, SAMPLES_PER_CHUNK);
+        t30_len = fax_tx(&t30_state, t30_amp, SAMPLES_PER_CHUNK);
         //memset(t30_amp, 0, SAMPLES_PER_CHUNK*2);
         //t30_len = 160;
         /* The receive side always expects a full block of samples, but the
@@ -450,7 +458,7 @@ int main(int argc, char *argv[])
             countdown = 250;
         }
 
-        t31_len = t31_tx(&t31_state, t31_amp, t31_len);
+        t31_len = t31_tx(&t31_state, t31_amp, SAMPLES_PER_CHUNK);
         if (t31_len < SAMPLES_PER_CHUNK)
         {
             memset(t31_amp + t31_len, 0, sizeof(int16_t)*(SAMPLES_PER_CHUNK - t31_len));
@@ -459,21 +467,22 @@ int main(int argc, char *argv[])
         outframes = afWriteFrames(t31_handle, AF_DEFAULT_TRACK, t31_amp, t31_len);
         if (outframes != t31_len)
             break;
-        if (fax_rx_process(&t30_state, t31_amp, SAMPLES_PER_CHUNK))
+        if (fax_rx(&t30_state, t31_amp, SAMPLES_PER_CHUNK))
             break;
             
         usleep(10000);
     }
     if (afCloseFile(t30_handle) != 0)
     {
-        fprintf(stderr, "    Cannot close T.30 wave file\n");
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME_T30);
         exit(2);
     }
     if (afCloseFile(t31_handle) != 0)
     {
-        fprintf(stderr, "    Cannot close T.31 wave file\n");
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME_T31);
         exit(2);
     }
+    afFreeFileSetup(filesetup);
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

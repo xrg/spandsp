@@ -23,10 +23,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex.h,v 1.2 2004/03/30 14:29:40 steveu Exp $
+ * $Id: complex.h,v 1.3 2005/11/23 17:09:47 steveu Exp $
  */
 
 /*! \file */
+
+/*! \page complex_page Complex number support
+\section complex_page_sec_1 What does it do?
+Complex number support is part of the C99 standard. However, support for this
+in C compilers is still patchy. A set of complex number feaures is provided as
+a "temporary" measure, until native C language complex number support is
+widespread.
+*/
 
 #if !defined(_COMPLEX_H_)
 #define _COMPLEX_H_

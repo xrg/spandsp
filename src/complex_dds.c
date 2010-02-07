@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_dds.c,v 1.7 2005/08/31 19:27:52 steveu Exp $
+ * $Id: complex_dds.c,v 1.10 2006/01/31 05:34:27 steveu Exp $
  */
 
 /*! \file */
@@ -39,6 +39,10 @@
 #include "spandsp/telephony.h"
 #include "spandsp/complex.h"
 #include "spandsp/dds.h"
+
+#if !defined(M_PI)
+# define M_PI           3.14159265358979323846  /* pi */
+#endif
 
 #define SLENK	11
 #define SINELEN (1 << SLENK)
@@ -64,9 +68,15 @@ int32_t dds_phase_stepf(float frequency)
 }
 /*- End of function --------------------------------------------------------*/
 
-float dds_scalingf(float level)
+float dds_scaling_dbm0f(float level)
 {
     return pow(10.0, (level - 3.14)/20.0)*32767.0;
+}
+/*- End of function --------------------------------------------------------*/
+
+float dds_scaling_dbovf(float level)
+{
+    return pow(10.0, (level + 3.14)/20.0)*32767.0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -120,7 +130,7 @@ complex_t dds_complexf(uint32_t *phase_acc, int32_t phase_rate)
 
 /* This is a simple direct digital synthesis (DDS) function to generate complex
    sine waves. */
-complex_t dds_mod_complexf(uint32_t *phase_acc, int32_t phase_rate, float scale, int32_t phase)
+complex_t dds_complex_modf(uint32_t *phase_acc, int32_t phase_rate, float scale, int32_t phase)
 {
     complex_t amp;
 

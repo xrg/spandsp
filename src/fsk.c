@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.15 2005/08/31 19:27:52 steveu Exp $
+ * $Id: fsk.c,v 1.19 2006/01/31 05:34:27 steveu Exp $
  */
 
 /*! \file */
@@ -44,6 +44,7 @@
 #include "spandsp/vector.h"
 #include "spandsp/dds.h"
 #include "spandsp/power_meter.h"
+#include "spandsp/async.h"
 #include "spandsp/fsk.h"
 
 fsk_spec_t preset_fsk_specs[] =
@@ -114,185 +115,10 @@ fsk_spec_t preset_fsk_specs[] =
     }
 };
 
-void async_rx_init(async_rx_state_t *s,
-                   int data_bits,
-                   int parity,
-                   int stop_bits,
-                   int use_v14,
-                   put_byte_func_t put_byte,
-                   void *user_data)
-{
-    s->data_bits = data_bits;
-    s->parity = parity;
-    s->stop_bits = stop_bits;
-    s->use_v14 = use_v14;
-
-    s->put_byte = put_byte;
-    s->user_data = user_data;
-
-    s->byte_in_progress = 0;
-    s->bitpos = 0;
-    s->parity_bit = 0;
-
-    s->parity_errors = 0;
-    s->framing_errors = 0;
-}
-/*- End of function --------------------------------------------------------*/
-
-void async_rx_bit(void *user_data, int bit)
-{
-    async_rx_state_t *s;
-
-    s = (async_rx_state_t *) user_data;
-    if (bit < 0)
-    {
-        /* Special conditions */
-        switch (bit)
-        {
-        case PUTBIT_CARRIER_UP:
-        case PUTBIT_CARRIER_DOWN:
-        case PUTBIT_TRAINING_SUCCEEDED:
-        case PUTBIT_TRAINING_FAILED:
-            s->put_byte(s->user_data, bit);
-            s->bitpos = 0;
-            s->byte_in_progress = 0;
-            break;
-        default:
-            //printf("Eh!\n");
-            break;
-        }
-        return;
-    }
-    if (s->bitpos == 0)
-    {
-        if (bit == 0)
-        {
-            /* Start bit */
-            s->bitpos++;
-            s->parity_bit = 0;
-        }
-    }
-    else if (s->bitpos <= s->data_bits)
-    {
-        s->byte_in_progress >>= 1;
-        if (bit)
-            s->byte_in_progress |= 0x80;
-        s->parity_bit ^= bit;
-        s->bitpos++;
-    }
-    else if (s->parity  &&  s->bitpos == s->data_bits + 1)
-    {
-        if (s->parity == ASYNC_PARITY_ODD)
-            s->parity_bit ^= 1;
-
-        if (s->parity_bit != bit)
-            s->parity_errors++;
-        s->bitpos++;
-    }
-    else
-    {
-        /* Stop bit */
-        if (bit == 1)
-        {
-            /* Align the received value */
-            if (s->data_bits < 8)
-                s->byte_in_progress >>= (8 - s->data_bits);
-            s->put_byte(s->user_data, s->byte_in_progress);
-            s->bitpos = 0;
-        }
-        else
-        {
-            if (s->use_v14)
-            {
-                /* This is actually the start bit for the next character, and
-                   the stop bit has been dropped from the stream. This is the
-                   rate adaption specified in V.14 */
-                /* Align the received value */
-                if (s->data_bits < 8)
-                    s->byte_in_progress >>= (8 - s->data_bits);
-                s->put_byte(s->user_data, s->byte_in_progress);
-                s->bitpos = 1;
-            }
-            else
-            {
-                if (bit != 1)
-                    s->framing_errors++;
-                s->bitpos = 0;
-            }
-        }
-        s->parity_bit = 0;
-        s->byte_in_progress = 0;
-    }
-}
-/*- End of function --------------------------------------------------------*/
-
-void async_tx_init(async_tx_state_t *s,
-                   int data_bits,
-                   int parity,
-                   int stop_bits,
-                   int use_v14,
-                   get_byte_func_t get_byte,
-                   void *user_data)
-{
-    s->data_bits = data_bits;
-    s->parity = parity;
-    s->stop_bits = stop_bits;
-    if (parity != ASYNC_PARITY_NONE)
-        s->stop_bits++;
-        
-    s->get_byte = get_byte;
-    s->user_data = user_data;
-
-    s->byte_in_progress = 0;
-    s->bitpos = 0;
-    s->parity_bit = 0;
-}
-/*- End of function --------------------------------------------------------*/
-
-int async_tx_bit(void *user_data)
-{
-    async_tx_state_t *s;
-    int bit;
-    
-    s = (async_tx_state_t *) user_data;
-    if (s->bitpos == 0)
-    {
-        /* Start bit */
-        bit = 0;
-        s->byte_in_progress = s->get_byte(s->user_data);
-        s->parity_bit = 0;
-        s->bitpos++;
-    }
-    else if (s->bitpos <= s->data_bits)
-    {
-        bit = s->byte_in_progress & 1;
-        s->parity_bit ^= bit;
-        s->byte_in_progress >>= 1;
-        s->bitpos++;
-    }
-    else if (s->parity  &&  s->bitpos == s->data_bits + 1)
-    {
-        if (s->parity == ASYNC_PARITY_ODD)
-            s->parity_bit ^= 1;
-        bit = s->parity_bit;
-        s->bitpos++;
-    }
-    else
-    {
-        /* Stop bit(s) */
-        bit = 1;
-        s->bitpos++;
-        if (s->bitpos > s->data_bits + s->stop_bits)
-            s->bitpos = 0;
-    }
-    return bit;
-}
-/*- End of function --------------------------------------------------------*/
-
-void fsk_tx_init(fsk_tx_state_t *s,
-                 fsk_spec_t *spec,
-                 get_bit_func_t get_bit,
-                 void *user_data)
+fsk_tx_state_t *fsk_tx_init(fsk_tx_state_t *s,
+                            fsk_spec_t *spec,
+                            get_bit_func_t get_bit,
+                            void *user_data)
 {
     s->baud_rate = spec->baud_rate;
     s->get_bit = get_bit;
@@ -300,7 +126,7 @@ void fsk_tx_init(fsk_tx_state_t *s,
 
     s->phase_rates[0] = dds_phase_step(spec->freq_zero);
     s->phase_rates[1] = dds_phase_step(spec->freq_one);
-    s->scaling = dds_scaling(spec->tx_level);
+    s->scaling = dds_scaling_dbm0(spec->tx_level);
     /* Initialise fractional sample baud generation. */
     s->phase_acc = 0;
     s->baud_inc = (s->baud_rate*0x10000)/SAMPLE_RATE;
@@ -308,6 +134,7 @@ void fsk_tx_init(fsk_tx_state_t *s,
     s->current_phase_rate = s->phase_rates[1];
     
     s->shutdown = FALSE;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -343,7 +170,7 @@ int fsk_tx(fsk_tx_state_t *s, int16_t *amp, int len)
 
 void fsk_tx_power(fsk_tx_state_t *s, float power)
 {
-    s->scaling = dds_scaling(power);
+    s->scaling = dds_scaling_dbm0(power);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -356,7 +183,7 @@ void fsk_tx_set_get_bit(fsk_tx_state_t *s, get_bit_func_t get_bit, void *user_da
 
 void fsk_rx_signal_cutoff(fsk_rx_state_t *s, float cutoff)
 {
-    s->min_power = power_meter_level(cutoff);
+    s->min_power = power_meter_level_dbm0(cutoff);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -373,18 +200,18 @@ void fsk_rx_set_put_bit(fsk_rx_state_t *s, put_bit_func_t put_bit, void *user_da
 }
 /*- End of function --------------------------------------------------------*/
 
-void fsk_rx_init(fsk_rx_state_t *s,
-                 fsk_spec_t *spec,
-                 int sync_mode,
-                 put_bit_func_t put_bit,
-                 void *user_data)
+fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
+                            fsk_spec_t *spec,
+                            int sync_mode,
+                            put_bit_func_t put_bit,
+                            void *user_data)
 {
     int chop;
 
     memset(s, 0, sizeof(*s));
     s->baud_rate = spec->baud_rate;
     s->sync_mode = sync_mode;
-    s->min_power = power_meter_level(spec->min_level);
+    s->min_power = power_meter_level_dbm0(spec->min_level);
     s->put_bit = put_bit;
     s->user_data = user_data;
 
@@ -421,6 +248,7 @@ void fsk_rx_init(fsk_rx_state_t *s,
     /* Initialise a power detector, so sense when a signal is present. */
     power_meter_init(&(s->power), 4);
     s->carrier_present = FALSE;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 

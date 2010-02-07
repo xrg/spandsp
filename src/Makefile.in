@@ -60,11 +60,11 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)"
 libLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libspandsp_la_LIBADD =
-am_libspandsp_la_OBJECTS = adsi.lo awgn.lo bert.lo complex_dds.lo \
-	complex_filters.lo dds.lo ec_disable_detector.lo echo.lo \
-	fsk.lo g722_encode.lo g722_decode.lo hdlc.lo ima_adpcm.lo \
-	logging.lo modem_echo.lo noise.lo oki_adpcm.lo oss.lo \
-	playout.lo plc.lo power_meter.lo queue.lo schedule.lo \
+am_libspandsp_la_OBJECTS = adsi.lo async.lo awgn.lo bert.lo \
+	complex_dds.lo complex_filters.lo dds.lo ec_disable_tone.lo \
+	echo.lo fsk.lo g722_encode.lo g722_decode.lo g726.lo hdlc.lo \
+	ima_adpcm.lo logging.lo modem_echo.lo noise.lo oki_adpcm.lo \
+	oss.lo playout.lo plc.lo power_meter.lo queue.lo schedule.lo \
 	sig_tone.lo super_tone_rx.lo super_tone_tx.lo t4.lo t30.lo \
 	t31.lo t35.lo testcpuid.lo time_scale.lo tone_detect.lo \
 	tone_generate.lo v17rx.lo v17tx.lo v22bis_rx.lo v22bis_tx.lo \
@@ -195,20 +195,23 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
+AM_CFLAGS = -std=c99
 MAINTAINERCLEANFILES = Makefile.in
 INCLUDES = -I$(top_builddir)
 lib_LTLIBRARIES = libspandsp.la
 libspandsp_la_SOURCES = adsi.c \
+                        async.c \
                         awgn.c \
                         bert.c \
                         complex_dds.c \
                         complex_filters.c \
                         dds.c \
-                        ec_disable_detector.c \
+                        ec_disable_tone.c \
                         echo.c \
                         fsk.c \
                         g722_encode.c \
                         g722_decode.c \
+                        g726.c \
                         hdlc.c \
                         ima_adpcm.c \
                         logging.c \
@@ -248,6 +251,7 @@ libspandsp_la_LDFLAGS = -version-info @SPANDSP_LT_CURRENT@:@SPANDSP_LT_REVISION@
 nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/alaw_ulaw.h \
                         spandsp/arctan2.h \
+                        spandsp/async.h \
                         spandsp/awgn.h \
                         spandsp/bert.h \
                         spandsp/biquad.h \
@@ -255,12 +259,13 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/complex_filters.h \
                         spandsp/dc_restore.h \
                         spandsp/dds.h \
-                        spandsp/ec_disable_detector.h \
+                        spandsp/ec_disable_tone.h \
                         spandsp/echo.h \
                         spandsp/fir.h \
                         spandsp/fsk.h \
                         spandsp/g168models.h \
                         spandsp/g722.h \
+                        spandsp/g726.h \
                         spandsp/hdlc.h \
                         spandsp/ima_adpcm.h \
                         spandsp/logging.h \
@@ -391,16 +396,18 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/adsi.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/async.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/awgn.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bert.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_dds.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_filters.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dds.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ec_disable_detector.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ec_disable_tone.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/echo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fsk.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g722_decode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g722_encode.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g726.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hdlc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ima_adpcm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/logging.Plo@am__quote@

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.35 2005/09/28 17:11:49 steveu Exp $
+ * $Id: t4.c,v 1.41 2006/02/04 14:14:57 steveu Exp $
  */
 
 /*
@@ -62,6 +62,8 @@
 #include <config.h>
 #endif
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -70,10 +72,15 @@
 #include <stdlib.h>
 #include <time.h>
 #include <memory.h>
+#include <string.h>
+#include <strings.h>
 #include <tgmath.h>
 #include <tiffio.h>
 
-#include "spandsp.h"
+#include "spandsp/telephony.h"
+#include "spandsp/logging.h"
+#include "spandsp/alaw_ulaw.h"
+#include "spandsp/t4.h"
 
 /* Finite state machine state codes */
 #define S_Null                  0
@@ -99,9 +106,9 @@ void STATE_TRACE(char *format, ...)
 {
     va_list arg_ptr;
 
-    va_start (arg_ptr, format);
-    vprintf (format, arg_ptr);
-    va_end (arg_ptr);
+    va_start(arg_ptr, format);
+    vprintf(format, arg_ptr);
+    va_end(arg_ptr);
 }
 /*- End of function --------------------------------------------------------*/
 #endif
@@ -109,9 +116,9 @@ void STATE_TRACE(char *format, ...)
 /* Finite state machine state table entry */
 typedef struct
 {
-    uint8_t     state;        /* see above */
-    uint8_t     width;        /* width of code in bits */
-    uint32_t    param;        /* run length in bits */
+    uint8_t state;          /* see above */
+    uint8_t width;          /* width of code in bits */
+    uint32_t param;         /* run length in bits */
 } T4_tab_entry;
 
 #include "t4states.h"
@@ -138,9 +145,9 @@ typedef struct
  */
 typedef struct
 {
-    unsigned short int length;      /* length of T.4 code, in bits */
-    unsigned short int code;        /* T.4 code */
-    short int          runlen;      /* run length, in bits */
+    uint16_t length;        /* length of T.4 code, in bits */
+    uint16_t code;          /* T.4 code */
+    int16_t runlen;         /* run length, in bits */
 } T4_table_entry;
 
 #define isAligned(p,t)  ((((unsigned long int)(p)) & (sizeof(t) - 1)) == 0)
@@ -414,7 +421,7 @@ static __inline__ void put_run(t4_state_t *s, int black)
     s->row_len += s->run_length;
     /* Ignore anything before the first EOL */
     /* Don't allow rows to grow too long, and overflow the buffers */
-    if (s->row_len <= s->image_width  &&  s->first_eol_seen)
+    if (s->row_len <= s->image_width)
     {
         *s->pa++ = s->run_length;
         for (i = 0;  i < s->run_length;  i++)
@@ -530,6 +537,9 @@ int t4_rx_end_page(t4_state_t *s)
     time_t now;
     struct tm *tm;
     char buf[256 + 1];
+    uint16_t resunit;
+    float x_resolution;
+    float y_resolution;
 
     if (s->curr_bad_row_run)
     {
@@ -541,14 +551,55 @@ int t4_rx_end_page(t4_state_t *s)
     if (s->image_size == 0)
         return -1;
 
-    for (row = 0;  row < s->rows;  row++)
+    /* Prepare the directory entry fully before writing the image, or libtiff complains */
+    TIFFSetField(s->tiff_file, TIFFTAG_COMPRESSION, s->output_compression);
+    if (s->output_compression == COMPRESSION_CCITT_T4)
     {
-        if (TIFFWriteScanline(s->tiff_file, s->image_buffer + row*s->bytes_per_row, row, 0) < 0)
-        {
-            span_log(&s->logging, SPAN_LOG_WARNING, "%s: Write error at row %d.\n", s->file, row);
-            break;
-        }
+        TIFFSetField(s->tiff_file, TIFFTAG_T4OPTIONS, s->output_t4_options);
+        TIFFSetField(s->tiff_file, TIFFTAG_FAXMODE, FAXMODE_CLASSF);
     }
+    TIFFSetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, s->image_width);
+    TIFFSetField(s->tiff_file, TIFFTAG_BITSPERSAMPLE, 1);
+    TIFFSetField(s->tiff_file, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+    TIFFSetField(s->tiff_file, TIFFTAG_SAMPLESPERPIXEL, 1);
+    if (s->output_compression == COMPRESSION_CCITT_T4
+        ||
+        s->output_compression == COMPRESSION_CCITT_T6)
+    {
+        TIFFSetField(s->tiff_file, TIFFTAG_ROWSPERSTRIP, -1L);
+    }
+    else
+    {
+        TIFFSetField(s->tiff_file,
+                     TIFFTAG_ROWSPERSTRIP,
+                     TIFFDefaultStripSize(s->tiff_file, 0));
+    }
+    TIFFSetField(s->tiff_file, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+    TIFFSetField(s->tiff_file, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISWHITE);
+    TIFFSetField(s->tiff_file, TIFFTAG_FILLORDER, FILLORDER_LSB2MSB);
+
+    x_resolution = s->column_resolution/100.0;
+    y_resolution = s->row_resolution/100.0;
+    TIFFSetField(s->tiff_file, TIFFTAG_XRESOLUTION, x_resolution);
+    TIFFSetField(s->tiff_file, TIFFTAG_YRESOLUTION, y_resolution);
+    resunit = RESUNIT_CENTIMETER;
+    TIFFSetField(s->tiff_file, TIFFTAG_RESOLUTIONUNIT, resunit);
+
+    /* TODO: add the version of spandsp */
+    TIFFSetField(s->tiff_file, TIFFTAG_SOFTWARE, "spandsp");
+    if (gethostname(buf, sizeof(buf)) == 0)
+        TIFFSetField(s->tiff_file, TIFFTAG_HOSTCOMPUTER, buf);
+
+    //TIFFSetField(s->tiff_file, TIFFTAG_FAXRECVPARAMS, ???);
+    //TIFFSetField(s->tiff_file, TIFFTAG_FAXMODE, ???);
+    if (s->sub_address)
+        TIFFSetField(s->tiff_file, TIFFTAG_FAXSUBADDRESS, s->sub_address);
+    if (s->far_ident)
+        TIFFSetField(s->tiff_file, TIFFTAG_IMAGEDESCRIPTION, s->far_ident);
+    if (s->vendor)
+        TIFFSetField(s->tiff_file, TIFFTAG_MAKE, s->vendor);
+    if (s->model)
+        TIFFSetField(s->tiff_file, TIFFTAG_MODEL, s->model);
 
     time(&now);
     tm = localtime(&now);
@@ -581,6 +632,18 @@ int t4_rx_end_page(t4_state_t *s)
             TIFFSetField(s->tiff_file, TIFFTAG_CLEANFAXDATA, CLEANFAXDATA_CLEAN);
         }
     }
+    TIFFSetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, s->image_width);
+
+    /* Write the image first.... */
+    for (row = 0;  row < s->rows;  row++)
+    {
+        if (TIFFWriteScanline(s->tiff_file, s->image_buffer + row*s->bytes_per_row, row, 0) < 0)
+        {
+            span_log(&s->logging, SPAN_LOG_WARNING, "%s: Write error at row %d.\n", s->file, row);
+            break;
+        }
+    }
+    /* ....the the directory entry, and libtiff is happy. */
     TIFFWriteDirectory(s->tiff_file);
 
     s->bits = 0;
@@ -600,10 +663,17 @@ int t4_rx_putbit(t4_state_t *s, int bit)
     /* We decompress bit by bit, as the data stream is received. We need to
        scan continuously for EOLs, so we might as well work this way. */
     s->bits_to_date = (s->bits_to_date >> 1) | ((bit & 1) << 12);
-    if (++s->bits > 13)
-        s->bits = 13;
-    if (s->bits < 13)
+    if (++s->bits < 13)
         return FALSE;
+    if (!s->first_eol_seen)
+    {
+        /* Do not let anything through to the decoder, until an EOL arrives. */
+        if ((s->bits_to_date & 0xFFF) != 0x800)
+            return FALSE;
+        s->bits = (s->line_encoding == T4_COMPRESSION_ITU_T4_1D)  ?  1  :  0;
+        s->first_eol_seen = TRUE;
+        return FALSE;
+    }
     if (s->row_is_2d  &&  s->black_white == 0)
     {
         switch (T4_black_table[s->bits_to_date & 0x1FFF].state)
@@ -616,7 +686,6 @@ int t4_rx_putbit(t4_state_t *s, int bit)
             s->bits--;
             s->itsblack = FALSE;
             s->row_len = 0;
-            s->first_eol_seen = TRUE;
             break;
         default:
             bits = s->bits_to_date & 0x7F;
@@ -778,30 +847,26 @@ int t4_rx_putbit(t4_state_t *s, int bit)
                 break;
             case S_EOL:
                 STATE_TRACE("EOL\n");
-                if (s->first_eol_seen)
+                if (s->row_len == 0)
                 {
-                    if (s->row_len == 0)
+                    if (++s->consecutive_eols >= 5)
                     {
-                        if (++s->consecutive_eols >= 5)
-                        {
-                            t4_rx_end_page(s);
-                            return TRUE;
-                        }
-                    }
-                    else
-                    {
-                        s->consecutive_eols = 0;
-                        put_eol(s);
+                        t4_rx_end_page(s);
+                        return TRUE;
                     }
                 }
-                if (s->line_encoding == T4_COMPRESSION_ITU_T4_2D)
+                else
+                {
+                    s->consecutive_eols = 0;
+                    put_eol(s);
+                }
+                if (s->line_encoding != T4_COMPRESSION_ITU_T4_1D)
                 {
                     s->row_is_2d = !(s->bits_to_date & 0x1000);
                     s->bits--;
                 }
                 s->itsblack = FALSE;
                 s->row_len = 0;
-                s->first_eol_seen = TRUE;
                 break;
             default:
                 /* Bad black */
@@ -850,30 +915,26 @@ int t4_rx_putbit(t4_state_t *s, int bit)
                 break;
             case S_EOL:
                 STATE_TRACE("EOL\n");
-                if (s->first_eol_seen)
+                if (s->row_len == 0)
                 {
-                    if (s->row_len == 0)
+                    if (++s->consecutive_eols >= 5)
                     {
-                        if (++s->consecutive_eols >= 5)
-                        {
-                            t4_rx_end_page(s);
-                            return TRUE;
-                        }
-                    }
-                    else
-                    {
-                        s->consecutive_eols = 0;
-                        put_eol(s);
+                        t4_rx_end_page(s);
+                        return TRUE;
                     }
                 }
-                if (s->line_encoding == T4_COMPRESSION_ITU_T4_2D)
+                else
+                {
+                    s->consecutive_eols = 0;
+                    put_eol(s);
+                }
+                if (s->line_encoding != T4_COMPRESSION_ITU_T4_1D)
                 {
                     s->row_is_2d = !(s->bits_to_date & 0x1000);
                     s->bits--;
                 }
                 s->itsblack = FALSE;
                 s->row_len = 0;
-                s->first_eol_seen = TRUE;
                 break;
             default:
                 /* Bad white */
@@ -935,6 +996,10 @@ int t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
     s->bytes_per_row = 0;
 
     s->pages_transferred = 0;
+
+    s->image_buffer = NULL;
+    s->image_buffer_size = 0;
+
     /* Set some default values */
     s->column_resolution = 7700;
     s->row_resolution = T4_X_RESOLUTION_R8;
@@ -947,9 +1012,6 @@ int t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
 int t4_rx_start_page(t4_state_t *s)
 {
     float res;
-    uint16_t resunit;
-    float x_resolution;
-    float y_resolution;
     int bytes_per_row;
     int nruns;
     uint32_t *bufptr;
@@ -967,61 +1029,14 @@ int t4_rx_start_page(t4_state_t *s)
         bufptr = (uint32_t *) realloc(s->curruns, (nruns + 3)*sizeof(uint32_t));
         if (bufptr == NULL)
             return -1;
+        memset(bufptr, 0, (nruns + 3)*sizeof(uint32_t));
         s->curruns = bufptr;
         bufptr = (uint32_t *) realloc(s->refruns, (nruns + 3)*sizeof(uint32_t));
         if (bufptr == NULL)
             return -1;
+        memset(bufptr, 0, (nruns + 3)*sizeof(uint32_t));
         s->refruns = bufptr;
     }
-    TIFFSetField(s->tiff_file, TIFFTAG_COMPRESSION, s->output_compression);
-    if (s->output_compression == COMPRESSION_CCITT_T4)
-    {
-        TIFFSetField(s->tiff_file, TIFFTAG_T4OPTIONS, s->output_t4_options);
-        TIFFSetField(s->tiff_file, TIFFTAG_FAXMODE, FAXMODE_CLASSF);
-    }
-    TIFFSetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, s->image_width);
-    TIFFSetField(s->tiff_file, TIFFTAG_BITSPERSAMPLE, 1);
-    TIFFSetField(s->tiff_file, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
-    TIFFSetField(s->tiff_file, TIFFTAG_SAMPLESPERPIXEL, 1);
-    if (s->output_compression == COMPRESSION_CCITT_T4
-        ||
-        s->output_compression == COMPRESSION_CCITT_T6)
-    {
-        TIFFSetField(s->tiff_file, TIFFTAG_ROWSPERSTRIP, -1L);
-    }
-    else
-    {
-        TIFFSetField(s->tiff_file,
-                     TIFFTAG_ROWSPERSTRIP,
-                     TIFFDefaultStripSize(s->tiff_file, 0));
-    }
-    TIFFSetField(s->tiff_file, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-    TIFFSetField(s->tiff_file, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISWHITE);
-    TIFFSetField(s->tiff_file, TIFFTAG_FILLORDER, FILLORDER_LSB2MSB);
-
-    x_resolution = s->column_resolution/100.0;
-    y_resolution = s->row_resolution/100.0;
-    TIFFSetField(s->tiff_file, TIFFTAG_XRESOLUTION, x_resolution);
-    TIFFSetField(s->tiff_file, TIFFTAG_YRESOLUTION, y_resolution);
-    resunit = RESUNIT_CENTIMETER;
-    TIFFSetField(s->tiff_file, TIFFTAG_RESOLUTIONUNIT, resunit);
-
-    /* TODO: add the version of spandsp */
-    TIFFSetField(s->tiff_file, TIFFTAG_SOFTWARE, "spandsp");
-    if (gethostname(buf, sizeof(buf)) == 0)
-        TIFFSetField(s->tiff_file, TIFFTAG_HOSTCOMPUTER, buf);
-
-    //TIFFSetField(s->tiff_file, TIFFTAG_FAXRECVPARAMS, ???);
-    //TIFFSetField(s->tiff_file, TIFFTAG_FAXMODE, ???);
-    if (s->sub_address)
-        TIFFSetField(s->tiff_file, TIFFTAG_FAXSUBADDRESS, s->sub_address);
-    if (s->far_ident)
-        TIFFSetField(s->tiff_file, TIFFTAG_IMAGEDESCRIPTION, s->far_ident);
-    if (s->vendor)
-        TIFFSetField(s->tiff_file, TIFFTAG_MAKE, s->vendor);
-    if (s->model)
-        TIFFSetField(s->tiff_file, TIFFTAG_MODEL, s->model);
-
     s->bits = 0;
     s->bits_to_date = 0;
 
@@ -1035,8 +1050,6 @@ int t4_rx_start_page(t4_state_t *s)
     s->consecutive_eols = 0;
     s->data = 0;
     s->bit = 8;
-    s->image_buffer = NULL;
-    s->image_buffer_size = 0;
     s->image_size = 0;
     s->row_starts_at = 0;
     s->last_row_starts_at = 0;
@@ -1435,15 +1448,15 @@ static void t4_encode_eol(t4_state_t *s)
     unsigned int code;
     int length;
 
-    if (s->line_encoding == T4_COMPRESSION_ITU_T4_2D)
-    {
-        code = 0x0002 | (!s->row_is_2d);
-        length = 13;
-    }
-    else
+    if (s->line_encoding == T4_COMPRESSION_ITU_T4_1D)
     {
         code = 0x001;
         length = 12;
+    }
+    else
+    {
+        code = 0x0002 | (!s->row_is_2d);
+        length = 13;
     }
     /* We may need to pad the row to a minimum length. */
     if (s->row_bits + length < s->min_row_bits)
@@ -1566,7 +1579,11 @@ static int t4_encode_row(t4_state_t *s, uint8_t *bp)
     }
     else
     {
-        if (s->line_encoding == T4_COMPRESSION_ITU_T4_2D)
+        if (s->line_encoding == T4_COMPRESSION_ITU_T4_1D)
+        {
+            t4_encode1Drow(s, bp);
+        }
+        else
         {
             if (s->row_is_2d)
             {
@@ -1587,10 +1604,6 @@ static int t4_encode_row(t4_state_t *s, uint8_t *bp)
             {
                 memcpy(s->refrowbuf, bp, s->bytes_per_row);
             }
-        }
-        else
-        {
-            t4_encode1Drow(s, bp);
         }
     }
     bp += s->bytes_per_row;

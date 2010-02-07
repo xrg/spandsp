@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds.c,v 1.8 2005/08/31 19:27:52 steveu Exp $
+ * $Id: dds.c,v 1.10 2006/01/31 05:34:27 steveu Exp $
  */
 
 /*! \file */
@@ -37,6 +37,10 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/dds.h"
+
+#if !defined(M_PI)
+# define M_PI           3.14159265358979323846  /* pi */
+#endif
 
 /* In a A-law or u-law channel, and 128 step sine table is adequate to keep the spectral
    mess due to the DDS at a similar level to the spectral mess due to the A-law or u-law
@@ -54,9 +58,15 @@ int32_t dds_phase_step(float frequency)
 }
 /*- End of function --------------------------------------------------------*/
 
-int dds_scaling(float level)
+int dds_scaling_dbm0(float level)
 {
     return (int) (pow(10.0, (level - 3.14)/20.0)*32767.0);
+}
+/*- End of function --------------------------------------------------------*/
+
+int dds_scaling_dbov(float level)
+{
+    return (int) (pow(10.0, (level + 3.14)/20.0)*32767.0);
 }
 /*- End of function --------------------------------------------------------*/
 

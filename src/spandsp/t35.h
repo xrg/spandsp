@@ -23,13 +23,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t35.h,v 1.4 2004/11/05 14:48:41 steveu Exp $
+ * $Id: t35.h,v 1.5 2005/11/23 17:09:47 steveu Exp $
  */
 
 /*! \file */
 
 #if !defined(_T35_H_)
 #define _T35_H_
+
+/*! \page t35_page T.35 manufacturer specific processing for FAX machines
+\section t35_page_sec_1 What does it do?
+???.
+
+\section t35_page_sec_2 How does it work?
+???.
+*/
 
 extern const char *t35_country_codes[256];
 

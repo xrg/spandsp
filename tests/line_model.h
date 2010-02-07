@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.h,v 1.3 2005/03/03 14:19:00 steveu Exp $
+ * $Id: line_model.h,v 1.5 2005/12/29 12:46:20 steveu Exp $
  */
 
 /*! \file */
@@ -59,23 +59,59 @@ The path being modelled is:
 
 #define LINE_FILTER_SIZE 129
 
+/*!
+    One way line model descriptor. This holds the complete state of
+    a line model with transmission in only one direction.
+*/
 typedef struct
 {
     int alaw_munge;
+    int ulaw_munge;
 
-    float *line_filter;
-    int line_filter_len;
-    float buf[LINE_FILTER_SIZE];    /* last transmitted samples (ring buffer, 
-                                       used by the line filter) */
-    int buf_ptr;                    /* pointer of the last transmitted sample in buf */
-    float cpe_hybrid_echo;
-    float co_hybrid_echo;
-    int16_t bulk_delay_buf[8000];
+    /*! The coefficients for the near end analogue section simulation filter */
+    float *near_filter;
+    /*! The number of coefficients for the near end analogue section simulation filter */
+    int near_filter_len;
+    /*! Last transmitted samples (ring buffer, used by the line filter) */
+    float near_buf[LINE_FILTER_SIZE];
+    /*! Pointer of the last transmitted sample in buf */
+    int near_buf_ptr;
+    /*! The noise source for local analogue section of the line */
+    awgn_state_t near_noise;
+
+    /*! The bulk delay of the path, in samples */
     int bulk_delay;
+    /*! A pointer to the current write position in the bulk delay store. */
     int bulk_delay_ptr;
-    awgn_state_t noise;
+    /*! The data store for simulating the bulk delay */
+    int16_t bulk_delay_buf[8000];
+
+    /*! The coefficients for the far end analogue section simulation filter */
+    float *far_filter;
+    /*! The number of coefficients for the far end analogue section simulation filter */
+    int far_filter_len;
+    /*! Last transmitted samples (ring buffer, used by the line filter) */
+    float far_buf[LINE_FILTER_SIZE];
+    /*! Pointer of the last transmitted sample in buf */
+    int far_buf_ptr;
+    /*! The noise source for distant analogue section of the line */
+    awgn_state_t far_noise;
+
+    /*! The scaling factor for the local CPE hybrid echo */
+    float near_cpe_hybrid_echo;
+    /*! The scaling factor for the local CO hybrid echo */
+    float near_co_hybrid_echo;
+
+    /*! The scaling factor for the far CPE hybrid echo */
+    float far_cpe_hybrid_echo;
+    /*! The scaling factor for the far CO hybrid echo */
+    float far_co_hybrid_echo;
 } one_way_line_model_state_t;
 
+/*!
+    Two way line model descriptor. This holds the complete state of
+    a line model with transmission in both directions.
+*/
 typedef struct
 {
     one_way_line_model_state_t line1;
@@ -100,12 +136,17 @@ both_ways_line_model_state_t *both_ways_line_model_init(int model1,
                                                         int model2,
                                                         int noise2);
 
+int both_ways_line_model_release(both_ways_line_model_state_t *s);
+
 void one_way_line_model(one_way_line_model_state_t *s, 
                         int16_t *output,
                         const int16_t *input,
                         int samples);
 
 one_way_line_model_state_t *one_way_line_model_init(int model, int noise);
+
+int one_way_line_model_release(one_way_line_model_state_t *s);
+
 #ifdef __cplusplus
 }
 #endif

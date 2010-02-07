@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn.c,v 1.5 2005/08/31 19:27:52 steveu Exp $
+ * $Id: awgn.c,v 1.6 2005/11/27 12:36:22 steveu Exp $
  */
 
 /*! \file */
@@ -42,9 +42,6 @@
         
    The non-core nature of this code also explains why it is unlikely
    to ever be optimised. */
-
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>

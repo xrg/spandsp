@@ -23,24 +23,32 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: noise_tests.c,v 1.1 2005/10/10 19:42:25 steveu Exp $
+ * $Id: noise_tests.c,v 1.6 2005/12/25 15:08:36 steveu Exp $
  */
 
 /*! \page noise_tests_page Noise generator tests
 \section noise_tests_page_sec_1 What does it do?
 */
 
-//#define _ISOC9X_SOURCE  1
-//#define _ISOC99_SOURCE  1
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <audiofile.h>
 #include <tiffio.h>
 
 #include "spandsp.h"
+
+#if !defined(M_PI)
+# define M_PI           3.14159265358979323846  /* pi */
+#endif
+
+#define OUT_FILE_NAME   "noise.wav"
 
 /* Some simple sanity tests for the noise generation routines */
 
@@ -53,15 +61,36 @@ int main (int argc, char *argv[])
     int clip_low;
     int total_samples;
     int seed = 1234567;
+    int outframes;
     int16_t value;
     double total;
     double x;
     double p;
     double o;
     int bins[65536];
+    int16_t amp[1024];
     noise_state_t noise_source;
+    AFfilehandle outhandle;
+    AFfilesetup filesetup;
 
-    /* Generate noise at several RMS levels between -50dBm and 0dBm. Noise is
+    filesetup = afNewFileSetup();
+    if (filesetup == AF_NULL_FILESETUP)
+    {
+        fprintf(stderr, "    Failed to create file setup\n");
+        exit(2);
+    }
+    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
+    afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
+    afInitFileFormat(filesetup, AF_FILE_WAVE);
+    afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
+    outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
+    if (outhandle == AF_NULL_FILEHANDLE)
+    {
+        fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
+        exit(2);
+    }
+
+    /* Generate AWGN at several RMS levels between -50dBm and 0dBm. Noise is
        generated for a large number of samples (1,000,000), and the RMS value
        of the noise is calculated along the way. If the resulting level is
        close to the requested RMS level, at least the scaling of the noise
@@ -72,17 +101,17 @@ int main (int argc, char *argv[])
         clip_high = 0;
         clip_low = 0;
         total = 0.0;
-    	noise_init(&noise_source, seed, level, NOISE_CLASS_AWGN);
+        noise_init(&noise_source, seed, level, NOISE_CLASS_AWGN, 7);
         total_samples = 1000000;
-    	for (i = 0;  i < total_samples;  i++)
-    	{
+        for (i = 0;  i < total_samples;  i++)
+        {
             value = noise(&noise_source);
             if (value == 32767)
                 clip_high++;
             else if (value == -32768)
                 clip_low++;
             total += ((double) value)*((double) value);
-    	}
+        }
         printf ("RMS = %.3f (expected %d) %.2f%% error [clipped samples %d+%d]\n",
                 log10(sqrt(total/total_samples)/(32768.0*0.70711))*20.0 + 3.14,
                 level,
@@ -98,7 +127,7 @@ int main (int argc, char *argv[])
     clip_high = 0;
     clip_low = 0;
     level = -15;
-    noise_init(&noise_source, seed, level, NOISE_CLASS_AWGN);
+    noise_init(&noise_source, seed, level, NOISE_CLASS_AWGN, 7);
     total_samples = 10000000;
     for (i = 0;  i < total_samples;  i++)
     {
@@ -124,8 +153,76 @@ int main (int argc, char *argv[])
         x /= 10.0;
         x /= total_samples;
         /* Now send it out for graphing. */
-        printf("%6d %.7f %.7f\n", i - 32768, x, p);
+        if (p > 0.0000001)
+            printf("%6d %.7f %.7f\n", i - 32768, x, p);
     }
+
+    for (j = 0;  j < 50;  j++)
+    {
+        for (i = 0;  i < 1024;  i++)
+            amp[i] = noise(&noise_source);
+        outframes = afWriteFrames(outhandle,
+                                  AF_DEFAULT_TRACK,
+                                  amp,
+                                  1024);
+        if (outframes != 1024)
+        {
+            fprintf(stderr, "    Error writing wave file\n");
+            exit(2);
+        }
+    }
+
+    /* Generate AWGN at several RMS levels between -50dBm and 0dBm. Noise is
+       generated for a large number of samples (1,000,000), and the RMS value
+       of the noise is calculated along the way. If the resulting level is
+       close to the requested RMS level, at least the scaling of the noise
+       should be Ok. At high levels some clipping may distort the result a
+       little. */
+    for (level = -50;  level <= 0;  level += 5)
+    {
+        clip_high = 0;
+        clip_low = 0;
+        total = 0.0;
+        noise_init(&noise_source, seed, level, NOISE_CLASS_HOTH, 7);
+        total_samples = 1000000;
+        for (i = 0;  i < total_samples;  i++)
+        {
+            value = noise(&noise_source);
+            if (value == 32767)
+                clip_high++;
+            else if (value == -32768)
+                clip_low++;
+            total += ((double) value)*((double) value);
+        }
+        printf ("RMS = %.3f (expected %d) %.2f%% error [clipped samples %d+%d]\n",
+                log10(sqrt(total/total_samples)/(32768.0*0.70711))*20.0 + 3.14,
+                level,
+                100.0*(1.0 - sqrt(total/total_samples)/(pow(10.0, (level - 3.14)/20.0)*(32768.0*0.70711))),
+                clip_low,
+                clip_high);
+    }
+    level = -15;
+    noise_init(&noise_source, seed, level, NOISE_CLASS_HOTH, 7);
+    for (j = 0;  j < 50;  j++)
+    {
+        for (i = 0;  i < 1024;  i++)
+            amp[i] = noise(&noise_source);
+        outframes = afWriteFrames(outhandle,
+                                  AF_DEFAULT_TRACK,
+                                  amp,
+                                  1024);
+        if (outframes != 1024)
+        {
+            fprintf(stderr, "    Error writing wave file\n");
+            exit(2);
+        }
+    }
+    if (afCloseFile(outhandle))
+    {
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
+        exit(2);
+    }
+    afFreeFileSetup(filesetup);
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.h,v 1.22 2005/05/26 13:52:17 steveu Exp $
+ * $Id: v29rx.h,v 1.29 2005/12/08 16:51:00 steveu Exp $
  */
 
 /*! \file */
@@ -31,10 +31,8 @@
 #if !defined(_V29RX_H_)
 #define _V29RX_H_
 
-#include "fsk.h"
-
-/*! \page V29rx_page The V.29 receiver
-\section V29rx_page_sec_1 What does it do?
+/*! \page v29rx_page The V.29 receiver
+\section v29rx_page_sec_1 What does it do?
 The V.29 receiver implements the receive side of a V.29 modem. This can operate
 at data rates of 9600, 7200 and 4800 bits/s. The audio input is a stream of 16
 bit samples, at 8000 samples/second. The transmit and receive side of V.29
@@ -42,7 +40,7 @@ modems operate independantly. V.29 is mostly used for FAX transmission, where it
 provides the standard 9600 and 7200 bits/s rates (the 4800 bits/s mode is not
 used for FAX). 
 
-\section V29rx_page_sec_2 How does it work?
+\section v29rx_page_sec_2 How does it work?
 V.29 use QAM modulation. It specifies a training sequence at the start of
 transmission, which makes the design of a V.29 receiver relatively
 straightforward. The first stage of the training sequence consists of 128
@@ -123,8 +121,9 @@ scrambler register) cannot be trusted for the test. The receive modem,
 therefore, only tests that bits starting at bit 24 are really ones. 
 */
 
-#define V29_EQUALIZER_LEN   7  /* this much to the left and this much to the right */
-#define V29_EQUALIZER_MASK  15 /* one less than a power of 2 >= (2*V29_EQUALIZER_LEN + 1) */
+#define V29_EQUALIZER_PRE_LEN   15 /* this much before the real event */
+#define V29_EQUALIZER_POST_LEN  15 /* this much after the real event */
+#define V29_EQUALIZER_MASK      31 /* one less than a power of 2 >= (2*V29_EQUALIZER_LEN + 1) */
 
 #define V29RX_FILTER_STEPS  27
 
@@ -140,13 +139,13 @@ typedef struct
     int bit_rate;
     /*! \brief The callback function used to put each bit received. */
     put_bit_func_t put_bit;
-    /*! \brief A user specified opaque pointer passed to the callback function. */
+    /*! \brief A user specified opaque pointer passed to the put_bit routine. */
     void *user_data;
     /*! \brief A callback function which may be enabled to report every symbol's
                constellation position. */
     qam_report_handler_t *qam_report;
     /*! \brief A user specified opaque pointer passed to the qam_report callback
-               function. */
+               routine. */
     void *qam_user_data;
 
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
@@ -180,7 +179,7 @@ typedef struct
 
     float eq_delta;
     /*! \brief The adaptive equalizer coefficients */
-    complex_t eq_coeff[2*V29_EQUALIZER_LEN + 1];
+    complex_t eq_coeff[V29_EQUALIZER_PRE_LEN + 1 + V29_EQUALIZER_POST_LEN];
     complex_t eq_buf[V29_EQUALIZER_MASK + 1];
     /*! \brief Current offset into equalizer buffer. */
     int eq_step;
@@ -214,8 +213,9 @@ extern "C" {
     \param s The modem context.
     \param rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
     \param put_bit The callback routine used to put the received data.
-    \param user_data An opaque pointer. */
-void v29_rx_init(v29_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data);
+    \param user_data An opaque pointer passed to the put_bit routine.
+    \return A pointer to the modem context, or NULL if there was a problem. */
+v29_rx_state_t *v29_rx_init(v29_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data);
 
 /*! Reinitialise an existing V.29 modem receive context.
     \brief Reinitialise an existing V.29 modem receive context.
@@ -224,6 +224,17 @@ void v29_rx_init(v29_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user
     \return 0 for OK, -1 for bad parameter */
 int v29_rx_restart(v29_rx_state_t *s, int rate);
 
+/*! Release a V.29 modem receive context.
+    \brief Release a V.29 modem receive context.
+    \param s The modem context.
+    \return 0 for OK */
+int v29_rx_release(v29_rx_state_t *s);
+
+/*! Change the put_bit function associated with a V.29 modem receive context.
+    \brief Change the put_bit function associated with a V.29 modem receive context.
+    \param s The modem context.
+    \param put_bit The callback routine used to handle received bits.
+    \param user_data An opaque pointer. */
 void v29_rx_set_put_bit(v29_rx_state_t *s, put_bit_func_t put_bit, void *user_data);
 
 /*! Process a block of received V.29 modem audio samples.
@@ -241,11 +252,14 @@ int v29_rx(v29_rx_state_t *s, const int16_t *amp, int len);
     \return The number of coefficients in the vector. */
 int v29_rx_equalizer_state(v29_rx_state_t *s, complex_t **coeffs);
 
-/*! Get a current received carrier frequency.
+/*! Get the current received carrier frequency.
     \param s The modem context.
     \return The frequency, in Hertz. */
 float v29_rx_carrier_frequency(v29_rx_state_t *s);
 
+/*! Get the current symbol timing correction since startup.
+    \param s The modem context.
+    \return The correction. */
 float v29_rx_symbol_timing_correction(v29_rx_state_t *s);
 
 /*! Get the current received signal power.

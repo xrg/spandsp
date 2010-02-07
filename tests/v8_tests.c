@@ -23,11 +23,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8_tests.c,v 1.3 2005/10/08 04:40:58 steveu Exp $
+ * $Id: v8_tests.c,v 1.8 2005/12/25 17:33:37 steveu Exp $
  */
 
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
+/*! \page v8_tests_page V.8 tests
+\section v8_tests_page_sec_1 What does it do?
+*/
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -44,7 +45,9 @@
 #define FALSE 0
 #define TRUE (!FALSE)
 
-#define SAMPLES_PER_CHUNK 160
+#define SAMPLES_PER_CHUNK   160
+
+#define OUTPUT_FILE_NAME    "v8.wav"
 
 void handler(void *user_data, int result)
 {
@@ -84,11 +87,10 @@ int main(int argc, char *argv[])
     afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
-
-    outhandle = afOpenFile("v8.wav", "w", filesetup);
+    outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup);
     if (outhandle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", "v8.wav");
+        fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
 
@@ -133,9 +135,13 @@ int main(int argc, char *argv[])
     }
     if (afCloseFile(outhandle))
     {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", "v8.wav");
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
+    afFreeFileSetup(filesetup);
+    
+    v8_release(&v8_caller);
+    v8_release(&v8_answerer);
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

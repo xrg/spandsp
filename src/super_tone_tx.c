@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.c,v 1.5 2005/08/31 19:27:52 steveu Exp $
+ * $Id: super_tone_tx.c,v 1.9 2006/01/31 05:34:27 steveu Exp $
  */
 
 /*! \file */
@@ -66,7 +66,7 @@ super_tone_tx_step_t *super_tone_tx_make_step(super_tone_tx_step_t *s,
     if (f1 >= 1.0)
     {    
         s->phase_rate[0] = dds_phase_stepf(f1);
-        s->gain[0] = dds_scalingf(l1);
+        s->gain[0] = dds_scaling_dbm0f(l1);
     }
     else
     {
@@ -76,7 +76,7 @@ super_tone_tx_step_t *super_tone_tx_make_step(super_tone_tx_step_t *s,
     if (f2 >= 1.0)
     {
         s->phase_rate[1] = dds_phase_stepf(f2);
-        s->gain[1] = dds_scalingf(l2);
+        s->gain[1] = dds_scaling_dbm0f(l2);
     }
     else
     {
@@ -108,13 +108,17 @@ void super_tone_tx_free(super_tone_tx_step_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-void super_tone_tx_init(super_tone_tx_state_t *s, super_tone_tx_step_t *tree)
+super_tone_tx_state_t *super_tone_tx_init(super_tone_tx_state_t *s, super_tone_tx_step_t *tree)
 {
+    if (tree == NULL)
+        return NULL;
+    memset(s, 0, sizeof(*s));
     s->level = 0;
     s->levels[0] = tree;
     s->cycles[0] = tree->cycles;
 
     s->current_position = 0;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -167,7 +171,7 @@ int super_tone_tx(super_tone_tx_state_t *s, int16_t amp[], int max_samples)
                     xamp += dds_modf(&(s->phase[0]), s->phase_rate[0], s->gain[0], 0);
                 if (s->phase_rate[1])
                     xamp += dds_modf(&(s->phase[1]), s->phase_rate[1], s->gain[1], 0);
-                amp[samples] = xamp;
+                amp[samples] = (int16_t) lrintf(xamp);
             }
             if (s->current_position)
                 return samples;

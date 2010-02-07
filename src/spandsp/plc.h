@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc.h,v 1.6 2005/01/19 14:40:20 steveu Exp $
+ * $Id: plc.h,v 1.8 2005/11/25 14:52:00 steveu Exp $
  */
 
 /*! \file */
@@ -98,6 +98,9 @@ That's it!
     the pitch assessment. */
 #define PLC_HISTORY_LEN         (CORRELATION_SPAN + PLC_PITCH_MIN)
 
+/*!
+    The generic packet loss concealer context.
+*/
 typedef struct
 {
     /*! Consecutive erased samples */
@@ -119,8 +122,8 @@ typedef struct
 extern "C" {
 #endif
 
-/*! Process a block of received audio samples.
-    \brief Process a block of received audio samples.
+/*! Process a block of received audio samples for PLC.
+    \brief Process a block of received audio samples for PLC.
     \param s The packet loss concealer context.
     \param amp The audio sample buffer.
     \param len The number of samples in the buffer.
@@ -135,13 +138,16 @@ int plc_rx(plc_state_t *s, int16_t amp[], int len);
     \return The number of samples synthesized. */
 int plc_fillin(plc_state_t *s, int16_t amp[], int len);
 
-/*! Process a block of received V.29 modem audio samples.
-    \brief Process a block of received V.29 modem audio samples.
+/*! Initialise a packet loss concealer context.
+    \brief Initialise a PLC context.
     \param s The packet loss concealer context.
-    \param amp The audio sample buffer.
-    \param len The number of samples in the buffer.
-    \return A pointer to the he packet loss concealer context. */
+    \return A pointer to the the packet loss concealer context. */
 plc_state_t *plc_init(plc_state_t *s);
+
+/*! Free a packet loss concealer context.
+    \param s The packet loss concealer context.
+    \return 0 for OK. */
+int plc_release(plc_state_t *s);
 
 #ifdef __cplusplus
 }

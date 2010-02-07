@@ -27,7 +27,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm.h,v 1.7 2005/01/18 14:05:49 steveu Exp $
+ * $Id: oki_adpcm.h,v 1.9 2005/11/27 12:36:22 steveu Exp $
  */
 
 /*! \file */
@@ -69,16 +69,17 @@ typedef struct
 extern "C" {
 #endif
 
-/*! Create an Oki ADPCM encode or decode context.
+/*! Initialise an Oki ADPCM encode or decode context.
+    \param s The Oki ADPCM context.
     \param bit_rate The required bit rate for the ADPCM data.
            The valid rates are 24000 and 32000.
-    \return The newly created context, or NULL for error. */
-oki_adpcm_state_t *oki_adpcm_create(int bit_rate);
+    \return A pointer to the Oki ADPCM context, or NULL for error. */
+oki_adpcm_state_t *oki_adpcm_init(oki_adpcm_state_t *s, int bit_rate);
 
 /*! Free an Oki ADPCM encode or decode context.
     \param s The Oki ADPCM context.
     \return 0 for OK. */
-int oki_adpcm_free(oki_adpcm_state_t *s);
+int oki_adpcm_release(oki_adpcm_state_t *s);
 
 /*! Decode a buffer of Oki ADPCM data to linear PCM.
     \param s The Oki ADPCM context.

@@ -26,8 +26,13 @@
  * $Id: fax_decode.c,v 1.8 2005/09/28 17:11:50 steveu Exp $
  */
 
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
+/*! \page fax_decode_page FAX decoder
+\section fax_decode_page_sec_1 What does it do?
+???.
+
+\section fax_decode_tests_page_sec_2 How does it work?
+???.
+*/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -44,12 +49,13 @@
 
 #include "spandsp.h"
 
-#define NB_SAMPLES 160
+#define SAMPLES_PER_CHUNK   160
 
 int decode_test = FALSE;
 
 int rx_bits = 0;
 
+t30_state_t t30_dummy;
 t4_state_t t4_state;
 int t4_up = FALSE;
 
@@ -256,7 +262,7 @@ int main(int argc, char *argv[])
 #endif
     v29_rx_state_t v29;
     v27ter_rx_state_t v27ter;
-    int16_t amp[NB_SAMPLES];
+    int16_t amp[SAMPLES_PER_CHUNK];
     AFfilehandle inhandle;
     int inframes;    
     int i;
@@ -275,6 +281,10 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot open wave file '%s'\n", filename);
         exit(2);
     }
+    memset(&t30_dummy, 0, sizeof(t30_dummy));
+    span_log_init(&t30_dummy.logging, SPAN_LOG_FLOW, NULL);
+    span_log_set_protocol(&t30_dummy.logging, "T.30");
+
     hdlc_rx_init(&hdlcrx, FALSE, FALSE, 1, hdlc_accept, NULL);
     fsk_rx_init(&fsk, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_bit, &hdlcrx);
 #if defined(ENABLE_V17)
@@ -297,8 +307,8 @@ int main(int argc, char *argv[])
         
     for (;;)
     {
-        len = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, NB_SAMPLES);
-        if (len < NB_SAMPLES)
+        len = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, SAMPLES_PER_CHUNK);
+        if (len < SAMPLES_PER_CHUNK)
             break;
         fsk_rx(&fsk, amp, len);
 #if defined(ENABLE_V17)

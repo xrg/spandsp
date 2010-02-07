@@ -23,15 +23,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tests.c,v 1.14 2005/09/01 17:06:46 steveu Exp $
+ * $Id: v22bis_tests.c,v 1.18 2005/12/25 15:08:37 steveu Exp $
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
 \section v22bis_tests_page_sec_1 What does it do?
-*/
+These tests connect two V.22bis modems back to back, through a telephone line
+model. BER testing is then used to evaluate performance under various line
+conditions.
 
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
+If the appropriate GUI environment exists, the tests are built such that a visual
+display of modem status is maintained.
+
+\section v22bis_tests_page_sec_2 How is it used?
+*/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -55,7 +60,7 @@
 #include "spandsp.h"
 #include "line_model.h"
 #if defined(ENABLE_GUI)
-#include "constel.h"
+#include "modem_monitor.h"
 #endif
 
 #define IN_FILE_NAME    "v22bis_samp.wav"
@@ -137,7 +142,7 @@ static void v22bis_putbit(void *user_data, int bit)
 static int v22bis_getbit(void *user_data)
 {
     int bit;
-    static tx_bits = 0;
+    static int tx_bits = 0;
 
     bit = rand() & 1;
     tx_buf[tx_ptr++] = bit;
@@ -309,6 +314,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
+    afFreeFileSetup(filesetup);
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

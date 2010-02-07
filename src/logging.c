@@ -23,13 +23,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: logging.c,v 1.4 2005/10/08 04:40:57 steveu Exp $
+ * $Id: logging.c,v 1.6 2006/01/15 08:13:30 steveu Exp $
  */
 
 /*! \file */
-
-//#define _ISOC9X_SOURCE  1
-//#define _ISOC99_SOURCE  1
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -51,8 +48,8 @@
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
 
-static void (*__span_error)(const char *text);
-static void (*__span_message)(const char *text);
+static void (*__span_error)(const char *text) = NULL;
+static void (*__span_message)(int level, const char *text) = NULL;
 
 static const char *severities[] =
 {
@@ -120,8 +117,10 @@ int span_log(logging_state_t *s, int level, const char *format, ...)
         }
         /*endif*/
         len += vsnprintf(msg + len, 1024 - len, format, arg_ptr);
-        if (__span_error)
+        if (__span_error  &&  level == SPAN_LOG_ERROR)
             __span_error(msg);
+        else if (__span_message)
+            __span_message(level, msg);
         else
             fprintf(stderr, msg);
         /*endif*/
@@ -168,6 +167,12 @@ int span_log_set_protocol(logging_state_t *s, const char *protocol)
     s->protocol = protocol;
 
     return  0;
+}
+/*- End of function --------------------------------------------------------*/
+
+void span_set_message_handler(void (*func)(int level, const char *text))
+{
+    __span_message = func;
 }
 /*- End of function --------------------------------------------------------*/
 

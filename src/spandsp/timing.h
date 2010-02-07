@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: timing.h,v 1.2 2004/03/30 14:29:41 steveu Exp $
+ * $Id: timing.h,v 1.3 2005/11/27 06:10:12 steveu Exp $
  */
 
 #if !defined(_TIMING_H_)
@@ -40,6 +40,16 @@ static inline uint64_t rdtscll(void)
 
     __asm__ __volatile__(" rdtsc\n" : "=A" (now));
     return now;
+}
+/*- End of function --------------------------------------------------------*/
+#elif defined(__x86_64__)
+static inline uint64_t rdtscll(void)
+{
+    unsigned int __a;
+    unsigned int __d;
+
+    __asm__ __volatile__(" rdtsc\n" : "=a" (__a), "=d" (__d));
+    return ((unsigned long) __a) | (((unsigned long) __d) << 32);
 }
 /*- End of function --------------------------------------------------------*/
 #endif

@@ -2,7 +2,7 @@
  * SpanDSP - a series of DSP components for telephony
  *
  * noise.c - A low complexity audio noise generator, suitable for
- *           real time generation (current just approx AWGN)
+ *           real time generation (current AWGN, and Hoth)
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -24,13 +24,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: noise.c,v 1.1 2005/10/10 19:42:25 steveu Exp $
+ * $Id: noise.c,v 1.8 2005/12/06 14:34:02 steveu Exp $
  */
 
 /*! \file */
-
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -44,31 +41,50 @@
 #include "spandsp/dc_restore.h"
 #include "spandsp/noise.h"
 
-void noise_init(noise_state_t *s, int seed, int level, int class)
-{
-    double rms;
-
-    s->rndnum = (uint32_t) seed;
-    rms = 1.3108*32768.0*0.70711*pow(10.0, (level - 3.14)/20.0);
-    s->rms = rms;
-}
-/*- End of function --------------------------------------------------------*/
-
 int16_t noise(noise_state_t *s)
 {
     int32_t val;
     int i;
 
     /* The central limit theorem says if you add a few random numbers together,
-       the result starts to look Gaussian. Quanitities above 7 give little
-       improvement. We use 7. */
+       the result starts to look Gaussian. Quantities above 7 give diminishing
+       returns. Quantites above 20 are exceedingly Gaussian. */
     val = 0;
-    for (i = 0;  i < 7;  i++)
+    for (i = 0;  i < s->quality;  i++)
     {
         s->rndnum = 1664525U*s->rndnum + 1013904223U;
-        val += ((int32_t) s->rndnum) >> 19;
+        val += ((int32_t) s->rndnum) >> 22;
     }
-    return saturate((val*s->rms) >> 13);
+    if (s->class_of_noise == NOISE_CLASS_HOTH)
+    {
+        /* Hoth noise is room-like. It should be sculpted, at the high and low ends,
+           and roll off at 5dB/octave across the main part of the band. However,
+           merely rolling off at 6dB/octave across the band gets you close
+           to the subjective effect. */
+        s->state = (3*val + 5*s->state) >> 3;
+        /* Bring the overall power level back to the pre-filtered level. This
+           simple approx. leaves the signal about 0.35dB low. */
+        val = s->state << 1;
+    }
+    return saturate((val*s->rms) >> 10);
+}
+/*- End of function --------------------------------------------------------*/
+
+noise_state_t *noise_init(noise_state_t *s, int seed, int level, int class_of_noise, int quality)
+{
+    double rms;
+
+    s->rndnum = (uint32_t) seed;
+    rms = 1.3108*32768.0*0.70711*pow(10.0, (level - 3.14)/20.0);
+    s->rms = rms;
+    if (quality < 4)
+        s->quality = 4;
+    else if (quality > 20)
+        s->quality = 20;
+    else
+        s->quality = quality;
+    s->class_of_noise = class_of_noise;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

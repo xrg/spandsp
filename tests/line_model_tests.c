@@ -23,8 +23,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model_tests.c,v 1.3 2005/09/01 17:06:45 steveu Exp $
+ * $Id: line_model_tests.c,v 1.8 2005/12/29 12:46:21 steveu Exp $
  */
+
+/*! \page line_model_tests_page Telephony line model tests
+\section line_model_tests_page_sec_1 What does it do?
+???.
+
+\section line_model_tests_page_sec_2 How does it work?
+???.
+*/
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -35,8 +47,6 @@
 #include <fcntl.h>
 #include <audiofile.h>
 #include <tiffio.h>
-
-#include <fftw.h>
 
 #define GEN_CONST
 #include <math.h>
@@ -56,7 +66,7 @@
 #define OUT_FILE_NAME1  "line_model_one_way_test_out.wav"
 #define OUT_FILE_NAME   "line_model_test_out.wav"
 
-void test_one_way_model(int line_model_no)
+void test_one_way_model(int line_model_no, int speech_test)
 {
     one_way_line_model_state_t *model;
     int16_t input1[BLOCK_LEN];
@@ -105,20 +115,21 @@ void test_one_way_model(int line_model_no)
     }
     for (i = 0;  i < 10000;  i++)
     {
-#if 0
-        samples = afReadFrames(inhandle1,
-                               AF_DEFAULT_TRACK,
-                               input1,
-                               BLOCK_LEN);
-        if (samples == 0)
-            break;
-#else
-        for (j = 0;  j < BLOCK_LEN;  j++)
+        if (speech_test)
         {
-            input1[j] = awgn(&noise1);
+            samples = afReadFrames(inhandle1,
+                                   AF_DEFAULT_TRACK,
+                                   input1,
+                                   BLOCK_LEN);
+            if (samples == 0)
+                break;
         }
-        samples = BLOCK_LEN;
-#endif
+        else
+        {
+            for (j = 0;  j < BLOCK_LEN;  j++)
+                input1[j] = awgn(&noise1);
+            samples = BLOCK_LEN;
+        }
         for (j = 0;  j < samples;  j++)
         {
             one_way_line_model(model, 
@@ -147,9 +158,11 @@ void test_one_way_model(int line_model_no)
         fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME1);
         exit(2);
     }
+    afFreeFileSetup(filesetup);
+    one_way_line_model_release(model);
 }
 
-void test_both_ways_model(int line_model_no)
+void test_both_ways_model(int line_model_no, int speech_test)
 {
     both_ways_line_model_state_t *model;
     int16_t input1[BLOCK_LEN];
@@ -209,27 +222,30 @@ void test_both_ways_model(int line_model_no)
     }
     for (i = 0;  i < 10000;  i++)
     {
-#if 0
-        samples = afReadFrames(inhandle1,
-                               AF_DEFAULT_TRACK,
-                               input1,
-                               BLOCK_LEN);
-        if (samples == 0)
-            break;
-        samples = afReadFrames(inhandle2,
-                               AF_DEFAULT_TRACK,
-                               input2,
-                               samples);
-        if (samples == 0)
-            break;
-#else
-        for (j = 0;  j < BLOCK_LEN;  j++)
+        if (speech_test)
         {
-            input1[j] = awgn(&noise1);
-            input2[j] = awgn(&noise2);
+            samples = afReadFrames(inhandle1,
+                                   AF_DEFAULT_TRACK,
+                                   input1,
+                                   BLOCK_LEN);
+            if (samples == 0)
+                break;
+            samples = afReadFrames(inhandle2,
+                                   AF_DEFAULT_TRACK,
+                                   input2,
+                                   samples);
+            if (samples == 0)
+                break;
         }
-        samples = BLOCK_LEN;
-#endif
+        else
+        {
+            for (j = 0;  j < BLOCK_LEN;  j++)
+            {
+                input1[j] = awgn(&noise1);
+                input2[j] = awgn(&noise2);
+            }
+            samples = BLOCK_LEN;
+        }
         for (j = 0;  j < samples;  j++)
         {
             both_ways_line_model(model, 
@@ -266,18 +282,24 @@ void test_both_ways_model(int line_model_no)
         fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
+    afFreeFileSetup(filesetup);
+    both_ways_line_model_release(model);
 }
 /*- End of function --------------------------------------------------------*/
 
 int main(int argc, char *argv[])
 {
     int line_model_no;
+    int speech_test;
 
     line_model_no = 5;
+    speech_test = TRUE;
     if (argc > 1)
         line_model_no = atoi(argv[1]);
-    test_one_way_model(line_model_no);
-    test_both_ways_model(line_model_no);
+    if (argc > 2)
+        speech_test = FALSE;
+    test_one_way_model(line_model_no, speech_test);
+    test_both_ways_model(line_model_no, speech_test);
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

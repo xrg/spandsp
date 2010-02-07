@@ -26,7 +26,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo.h,v 1.2 2005/01/18 14:05:49 steveu Exp $
+ * $Id: modem_echo.h,v 1.5 2005/12/10 12:56:20 steveu Exp $
  */
 
 /*! \file */
@@ -37,22 +37,28 @@
 /*! \page modem_echo_can_page Line echo cancellation for modems
 
 \section modem_echo_can_page_sec_1 What does it do?
-This echo cancellation module is intended to cover the need to cancel electrical
-echoes (e.g. from 2-4 wire hybrids). 
+This module aims to cancel electrical echoes (e.g. from 2-4 wire hybrids)
+in modem applications. It is not very suitable for speech applications, which
+require additional refinements for satisfactory performance. It is, however, more
+efficient and better suited to modem applications. 
 
 \section modem_echo_can_page_sec_2 How does it work?
 The heart of the echo cancellor is an adaptive FIR filter. This is adapted to
-match the impulse response of the environment being cancelled (say, a telephone
-line or a room). It must be long enough to adequately cover the duration of that
-impulse response. The signal being transmitted into the environment being
-cancelled is passed through the FIR filter. The resulting output is an estimate
-of the echo signal. This is then subtracted from the received signal, and the
-result should be an estimate of the signal which originates within the
-environment being cancelled (people talking in the room, or the signal from the
-far end of a telephone line) free from the echos of our own transmitted signal. 
+match the impulse response of the environment being cancelled. It must be long
+enough to adequately cover the duration of that impulse response. The signal
+being transmitted into the environment being cancelled is passed through the
+FIR filter. The resulting output is an estimate of the echo signal. This is
+then subtracted from the received signal, and the result should be an estimate
+of the signal which originates within the environment being cancelled (people
+talking in the room, or the signal from the far end of a telephone line) free
+from the echos of our own transmitted signal. 
 
-The FIR filter is adapted using a LMS algorithm. This method performs well,
-provided certain conditions are met: 
+The FIR filter is adapted using the least mean squares (LMS) algorithm. This
+algorithm is attributed to Widrow and Hoff, and was introduced in 1960. It is
+the commonest form of filter adaption used in things like modem line equalisers
+and line echo cancellers. It works very well if the signal level is constant,
+which is true for a modem signal. To ensure good performa certain conditions must
+be met: 
 
     - The transmitted signal has weak self-correlation.
     - There is no signal being generated within the environment being cancelled.
@@ -85,8 +91,10 @@ typedef struct
     int taps;
 
     fir16_state_t fir_state;
-    int16_t *fir_taps16;	/* Echo FIR taps (16 bit version) */
-    int32_t *fir_taps32;	/* Echo FIR taps (32 bit version) */
+    /*! Echo FIR taps (16 bit version) */
+    int16_t *fir_taps16;
+    /*! Echo FIR taps (32 bit version) */
+    int32_t *fir_taps32;
 
     int tx_power;
     int rx_power;
@@ -94,10 +102,34 @@ typedef struct
     int curr_pos;
 } modem_echo_can_state_t;
 
+/*! Create a modem echo canceller context.
+    \param len The length of the canceller, in samples.
+    eturn The new canceller context, or NULL if the canceller could not be created.
+*/
 modem_echo_can_state_t *modem_echo_can_create(int len);
+
+/*! Free a modem echo canceller context.
+    \param ec The echo canceller context.
+*/
 void modem_echo_can_free(modem_echo_can_state_t *ec);
+
+/*! Flush (reinitialise) a modem echo canceller context.
+    \param ec The echo canceller context.
+*/
 void modem_echo_can_flush(modem_echo_can_state_t *ec);
+
+/*! Set the adaption mode of a modem echo canceller context.
+    \param ec The echo canceller context.
+    \param adapt The mode.
+*/
 void modem_echo_can_adaption_mode(modem_echo_can_state_t *ec, int adapt);
+
+/*! Process a sample through a modem echo canceller.
+    \param ec The echo canceller context.
+    \param tx The transmitted audio sample.
+    \param rx The received audio sample.
+    eturn The clean (echo cancelled) received sample.
+*/
 int16_t modem_echo_can_update(modem_echo_can_state_t *ec, int16_t tx, int16_t rx);
 
 #endif

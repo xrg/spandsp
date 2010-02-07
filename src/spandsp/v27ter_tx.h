@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.h,v 1.12 2005/05/26 13:52:17 steveu Exp $
+ * $Id: v27ter_tx.h,v 1.18 2005/12/29 09:54:24 steveu Exp $
  */
 
 /*! \file */
@@ -31,15 +31,15 @@
 #if !defined(_V27TER_TX_H_)
 #define _V27TER_TX_H_
 
-/*! \page V27ter_tx_page The V.27ter transmitter
-\section V27ter_tx_page_sec_1 What does it do?
+/*! \page v27ter_tx_page The V.27ter transmitter
+\section v27ter_tx_page_sec_1 What does it do?
 The V.27ter transmitter implements the transmit side of a V.27ter modem. This
 can operate at data rates of 4800 and 2400 bits/s. The audio output is a stream
 of 16 bit samples, at 8000 samples/second. The transmit and receive side of
 V.27ter modems operate independantly. V.27ter is used for FAX transmission,
 where it provides the standard 4800 and 2400 bits/s rates. 
 
-\section V27ter_tx_page_sec_2 How does it work?
+\section v27ter_tx_page_sec_2 How does it work?
 V.27ter uses DPSK modulation. A common method of producing a DPSK modulated
 signal is to use a sampling rate which is a multiple of the baud rate. The raw
 signal is then a series of complex pulses, each an integer number of samples
@@ -55,11 +55,9 @@ suits the receiver better, so then same signal generator is also used for the
 transmitter.
 */
 
-#include "fsk.h"
-
 /* The 4800bps and 2400bps filters are different lengths. This is the greater of
    the two, for buffer sizing purposes. */
-#define V27TX_FILTER_STEPS      53
+#define V27TER_TX_FILTER_STEPS      53
 
 /*!
     V.27ter modem transmit side descriptor. This defines the working state for a
@@ -78,7 +76,7 @@ typedef struct
     float gain_4800;
 
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
-    complex_t rrc_filter[2*V27TX_FILTER_STEPS];
+    complex_t rrc_filter[2*V27TER_TX_FILTER_STEPS];
     /*! \brief Current offset into the RRC pulse shaping filter buffer. */
     int rrc_filter_step;
     /*! \brief The current constellation position. */
@@ -125,20 +123,32 @@ void v27ter_tx_power(v27ter_tx_state_t *s, float power);
     \brief Initialise a V.27ter modem transmit context.
     \param s The modem context.
     \param rate The bit rate of the modem. Valid values are 2400 and 4800.
-    \parm tep TRUE is the optional TEP tone is to be transmitted.
+    \param tep TRUE is the optional TEP tone is to be transmitted.
     \param get_bit The callback routine used to get the data to be transmitted.
-    \param user_data An opaque pointer. */
-void v27ter_tx_init(v27ter_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data);
-
-void v27ter_tx_set_get_bit(v27ter_tx_state_t *s, get_bit_func_t get_bit, void *user_data);
+    \param user_data An opaque pointer.
+    \return A pointer to the modem context, or NULL if there was a problem. */
+v27ter_tx_state_t *v27ter_tx_init(v27ter_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data);
 
 /*! Reinitialise an existing V.27ter modem transmit context, so it may be reused.
     \brief Reinitialise an existing V.27ter modem transmit context.
     \param s The modem context.
     \param rate The bit rate of the modem. Valid values are 2400 and 4800.
-    \parm tep TRUE is the optional TEP tone is to be transmitted.
+    \param tep TRUE is the optional TEP tone is to be transmitted.
     \return 0 for OK, -1 for bad parameter */
 int v27ter_tx_restart(v27ter_tx_state_t *s, int rate, int tep);
+
+/*! Release a V.27ter modem transmit context.
+    \brief Release a V.27ter modem transmit context.
+    \param s The modem context.
+    \return 0 for OK */
+int v27ter_tx_release(v27ter_tx_state_t *s);
+
+/*! Change the get_bit function associated with a V.27ter modem transmit context.
+    \brief Change the get_bit function associated with a V.27ter modem transmit context.
+    \param s The modem context.
+    \param get_bit The callback routine used to get the data to be transmitted.
+    \param user_data An opaque pointer. */
+void v27ter_tx_set_get_bit(v27ter_tx_state_t *s, get_bit_func_t get_bit, void *user_data);
 
 /*! Generate a block of V.27ter modem audio samples.
     \brief Generate a block of V.27ter modem audio samples.

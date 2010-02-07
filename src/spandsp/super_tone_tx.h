@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.h,v 1.4 2005/06/26 16:43:58 steveu Exp $
+ * $Id: super_tone_tx.h,v 1.5 2005/11/25 14:52:00 steveu Exp $
  */
 
 #if !defined(_SUPER_TONE_TX_H_)
@@ -78,20 +78,17 @@ void super_tone_tx_free(super_tone_tx_step_t *s);
 
 /*! Initialise a supervisory tone generator.
     \brief Initialise a supervisory tone generator.
-    \param s The supervisory tone context.
-    \param amp The audio sample buffer.
-    \param max_samples The maximum number of samples to be generated.
-    \return The number of samples generated.
-*/
-void super_tone_tx_init(super_tone_tx_state_t *s, super_tone_tx_step_t *tree);
+    \param s The supervisory tone generator context.
+    \param tree The supervisory tone tree to be generated.
+    \return The supervisory tone generator context. */
+super_tone_tx_state_t *super_tone_tx_init(super_tone_tx_state_t *s, super_tone_tx_step_t *tree);
 
 /*! Generate a block of audio samples for a supervisory tone pattern.
     \brief Generate a block of audio samples for a supervisory tone pattern.
     \param tone The supervisory tone context.
     \param amp The audio sample buffer.
     \param max_samples The maximum number of samples to be generated.
-    \return The number of samples generated.
-*/
+    \return The number of samples generated. */
 int super_tone_tx(super_tone_tx_state_t *s, int16_t amp[], int max_samples);
 
 #endif

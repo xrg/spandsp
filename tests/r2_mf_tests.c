@@ -24,21 +24,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: r2_mf_tests.c,v 1.4 2005/09/01 17:06:45 steveu Exp $
+ * $Id: r2_mf_tests.c,v 1.7 2005/11/27 12:36:23 steveu Exp $
  */
 
-/*
- * These tests are fashioned after those on the CM7291 test tape from
- * Mitel. Those tests are for DTMF, rather than Bell MF, but make a
- * fair starting point for a set of meaningful tests of R2 MF.
- *
- * These tests include conversion to and from A-law. I assume the
- * distortion this produces is comparable to u-law, so it should be
- * a fair test of performance in a real PSTN channel.
- */
 
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
+/*! \file */
+
+/*! \page r2_mf_tests_page R2 MF tone generation and detection tests
+\section r2_mf_tests_page_sec_1 What does it do?
+These tests are fashioned after those on the CM7291 test tape from
+Mitel. Those tests are for DTMF, rather than R2 MF, but make a
+fair starting point for a set of meaningful tests of R2 MF.
+
+These tests include conversion to and from A-law. It is assumed the
+distortion this produces is comparable to u-law, so it should be
+a fair test of performance in a real PSTN channel.
+*/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: playout_tests.c,v 1.6 2005/09/01 17:06:45 steveu Exp $
+ * $Id: playout_tests.c,v 1.11 2005/12/29 09:54:24 steveu Exp $
  */
 
 /*! \page playout_tests_page Playout (jitter buffering) tests
@@ -31,9 +31,6 @@
 These tests simulate timing jitter and packet loss in an audio stream, and see
 how well the playout module copes.
 */
-
-//#define _ISOC9X_SOURCE  1
-//#define _ISOC99_SOURCE  1
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -46,6 +43,11 @@ how well the playout module copes.
 
 #include "spandsp.h"
 
+#define INPUT_FILE_NAME     "playout_in.wav"
+#define OUTPUT_FILE_NAME    "playout_out.wav"
+
+#define BLOCK_LEN           160
+
 void dynamic_buffer_tests(void)
 {
     playout_state_t *s;
@@ -54,9 +56,9 @@ void dynamic_buffer_tests(void)
     plc_state_t plc;
     time_scale_t ts;
     int16_t *amp;
-    int16_t fill[160];
-    int16_t buf[20*160];
-    int16_t out[10*160];
+    int16_t fill[BLOCK_LEN];
+    int16_t buf[20*BLOCK_LEN];
+    int16_t out[10*BLOCK_LEN];
     timestamp_t time_stamp;
     timestamp_t next_actual_receive;
     timestamp_t next_scheduled_receive;
@@ -83,16 +85,16 @@ void dynamic_buffer_tests(void)
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
 
-    inhandle = afOpenFile("playout_in.wav", "r", NULL);
+    inhandle = afOpenFile(INPUT_FILE_NAME, "r", NULL);
     if (inhandle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Failed to open in file\n");
+        fprintf(stderr, "    Failed to open wave file '%s'\n", INPUT_FILE_NAME);
         exit(2);
     }
-    outhandle = afOpenFile("playout_out.wav", "w", filesetup);
+    outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup);
     if (outhandle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Failed to open out file\n");
+        fprintf(stderr, "    Failed to create wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
 
@@ -100,10 +102,10 @@ void dynamic_buffer_tests(void)
     time_stamp = 12345;
     next_actual_receive = time_stamp + near_far_time_offset;
     next_scheduled_receive = 0;
-    for (i = 0;  i < 160;  i++)
+    for (i = 0;  i < BLOCK_LEN;  i++)
         fill[i] = 32767;
 
-	if ((s = playout_new(2*160, 15*160)) == NULL)
+	if ((s = playout_new(2*BLOCK_LEN, 15*BLOCK_LEN)) == NULL)
         return;
     plc_init(&plc);
     time_scale_init(&ts, 1.0);
@@ -111,12 +113,12 @@ void dynamic_buffer_tests(void)
     {
         if (i >= next_actual_receive)
         {
-            amp = malloc(160*sizeof(int16_t));
+            amp = malloc(BLOCK_LEN*sizeof(int16_t));
             inframes = afReadFrames(inhandle,
                                     AF_DEFAULT_TRACK,
                                     amp,
-                                    160);
-            if (inframes < 160)
+                                    BLOCK_LEN);
+            if (inframes < BLOCK_LEN)
                 break;
             ret = playout_put(s,
                               amp,
@@ -147,7 +149,7 @@ void dynamic_buffer_tests(void)
                 rng = (rng*rng) >> 5;
             else if (i < 400000)
                 rng = (rng*rng) >> 7;
-            time_stamp += 160;
+            time_stamp += BLOCK_LEN;
             next_actual_receive = time_stamp + near_far_time_offset + rng;
         }
         if (i >= next_scheduled_receive)
@@ -178,13 +180,13 @@ printf("len = %d\n", len);
                     exit(2);
                 }
                 free(frame.data);
-                next_scheduled_receive += 160;
+                next_scheduled_receive += BLOCK_LEN;
                 break;
             case PLAYOUT_FILLIN:
                 printf(">> Fill %d\n", next_scheduled_receive);
-                plc_fillin(&plc, fill, 160);
+                plc_fillin(&plc, fill, BLOCK_LEN);
                 time_scale_rate(&ts, 0.5);
-                len = time_scale(&ts, out, fill, 160);
+                len = time_scale(&ts, out, fill, BLOCK_LEN);
                 time_scale_rate(&ts, 1.0);
 printf("len = %d\n", len);
                 for (j = 0;  j < len;  j++)
@@ -198,22 +200,22 @@ printf("len = %d\n", len);
                     fprintf(stderr, "    Error writing out sound\n");
                     exit(2);
                 }
-                next_scheduled_receive += 160;
+                next_scheduled_receive += BLOCK_LEN;
                 break;
             case PLAYOUT_DROP:
                 printf(">> Drop %d\n", next_scheduled_receive);
                 break;
             case PLAYOUT_NOFRAME:
                 printf(">> No frame %d %d %d %d\n", next_scheduled_receive, playout_next_due(s), s->last_speech_sender_stamp, s->last_speech_sender_len);
-                next_scheduled_receive += 160;
+                next_scheduled_receive += BLOCK_LEN;
                 break;
             case PLAYOUT_EMPTY:
                 printf(">> Empty %d\n", next_scheduled_receive);
-                next_scheduled_receive += 160;
+                next_scheduled_receive += BLOCK_LEN;
                 break;
             case PLAYOUT_ERROR:
                 printf(">> Error %d\n", next_scheduled_receive);
-                next_scheduled_receive += 160;
+                next_scheduled_receive += BLOCK_LEN;
                 break;
             default:
                 printf(">> Eh? %d\n", next_scheduled_receive);
@@ -223,14 +225,15 @@ printf("len = %d\n", len);
     }
     if (afCloseFile(inhandle) != 0)
     {
-        fprintf(stderr, "    Cannot close speech file '%s'\n", "plc_in.wav");
+        fprintf(stderr, "    Cannot close wave file '%s'\n", INPUT_FILE_NAME);
         exit(2);
     }
     if (afCloseFile(outhandle) != 0)
     {
-        fprintf(stderr, "    Cannot close speech file '%s'\n", "plc_out.wav");
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
+    afFreeFileSetup(filesetup);
 
     printf("%10d %10d %10d\n", s->state_just_in_time, s->state_late, playout_current_length(s));
 
@@ -248,7 +251,7 @@ void static_buffer_tests(void)
     playout_frame_t frame;
     playout_frame_t *p;
     int type;
-    uint8_t fr[160];
+    uint8_t fr[BLOCK_LEN];
     timestamp_t next_scheduled_send;
     int transit_time;
     timestamp_t next_actual_receive;
@@ -264,9 +267,9 @@ void static_buffer_tests(void)
 
     memset(fr, 0, sizeof(fr));
     type = PLAYOUT_TYPE_SPEECH;
-    len = 160;
+    len = BLOCK_LEN;
 
-    if ((s = playout_new(2*160, 2*160)) == NULL)
+    if ((s = playout_new(2*BLOCK_LEN, 2*BLOCK_LEN)) == NULL)
         return;
     for (i = 0;  i < 1000000;  i++)
     {
@@ -290,7 +293,7 @@ void static_buffer_tests(void)
                 printf("<< Eh?\n");
                 break;
             }
-            next_scheduled_send += 160;
+            next_scheduled_send += BLOCK_LEN;
             ret = rand() & 0xFF;
             ret = (ret*ret) >> 7;
             transit_time = 320 + ret;
@@ -307,26 +310,26 @@ void static_buffer_tests(void)
             {
             case PLAYOUT_OK:
                 printf(">> Play\n");
-                next_scheduled_receive += 160;
+                next_scheduled_receive += BLOCK_LEN;
                 break;
             case PLAYOUT_FILLIN:
                 printf(">> Fill\n");
-                next_scheduled_receive += 160;
+                next_scheduled_receive += BLOCK_LEN;
                 break;
             case PLAYOUT_DROP:
                 printf(">> Drop\n");
                 break;
             case PLAYOUT_NOFRAME:
                 printf(">> No frame\n");
-                next_scheduled_receive += 160;
+                next_scheduled_receive += BLOCK_LEN;
                 break;
             case PLAYOUT_EMPTY:
                 printf(">> Empty\n");
-                next_scheduled_receive += 160;
+                next_scheduled_receive += BLOCK_LEN;
                 break;
             case PLAYOUT_ERROR:
                 printf(">> Error\n");
-                next_scheduled_receive += 160;
+                next_scheduled_receive += BLOCK_LEN;
                 break;
             default:
                 printf(">> Eh?\n");

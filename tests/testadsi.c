@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: testadsi.c,v 1.12 2005/09/01 17:06:45 steveu Exp $
+ * $Id: testadsi.c,v 1.14 2005/11/27 12:36:23 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H

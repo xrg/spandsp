@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.h,v 1.3 2005/01/18 14:05:49 steveu Exp $
+ * $Id: super_tone_rx.h,v 1.4 2005/11/25 14:52:00 steveu Exp $
  */
 
 #if !defined(_SUPER_TONE_RX_H_)
@@ -119,12 +119,12 @@ int super_tone_rx_add_element(super_tone_rx_descriptor_t *desc,
                               int max);
 
 /*! Initialise a supervisory tone detector.
-    \param s The supervisory tone context.
+    \param s The supervisory tone detector context.
     \param desc The tone descriptor.
     \param callback The callback routine called to report the valid detection or termination of
            one of the monitored tones.
     \param data An opaque pointer passed when calling the callback routine.
-    \return The supervisory tone context. */
+    \return The supervisory tone detector context. */
 super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *s,
                                           super_tone_rx_descriptor_t *desc,
                                           void (*callback)(void *data, int code),

@@ -23,8 +23,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.c,v 1.7 2005/09/01 17:06:45 steveu Exp $
+ * $Id: line_model.c,v 1.10 2005/12/29 12:46:20 steveu Exp $
  */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -205,33 +209,60 @@ static float *models[] =
     ad_9_edd_3_model
 };
 
-static float calc_line_filter(one_way_line_model_state_t *s, float v)
+static float calc_near_line_filter(one_way_line_model_state_t *s, float v)
 {
     float sum;
-    float noise;
     int j;
     int p;
 
     /* Add the sample in the filter buffer */
-    p = s->buf_ptr;
-    s->buf[p] = v;
-    if (++p == s->line_filter_len)
+    p = s->near_buf_ptr;
+    s->near_buf[p] = v;
+    if (++p == s->near_filter_len)
         p = 0;
-    s->buf_ptr = p;
+    s->near_buf_ptr = p;
     
     /* Apply the filter */
     sum = 0;
-    for (j = 0;  j < s->line_filter_len;  j++)
+    for (j = 0;  j < s->near_filter_len;  j++)
     {
-        sum += s->line_filter[j]*s->buf[p];
-        if (++p >= s->line_filter_len)
+        sum += s->near_filter[j]*s->near_buf[p];
+        if (++p >= s->near_filter_len)
             p = 0;
     }
     
     /* Add noise */
-    noise = awgn(&s->noise);
-    sum += noise;
+    sum += awgn(&s->near_noise);
     
+    return sum;
+}
+/*- End of function --------------------------------------------------------*/
+
+static float calc_far_line_filter(one_way_line_model_state_t *s, float v)
+{
+    float sum;
+    int j;
+    int p;
+
+    /* Add the sample in the filter buffer */
+    p = s->far_buf_ptr;
+    s->far_buf[p] = v;
+    if (++p == s->far_filter_len)
+        p = 0;
+    s->far_buf_ptr = p;
+    
+    /* Apply the filter */
+    sum = 0;
+    for (j = 0;  j < s->far_filter_len;  j++)
+    {
+        sum += s->far_filter[j]*s->far_buf[p];
+        if (++p >= s->far_filter_len)
+            p = 0;
+    }
+    
+    /* Add noise */
+    sum += awgn(&s->far_noise);
+
     return sum;
 }
 /*- End of function --------------------------------------------------------*/
@@ -269,19 +300,32 @@ void one_way_line_model(one_way_line_model_state_t *s,
     {
         in = input[i];
 
+        /* Near end analogue section */
+        
         /* Line model filters & noise */
-        out = calc_line_filter(s, in);
-        /* Introduce distortion due to A-law munging in the long distance digital link.
-           The effects of u-law should be very similar, so a separate test for
-           this is not needed. */
+        out = calc_near_line_filter(s, in);
+    
+        /* Long distance digital section */
+
+        /* Introduce distortion due to A-law or u-law munging. */
         if (s->alaw_munge)
             out = alaw_to_linear(linear_to_alaw(out));
-        /* Introduce the bulk delay of the long distance digital link. */
+        if (s->ulaw_munge)
+            out = ulaw_to_linear(linear_to_ulaw(out));
+
+        /* Introduce the bulk delay of the long distance link. */
         out1 = s->bulk_delay_buf[s->bulk_delay_ptr];
         s->bulk_delay_buf[s->bulk_delay_ptr] = out;
+        out = out1;
         if (++s->bulk_delay_ptr >= s->bulk_delay)
             s->bulk_delay_ptr = 0;
-        output[i] = out1;
+
+        /* Far end analogue section */
+        
+        /* Line model filters & noise */
+        out = calc_far_line_filter(s, out);
+    
+        output[i] = out;
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -325,36 +369,51 @@ void both_ways_line_model(both_ways_line_model_state_t *s,
         in1 = input1[i];
         in2 = input2[i];
 
-        /* Echo from each modem's CO hybrid */
-        tmp1 = in1 + s->fout2*s->line1.co_hybrid_echo;
-        tmp2 = in2 + s->fout1*s->line2.co_hybrid_echo;
+        /* Near end analogue sections */
+        /* Echo from each terminal's CO hybrid */
+        tmp1 = in1 + s->fout2*s->line1.near_co_hybrid_echo;
+        tmp2 = in2 + s->fout1*s->line2.near_co_hybrid_echo;
 
         /* Line model filters & noise */
-        s->fout1 = calc_line_filter(&s->line1, tmp1);
-        s->fout2 = calc_line_filter(&s->line2, tmp2);
+        s->fout1 = calc_near_line_filter(&s->line1, tmp1);
+        s->fout2 = calc_near_line_filter(&s->line2, tmp2);
 
-        /* Introduce distortion due to A-law munging in the long distance digital link.
-           The effects of u-law should be very similar, so a separate test for
-           this is not needed. */
+        /* Long distance digital section */
+
+        /* Introduce distortion due to A-law or u-law munging. */
         if (s->line1.alaw_munge)
             s->fout1 = alaw_to_linear(linear_to_alaw(s->fout1));
+        if (s->line1.ulaw_munge)
+            s->fout1 = ulaw_to_linear(linear_to_ulaw(s->fout1));
+
         if (s->line2.alaw_munge)
             s->fout2 = alaw_to_linear(linear_to_alaw(s->fout2));
+        if (s->line2.ulaw_munge)
+            s->fout2 = ulaw_to_linear(linear_to_ulaw(s->fout2));
 
         /* Introduce the bulk delay of the long distance digital link. */
         out1 = s->line1.bulk_delay_buf[s->line1.bulk_delay_ptr];
         s->line1.bulk_delay_buf[s->line1.bulk_delay_ptr] = s->fout1;
+        s->fout1 = out1;
         if (++s->line1.bulk_delay_ptr >= s->line1.bulk_delay)
             s->line1.bulk_delay_ptr = 0;
 
         out2 = s->line2.bulk_delay_buf[s->line2.bulk_delay_ptr];
         s->line2.bulk_delay_buf[s->line2.bulk_delay_ptr] = s->fout2;
+        s->fout2 = out2;
         if (++s->line2.bulk_delay_ptr >= s->line2.bulk_delay)
             s->line2.bulk_delay_ptr = 0;
 
-        /* Echo from each modem's own hybrid */
-        out1 += in2*s->line1.cpe_hybrid_echo;
-        out2 += in1*s->line2.cpe_hybrid_echo;
+        /* Far end analogue sections */
+
+        /* Echo from each terminal's own hybrid */
+        out1 += in2*s->line1.far_cpe_hybrid_echo;
+        out2 += in1*s->line2.far_cpe_hybrid_echo;
+
+        /* Line model filters & noise */
+        out1 = calc_far_line_filter(&s->line1, out1);
+        out2 = calc_far_line_filter(&s->line2, out2);
+
         output1[i] = fsaturate(out1);
         output2[i] = fsaturate(out2);
     }
@@ -375,12 +434,24 @@ one_way_line_model_state_t *one_way_line_model_init(int model, int noise)
     s->bulk_delay_ptr = 0;
 
     s->alaw_munge = TRUE;
+    s->ulaw_munge = FALSE;
 
-    s->line_filter = models[model];
-    s->line_filter_len = 129;
+    s->near_filter = models[model];
+    s->near_filter_len = 129;
 
-    awgn_init(&s->noise, 1234567, noise);
+    s->far_filter = models[model];
+    s->far_filter_len = 129;
+
+    awgn_init(&s->near_noise, 1234567, noise);
+    awgn_init(&s->far_noise, 1234567, noise);
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int one_way_line_model_release(one_way_line_model_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -399,7 +470,10 @@ both_ways_line_model_state_t *both_ways_line_model_init(int model1,
     memset(s, 0, sizeof(*s));
 
     s->line1.alaw_munge = TRUE;
+    s->line1.ulaw_munge = FALSE;
+
     s->line2.alaw_munge = TRUE;
+    s->line2.ulaw_munge = FALSE;
 
     s->line1.bulk_delay = 8;
     s->line2.bulk_delay = 8;
@@ -407,22 +481,37 @@ both_ways_line_model_state_t *both_ways_line_model_init(int model1,
     s->line1.bulk_delay_ptr = 0;
     s->line2.bulk_delay_ptr = 0;
 
-    s->line1.line_filter = models[model1];
-    s->line1.line_filter_len = 129;
-    s->line2.line_filter = models[model2];
-    s->line2.line_filter_len = 129;
+    s->line1.near_filter = models[model1];
+    s->line1.near_filter_len = 129;
+    s->line2.near_filter = models[model2];
+    s->line2.near_filter_len = 129;
 
-    awgn_init(&s->line1.noise, 1234567, noise1);
-    awgn_init(&s->line2.noise, 7654321, noise2);
+    s->line1.far_filter = models[model1];
+    s->line1.far_filter_len = 129;
+    s->line2.far_filter = models[model2];
+    s->line2.far_filter_len = 129;
+
+    awgn_init(&s->line1.near_noise, 1234567, noise1);
+    awgn_init(&s->line2.near_noise, 7654321, noise2);
+
+    awgn_init(&s->line1.far_noise, 1234567, noise1);
+    awgn_init(&s->line2.far_noise, 7654321, noise2);
 
     /* Echos */
     echo_level = -15; /* in dB */
-    s->line1.co_hybrid_echo = pow(10, echo_level/20.0);
-    s->line2.co_hybrid_echo = pow(10, echo_level/20.0);
-    s->line1.cpe_hybrid_echo = pow(10, echo_level/20.0);
-    s->line2.cpe_hybrid_echo = pow(10, echo_level/20.0);
+    s->line1.near_co_hybrid_echo = pow(10, echo_level/20.0);
+    s->line2.near_co_hybrid_echo = pow(10, echo_level/20.0);
+    s->line1.near_cpe_hybrid_echo = pow(10, echo_level/20.0);
+    s->line2.near_cpe_hybrid_echo = pow(10, echo_level/20.0);
     
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int both_ways_line_model_release(both_ways_line_model_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

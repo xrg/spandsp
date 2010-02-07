@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm.c,v 1.3 2005/08/31 19:27:52 steveu Exp $
+ * $Id: ima_adpcm.c,v 1.4 2005/11/25 14:51:59 steveu Exp $
  */
 
 /*! \file */
@@ -170,20 +170,19 @@ int imaadpcm_encode(ima_adpcm_state_t *state, int16_t linear)
 }
 /*- End of function --------------------------------------------------------*/
 
-ima_adpcm_state_t *ima_adpcm_create(void)
+ima_adpcm_state_t *ima_adpcm_init(ima_adpcm_state_t *s)
 {
-    ima_adpcm_state_t *s;
-
-    s = (ima_adpcm_state_t *) malloc(sizeof(*s));
     if (s == NULL)
-    	return  NULL;
+    {
+        if ((s = (ima_adpcm_state_t *) malloc(sizeof(*s))) == NULL)
+        	return  NULL;
+    }
     memset(s, 0, sizeof(*s));
-    
     return  s;
 }
 /*- End of function --------------------------------------------------------*/
 
-int ima_adpcm_free(ima_adpcm_state_t *s)
+int ima_adpcm_release(ima_adpcm_state_t *s)
 {
     free(s);
     return 0;

@@ -23,11 +23,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc_tests.c,v 1.10 2005/09/28 17:11:50 steveu Exp $
+ * $Id: hdlc_tests.c,v 1.15 2005/11/27 12:36:23 steveu Exp $
  */
 
-//#define _ISOC9X_SOURCE  1
-//#define _ISOC99_SOURCE  1
+/*! \file */
+
+/*! \page hdlc_tests_page HDLC tests
+\section hdlc_tests_page_sec_1 What does it do?
+The HDLC tests exercise the HDLC module, and verifies correct operation
+using both 16 and 32 bit CRCs.
+*/
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -37,11 +46,6 @@
 #include <tiffio.h>
 
 #include "spandsp.h"
-
-/* Yes, yes, I know. HDLC is not DSP. It is needed to go with some DSP
-   components, though. */
-
-/* Tests for CRC and HDLC processing. */
 
 int full_len;
 uint8_t old_buf[1000];
@@ -85,7 +89,7 @@ static void frame_handler(void *user_data, int ok, const uint8_t *pkt, int len)
         printf("Frame data error\n");
         return;
     }
-    printf("Hit - %d\n", len);
+    //printf("Hit - %d\n", len);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -98,6 +102,8 @@ int main(int argc, char *argv[])
     hdlc_rx_state_t rx;
     hdlc_tx_state_t tx;
     hdlc_rx_stats_t rx_stats;
+    uint64_t start;
+    uint64_t end;
 
     /* Try a few random messages through the CRC logic. */
     for (i = 0;  i < 100;  i++)
@@ -131,6 +137,7 @@ int main(int argc, char *argv[])
     hdlc_tx_init(&tx, FALSE, NULL, NULL);
     hdlc_rx_init(&rx, FALSE, FALSE, 1, frame_handler, NULL);
 
+    start = rdtscll();
     hdlc_tx_preamble(&tx, 40);
     len = 2;
     for (i = 0;  i < 1000000;  i++)
@@ -148,18 +155,21 @@ int main(int argc, char *argv[])
             hdlc_tx_frame(&tx, buf, len);
         }
     }
+    end = rdtscll();
     hdlc_rx_get_stats(&rx, &rx_stats);
     printf("%d bytes\n", rx_stats.bytes);
     printf("%d good frames\n", rx_stats.good_frames);
     printf("%d CRC errors\n", rx_stats.crc_errors);
     printf("%d length errors\n", rx_stats.length_errors);
     printf("%d aborts\n", rx_stats.aborts);
+    printf("Test duration %llu\n", end - start);
 
     /* Now try sending HDLC messages with CRC-32 */
     printf("Testing with CRC-32\n");
     hdlc_tx_init(&tx, TRUE, NULL, NULL);
     hdlc_rx_init(&rx, TRUE, FALSE, 1, frame_handler, NULL);
 
+    start = rdtscll();
     hdlc_tx_preamble(&tx, 40);
     len = 2;
     for (i = 0;  i < 1000000;  i++)
@@ -177,12 +187,14 @@ int main(int argc, char *argv[])
             hdlc_tx_frame(&tx, buf, len);
         }
     }
+    end = rdtscll();
     hdlc_rx_get_stats(&rx, &rx_stats);
     printf("%d bytes\n", rx_stats.bytes);
     printf("%d good frames\n", rx_stats.good_frames);
     printf("%d CRC errors\n", rx_stats.crc_errors);
     printf("%d length errors\n", rx_stats.length_errors);
     printf("%d aborts\n", rx_stats.aborts);
+    printf("Test duration %llu\n", end - start);
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

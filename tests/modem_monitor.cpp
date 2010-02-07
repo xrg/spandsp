@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: constel.cpp,v 1.13 2005/09/03 10:37:56 steveu Exp $
+ * $Id: modem_monitor.cpp,v 1.2 2005/12/08 16:51:00 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,7 +48,7 @@
 
 #include "../src/spandsp/complex.h"
 //#include "spandsp.h"
-#include "constel.h"
+#include "modem_monitor.h"
 
 Fl_Double_Window *w;
 Fl_Group *c_const;
@@ -69,25 +69,28 @@ Ca_Y_Axis *eq_y;
 Ca_X_Axis *track_x;
 Ca_Y_Axis *symbol_track_y;
 Ca_Y_Axis *carrier_y;
-int first_carrier_sample = true;
 
 Ca_Line *eq_re = NULL;
 Ca_Line *eq_im = NULL;
 
-double eq_re_plot[100];
-double eq_im_plot[100];
+double eq_re_plot[200];
+double eq_im_plot[200];
 
 Ca_Line *symbol_track = NULL;
 Ca_Line *carrier = NULL;
 
-int symbol_tracker[100000];
-double symbol_track_plot[100000];
+#define SYMBOL_TRACKER_POINTS   12000
+int symbol_tracker[SYMBOL_TRACKER_POINTS];
+double symbol_track_plot[SYMBOL_TRACKER_POINTS*2];
 int symbol_track_points;
+int symbol_track_ptr;
 int symbol_track_window;
 
-float carrier_tracker[100000];
-double carrier_plot[100000];
+#define CARRIER_TRACKER_POINTS  12000
+float carrier_tracker[CARRIER_TRACKER_POINTS];
+double carrier_plot[CARRIER_TRACKER_POINTS*2];
 int carrier_points;
+int carrier_ptr;
 int carrier_window;
 
 Ca_Point *constel_point[100000];
@@ -148,6 +151,8 @@ int update_qam_equalizer_monitor(const complex_t *coeffs, int len)
             max = coeffs[i].im;
     }
     
+    eq_x->minimum(-len/4.0);
+    eq_x->maximum(len/4.0);
     eq_y->maximum((max == min)  ?  max + 0.2  :  max);
     eq_y->minimum(min);
     eq_re = new Ca_Line(len, eq_re_plot, 0, 0, FL_BLUE, CA_NO_POINT);
@@ -159,13 +164,16 @@ int update_qam_equalizer_monitor(const complex_t *coeffs, int len)
 int update_qam_symbol_tracking(int total_correction)
 {
     int i;
+    int j;
     int min;
     int max;
-#define SYMBOL_TRACKER_POINTS   12000
 
-    memcpy(&symbol_tracker[0], &symbol_tracker[1], sizeof(symbol_tracker[0])*(SYMBOL_TRACKER_POINTS - 1));
-    symbol_tracker[SYMBOL_TRACKER_POINTS - 1] = total_correction;
-    
+    symbol_tracker[symbol_track_ptr++] = total_correction;
+    if (symbol_track_points < SYMBOL_TRACKER_POINTS)
+        symbol_track_points++;
+    if (symbol_track_ptr >= SYMBOL_TRACKER_POINTS)
+        symbol_track_ptr = 0;
+
     canvas_track->current(canvas_track);
     if (symbol_track)
         delete symbol_track;
@@ -174,10 +182,19 @@ int update_qam_symbol_tracking(int total_correction)
 
     min =
     max = symbol_tracker[0];
-    for (i = 0;  i < SYMBOL_TRACKER_POINTS;  i++)
+    for (i = symbol_track_ptr, j = 0;  i < symbol_track_points;  i++, j++)
     {
-        symbol_track_plot[2*i] = i;
-        symbol_track_plot[2*i + 1] = symbol_tracker[i];
+        symbol_track_plot[2*j] = j;
+        symbol_track_plot[2*j + 1] = symbol_tracker[i];
+        if (min > symbol_tracker[i])
+            min = symbol_tracker[i];
+        if (max < symbol_tracker[i])
+            max = symbol_tracker[i];
+    }
+    for (i = 0;  i < symbol_track_ptr;  i++, j++)
+    {
+        symbol_track_plot[2*j] = j;
+        symbol_track_plot[2*j + 1] = symbol_tracker[i];
         if (min > symbol_tracker[i])
             min = symbol_tracker[i];
         if (max < symbol_tracker[i])
@@ -186,7 +203,7 @@ int update_qam_symbol_tracking(int total_correction)
     symbol_track_y->maximum((max == min)  ?  max + 0.2  :  max);
     symbol_track_y->minimum(min);
 
-    symbol_track = new Ca_Line(SYMBOL_TRACKER_POINTS, symbol_track_plot, 0, 0, FL_RED, CA_NO_POINT);
+    symbol_track = new Ca_Line(symbol_track_points, symbol_track_plot, 0, 0, FL_RED, CA_NO_POINT);
     //Fl::check();
     return 0;
 }
@@ -194,19 +211,16 @@ int update_qam_symbol_tracking(int total_correction)
 int update_qam_carrier_tracking(float carrier_freq)
 {
     int i;
+    int j;
     float min;
     float max;
-#define CARRIER_TRACKER_POINTS  12000
 
-    if (first_carrier_sample)
-    {
-        first_carrier_sample = false;
-        for (i = 0;  i < CARRIER_TRACKER_POINTS;  i++)
-            carrier_tracker[i] = carrier_freq;
-    }
-    memcpy(&carrier_tracker[0], &carrier_tracker[1], sizeof(carrier_tracker[0])*(CARRIER_TRACKER_POINTS - 1));
-    carrier_tracker[CARRIER_TRACKER_POINTS - 1] = carrier_freq;
-    
+    carrier_tracker[carrier_ptr++] = carrier_freq;
+    if (carrier_points < CARRIER_TRACKER_POINTS)
+        carrier_points++;
+    if (carrier_ptr >= CARRIER_TRACKER_POINTS)
+        carrier_ptr = 0;
+
     canvas_track->current(canvas_track);
     if (carrier)
         delete carrier;
@@ -215,10 +229,19 @@ int update_qam_carrier_tracking(float carrier_freq)
 
     min =
     max = carrier_tracker[0];
-    for (i = 0;  i < CARRIER_TRACKER_POINTS;  i++)
+    for (i = carrier_ptr, j = 0;  i < carrier_points;  i++, j++)
     {
-        carrier_plot[2*i] = i;
-        carrier_plot[2*i + 1] = carrier_tracker[i];
+        carrier_plot[2*j] = j;
+        carrier_plot[2*j + 1] = carrier_tracker[i];
+        if (min > carrier_tracker[i])
+            min = carrier_tracker[i];
+        if (max < carrier_tracker[i])
+            max = carrier_tracker[i];
+    }
+    for (i = 0;  i < carrier_ptr;  i++, j++)
+    {
+        carrier_plot[2*j] = j;
+        carrier_plot[2*j + 1] = carrier_tracker[i];
         if (min > carrier_tracker[i])
             min = carrier_tracker[i];
         if (max < carrier_tracker[i])
@@ -228,7 +251,7 @@ int update_qam_carrier_tracking(float carrier_freq)
     carrier_y->maximum((max == min)  ?  max + 0.2  :  max);
     carrier_y->minimum(min);
 
-    carrier = new Ca_Line(CARRIER_TRACKER_POINTS, carrier_plot, 0, 0, FL_BLUE, CA_NO_POINT);
+    carrier = new Ca_Line(carrier_points, carrier_plot, 0, 0, FL_BLUE, CA_NO_POINT);
     //Fl::check();
     return 0;
 }
@@ -299,8 +322,8 @@ int start_qam_monitor(float constel_width)
 
     eq_x = new Ca_X_Axis(465, 135, 140, 30, "Symbol");
     eq_x->align(FL_ALIGN_BOTTOM);
-    eq_x->minimum(-4.0);
-    eq_x->maximum(4.0);
+    eq_x->minimum(-8.0);
+    eq_x->maximum(8.0);
     eq_x->label_format("%g");
     eq_x->minor_grid_color(fl_gray_ramp(20));
     eq_x->major_grid_color(fl_gray_ramp(15));
@@ -396,6 +419,10 @@ int start_qam_monitor(float constel_width)
 
     constel_points = 0;
     constel_window = 10000;
+
+    carrier_points = 0;
+    carrier_ptr = 0;
+    carrier_window = 100;
 
     symbol_track_points = 0;
     symbol_track_window = 10000;

@@ -23,13 +23,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spandsp.h,v 1.21 2005/03/03 14:18:58 steveu Exp $
+ * $Id: spandsp.h,v 1.28 2005/11/23 17:09:46 steveu Exp $
  */
 
 /*! \file */
 
 #if !defined(_SPANDSP_H_)
 #define _SPANDSP_H_
+
+#include <inttypes.h>
+#include <limits.h>
+#include <time.h>
+#include <tiffio.h>
 
 #include <spandsp/telephony.h>
 #include <spandsp/logging.h>
@@ -51,8 +56,8 @@
 #include <spandsp/dds.h>
 #include <spandsp/echo.h>
 #include <spandsp/modem_echo.h>
-#include <spandsp/fsk.h>
 #include <spandsp/hdlc.h>
+#include <spandsp/async.h>
 #include <spandsp/noise.h>
 #include <spandsp/oss.h>
 #include <spandsp/time_scale.h>
@@ -60,8 +65,9 @@
 #include <spandsp/tone_generate.h>
 #include <spandsp/super_tone_rx.h>
 #include <spandsp/super_tone_tx.h>
-#include <spandsp/ec_disable_detector.h>
+#include <spandsp/ec_disable_tone.h>
 #include <spandsp/sig_tone.h>
+#include <spandsp/fsk.h>
 #include <spandsp/v29rx.h>
 #include <spandsp/v29tx.h>
 #if defined(ENABLE_V17)
@@ -79,12 +85,11 @@
 #include <spandsp/t30_fcf.h>
 #include <spandsp/t35.h>
 #include <spandsp/t31.h>
-//#include <spandsp/t38.h>
-//#include <spandsp/fax.h>
 #include <spandsp/adsi.h>
 #include <spandsp/oki_adpcm.h>
 #include <spandsp/ima_adpcm.h>
 #include <spandsp/g722.h>
+#include <spandsp/g726.h>
 #include <spandsp/plc.h>
 #include <spandsp/playout.h>
 

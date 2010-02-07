@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.h,v 1.16 2005/05/26 13:52:17 steveu Exp $
+ * $Id: v27ter_rx.h,v 1.23 2005/12/09 19:36:00 steveu Exp $
  */
 
 /*! \file */
@@ -31,25 +31,23 @@
 #if !defined(_V27TER_RX_H_)
 #define _V27TER_RX_H_
 
-#include "fsk.h"
+/*! \page v27ter_rx_page The V.27ter receiver
 
-/*! \page V27ter_rx_page The V.27ter receiver
+\section v27ter_rx_page_sec_1 What does it do?
 
-\section V2ter_rx_page_sec_1 What does it do?
-
-\section V2ter_rx_page_sec_2 How does it work?
+\section v27ter_rx_page_sec_2 How does it work?
 */
 
-#define V27_EQUALIZER_LEN   7  /* this much to the left and this much to the right */
-#define V27_EQUALIZER_MASK  15 /* one less than a power of 2 >= (2*V27_EQUALIZER_LEN + 1) */
+#define V27TER_EQUALIZER_LEN            7   /* this much to the left and this much to the right */
+#define V27TER_EQUALIZER_MASK           15  /* one less than a power of 2 >= (2*V27TER_EQUALIZER_LEN + 1) */
 
-#define V27RX_4800_FILTER_STEPS  27
-#define V27RX_2400_FILTER_STEPS  27
+#define V27TER_RX_4800_FILTER_STEPS     27
+#define V27TER_RX_2400_FILTER_STEPS     27
 
-#if V27RX_4800_FILTER_STEPS > V27RX_2400_FILTER_STEPS
-#define V27RX_FILTER_STEPS V27RX_4800_FILTER_STEPS
+#if V27TER_RX_4800_FILTER_STEPS > V27TER_RX_2400_FILTER_STEPS
+#define V27TER_RX_FILTER_STEPS V27TER_RX_4800_FILTER_STEPS
 #else
-#define V27RX_FILTER_STEPS V27RX_2400_FILTER_STEPS
+#define V27TER_RX_FILTER_STEPS V27TER_RX_2400_FILTER_STEPS
 #endif
 
 /*!
@@ -62,17 +60,17 @@ typedef struct
     int bit_rate;
     /*! \brief The callback function used to put each bit received. */
     put_bit_func_t put_bit;
-    /*! \brief A user specified opaque pointer passed to the callback function. */
+    /*! \brief A user specified opaque pointer passed to the put_bit routine. */
     void *user_data;
     /*! \brief A callback function which may be enabled to report every symbol's
                constellation position. */
     qam_report_handler_t *qam_report;
     /*! \brief A user specified opaque pointer passed to the qam_report callback
-               function. */
+               routine. */
     void *qam_user_data;
 
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
-    complex_t rrc_filter[2*V27RX_FILTER_STEPS];
+    complex_t rrc_filter[2*V27TER_RX_FILTER_STEPS];
     /*! \brief Current offset into the RRC pulse shaping filter buffer. */
     int rrc_filter_step;
 
@@ -84,7 +82,7 @@ typedef struct
     int in_training;
     int training_bc;
     int training_count;
-    int training_test_ones;
+    float training_error;
     int carrier_present;
 
     /*! \brief The current phase of the carrier (i.e. the DDS parameter). */
@@ -103,8 +101,8 @@ typedef struct
 
     float eq_delta;
     /*! \brief The adaptive equalizer coefficients */
-    complex_t eq_coeff[2*V27_EQUALIZER_LEN + 1];
-    complex_t eq_buf[V27_EQUALIZER_MASK + 1];
+    complex_t eq_coeff[2*V27TER_EQUALIZER_LEN + 1];
+    complex_t eq_buf[V27TER_EQUALIZER_MASK + 1];
     /*! \brief Current offset into equalizer buffer. */
     int eq_step;
     int eq_put_step;
@@ -137,8 +135,9 @@ extern "C" {
     \param s The modem context.
     \param rate The bit rate of the modem. Valid values are 2400 and 4800.
     \param put_bit The callback routine used to put the received data.
-    \param user_data An opaque pointer. */
-void v27ter_rx_init(v27ter_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data);
+    \param user_data An opaque pointer passed to the put_bit routine.
+    \return A pointer to the modem context, or NULL if there was a problem. */
+v27ter_rx_state_t *v27ter_rx_init(v27ter_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data);
 
 /*! Reinitialise an existing V.27ter modem receive context.
     \brief Reinitialise an existing V.27ter modem receive context.
@@ -147,6 +146,17 @@ void v27ter_rx_init(v27ter_rx_state_t *s, int rate, put_bit_func_t put_bit, void
     \return 0 for OK, -1 for bad parameter */
 int v27ter_rx_restart(v27ter_rx_state_t *s, int rate);
 
+/*! Release a V.27ter modem receive context.
+    \brief Release a V.27ter modem receive context.
+    \param s The modem context.
+    \return 0 for OK */
+int v27ter_rx_release(v27ter_rx_state_t *s);
+
+/*! Change the put_bit function associated with a V.27ter modem receive context.
+    \brief Change the put_bit function associated with a V.27ter modem receive context.
+    \param s The modem context.
+    \param put_bit The callback routine used to handle received bits.
+    \param user_data An opaque pointer. */
 void v27ter_rx_set_put_bit(v27ter_rx_state_t *s, put_bit_func_t put_bit, void *user_data);
 
 /*! Process a block of received V.27ter modem audio samples.
@@ -164,11 +174,14 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t *amp, int len);
     \return The number of coefficients in the vector. */
 int v27ter_rx_equalizer_state(v27ter_rx_state_t *s, complex_t **coeffs);
 
-/*! Get a current received carrier frequency.
+/*! Get the current received carrier frequency.
     \param s The modem context.
     \return The frequency, in Hertz. */
 float v27ter_rx_carrier_frequency(v27ter_rx_state_t *s);
 
+/*! Get the current symbol timing correction since startup.
+    \param s The modem context.
+    \return The correction. */
 float v27ter_rx_symbol_timing_correction(v27ter_rx_state_t *s);
 
 /*! Get a current received signal power.

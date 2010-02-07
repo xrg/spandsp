@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * adsi_tests.c
+ * adsi_tests.c - tests for analogue display service handling.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,18 +23,29 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.13 2005/09/01 17:06:45 steveu Exp $
+ * $Id: adsi_tests.c,v 1.20 2005/12/25 15:08:36 steveu Exp $
  */
 
 /*! \page adsi_tests_page ADSI tests
 \section adsi_tests_page_sec_1 What does it do?
+These tests exercise the ADSI module, for all supported standards. A transmit
+and a receive instance of the ADSI module are connected together. A quantity
+of messages is passed between these instances, and checked for accuracy at
+the receiver. Since the FSK modems used for this are exercised fully by other
+tests, these tests do not include line modelling.
+
 \section adsi_tests_page_sec_2 How does it work?
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <math.h>
 #include <assert.h>
 #include <audiofile.h>
@@ -44,179 +55,132 @@
 
 #define OUT_FILE_NAME   "adsi.wav"
 
-//#define TEST_CLASS
-//#define TEST_CLIP
-//#define TEST_ACLIP
-//#define TEST_JCLIP
-#define TEST_CLIP_DTMF
+#define BLOCK_LEN       160
 
-#define NB_SAMPLES 160
+char *decode_test_file = NULL;
 
 int errors = 0;
 
 adsi_rx_state_t rx_adsi;
 adsi_tx_state_t tx_adsi;
 
+int current_standard = 0;
+int good_message_received;
 
-#if 0
-void adsi_create_message4(void)
-{
-    uint8_t msg[256];
-    int len;
-    adsi_tx_state_t state;
-    adsi_tx_state_t *s;
-    
-    s = &state;
-    adsi_tx_init(s, ADSI_STANDARD_CLASS);
-    len = adsi_add_field(s, msg, -1, CLASS_SDMF_CALLERID, NULL, 0);
-    len = adsi_add_field(s, msg, len, 0, "10011750", 8);
-    len = adsi_add_field(s, msg, len, 0, "6095551212", 10);
-}
-
-void adsi_create_message5(void)
-{
-    uint8_t msg[256];
-    int len;
-    adsi_tx_state_t state;
-    adsi_tx_state_t *s;
-    
-    s = &state;
-    adsi_tx_init(s, ADSI_STANDARD_CLASS);
-    len = adsi_add_field(s, msg, -1, CLASS_SDMF_MSG_WAITING, NULL, 0);
-    /* Inactive */
-    len = adsi_add_field(s, msg, len, 0, "\x6F", 1);
-    len = adsi_add_field(s, msg, len, 0, "\x6F", 1);
-    len = adsi_add_field(s, msg, len, 0, "\x6F", 1);
-}
-
-void adsi_create_message6(void)
-{
-    uint8_t msg[256];
-    int len;
-    adsi_tx_state_t state;
-    adsi_tx_state_t *s;
-    
-    s = &state;
-    adsi_tx_init(s, ADSI_STANDARD_CLASS);
-    len = adsi_add_field(s, msg, -1, CLASS_SDMF_MSG_WAITING, NULL, 0);
-    /* Active */
-    len = adsi_add_field(s, msg, len, 0, "\x42", 1);
-    len = adsi_add_field(s, msg, len, 0, "\x42", 1);
-    len = adsi_add_field(s, msg, len, 0, "\x42", 1);
-}
-
-void adsi_create_message8(void)
-{
-    uint8_t msg[256];
-    int len;
-    adsi_tx_state_t state;
-    adsi_tx_state_t *s;
-    
-    s = &state;
-    adsi_tx_init(s, ADSI_STANDARD_CLIP);
-    len = adsi_add_field(s, msg, -1, CLIP_MDMF_CALLERID, NULL, 0);
-    len = adsi_add_field(s, msg, len, CLIP_NUM_MSG, "\x03", 1);
-}
-
-void adsi_create_message9(void)
-{
-    uint8_t msg[256];
-    int len;
-    adsi_tx_state_t state;
-    adsi_tx_state_t *s;
-    
-    s = &state;
-    adsi_tx_init(s, ADSI_STANDARD_CLIP);
-    len = adsi_add_field(s, msg, -1, CLIP_MDMF_MSG_WAITING, NULL, 0);
-    /* Inactive */
-    len = adsi_add_field(s, msg, len, CLIP_VISUAL_INDICATOR, "\x00", 1);
-}
-
-void adsi_create_message10(void)
-{
-    uint8_t msg[256];
-    int len;
-    adsi_tx_state_t state;
-    adsi_tx_state_t *s;
-    
-    s = &state;
-    adsi_tx_init(s, ADSI_STANDARD_CLIP);
-    len = adsi_add_field(s, msg, -1, CLIP_MDMF_MSG_WAITING, NULL, 0);
-    /* Active */
-    len = adsi_add_field(s, msg, len, CLIP_VISUAL_INDICATOR, "\xFF", 1);
-    len = adsi_add_field(s, msg, len, CLIP_NUM_MSG, "\x05", 1);
-}
-
-void adsi_create_message11(void)
-{
-    uint8_t msg[256];
-    int len;
-    adsi_tx_state_t state;
-    adsi_tx_state_t *s;
-    
-    s = &state;
-    adsi_tx_init(s, ADSI_STANDARD_CLIP);
-    len = adsi_add_field(s, msg, -1, CLIP_MDMF_SMS, NULL, 0);
-    /* Active */
-    len = adsi_add_field(s, msg, len, CLIP_DISPLAY_INFO, "\x00ABC", 4);
-}
-#endif
-
-#if defined(TEST_CLASS)
 int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg)
 {
+    char *t;
     int len;
-    
-    len = adsi_add_field(s, msg, -1, CLASS_MDMF_CALLERID, NULL, 0);
-    len = adsi_add_field(s, msg, len, MCLASS_DATETIME, "10011750", 8);
-    len = adsi_add_field(s, msg, len, MCLASS_CALLER_NUMBER, "12345678", 8);
-    len = adsi_add_field(s, msg, len, MCLASS_DIALED_NUMBER, "87654321", 8);
-    len = adsi_add_field(s, msg, len, MCLASS_CALLER_NAME, "Steve Underwood", 15);
-    return len;
-}
-#define STANDARD ADSI_STANDARD_CLASS
-#endif
+    static int cycle = 0;
 
-#if defined(TEST_CLIP)
-int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg)
-{
-    int len;
-    
-    len = adsi_add_field(s, msg, -1, CLIP_MDMF_CALLERID, NULL, 0);
-    len = adsi_add_field(s, msg, len, CLIP_CALLTYPE, "\x81", 1);
-    len = adsi_add_field(s, msg, len, CLIP_DATETIME, "10011750", 8);
-    len = adsi_add_field(s, msg, len, CLIP_DIALED_NUMBER, "12345678", 8);
-    len = adsi_add_field(s, msg, len, CLIP_CALLER_NUMBER, "87654321", 8);
-    len = adsi_add_field(s, msg, len, CLIP_CALLER_NAME, "Steve Underwood", 15);
+    len = 0;
+    switch (current_standard)
+    {
+    case ADSI_STANDARD_CLASS:
+        if (cycle > 3)
+            cycle = 0;
+        switch (cycle)
+        {
+        case 0:
+            len = adsi_add_field(s, msg, -1, CLASS_MDMF_CALLERID, NULL, 0);
+            /* Date and time as MMDDHHMM */
+            len = adsi_add_field(s, msg, len, MCLASS_DATETIME, (uint8_t *) "10011750", 8);
+            len = adsi_add_field(s, msg, len, MCLASS_CALLER_NUMBER, (uint8_t *) "12345678", 8);
+            len = adsi_add_field(s, msg, len, MCLASS_DIALED_NUMBER, (uint8_t *) "87654321", 8);
+            len = adsi_add_field(s, msg, len, MCLASS_CALLER_NAME, (uint8_t *) "Chan Dai Man", 15);
+            break;
+        case 1:
+            len = adsi_add_field(s, msg, -1, CLASS_SDMF_MSG_WAITING, NULL, 0);
+            /* Active */
+            len = adsi_add_field(s, msg, len, 0, (uint8_t *) "\x42", 1);
+            len = adsi_add_field(s, msg, len, 0, (uint8_t *) "\x42", 1);
+            len = adsi_add_field(s, msg, len, 0, (uint8_t *) "\x42", 1);
+            break;
+        case 2:
+            len = adsi_add_field(s, msg, -1, CLASS_SDMF_MSG_WAITING, NULL, 0);
+            /* Inactive */
+            len = adsi_add_field(s, msg, len, 0, (uint8_t *) "\x6F", 1);
+            len = adsi_add_field(s, msg, len, 0, (uint8_t *) "\x6F", 1);
+            len = adsi_add_field(s, msg, len, 0, (uint8_t *) "\x6F", 1);
+            break;
+        case 3:
+            len = adsi_add_field(s, msg, -1, CLASS_SDMF_CALLERID, NULL, 0);
+            /* Date and time as MMDDHHMM */
+            len = adsi_add_field(s, msg, len, 0, (uint8_t *) "10011750", 8);
+            len = adsi_add_field(s, msg, len, 0, (uint8_t *) "6095551212", 10);
+            break;
+        }
+        break;
+    case ADSI_STANDARD_CLIP:
+        if (cycle > 4)
+            cycle = 0;
+        switch (cycle)
+        {
+        case 0:
+            len = adsi_add_field(s, msg, -1, CLIP_MDMF_CALLERID, NULL, 0);
+            len = adsi_add_field(s, msg, len, CLIP_CALLTYPE, (uint8_t *) "\x81", 1);
+            /* Date and time as MMDDHHMM */
+            len = adsi_add_field(s, msg, len, CLIP_DATETIME, (uint8_t *) "10011750", 8);
+            len = adsi_add_field(s, msg, len, CLIP_DIALED_NUMBER, (uint8_t *) "12345678", 8);
+            len = adsi_add_field(s, msg, len, CLIP_CALLER_NUMBER, (uint8_t *) "87654321", 8);
+            len = adsi_add_field(s, msg, len, CLIP_CALLER_NAME, (uint8_t *) "Chan Dai Man", 15);
+            break;
+        case 1:
+            len = adsi_add_field(s, msg, -1, CLIP_MDMF_MSG_WAITING, NULL, 0);
+            /* Inactive */
+            len = adsi_add_field(s, msg, len, CLIP_VISUAL_INDICATOR, (uint8_t *) "\x00", 1);
+            break;
+        case 2:
+            len = adsi_add_field(s, msg, -1, CLIP_MDMF_MSG_WAITING, NULL, 0);
+            /* Active */
+            len = adsi_add_field(s, msg, len, CLIP_VISUAL_INDICATOR, (uint8_t *) "\xFF", 1);
+            len = adsi_add_field(s, msg, len, CLIP_NUM_MSG, (uint8_t *) "\x05", 1);
+            break;
+        case 3:
+            len = adsi_add_field(s, msg, -1, CLIP_MDMF_SMS, NULL, 0);
+            /* Active */
+            len = adsi_add_field(s, msg, len, CLIP_DISPLAY_INFO, (uint8_t *) "\x00" "ABC", 4);
+            break;
+        case 4:
+            len = adsi_add_field(s, msg, -1, CLIP_MDMF_CALLERID, NULL, 0);
+            len = adsi_add_field(s, msg, len, CLIP_NUM_MSG, (uint8_t *) "\x03", 1);
+            break;
+        }
+        break;
+    case ADSI_STANDARD_ACLIP:
+        if (cycle > 0)
+            cycle = 0;
+        switch (cycle)
+        {
+        case 0:
+            len = adsi_add_field(s, msg, -1, ACLIP_MDMF_CALLERID, NULL, 0);
+            /* Date and time as MMDDHHMM */
+            len = adsi_add_field(s, msg, len, ACLIP_DATETIME, (uint8_t *) "10011750", 8);
+            len = adsi_add_field(s, msg, len, ACLIP_DIALED_NUMBER, (uint8_t *) "12345678", 8);
+            len = adsi_add_field(s, msg, len, ACLIP_CALLER_NUMBER, (uint8_t *) "87654321", 8);
+            len = adsi_add_field(s, msg, len, ACLIP_CALLER_NAME, (uint8_t *) "Chan Dai Man", 15);
+            break;
+        }
+        break;
+    case ADSI_STANDARD_JCLIP:
+        len = adsi_add_field(s, msg, -1, JCLIP_MDMF_CALLERID, NULL, 0);
+        len = adsi_add_field(s, msg, len, JCLIP_CALLER_NUMBER, (uint8_t *) "12345678", 8);
+        len = adsi_add_field(s, msg, len, JCLIP_CALLER_NUM_DES, (uint8_t *) "215", 3);
+        len = adsi_add_field(s, msg, len, JCLIP_DIALED_NUMBER, (uint8_t *) "87654321", 8);
+        len = adsi_add_field(s, msg, len, JCLIP_DIALED_NUM_DES, (uint8_t *) "215", 3);
+        break;
+    case ADSI_STANDARD_CLIP_DTMF:
+        len = adsi_add_field(s, msg, 0, CLIP_DTMF_CALLER_NUMBER, (uint8_t *) "12345678", 8);
+        break;
+    case ADSI_STANDARD_TDD:
+        t = "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()";
+        len = adsi_add_field(s, msg, -1, 0, (uint8_t *) t, strlen(t));
+        break;
+    }
+    cycle++;
     return len;
 }
-#define STANDARD ADSI_STANDARD_CLIP
-#endif
-#if defined(TEST_CLIP_DTMF)
-int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg)
-{
-    int len;
-    
-    len = adsi_add_field(s, msg, 0, 'A', (uint8_t *) "12345678", 8);
-    return len;
-}
-#define STANDARD ADSI_STANDARD_CLIP_DTMF
-#endif
-#if defined(TEST_JCLIP)
-int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg)
-{
-    int len;
-
-    len = adsi_add_field(s, msg, -1, JCLIP_MDMF_CALLERID, NULL, 0);
-    len = adsi_add_field(s, msg, len, JCLIP_CALLER_NUMBER, "12345678", 8);
-    len = adsi_add_field(s, msg, len, JCLIP_CALLER_NUM_DES, "215", 3);
-    len = adsi_add_field(s, msg, len, JCLIP_DIALED_NUMBER, "87654321", 8);
-    len = adsi_add_field(s, msg, len, JCLIP_DIALED_NUM_DES, "215", 3);
-    return len;
-}
-
-#define STANDARD ADSI_STANDARD_JCLIP
-#endif
+/*- End of function --------------------------------------------------------*/
 
 static void put_adsi_msg(void *user_data, const uint8_t *msg, int len)
 {
@@ -225,45 +189,327 @@ static void put_adsi_msg(void *user_data, const uint8_t *msg, int len)
     uint8_t field_type;
     const uint8_t *field_body;
     int field_len;
+    int message_type;
     uint8_t body[256];
     
     printf("Good message received (%d bytes)\n", len);
-
+    good_message_received = TRUE;
     for (i = 0;  i < len;  i++)
     {
-        printf("%2x ", msg[i]);
+        printf("%02x ", msg[i]);
         if ((i & 0xf) == 0xf)
             printf("\n");
     }
     printf("\n");
     l = -1;
+    message_type = -1;
+    printf("Message breakdown\n");
     do
     {
         l = adsi_next_field(&rx_adsi, msg, len, l, &field_type, &field_body, &field_len);
-printf("l = %d\n", l);
         if (l > 0)
         {
             if (field_body)
             {
                 memcpy(body, field_body, field_len);
                 body[field_len] = '\0';
-                printf("Type %x, len %d, '%s'\n", field_type, field_len, body);
+                printf("Field type 0x%x, len %d, '%s' - ", field_type, field_len, body);
+                switch (current_standard)
+                {
+                case ADSI_STANDARD_CLASS:
+                    switch (message_type)
+                    {
+                    case CLASS_SDMF_CALLERID:
+                        break;
+                    case CLASS_MDMF_CALLERID:
+                        switch (field_type)
+                        {
+                        case MCLASS_DATETIME:
+                            printf("Date and time (MMDDHHMM)");
+                            break;
+                        case MCLASS_CALLER_NUMBER:
+                            printf("Caller's number");
+                            break;
+                        case MCLASS_DIALED_NUMBER:
+                            printf("Dialed number");
+                            break;
+                        case MCLASS_ABSENCE1:
+                            printf("Caller's number absent: 'O' or 'P'");
+                            break;
+                        case MCLASS_REDIRECT:
+                            printf("Call forward: universal ('0'), on busy ('1'), or on unanswered ('2')");
+                            break;
+                        case MCLASS_QUALIFIER:
+                            printf("Long distance: 'L'");
+                            break;
+                        case MCLASS_CALLER_NAME:
+                            printf("Caller's name");
+                            break;
+                        case MCLASS_ABSENCE2:
+                            printf("Caller's name absent: 'O' or 'P'");
+                            break;
+                        }
+                        break;
+                    case CLASS_SDMF_MSG_WAITING:
+                        break;
+                    case CLASS_MDMF_MSG_WAITING:
+                        switch (field_type)
+                        {
+                        case MCLASS_VISUAL_INDICATOR:
+                            printf("Message waiting/not waiting");
+                            break;
+                        }
+                        break;
+                    }
+                    break;
+                case ADSI_STANDARD_CLIP:
+                    switch (message_type)
+                    {
+                    case CLIP_MDMF_CALLERID:
+                    case CLIP_MDMF_MSG_WAITING:
+                    case CLIP_MDMF_CHARGE_INFO:
+                    case CLIP_MDMF_SMS:
+                        switch (field_type)
+                        {
+                        case CLIP_DATETIME:
+                            printf("Date and time (MMDDHHMM)");
+                            break;
+                        case CLIP_CALLER_NUMBER:
+                            printf("Caller's number");
+                            break;
+                        case CLIP_DIALED_NUMBER:
+                            printf("Dialed number");
+                            break;
+                        case CLIP_ABSENCE1:
+                            printf("Caller's number absent");
+                            break;
+                        case CLIP_CALLER_NAME:
+                            printf("Caller's name");
+                            break;
+                        case CLIP_ABSENCE2:
+                            printf("Caller's name absent");
+                            break;
+                        case CLIP_VISUAL_INDICATOR:
+                            printf("Visual indicator");
+                            break;
+                        case CLIP_MESSAGE_ID:
+                            printf("Message ID");
+                            break;
+                        case CLIP_CALLTYPE:
+                            printf("Voice call, ring-back-when-free call, or msg waiting call");
+                            break;
+                        case CLIP_NUM_MSG:
+                            printf("Number of messages");
+                            break;
+#if 0
+                        case CLIP_REDIR_NUMBER:
+                            printf("Redirecting number");
+                            break;
+#endif
+                        case CLIP_CHARGE:
+                            printf("Charge");
+                            break;
+                        case CLIP_DURATION:
+                            printf("Duration of the call");
+                            break;
+                        case CLIP_ADD_CHARGE:
+                            printf("Additional charge");
+                            break;
+                        case CLIP_DISPLAY_INFO:
+                            printf("Display information");
+                            break;
+                        case CLIP_SERVICE_INFO:
+                            printf("Service information");
+                            break;
+                        }
+                        break;
+                    }
+                    break;
+                case ADSI_STANDARD_ACLIP:
+                    switch (message_type)
+                    {
+                    case ACLIP_SDMF_CALLERID:
+                        break;
+                    case ACLIP_MDMF_CALLERID:
+                        switch (field_type)
+                        {
+                        case ACLIP_DATETIME:
+                            printf("Date and time (MMDDHHMM)");
+                            break;
+                        case ACLIP_CALLER_NUMBER:
+                            printf("Caller's number");
+                            break;
+                        case ACLIP_DIALED_NUMBER:
+                            printf("Dialed number");
+                            break;
+                        case ACLIP_ABSENCE1:
+                            printf("Caller's number absent: 'O' or 'P'");
+                            break;
+                        case ACLIP_REDIRECT:
+                            printf("Call forward: universal, on busy, or on unanswered");
+                            break;
+                        case ACLIP_QUALIFIER:
+                            printf("Long distance call: 'L'");
+                            break;
+                        case ACLIP_CALLER_NAME:
+                            printf("Caller's name");
+                            break;
+                        case ACLIP_ABSENCE2:
+                            printf("Caller's name absent: 'O' or 'P'");
+                            break;
+                        }
+                        break;
+                    }
+                    break;
+                case ADSI_STANDARD_JCLIP:
+                    switch (message_type)
+                    {
+                    case JCLIP_MDMF_CALLERID:
+                        switch (field_type)
+                        {
+                        case JCLIP_CALLER_NUMBER:
+                            printf("Caller's number");
+                            break;
+                        case JCLIP_CALLER_NUM_DES:
+                            printf("Caller's number data extension signal");
+                            break;
+                        case JCLIP_DIALED_NUMBER:
+                            printf("Dialed number");
+                            break;
+                        case JCLIP_DIALED_NUM_DES:
+                            printf("Dialed number data extension signal");
+                            break;
+                        case JCLIP_ABSENCE:
+                            printf("Caller's number absent: 'C', 'O', 'P' or 'S'");
+                            break;
+                        }
+                        break;
+                    }
+                    break;
+                case ADSI_STANDARD_CLIP_DTMF:
+                    switch (message_type)
+                    {
+                    case CLIP_DTMF_CALLER_NUMBER:
+                        printf("Caller's number");
+                        break;
+                    case CLIP_DTMF_ABSENCE1:
+                        printf("Caller's number absent: private (1), overseas (2) or not available (3)");
+                        break;
+                    }
+                    break;
+                case ADSI_STANDARD_TDD:
+                    break;
+                }
             }
             else
             {
-                printf("Message type %x\n", field_type);
+                printf("Message type 0x%x - ", field_type);
+                message_type = field_type;
+                switch (current_standard)
+                {
+                case ADSI_STANDARD_CLASS:
+                    switch (message_type)
+                    {
+                    case CLASS_SDMF_CALLERID:
+                        printf("Single data message caller ID");
+                        break;
+                    case CLASS_MDMF_CALLERID:
+                        printf("Multiple data message caller ID");
+                        break;
+                    case CLASS_SDMF_MSG_WAITING:
+                        printf("Single data message message waiting");
+                        break;
+                    case CLASS_MDMF_MSG_WAITING:
+                        printf("Multiple data message message waiting");
+                        break;
+                    default:
+                        printf("Unknown");
+                        break;
+                    }
+                    break;
+                case ADSI_STANDARD_CLIP:
+                    switch (message_type)
+                    {
+                    case CLIP_MDMF_CALLERID:
+                        printf("Multiple data message caller ID");
+                        break;
+                    case CLIP_MDMF_MSG_WAITING:
+                        printf("Multiple data message message waiting");
+                        break;
+                    case CLIP_MDMF_CHARGE_INFO:
+                        printf("Multiple data message charge info");
+                        break;
+                    case CLIP_MDMF_SMS:
+                        printf("Multiple data message SMS");
+                        break;
+                    default:
+                        printf("Unknown");
+                        break;
+                    }
+                    break;
+                case ADSI_STANDARD_ACLIP:
+                    switch (message_type)
+                    {
+                    case ACLIP_SDMF_CALLERID:
+                        printf("Single data message caller ID frame");
+                        break;
+                    case ACLIP_MDMF_CALLERID:
+                        printf("Multiple data message caller ID frame");
+                        break;
+                    default:
+                        printf("Unknown");
+                        break;
+                    }
+                    break;
+                case ADSI_STANDARD_JCLIP:
+                    switch (message_type)
+                    {
+                    case JCLIP_MDMF_CALLERID:
+                        printf("Multiple data message caller ID frame");
+                        break;
+                    default:
+                        printf("Unknown");
+                        break;
+                    }
+                    break;
+                case ADSI_STANDARD_CLIP_DTMF:
+                    switch (message_type)
+                    {
+                    case CLIP_DTMF_CALLER_NUMBER:
+                        printf("Caller's number");
+                        break;
+                    case CLIP_DTMF_ABSENCE1:
+                        printf("Caller's number absent");
+                        break;
+                    default:
+                        printf("Unknown");
+                        break;
+                    }
+                    break;
+                case ADSI_STANDARD_TDD:
+                    printf("Unknown");
+                    break;
+                }
             }
+            printf("\n");
         }
     }
     while (l > 0);
+    if (l < -1)
+    {
+        /* This message appears corrupt */
+        printf("Bad message contents\n");
+    }
     printf("\n");
 }
+/*- End of function --------------------------------------------------------*/
 
 int main(int argc, char *argv[])
 {
-    int16_t buf[NB_SAMPLES];
+    int16_t amp[BLOCK_LEN];
     uint8_t adsi_msg[256 + 42];
     int adsi_msg_len;
+    AFfilehandle inhandle;
     AFfilehandle outhandle;
     AFfilesetup filesetup;
     int outframes;
@@ -273,50 +519,47 @@ int main(int argc, char *argv[])
     int xx;
     int yy;
     int i;
+    int j;
+    int push;
+    int samples;
 
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
+    decode_test_file = NULL;
+    current_standard = ADSI_STANDARD_CLASS;
+    for (i = 1;  i < argc;  i++)
     {
-        fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
-    }
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
-
-    outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
-    {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
-        exit(2);
-    }
-
-    adsi_tx_init(&tx_adsi, STANDARD);
-    adsi_rx_init(&rx_adsi, STANDARD, put_adsi_msg, NULL);
-
-    for (i = 0;  i < 1000;  i++)
-    {
-        len = adsi_tx(&tx_adsi, buf, NB_SAMPLES);
-        outframes = afWriteFrames(outhandle,
-                                  AF_DEFAULT_TRACK,
-                                  buf,
-                                  len);
-        if (outframes != len)
+        if (strcmp(argv[i], "-d") == 0)
         {
-            fprintf(stderr, "    Error writing wave file\n");
-            exit(2);
+            i++;
+            decode_test_file = argv[i];
+            continue;
         }
-        adsi_rx(&rx_adsi, buf, len);
-
-        adsi_msg_len = adsi_create_message(&tx_adsi, adsi_msg);
-        adsi_put_message(&tx_adsi, adsi_msg, adsi_msg_len);
+        else if (strcmp(argv[i], "-s") == 0)
+        {
+            i++;
+            if (strcasecmp("CLASS", argv[i]) == 0)
+                current_standard = ADSI_STANDARD_CLASS;
+            else if (strcasecmp("CLIP", argv[i]) == 0)
+                current_standard = ADSI_STANDARD_CLIP;
+            else if (strcasecmp("A-CLIP", argv[i]) == 0)
+                current_standard = ADSI_STANDARD_ACLIP;
+            else if (strcasecmp("J-CLIP", argv[i]) == 0)
+                current_standard = ADSI_STANDARD_JCLIP;
+            else if (strcasecmp("CLIP-DTMF", argv[i]) == 0)
+                current_standard = ADSI_STANDARD_CLIP_DTMF;
+            else if (strcasecmp("TDD", argv[i]) == 0)
+                current_standard = ADSI_STANDARD_TDD;
+            else
+                current_standard = atoi(argv[i]);
+            continue;
+        }
     }
 
-    /* Now test TDD operation */
-    
 #if 0
+    /* This part tests internal static routines in the ADSI module. It can
+       only be run with a modified version of the ADSI module, which makes
+       the routines visible. */
     /* Check the character encode/decode cycle */
+    current_standard = ADSI_STANDARD_TDD;
     adsi_tx_init(&tx_adsi, ADSI_STANDARD_TDD);
     adsi_rx_init(&rx_adsi, ADSI_STANDARD_TDD, put_adsi_msg, NULL);
     s = "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()";
@@ -335,37 +578,113 @@ int main(int argc, char *argv[])
     }
     printf("\n");
 #endif
-    
-    adsi_tx_init(&tx_adsi, ADSI_STANDARD_TDD);
-    adsi_rx_init(&rx_adsi, ADSI_STANDARD_TDD, put_adsi_msg, NULL);
 
-    s = "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()";
-    for (i = 0;  i < 3000;  i++)
+    if (decode_test_file)
     {
-        len = adsi_tx(&tx_adsi, buf, NB_SAMPLES);
-#if 0
-        if (len == 0)
-            break;
-        outframes = afWriteFrames(outhandle,
-                                  AF_DEFAULT_TRACK,
-                                  buf,
-                                  len);
-        if (outframes != len)
+        /* We will decode the audio from a wave file. */
+        inhandle = afOpenFile(decode_test_file, "r", NULL);
+        if (inhandle == AF_NULL_FILEHANDLE)
         {
-            fprintf(stderr, "    Error writing wave file\n");
+            fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
             exit(2);
         }
-#endif
-        adsi_rx(&rx_adsi, buf, len);
-        adsi_msg_len = adsi_add_field(&tx_adsi, adsi_msg, -1, 0, (uint8_t *) s, strlen(s));
-        adsi_put_message(&tx_adsi, adsi_msg, adsi_msg_len);
-    }
 
-    if (afCloseFile(outhandle) != 0)
-    {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
-        exit(2);
+        adsi_rx_init(&rx_adsi, current_standard, put_adsi_msg, NULL);
+        rx_adsi.logging.level = SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW;
+        rx_adsi.logging.tag = "ADSI";
+        for (;;)
+        {
+            len = afReadFrames(inhandle,
+                               AF_DEFAULT_TRACK,
+                               amp,
+                               BLOCK_LEN);
+            if (len == 0)
+                break;
+            adsi_rx(&rx_adsi, amp, len);
+        }
+        if (afCloseFile(inhandle) != 0)
+        {
+            fprintf(stderr, "    Cannot close wave file '%s'\n", decode_test_file);
+            exit(2);
+        }
     }
+    else
+    {
+        filesetup = afNewFileSetup();
+        if (filesetup == AF_NULL_FILESETUP)
+        {
+            fprintf(stderr, "    Failed to create file setup\n");
+            exit(2);
+        }
+        afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
+        afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
+        afInitFileFormat(filesetup, AF_FILE_WAVE);
+        afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
+    
+        outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
+        if (outhandle == AF_NULL_FILEHANDLE)
+        {
+            fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
+            exit(2);
+        }
+
+        /* Go through all the standards */
+        /* This assumes standard 0 is NULL, and TDD is the last in the list */
+        for (j = 1;  j <= ADSI_STANDARD_TDD;  j++)
+        {
+            printf("Testing %s\n", adsi_standard_to_str(j));
+            current_standard = j;
+            adsi_tx_init(&tx_adsi, j);
+            adsi_rx_init(&rx_adsi, j, put_adsi_msg, NULL);
+
+            /* Fake an OK condition for the first message test */
+            good_message_received = TRUE;
+            push = 0;
+            for (i = 0;  i < 100000;  i++)
+            {
+                if (push == 0)
+                {
+                    if ((len = adsi_tx(&tx_adsi, amp, BLOCK_LEN)) == 0)
+                        push = 10;
+                }
+                else
+                {
+                    len = 0;
+                    /* Push a little silence through, to flush things out */
+                    if (--push == 0)
+                    {
+                        if (!good_message_received)
+                            printf("No message received %s (%d)\n", adsi_standard_to_str(j), i);
+                        good_message_received = FALSE;
+                        adsi_msg_len = adsi_create_message(&tx_adsi, adsi_msg);
+                        adsi_msg_len = adsi_put_message(&tx_adsi, adsi_msg, adsi_msg_len);
+                    }
+                }
+                if (len < BLOCK_LEN)
+                {
+                    memset(&amp[len], 0, sizeof(int16_t)*(BLOCK_LEN - len));
+                    len = BLOCK_LEN;
+                }
+                outframes = afWriteFrames(outhandle,
+                                          AF_DEFAULT_TRACK,
+                                          amp,
+                                          len);
+                if (outframes != len)
+                {
+                    fprintf(stderr, "    Error writing wave file\n");
+                    exit(2);
+                }
+                adsi_rx(&rx_adsi, amp, len);
+            }
+        }
+        if (afCloseFile(outhandle) != 0)
+        {
+            fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
+            exit(2);
+        }
+        afFreeFileSetup(filesetup);
+    }
+    
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

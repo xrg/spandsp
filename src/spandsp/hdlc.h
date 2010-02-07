@@ -23,23 +23,26 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.h,v 1.11 2005/10/08 04:40:58 steveu Exp $
+ * $Id: hdlc.h,v 1.14 2005/11/28 13:43:34 steveu Exp $
  */
 
 /*! \file */
 
+/*! \page hdlc_page HDLC
+
+\section hdlc_page_sec_1 What does it do?
+The HDLC module provides bit stuffing, destuffing, framing and deframing,
+according to the HDLC protocol. It also provides 16 and 32 bit CRC generation
+and checking services for HDLC frames.
+
+HDLC may not be a DSP function, but is needed to accompany several DSP components.
+
+\section hdlc_page_sec_2 How does it work?
+*/
+
+
 #if !defined(_HDLC_H_)
 #define _HDLC_H_
-
-/*! \page HDLC_page HDLC
-
-\section HDLC_page_sec_1 What does it do?
-The HDLC module provides bit stuffing and destuffing, according to the HDLC
-protocol. It also provides CRC generation and checking services for HDLC
-frames.
-
-\section HDLC_page_sec_2 How does it work?
-*/
 
 /*! 
     HDLC_MAXFRAME_LEN is the maximum length of a stuffed HDLC frame, excluding the CRC.
@@ -87,6 +90,9 @@ typedef struct
     unsigned long int rx_aborts;
 } hdlc_rx_state_t;
 
+/*!
+    HDLC received data statistics.
+ */
 typedef struct
 {
     /*! \brief The number of bytes of good frames received (CRC not included). */
@@ -131,7 +137,14 @@ typedef struct
 extern "C" {
 #endif
 
-uint32_t crc_itu32_calc(const uint8_t *buf, int len);
+/*! \brief Calculate the ITU/CCITT CRC-32 value in buffer.
+    \param buf The buffer containing the data.
+    \param len The length of the frame.
+    \param crc The initial CRC value. This is usually 0xFFFFFFFF, or 0 for a new block (it depends on
+           the application). It is previous returned CRC value for the continuation of a block.
+    \return The CRC value.
+*/
+uint32_t crc_itu32_calc(const uint8_t *buf, int len, uint32_t crc);
 
 /*! \brief Append an ITU/CCITT CRC-32 value to a frame.
     \param buf The buffer containing the frame. This must be at least 2 bytes longer than
@@ -148,7 +161,14 @@ int crc_itu32_append(uint8_t *buf, int len);
 */
 int crc_itu32_check(const uint8_t *buf, int len);
 
-uint16_t crc_itu16_calc(const uint8_t *buf, int len);
+/*! \brief Calculate the ITU/CCITT CRC-16 value in buffer.
+    \param buf The buffer containing the data.
+    \param len The length of the frame.
+    \param crc The initial CRC value. This is usually 0xFFFF, or 0 for a new block (it depends on
+           the application). It is previous returned CRC value for the continuation of a block.
+    \return The CRC value.
+*/
+uint16_t crc_itu16_calc(const uint8_t *buf, int len, uint16_t crc);
 
 /*! \brief Append an ITU/CCITT CRC-16 value to a frame.
     \param buf The buffer containing the frame. This must be at least 2 bytes longer than

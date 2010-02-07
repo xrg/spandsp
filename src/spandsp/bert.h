@@ -23,18 +23,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bert.h,v 1.4 2005/01/18 14:05:48 steveu Exp $
+ * $Id: bert.h,v 1.9 2005/12/29 09:54:24 steveu Exp $
  */
 
 #if !defined(_BERT_H_)
 #define _BERT_H_
 
-/*! \page BERT_page The Bit Error Rate tester
-\section BERT_page_sec_1 What does it do?
+/*! \page bert_page The Bit Error Rate tester
+\section bert_page_sec_1 What does it do?
 The Bit Error Rate tester generates a pseudo random bit stream. It also accepts such
 a pattern, synchronises to it, and checks the bit error rate in this stream.
 
-\section BERT_page_sec_2 How does it work?
+\section bert_page_sec_2 How does it work?
 The Bit Error Rate tester generates a bit stream, with a repeating 2047 bit pseudo
 random pattern, using an 11 stage polynomial generator. It also accepts such a pattern,
 synchronises to it, and checks the bit error rate in this stream. If the error rate is
@@ -92,6 +92,10 @@ enum
 
 typedef void (*bert_report_func_t)(void *user_data, int reason);
 
+/*!
+    Bit error rate tester (BERT) descriptor. This defines the working state for a
+    single instance of the BERT.
+*/
 typedef struct
 {
     int pattern;
@@ -102,12 +106,16 @@ typedef struct
     int limit;
 
     uint32_t tx_reg;
+    int tx_step;
+    int tx_step_bit;
     int tx_bits;
     int tx_zeros;
 
     uint32_t rx_reg;
     uint32_t ref_reg;
     uint32_t master_reg;
+    int rx_step;
+    int rx_step_bit;
     int resync;
     int rx_bits;
     int rx_zeros;
@@ -135,6 +143,10 @@ typedef struct
     int report_countdown;
 } bert_state_t;
 
+/*!
+    Bit error rate tester (BERT) results descriptor. This is used to report the
+    results of a BER test.
+*/
 typedef struct
 {
     int total_bits;
@@ -146,10 +158,36 @@ typedef struct
 extern "C" {
 #endif
 
-int bert_init(bert_state_t *s, int limit, int pattern, int resync_len, int resync_percent);
+/*! Initialise a BERT context.
+    \param s The BERT context.
+    \param limit The maximum test duration.
+    \param pattern One of the supported BERT signal patterns.
+    \param resync_len ???
+    \param resync_percent The percentage of bad bits which will cause a resync.
+    \return The BERT context. */
+bert_state_t *bert_init(bert_state_t *s, int limit, int pattern, int resync_len, int resync_percent);
+
+/*! Get the next bit of the BERT sequence from the generator.
+    \param s The BERT context.
+    \return The bit. */
 int bert_get_bit(bert_state_t *s);
+
+/*! Put the next bit of the BERT sequence to the analyser.
+    \param s The BERT context.
+    \param bit The bit. */
 void bert_put_bit(bert_state_t *s, int bit);
-int bert_set_reporting(bert_state_t *s, int freq, bert_report_func_t reporter, void *user_data);
+
+/*! Set the callback function for reporting the test status.
+    \param s The BERT context.
+    \param freq The required frequency of regular reports.
+    \param reporter The callback function.
+    \param user_data An opaque pointer passed to the reporter routine. */
+void bert_set_report(bert_state_t *s, int freq, bert_report_func_t reporter, void *user_data);
+
+/*! Get the results of the BERT.
+    \param s The BERT context.
+    \param results The results.
+    \return The size of the result structure. */
 int bert_result(bert_state_t *s, bert_results_t *results);
 
 #ifdef __cplusplus

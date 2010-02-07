@@ -23,25 +23,26 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.h,v 1.5 2005/10/08 04:40:58 steveu Exp $
+ * $Id: v8.h,v 1.8 2005/12/25 17:33:37 steveu Exp $
  */
  
 /*! \file */
 
-#if !defined(_V8_H_)
-#define _V8_H_
-
-/*! \page V8_page The V.8 modem negotiation protocol
-\section V8_page_sec_1 What does it do?
+/*! \page v8_page The V.8 modem negotiation protocol
+\section v8_page_sec_1 What does it do?
 The V.8 specification defines a procedure to be used as PSTN modem answer phone calls,
 which allows the modems to negotiate the optimum modem standard, which both ends can
 support.
-\section V8_page_sec_2 How does it work?
+
+\section v8_page_sec_2 How does it work?
 At startup the modems communicate using the V.21 standard at 300 bits/second. They
 exchange simple messages about their capabilities, and choose the modem standard they
 will use for data communication. The V.8 protocol then terminates, and the modems
 being negotiating and training with their chosen modem standard.
 */
+
+#if !defined(_V8_H_)
+#define _V8_H_
 
 typedef void (v8_result_handler_t)(void *user_data, int result);
 
@@ -109,15 +110,54 @@ typedef struct
 extern "C" {
 #endif
 
+/*! Initialise a V.8 context.
+    \brief Initialise a V.8 context.
+    \param s The V.8 context.
+    \param caller TRUE if caller mode, else answerer mode.
+    \param available_modulations A bitwise list of the modulation schemes to be
+           advertised as available here.
+    \param result_handler The callback routine used to handle the results of negotiation.
+    \param user_data An opaque pointer passed to the result_handler routine.
+    \return A pointer to the V.8 context, or NULL if there was a problem. */
 v8_state_t *v8_init(v8_state_t *s,
                     int caller,
                     int available_modulations,
                     v8_result_handler_t *result_handler,
                     void *user_data);
-int v8_tx(v8_state_t *s, int16_t *amp, int max_samples);
-int v8_rx(v8_state_t *s, const int16_t *amp, int samples);
 
+/*! Release a V.8 context.
+    \brief Release a V.8 context.
+    \param s The V.8 context.
+    \return 0 for OK. */
+int v8_release(v8_state_t *s);
+
+/*! Generate a block of V.8 audio samples.
+    \brief Generate a block of V.8 audio samples.
+    \param s The V.8 context.
+    \param amp The audio sample buffer.
+    \param max_len The number of samples to be generated.
+    \return The number of samples actually generated.
+*/
+int v8_tx(v8_state_t *s, int16_t *amp, int max_len);
+
+/*! Process a block of received V.8 audio samples.
+    \brief Process a block of received V.8 audio samples.
+    \param s The V.8 context.
+    \param amp The audio sample buffer.
+    \param len The number of samples in the buffer.
+*/
+int v8_rx(v8_state_t *s, const int16_t *amp, int len);
+
+/*! Log the list of supported modulations.
+    \brief Log the list of supported modulations.
+    \param s The V.8 context.
+    \param modulation_schemes The list of supported modulations. */
 void v8_log_supported_modulations(v8_state_t *s, int modulation_schemes);
+
+/*! Log the selected modulation.
+    \brief Log the selected modulation.
+    \param s The V.8 context.
+    \param modulation_scheme The selected modulation. */
 void v8_log_selected_modulation(v8_state_t *s, int modulation_scheme);
 
 #ifdef __cplusplus

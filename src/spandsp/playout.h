@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: playout.h,v 1.3 2005/02/04 19:19:31 steveu Exp $
+ * $Id: playout.h,v 1.4 2005/11/23 17:09:47 steveu Exp $
  */
 
 #if !defined(_PLAYOUT_H_)
@@ -77,6 +77,10 @@ typedef struct playout_frame_s
     struct playout_frame_s *later;
 } playout_frame_t;
 
+/*!
+    Playout (jitter buffer) descriptor. This defines the working state
+    for a single instance of playout buffering.
+*/
 typedef struct
 {
     /*! TRUE if the buffer is dynamically sized */

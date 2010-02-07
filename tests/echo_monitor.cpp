@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo_monitor.cpp,v 1.3 2005/09/03 10:37:56 steveu Exp $
+ * $Id: echo_monitor.cpp,v 1.7 2005/11/28 13:43:34 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,6 +39,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/select.h>
+#if defined(HAVE_FFTW3_H)
+#include <fftw3.h>
+#else
+#include <fftw.h>
+#endif
 
 #include <FL/Fl.H>
 #include <FL/Fl_Overlay_Window.H>
@@ -51,9 +56,17 @@
 #include "echo_monitor.h"
 
 Fl_Double_Window *w;
+
+Fl_Group *c_spec;
 Fl_Group *c_right;
 Fl_Group *c_can;
 Fl_Group *c_line_model;
+
+Ca_Canvas *canvas_spec;
+Ca_X_Axis *spec_freq;
+Ca_Y_Axis *spec_amp;
+Ca_Line *spec_re = NULL;
+double spec_re_plot[2*512];
 
 Ca_Canvas *canvas_can;
 Ca_X_Axis *can_x;
@@ -68,6 +81,16 @@ Ca_Line *line_model_re = NULL;
 double line_model_re_plot[512];
 
 static int skip = 0;
+
+int in_ptr;
+#if defined(HAVE_FFTW3_H)
+double in[1024][2];
+double out[1024][2];
+#else
+fftw_complex in[1024];
+fftw_complex out[1024];
+#endif
+fftw_plan p;
 
 int echo_can_monitor_can_update(const int16_t *coeffs, int len)
 {
@@ -135,13 +158,126 @@ int echo_can_monitor_line_model_update(const int32_t *coeffs, int len)
     return 0;
 }
 
+int echo_can_monitor_line_spectrum_update(const int16_t amp[], int len)
+{
+    int i;
+    int x;
+
+    if (in_ptr + len < 512)
+    {
+        /* Just add this fragment to the buffer. */
+        for (i = 0;  i < len;  i++)
+#if defined(HAVE_FFTW3_H)
+            in[in_ptr + i][0] = amp[i];
+#else
+            in[in_ptr + i].re = amp[i];
+#endif
+        in_ptr += len;
+        return 0;
+    }
+    if (len >= 512)
+    {
+        /* We have enough for a whole block. Use the last 512 samples
+           we have. */
+        x = len - 512;
+        for (i = 0;  i < 512;  i++)
+#if defined(HAVE_FFTW3_H)
+            in[i][0] = amp[x + i];
+#else
+            in[i].re = amp[x + i];
+#endif
+    }
+    else
+    {
+        /* We want the last 512 samples. */
+        x = 512 - len;
+        for (i = 0;  i < x;  i++)
+#if defined(HAVE_FFTW3_H)
+            in[i][0] = in[in_ptr - x + i][0];
+#else
+            in[i].re = in[in_ptr - x + i].re;
+#endif
+        for (i = x;  i < 512;  i++)
+#if defined(HAVE_FFTW3_H)
+            in[i][0] = amp[i - x];
+#else
+            in[i].re = amp[i - x];
+#endif
+    }
+    in_ptr = 0;
+#if defined(HAVE_FFTW3_H)    
+    fftw_execute(p);
+#else
+    fftw_one(p, in, out);
+#endif
+    if (spec_re)
+        delete spec_re;
+    canvas_spec->current(canvas_spec);
+    for (i = 0;  i < 512;  i++)
+    {
+        spec_re_plot[2*i] = i*4000.0/512.0;
+#if defined(HAVE_FFTW3_H)    
+        spec_re_plot[2*i + 1] = 20.0*log10(sqrt(out[i][0]*out[i][0] + out[i][1]*out[i][1])/(256.0*32768)) + 3.14;
+#else
+        spec_re_plot[2*i + 1] = 20.0*log10(sqrt(out[i].re*out[i].re + out[i].im*out[i].im)/(256.0*32768)) + 3.14;
+#endif
+    }
+    spec_re = new Ca_Line(512, spec_re_plot, 0, 0, FL_BLUE, CA_NO_POINT);
+    Fl::check();
+    return 0;
+}
+
 int start_echo_can_monitor(int len)
 {
     char buf[132 + 1];
     float x;
     float y;
+    int i;
 
     w = new Fl_Double_Window(905, 400, "Echo canceller monitor");
+
+    c_spec = new Fl_Group(0, 0, 380, 400);
+    c_spec->box(FL_DOWN_BOX);
+    c_spec->align(FL_ALIGN_TOP | FL_ALIGN_INSIDE);
+
+    canvas_spec = new Ca_Canvas(60, 30, 300, 300, "Spectrum");
+    canvas_spec->box(FL_PLASTIC_DOWN_BOX);
+    canvas_spec->color(7);
+    canvas_spec->align(FL_ALIGN_TOP);
+    canvas_spec->border(15);
+
+    spec_freq = new Ca_X_Axis(65, 330, 290, 30, "Freq (Hz)");
+    spec_freq->align(FL_ALIGN_BOTTOM);
+    spec_freq->minimum(0);
+    spec_freq->maximum(4000);
+    spec_freq->label_format("%g");
+    spec_freq->minor_grid_color(fl_gray_ramp(20));
+    spec_freq->major_grid_color(fl_gray_ramp(15));
+    spec_freq->label_grid_color(fl_gray_ramp(10));
+    spec_freq->grid_visible(CA_LABEL_GRID | CA_ALWAYS_VISIBLE);
+    spec_freq->minor_grid_style(FL_DOT);
+    spec_freq->major_step(5);
+    spec_freq->label_step(1);
+    spec_freq->axis_color(FL_BLACK);
+    spec_freq->axis_align(CA_BOTTOM | CA_LINE);
+
+    spec_amp = new Ca_Y_Axis(20, 35, 40, 290, "Amp (dBmO)");
+    spec_amp->align(FL_ALIGN_LEFT);
+    spec_amp->minimum(-80.0);
+    spec_amp->maximum(10.0);
+    spec_amp->minor_grid_color(fl_gray_ramp(20));
+    spec_amp->major_grid_color(fl_gray_ramp(15));
+    spec_amp->label_grid_color(fl_gray_ramp(10));
+    //spec_amp->grid_visible(CA_MINOR_TICK | CA_MAJOR_TICK | CA_LABEL_GRID | CA_ALWAYS_VISIBLE);
+    spec_amp->grid_visible(CA_LABEL_GRID | CA_ALWAYS_VISIBLE);
+    spec_amp->minor_grid_style(FL_DOT);
+    spec_amp->major_step(5);
+    spec_amp->label_step(1);
+    spec_amp->axis_color(FL_BLACK);
+
+    spec_amp->current();
+
+    c_spec->end();
 
     c_right = new Fl_Group(440, 0, 465, 405);
 
@@ -239,6 +375,23 @@ int start_echo_can_monitor(int len)
     w->end();
     w->show();
 
+#if defined(HAVE_FFTW3_H)    
+    p = fftw_plan_dft_1d(1024, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
+    for (i = 0;  i < 1024;  i++)
+    {
+        in[i][0] = 0.0;
+        in[i][1] = 0.0;
+    }
+#else
+    p = fftw_create_plan(1024, FFTW_BACKWARD, FFTW_ESTIMATE);
+    for (i = 0;  i < 1024;  i++)
+    {
+        in[i].re = 0.0;
+        in[i].im = 0.0;
+    }
+#endif
+    in_ptr = 0;
+
     Fl::check();
     return 0;
 }
@@ -261,5 +414,21 @@ void echo_can_monitor_wait_to_end(void)
         res = select(1, &rfds, NULL, NULL, &tv);
     }
     while (res <= 0);
+}
+
+void echo_can_monitor_update_display(void) 
+{
+    Fl::check();
+    Fl::check();
+    Fl::check();
+    Fl::check();
+    Fl::check();
+    Fl::check();
+    Fl::check();
+    Fl::check();
+    Fl::check();
+    Fl::check();
+    Fl::check();
+    Fl::check();
 }
 #endif

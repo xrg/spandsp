@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: arctan2.h,v 1.2 2004/03/30 14:29:40 steveu Exp $
+ * $Id: arctan2.h,v 1.5 2005/11/28 13:43:34 steveu Exp $
  */
 
 /*! \file */
@@ -31,16 +31,22 @@
 #if !defined(_ARCTAN2_H_)
 #define _ARCTAN2_H_
 
+/*! \page arctan2_page Fast approximate four quadrant arc-tangent
+\section arctan2_page_sec_1 What does it do?
+This module provides a fast approximate 4-quadrant arc tangent function,
+based on something at dspguru.com. The worst case error is about 4.07 degrees.
+This is fine for many "where am I" type evaluations in comms. work.
+
+\section arctan2_page_sec_2 How does it work?
+???.
+*/
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Fast approximate arc tangent, based on something at dspguru.com */
-/* The worst case error is about 4.07 degrees. This is fine for many
-   "where am I" type evaluations in comms. work. */
-
 /* This returns its answer as a signed 32 bit integer phase value. */
-static inline int32_t arctan2(float y, float x)
+static __inline__ int32_t arctan2(float y, float x)
 {
     float abs_y;
     float angle;
@@ -48,7 +54,7 @@ static inline int32_t arctan2(float y, float x)
     if (x == 0.0  ||  y == 0.0)
         return 0;
     
-    abs_y = fabs(y);
+    abs_y = fabsf(y);
 
     /* If we are in quadrant II or III, flip things around */
     if (x < 0.0)
@@ -64,6 +70,7 @@ static inline int32_t arctan2(float y, float x)
     return (int32_t) angle;
 }
 /*- End of function --------------------------------------------------------*/
+
 #ifdef __cplusplus
 }
 #endif

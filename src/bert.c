@@ -23,11 +23,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bert.c,v 1.6 2005/08/31 19:27:52 steveu Exp $
+ * $Id: bert.c,v 1.11 2005/12/29 09:54:24 steveu Exp $
  */
-
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -40,14 +37,20 @@
 #include <math.h>
 #include <assert.h>
 #include <time.h>
-#include <tiffio.h>
 
-#include "spandsp.h"
+#include "spandsp/telephony.h"
+#include "spandsp/bert.h"
+#include "spandsp/async.h"
+
+static const char *qbf = "VoyeZ Le BricK GeanT QuE J'ExaminE PreS Du WharF 123 456 7890 + - * : = $ % ( )"
+                         "ThE QuicK BrowN FoX JumpS OveR ThE LazY DoG 123 456 7890 + - * : = $ % ( )";
 
 int bert_get_bit(bert_state_t *s)
 {
     int bit;
 
+    if (s->limit  &&  s->tx_bits >= s->limit)
+        return 2;
     switch (s->pattern_class)
     {
     case 0:
@@ -76,6 +79,19 @@ int bert_get_bit(bert_state_t *s)
         bit ^= s->invert;
         break;
     case 2:
+        if (s->tx_step_bit == 0)
+        {
+            s->tx_step_bit = 7;
+            s->tx_reg = qbf[s->tx_step++];
+            if (s->tx_reg == 0)
+            {
+                s->tx_reg = 'V';
+                s->tx_step = 1;
+            }
+        }
+        bit = s->tx_reg & 1;
+        s->tx_reg >>= 1;
+        s->tx_step_bit--;
         break;
     }
     s->tx_bits++;
@@ -249,6 +265,21 @@ void bert_put_bit(bert_state_t *s, int bit)
         s->rx_reg = (s->rx_reg >> 1) | (((s->rx_reg ^ (s->rx_reg >> s->shift)) & 1) << s->shift2);
         break;
     case 2:
+        s->rx_reg = (s->rx_reg >> 1) | (bit << 6);
+        /* TODO: There is no mechanism for synching yet. This only works if things start in sync. */
+        if (++s->rx_step_bit == 7)
+        {
+            s->rx_step_bit = 0;
+            if (s->rx_reg != qbf[s->rx_step])
+            {
+                /* We need to work out the number of actual bad bits here. We need to look at the
+                   error rate, and see it a resync is needed. etc. */
+                s->bad_bits++;
+            }
+            if (qbf[++s->rx_step] == '\0')
+                s->rx_step = 0;
+        }
+        s->total_bits++;
         break;
     }
     if (s->report_frequency > 0)
@@ -272,7 +303,7 @@ int bert_result(bert_state_t *s, bert_results_t *results)
 }
 /*- End of function --------------------------------------------------------*/
 
-int bert_set_report(bert_state_t *s, int freq, bert_report_func_t reporter, void *user_data)
+void bert_set_report(bert_state_t *s, int freq, bert_report_func_t reporter, void *user_data)
 {
     s->report_frequency = freq;
     s->reporter = reporter;
@@ -282,7 +313,7 @@ int bert_set_report(bert_state_t *s, int freq, bert_report_func_t reporter, void
 }
 /*- End of function --------------------------------------------------------*/
 
-int bert_init(bert_state_t *s, int limit, int pattern, int resync_len, int resync_percent)
+bert_state_t *bert_init(bert_state_t *s, int limit, int pattern, int resync_len, int resync_percent)
 {
     int i;
     int j;
@@ -333,6 +364,7 @@ int bert_init(bert_state_t *s, int limit, int pattern, int resync_len, int resyn
         s->pattern_class = 0;
         break;
     case BERT_PATTERN_QBF:
+        s->tx_reg = 0;
         s->pattern_class = 2;
         break;
     case BERT_PATTERN_ITU_O151_23:
@@ -387,11 +419,16 @@ int bert_init(bert_state_t *s, int limit, int pattern, int resync_len, int resyn
         break;
     }
     s->tx_bits = 0;
+    s->tx_step = 0;
+    s->tx_step_bit = 0;
+    s->tx_zeros = 0;
 
     s->rx_reg = s->tx_reg;
     s->ref_reg = s->rx_reg;
     s->master_reg = s->ref_reg;
     s->rx_bits = 0;
+    s->rx_step = 0;
+    s->rx_step_bit = 0;
 
     s->resync = 1;
     s->total_bits = 0;
@@ -413,7 +450,7 @@ int bert_init(bert_state_t *s, int limit, int pattern, int resync_len, int resyn
     s->error_rate = 8;
     s->step = 100;
     
-    return  0;
+    return  s;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

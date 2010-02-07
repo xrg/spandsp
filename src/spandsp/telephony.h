@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: telephony.h,v 1.2 2004/06/12 12:48:48 steveu Exp $
+ * $Id: telephony.h,v 1.3 2005/11/17 17:10:45 steveu Exp $
  */
 
 #if !defined(_TELEPHONY_H_)
@@ -36,6 +36,11 @@
 #endif
 #if !defined(TRUE)
 #define TRUE (!FALSE)
+#endif
+
+#if defined(__cplusplus)
+/* C++ doesn't seem to have sane rounding functions/macros yet */
+#define lrintf(x) ((long int) (x))
 #endif
 
 #endif

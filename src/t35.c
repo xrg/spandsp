@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t35.c,v 1.10 2005/08/31 19:27:52 steveu Exp $
+ * $Id: t35.c,v 1.11 2005/11/27 12:36:22 steveu Exp $
  */
 
 /*
@@ -63,11 +63,10 @@
 
 #include <inttypes.h>
 #include <ctype.h>
+#include <string.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/t35.h"
-
-#define NULL ((void *) 0)
 
 #define T35_VENDOR_ID_LEN   3
 

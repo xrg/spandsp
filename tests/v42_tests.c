@@ -23,17 +23,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42_tests.c,v 1.8 2005/09/01 17:06:46 steveu Exp $
+ * $Id: v42_tests.c,v 1.11 2005/11/27 12:36:23 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
 
+/*! \page v42_tests_page V.42 tests
+\section v42_tests_page_sec_1 What does it do?
+These tests connect two instances of V.42 back to back. V.42 frames are
+then exchanged between them.
+*/
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-
-//#define _ISOC9X_SOURCE  1
-//#define _ISOC99_SOURCE  1
 
 #include <stdio.h>
 #include <inttypes.h>

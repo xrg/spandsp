@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.41 2005/09/28 17:11:49 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.50 2006/01/18 00:39:06 steveu Exp $
  */
 
 /*! \file */
@@ -36,6 +36,7 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
+#include "spandsp/async.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/arctan2.h"
 #include "spandsp/complex.h"
@@ -52,8 +53,8 @@
 /* Segments of the training sequence */
 /* V.27ter defines a long and a short sequence. FAX doesn't use the
    short sequence, so it is not implemented here. */
-#define V27_TRAINING_SEG_5_LEN  1074
-#define V27_TRAINING_SEG_6_LEN  8
+#define V27TER_TRAINING_SEG_5_LEN   1074
+#define V27TER_TRAINING_SEG_6_LEN   8
 
 enum
 {
@@ -65,6 +66,8 @@ enum
     TRAINING_STAGE_TEST_ONES,
     TRAINING_STAGE_PARKED
 };
+
+#define EQUALIZER_DELTA         0.25
 
 static const complex_t v27ter_constellation[8] =
 {
@@ -80,8 +83,9 @@ static const complex_t v27ter_constellation[8] =
 
 /* Raised root cosine pulse shaping filter set; beta 0.5;
    sample rate 8000; 8 phase steps; baud rate 1600 */
-#define PULSESHAPER_4800_GAIN   2.4975
-static const float pulseshaper_4800[8][V27RX_4800_FILTER_STEPS] =
+#define PULSESHAPER_4800_GAIN           2.4975
+#define PULSESHAPER_4800_COEFF_SETS     8
+static const float pulseshaper_4800[PULSESHAPER_4800_COEFF_SETS][V27TER_RX_4800_FILTER_STEPS] =
 {
     {
         -0.0056491642,    /* Filter 0 */
@@ -319,8 +323,9 @@ static const float pulseshaper_4800[8][V27RX_4800_FILTER_STEPS] =
 
 /* Raised root cosine pulse shaping filter set; beta 0.5;
    sample rate 8000; 12 phase steps; baud rate 1200 */
-#define PULSESHAPER_2400_GAIN   2.223
-static const float pulseshaper_2400[12][V27RX_2400_FILTER_STEPS] =
+#define PULSESHAPER_2400_GAIN           2.223
+#define PULSESHAPER_2400_COEFF_SETS     12
+static const float pulseshaper_2400[PULSESHAPER_2400_COEFF_SETS][V27TER_RX_2400_FILTER_STEPS] =
 {
     {
          0.0040769982,    /* Filter 0 */
@@ -692,32 +697,32 @@ float v27ter_rx_signal_power(v27ter_rx_state_t *s)
 
 void v27ter_rx_signal_cutoff(v27ter_rx_state_t *s, float cutoff)
 {
-    s->carrier_on_power = power_meter_level(cutoff - 2.5);
-    s->carrier_off_power = power_meter_level(cutoff + 2.5);
+    s->carrier_on_power = power_meter_level_dbm0(cutoff - 2.5);
+    s->carrier_off_power = power_meter_level_dbm0(cutoff + 2.5);
 }
 /*- End of function --------------------------------------------------------*/
 
 int v27ter_rx_equalizer_state(v27ter_rx_state_t *s, complex_t **coeffs)
 {
     *coeffs = s->eq_coeff;
-    return 2*V29_EQUALIZER_LEN + 1;
+    return 2*V27TER_EQUALIZER_LEN + 1;
 }
 /*- End of function --------------------------------------------------------*/
 
-static void equalizer_reset(v27ter_rx_state_t *s, float delta)
+static void equalizer_reset(v27ter_rx_state_t *s)
 {
     int i;
 
     /* Start with an equalizer based on everything being perfect */
-    for (i = 0;  i < 2*V27_EQUALIZER_LEN + 1;  i++)
+    for (i = 0;  i < 2*V27TER_EQUALIZER_LEN + 1;  i++)
         s->eq_coeff[i] = complex_set(0.0, 0.0);
-    s->eq_coeff[V27_EQUALIZER_LEN] = complex_set(1.414, 0.0);
-    for (i = 0;  i <= V27_EQUALIZER_MASK;  i++)
+    s->eq_coeff[V27TER_EQUALIZER_LEN] = complex_set(1.414, 0.0);
+    for (i = 0;  i <= V27TER_EQUALIZER_MASK;  i++)
         s->eq_buf[i] = complex_set(0.0, 0.0);
 
-    s->eq_put_step = (s->bit_rate == 4800)  ?  20  :  40;
+    s->eq_put_step = (s->bit_rate == 4800)  ?  PULSESHAPER_4800_COEFF_SETS*5/2  :  PULSESHAPER_2400_COEFF_SETS*20/(3*2);
     s->eq_step = 0;
-    s->eq_delta = delta;
+    s->eq_delta = EQUALIZER_DELTA/(2*V27TER_EQUALIZER_LEN + 1);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -731,9 +736,9 @@ static __inline__ complex_t equalizer_get(v27ter_rx_state_t *s)
     /* Get the next equalized value. */
     z = complex_set(0.0, 0.0);
     p = s->eq_step - 1;
-    for (i = 0;  i < 2*V27_EQUALIZER_LEN + 1;  i++)
+    for (i = 0;  i < 2*V27TER_EQUALIZER_LEN + 1;  i++)
     {
-        p = (p - 1) & V27_EQUALIZER_MASK;
+        p = (p - 1) & V27TER_EQUALIZER_MASK;
         z1 = complex_mul(&s->eq_coeff[i], &s->eq_buf[p]);
         z = complex_add(&z, &z1);
     }
@@ -754,13 +759,13 @@ static void tune_equalizer(v27ter_rx_state_t *s, const complex_t *z, const compl
     ez.im *= s->eq_delta;
 
     p = s->eq_step - 1;
-    for (i = 0;  i < 2*V27_EQUALIZER_LEN + 1;  i++)
+    for (i = 0;  i < 2*V27TER_EQUALIZER_LEN + 1;  i++)
     {
-        p = (p - 1) & V27_EQUALIZER_MASK;
+        p = (p - 1) & V27TER_EQUALIZER_MASK;
         z1 = complex_conj(&s->eq_buf[p]);
         z1 = complex_mul(&ez, &z1);
         s->eq_coeff[i] = complex_add(&s->eq_coeff[i], &z1);
-        /* If we don't leak a little bit we seem to get some wandering adaption */
+        /* Leak a little to tame uncontrolled wandering */
         s->eq_coeff[i].re *= 0.9999;
         s->eq_coeff[i].im *= 0.9999;
     }
@@ -772,18 +777,17 @@ static __inline__ void track_carrier(v27ter_rx_state_t *s, const complex_t *z, c
     complex_t zz;
 
     /* For small errors the imaginary part of zz is now proportional to the phase error,
-       for any particular target. However, the different amplitudes of the various target
-       positions scale things. */
+       for any particular target. */
     zz = complex_conj(target);
     zz = complex_mul(z, &zz);
     
     s->carrier_phase_rate += s->carrier_track_i*zz.im;
     s->carrier_phase += s->carrier_track_p*zz.im;
-    //span_log(&s->logging, SPAN_LOG_FLOW, "Im = %15.5f   f = %15.5f\n", zz.im, s->carrier_phase_rate*8000.0/(65536.0*65536.0));
+    //span_log(&s->logging, SPAN_LOG_FLOW, "Im = %15.5f   f = %15.5f\n", zz.im, (float) s->carrier_phase_rate*SAMPLE_RATE/(65536.0*65536.0));
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int descramble(v27ter_rx_state_t *s, int in_bit)
+static __inline__ int descramble(v27ter_rx_state_t *s, int in_bit)
 {
     int out_bit;
     int test;
@@ -817,7 +821,7 @@ static inline int descramble(v27ter_rx_state_t *s, int in_bit)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline void put_bit(v27ter_rx_state_t *s, int bit)
+static __inline__ void put_bit(v27ter_rx_state_t *s, int bit)
 {
     int out_bit;
 
@@ -833,8 +837,10 @@ static inline void put_bit(v27ter_rx_state_t *s, int bit)
     }
     else
     {
-        if (out_bit)
-            s->training_test_ones++;
+        //span_log(&s->logging, SPAN_LOG_FLOW, "bit %5d %d\n", s->training_cd, out_bit);
+        /* The bits during the final stage of training should be all ones. However,
+           buggy modems mean you cannot rely on this. Therefore we don't bother
+           testing for ones, but just rely on a constellation mismatch measurement. */
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -924,7 +930,7 @@ static void decode_baud(v27ter_rx_state_t *s, complex_t *z)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
+static __inline__ void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
 {
     static const int abab_pos[2] =
     {
@@ -944,12 +950,12 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
     if (s->bit_rate == 4800)
     {
         s->rrc_filter[s->rrc_filter_step] =
-        s->rrc_filter[s->rrc_filter_step + V27RX_4800_FILTER_STEPS] = *sample;
-        if (++s->rrc_filter_step >= V27RX_4800_FILTER_STEPS)
+        s->rrc_filter[s->rrc_filter_step + V27TER_RX_4800_FILTER_STEPS] = *sample;
+        if (++s->rrc_filter_step >= V27TER_RX_4800_FILTER_STEPS)
             s->rrc_filter_step = 0;
         /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
            will fiddle the step to align this with the bits. */
-        if ((s->eq_put_step -= 8) > 0)
+        if ((s->eq_put_step -= PULSESHAPER_4800_COEFF_SETS) > 0)
         {
             //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, 0, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
             return;
@@ -957,10 +963,10 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
 
         /* This is our interpolation filter, as well as our demod filter. */
         j = -s->eq_put_step;
-        if (j > 8 - 1)
-            j = 8 - 1;
+        if (j > PULSESHAPER_4800_COEFF_SETS - 1)
+            j = PULSESHAPER_4800_COEFF_SETS - 1;
         z = complex_set(0.0, 0.0);
-        for (i = 0;  i < V27RX_4800_FILTER_STEPS;  i++)
+        for (i = 0;  i < V27TER_RX_4800_FILTER_STEPS;  i++)
         {
             z.re += pulseshaper_4800[j][i]*s->rrc_filter[i + s->rrc_filter_step].re;
             z.im += pulseshaper_4800[j][i]*s->rrc_filter[i + s->rrc_filter_step].im;
@@ -968,17 +974,17 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
         z.re *= 0.5*1.0/PULSESHAPER_4800_GAIN;
         z.im *= 0.5*1.0/PULSESHAPER_4800_GAIN;
 
-        s->eq_put_step += 20;
+        s->eq_put_step += PULSESHAPER_4800_COEFF_SETS*5/2;
     }
     else
     {
         s->rrc_filter[s->rrc_filter_step] =
-        s->rrc_filter[s->rrc_filter_step + V27RX_2400_FILTER_STEPS] = *sample;
-        if (++s->rrc_filter_step >= V27RX_2400_FILTER_STEPS)
+        s->rrc_filter[s->rrc_filter_step + V27TER_RX_2400_FILTER_STEPS] = *sample;
+        if (++s->rrc_filter_step >= V27TER_RX_2400_FILTER_STEPS)
             s->rrc_filter_step = 0;
         /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
            will fiddle the step to align this with the bits. */
-        if ((s->eq_put_step -= 12) > 0)
+        if ((s->eq_put_step -= PULSESHAPER_2400_COEFF_SETS) > 0)
         {
             //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, 0, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
             return;
@@ -986,10 +992,10 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
 
         /* This is our interpolation filter and phase shifter, as well as our demod filter. */
         j = -s->eq_put_step;
-        if (j > 12 - 1)
-            j = 12 - 1;
+        if (j > PULSESHAPER_2400_COEFF_SETS - 1)
+            j = PULSESHAPER_2400_COEFF_SETS - 1;
         z = complex_set(0.0, 0.0);
-        for (i = 0;  i < V27RX_2400_FILTER_STEPS;  i++)
+        for (i = 0;  i < V27TER_RX_2400_FILTER_STEPS;  i++)
         {
             z.re += pulseshaper_2400[j][i]*s->rrc_filter[i + s->rrc_filter_step].re;
             z.im += pulseshaper_2400[j][i]*s->rrc_filter[i + s->rrc_filter_step].im;
@@ -997,13 +1003,13 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
         z.re *= 1.0/PULSESHAPER_2400_GAIN;
         z.im *= 1.0/PULSESHAPER_2400_GAIN;
 
-        s->eq_put_step += 40;
+        s->eq_put_step += PULSESHAPER_2400_COEFF_SETS*20/(3*2);
     }
 
     /* Add a sample to the equalizer's circular buffer, but don't calculate anything
        at this time. */
     s->eq_buf[s->eq_step] = z;
-    s->eq_step = (s->eq_step + 1) & V27_EQUALIZER_MASK;
+    s->eq_step = (s->eq_step + 1) & V27TER_EQUALIZER_MASK;
         
     /* On alternate insertions we have a whole baud, and must process it. */
     if ((s->baud_phase ^= 1))
@@ -1014,13 +1020,13 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
     //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, 1, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
 
     /* Perform a Gardner test for baud alignment */
-    p = s->eq_buf[(s->eq_step - 3) & V27_EQUALIZER_MASK].re
-      - s->eq_buf[(s->eq_step - 1) & V27_EQUALIZER_MASK].re;
-    p *= s->eq_buf[(s->eq_step - 2) & V27_EQUALIZER_MASK].re;
+    p = s->eq_buf[(s->eq_step - 3) & V27TER_EQUALIZER_MASK].re
+      - s->eq_buf[(s->eq_step - 1) & V27TER_EQUALIZER_MASK].re;
+    p *= s->eq_buf[(s->eq_step - 2) & V27TER_EQUALIZER_MASK].re;
 
-    q = s->eq_buf[(s->eq_step - 3) & V27_EQUALIZER_MASK].im
-      - s->eq_buf[(s->eq_step - 1) & V27_EQUALIZER_MASK].im;
-    q *= s->eq_buf[(s->eq_step - 2) & V27_EQUALIZER_MASK].im;
+    q = s->eq_buf[(s->eq_step - 3) & V27TER_EQUALIZER_MASK].im
+      - s->eq_buf[(s->eq_step - 1) & V27TER_EQUALIZER_MASK].im;
+    q *= s->eq_buf[(s->eq_step - 2) & V27TER_EQUALIZER_MASK].im;
 
     s->gardner_integrate += (p + q > 0.0)  ?  s->gardner_step  :  -s->gardner_step;
 
@@ -1099,11 +1105,11 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
                buffer and the equalizer buffer, as well as the carrier phase, for this to play out
                nicely. */
             angle += 0x80000000;
-            zz = complex_set(cos(angle*2.0*3.14159/(65536.0*65536.0)), sin(angle*2.0*3.14159/(65536.0*65536.0)));
-            zz = complex_conj(&zz);
-            for (i = 0;  i < 2*V27RX_FILTER_STEPS;  i++)
+            p = angle*2.0*3.14159/(65536.0*65536.0);
+            zz = complex_set(cos(p), -sin(p));
+            for (i = 0;  i < 2*V27TER_RX_FILTER_STEPS;  i++)
                 s->rrc_filter[i] = complex_mul(&s->rrc_filter[i], &zz);
-            for (i = 0;  i <= V27_EQUALIZER_MASK;  i++)
+            for (i = 0;  i <= V27TER_EQUALIZER_MASK;  i++)
                 s->eq_buf[i] = complex_mul(&s->eq_buf[i], &zz);
             s->carrier_phase += angle;
 
@@ -1127,10 +1133,10 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
         descramble(s, 1);
         descramble(s, 1);
         s->constellation_state = abab_pos[s->training_bc];
-        tune_equalizer(s, &z, &v27ter_constellation[s->constellation_state]);
         track_carrier(s, &z, &v27ter_constellation[s->constellation_state]);
+        tune_equalizer(s, &z, &v27ter_constellation[s->constellation_state]);
 
-        if (++s->training_count >= V27_TRAINING_SEG_5_LEN)
+        if (++s->training_count >= V27TER_TRAINING_SEG_5_LEN)
         {
             s->constellation_state = (s->bit_rate == 4800)  ?  4  :  2;
             s->training_count = 0;
@@ -1141,21 +1147,27 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
         break;
     case TRAINING_STAGE_TEST_ONES:
         decode_baud(s, &z);
-        if (++s->training_count >= V27_TRAINING_SEG_6_LEN)
+        /* Measure the training error */
+        if (s->bit_rate == 4800)
+            zz = complex_sub(&z, &v27ter_constellation[s->constellation_state]);
+        else
+            zz = complex_sub(&z, &v27ter_constellation[s->constellation_state << 1]);
+        s->training_error += power(&zz);
+        if (++s->training_count >= V27TER_TRAINING_SEG_6_LEN)
         {
-            if ((s->bit_rate == 4800  &&  s->training_test_ones == 24)
+            if ((s->bit_rate == 4800  &&  s->training_error < 1.0)
                 ||
-                (s->bit_rate == 2400  &&  s->training_test_ones == 16))
+                (s->bit_rate == 2400  &&  s->training_error < 1.0))
             {
                 /* We are up and running */
-                span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded\n");
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded (constellation mismatch %f)\n", s->training_error);
                 s->in_training = TRAINING_STAGE_NORMAL_OPERATION;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_SUCCEEDED);
             }
             else
             {
                 /* Training has failed */
-                span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (only %d 1's)\n", s->training_test_ones);
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (constellation mismatch %f)\n", s->training_error);
                 /* Park this modem */
                 s->in_training = TRAINING_STAGE_PARKED;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
@@ -1251,11 +1263,13 @@ int v27ter_rx_restart(v27ter_rx_state_t *s, int rate)
     s->in_training = TRAINING_STAGE_SYMBOL_ACQUISITION;
     s->training_bc = 0;
     s->training_count = 0;
-    s->training_test_ones = 0;
+    s->training_error = 0.0;
     s->carrier_present = FALSE;
 
     s->carrier_phase_rate = dds_phase_stepf(1800.0);
     s->carrier_phase = 0;
+    //s->carrier_track_i = 100000.0;
+    //s->carrier_track_p = 20000000.0;
     s->carrier_track_i = 200000.0;
     s->carrier_track_p = 10000000.0;
     power_meter_init(&(s->power), 4);
@@ -1263,7 +1277,7 @@ int v27ter_rx_restart(v27ter_rx_state_t *s, int rate)
 
     s->constellation_state = 0;
 
-    equalizer_reset(s, 0.03);
+    equalizer_reset(s);
     s->eq_skip = 0;
 
     s->gardner_integrate = 0;
@@ -1275,15 +1289,28 @@ int v27ter_rx_restart(v27ter_rx_state_t *s, int rate)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v27ter_rx_init(v27ter_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data)
+v27ter_rx_state_t *v27ter_rx_init(v27ter_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user_data)
 {
+    if (s == NULL)
+    {
+        if ((s = (v27ter_rx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
     memset(s, 0, sizeof(*s));
-    s->carrier_on_power = power_meter_level(-43);
-    s->carrier_off_power = power_meter_level(-48);
+    s->carrier_on_power = power_meter_level_dbm0(-43);
+    s->carrier_off_power = power_meter_level_dbm0(-48);
     s->put_bit = put_bit;
     s->user_data = user_data;
 
     v27ter_rx_restart(s, rate);
+    return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int v27ter_rx_release(v27ter_rx_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 

@@ -23,15 +23,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn_tests.c,v 1.5 2005/09/01 17:06:45 steveu Exp $
+ * $Id: awgn_tests.c,v 1.8 2005/11/27 12:36:22 steveu Exp $
  */
 
 /*! \page awgn_tests_page AWGN tests
 \section awgn_tests_page_sec_1 What does it do?
 */
 
-//#define _ISOC9X_SOURCE  1
-//#define _ISOC99_SOURCE  1
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -41,6 +42,10 @@
 #include <tiffio.h>
 
 #include "spandsp.h"
+
+#if !defined(M_PI)
+# define M_PI           3.14159265358979323846  /* pi */
+#endif
 
 /* Some simple sanity tests for the Gaussian noise generation routines */
 
@@ -72,10 +77,10 @@ int main (int argc, char *argv[])
         clip_high = 0;
         clip_low = 0;
         total = 0.0;
-    	awgn_init (&noise_source, idum, j);
+        awgn_init(&noise_source, idum, j);
         total_samples = 1000000;
-    	for (i = 0;  i < total_samples;  i++)
-    	{
+        for (i = 0;  i < total_samples;  i++)
+        {
             value = awgn(&noise_source);
             if (value == 32767)
                 clip_high++;
@@ -83,12 +88,12 @@ int main (int argc, char *argv[])
                 clip_low++;
             total += ((double) value)*((double) value);
     	}
-        printf ("RMS = %.3f (expected %d) %.2f%% error [clipped samples %d+%d]\n",
-                log10(sqrt(total/total_samples)/(32768.0*0.70711))*20.0 + 3.14,
-                j,
-                100.0*(1.0 - sqrt(total/total_samples)/noise_source.rms),
-                clip_low,
-                clip_high);
+        printf("RMS = %.3f (expected %d) %.2f%% error [clipped samples %d+%d]\n",
+               log10(sqrt(total/total_samples)/(32768.0*0.70711))*20.0 + 3.14,
+               j,
+               100.0*(1.0 - sqrt(total/total_samples)/noise_source.rms),
+               clip_low,
+               clip_high);
     }
     /* Now look at the statistical spread of the results, by collecting data in
        bins from a large number of samples. Use a fairly high noise level, but
@@ -97,7 +102,7 @@ int main (int argc, char *argv[])
     memset(bins, 0, sizeof(bins));
     clip_high = 0;
     clip_low = 0;
-    awgn_init (&noise_source, idum, -15);
+    awgn_init(&noise_source, idum, -15);
     total_samples = 10000000;
     for (i = 0;  i < total_samples;  i++)
     {

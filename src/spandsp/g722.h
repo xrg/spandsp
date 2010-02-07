@@ -1,7 +1,7 @@
 /*
- * libg722 - a library for the G.722 codec.
+ * SpanDSP - a series of DSP components for telephony
  *
- * g722.h
+ * g722.h - The ITU G.722 codec.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -29,111 +29,110 @@
  * Computer Science, Speech Group
  * Chengxiang Lu and Alex Hauptmann
  *
- * $Id: g722.h,v 1.2 2005/09/04 07:40:03 steveu Exp $
+ * $Id: g722.h,v 1.8 2006/01/11 07:44:30 steveu Exp $
  */
+
+
+/*! \file */
+
+#if !defined(_G722_H_)
+#define _G722_H_
+
+/*! \page g722_page G.722 encoding and decoding
+\section g722_page_sec_1 What does it do?
+The G.722 module is a bit exact implementation of the ITU G.722 specification for all three
+specified bit rates - 64000bps, 56000bps and 48000bps. It passes the ITU tests.
+
+\section g722_page_sec_2 How does it work?
+???.
+*/
 
 typedef struct
 {
-    int rate;
-    /* storage for signal passing */
+    /*! TRUE if the operating in the special ITU test mode, with the band split filters
+             disabled. */
+    int itu_test_mode;
+    /*! TRUE if the G.722 data is packed */
+    int packed;
+    /*! 6 for 48000kbps, 7 for 56000kbps, or 8 for 64000kbps. */
+    int bits_per_sample;
+
+    /*! Signal history for the QMF */
     int x[24];
-    /* even and odd tap accumulators */
-    int sumeven;
-    int sumodd;
 
-    int sl;
-    int spl;
-    int szl;
-    int rlt[3];
-    int al[3];
-    int plt[3];
-    int dlt[7];
-    int bl[7];
-    int sgl[7];
-    int nbl;
+    struct
+    {
+        int s;
+        int sp;
+        int sz;
+        int r[3];
+        int a[3];
+        int ap[3];
+        int p[3];
+        int d[7];
+        int b[7];
+        int bp[7];
+        int sg[7];
+        int nb;
+        int det;
+    } band[2];
 
-    int sh;
-    int sph;
-    int szh;
-    int rh[3];
-    int ah[3];
-    int ph[3];
-    int dh[7];
-    int bh[7];
-    int sgh[7];
-    int nbh;
-
-    int slow;
-    int detlow;
-    int shigh;
-    int dethigh;
-
-    int k;
-    int ilow;
-    int ihigh;
-
+    unsigned int in_buffer;
+    int in_bits;
+    unsigned int out_buffer;
+    int out_bits;
 } g722_encode_state_t;
 
 typedef struct
 {
-    int rate;
-    int k;
+    /*! TRUE if the operating in the special ITU test mode, with the band split filters
+             disabled. */
+    int itu_test_mode;
+    /*! TRUE if the G.722 data is packed */
+    int packed;
+    /*! 6 for 48000kbps, 7 for 56000kbps, or 8 for 64000kbps. */
+    int bits_per_sample;
+
     int xd[12];
     int xs[12];
 
-    int dlt[7];
-    int bl[7];
-    int bpl[7];
-    int sg[7];
-
-    int sg0;
-    int sg1;
-    int sg2;
-    int plt0;
-    int plt1;
-    int plt2;
-    int rlt0;
-    int rlt1;
-    int rlt2;
-
-    int sgh0;
-    int sgh1;
-    int sgh2;
-    int sgh[7];
-    int nbh;
-
-    int rh0;
-    int rh1;
-    int rh2;
-    int ah1;
-    int ah2;
-    int ph0;
-    int ph1;
-    int ph2;
-
-    int sl;
-    int spl;
-    int szl;
-
-    int sh;
-    int sph;
-    int szh;
-
-    int al1;
-    int al2;
-
-    int dh[7];
-    int bh[7];
-    int bph[7];
-
-    int slow;
-    int detlow;
-    int shigh;
-    int dethigh;
+    struct
+    {
+        int s;
+        int sp;
+        int sz;
+        int r[3];
+        int a[3];
+        int ap[3];
+        int p[3];
+        int d[7];
+        int b[7];
+        int bp[7];
+        int sg[7];
+        int nb;
+        int det;
+    } band[2];
+    
+    unsigned int in_buffer;
+    int in_bits;
+    unsigned int out_buffer;
+    int out_bits;
 } g722_decode_state_t;
 
-int g722_encode_init(g722_encode_state_t *s, int rate);
-int g722_encode(g722_encode_state_t *s, uint16_t *outbuf, const int16_t *buf, int len);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-int g722_decode_init(g722_decode_state_t *s, int rate);
-int g722_decode(g722_decode_state_t *s, int16_t *outbuf, const uint16_t *buf, int len);
+g722_encode_state_t *g722_encode_init(g722_encode_state_t *s, int rate, int packed);
+int g722_encode_release(g722_encode_state_t *s);
+int g722_encode(g722_encode_state_t *s, uint8_t g722_data[], const int16_t amp[], int len);
+
+g722_decode_state_t *g722_decode_init(g722_decode_state_t *s, int rate, int packed);
+int g722_decode_release(g722_decode_state_t *s);
+int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[], int len);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

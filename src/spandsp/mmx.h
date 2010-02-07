@@ -15,12 +15,13 @@
 
     1997-98 by H. Dietz and R. Fisher
 
-    $Id: mmx.h,v 1.2 2004/03/30 14:29:40 steveu Exp $
+    $Id: mmx.h,v 1.3 2005/12/06 14:34:03 steveu Exp $
 */
 
 #if !defined(_MMX_H_)
 #define _MMX_H_
 
+#if defined(__i386__)
 /*
     The type of an value that fits in an MMX register
     (note that long long constant values MUST be suffixed
@@ -568,6 +569,8 @@ static inline int mmx_ok(void)
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
 
 #endif

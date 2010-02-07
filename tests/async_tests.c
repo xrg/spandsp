@@ -23,11 +23,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: async_tests.c,v 1.3 2005/09/01 17:06:45 steveu Exp $
+ * $Id: async_tests.c,v 1.5 2005/11/27 12:36:22 steveu Exp $
  */
 
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
+/*! \file */
+
+/*! \page async_tests_page Asynchronous bit stream tests
+\section async_tests_page_sec_1 What does it do?
+*/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

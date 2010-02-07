@@ -23,8 +23,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: makecss.c,v 1.6 2005/09/01 17:06:45 steveu Exp $
+ * $Id: make_g168_css.c,v 1.3 2005/12/25 15:08:36 steveu Exp $
  */
+
+/*! \page makecss_page CSS construction for G.168 testing
+\section makecss_page_sec_1 What does it do?
+???.
+
+\section makecss_page_sec_2 How does it work?
+???.
+*/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -51,21 +59,6 @@
 #include "spandsp.h"
 #include "spandsp/g168models.h"
 
-#if defined(HAVE_FFTW3_H)
-/* Compatibility fiddle factor between FFTW2 and FFTW3 */
-typedef union
-{
-    struct
-    {
-        double re;
-        double im;
-    };
-    double fftw[2];
-} fftwx_complex;
-#else
-typedef fftw_complex fftwx_complex;
-#endif
-
 #if !defined(NULL)
 #define NULL (void *) 0
 #endif
@@ -82,8 +75,13 @@ static double scaling(double f, double start, double end, double start_gain, dou
 
 int main(int argc, char *argv[])
 {
-    fftwx_complex in[8192];
-    fftwx_complex out[8192];
+#if defined(HAVE_FFTW3_H)
+    double in[8192][2];
+    double out[8192][2];
+#else
+    fftw_complex in[8192];
+    fftw_complex out[8192];
+#endif
     fftw_plan p;
     int16_t voiced_sound[8192];
     int16_t noise_sound[8192];
@@ -132,14 +130,19 @@ int main(int argc, char *argv[])
     printf("Voiced level = %.2fdB\n", ms);
 
 #if defined(HAVE_FFTW3_H)    
-    p = fftw_plan_dft_1d(8192, &(in[0].fftw), &(out[0].fftw), FFTW_BACKWARD, FFTW_ESTIMATE);
+    p = fftw_plan_dft_1d(8192, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
 #else
     p = fftw_create_plan(8192, FFTW_BACKWARD, FFTW_ESTIMATE);
 #endif
     for (i = 0;  i < 8192;  i++)
     {
+#if defined(HAVE_FFTW3_H)
+        in[i][0] = 0.0;
+        in[i][1] = 0.0;
+#else
         in[i].re = 0.0;
         in[i].im = 0.0;
+#endif
     }
     for (i = 1;  i <= 3715;  i++)
     {
@@ -171,13 +174,24 @@ int main(int argc, char *argv[])
 #else
         scale = 0.0;
 #endif
+#if defined(HAVE_FFTW3_H)    
+        in[i][0] = 0.0;
+        in[i][1] = (rand() & 0x1)  ?  1.0  :  -1.0;
+        in[i][1] *= pow(10.0, scale/20.0);
+        in[i][1] *= 35.0; //305360;
+        //printf("%10d %15.5f %15.5f\n", i, in[i].re, in[i].im);
+        in[8192 - i][0] = 0.0;
+        in[8192 - i][1] = -in[i][1];
+        //printf("%10d %15.5f %15.5f\n", i, in[i][0], in[i][1]);
+#else
         in[i].re = 0.0;
         in[i].im = (rand() & 0x1)  ?  1.0  :  -1.0;
         in[i].im *= pow(10.0, scale/20.0);
         in[i].im *= 35.0; //305360;
-        //printf("%10d %15.5f %15.5f\n", i, in[i].re, in[i].im);
         in[8192 - i].re = 0.0;
         in[8192 - i].im = -in[i].im;
+        //printf("%10d %15.5f %15.5f\n", i, in[i].re, in[i].im);
+#endif
     }
 #if defined(HAVE_FFTW3_H)    
     fftw_execute(p);
@@ -187,7 +201,11 @@ int main(int argc, char *argv[])
     for (i = 0;  i < 8192;  i++)
     {
         //printf("%10d %15.5f %15.5f\n", i, out[i].re, out[i].im);
+#if defined(HAVE_FFTW3_H)    
+        noise_sound[i] = out[i][0];
+#else
         noise_sound[i] = out[i].re;
+#endif
     }
 
     peak = 0;
@@ -356,6 +374,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot close speech file '%s'\n", "sound_c3.wav");
         exit(2);
     }
+    afFreeFileSetup(filesetup);
 
     fftw_destroy_plan(p);
     return  0;

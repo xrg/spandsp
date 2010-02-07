@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.15 2005/09/28 17:11:49 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.19 2006/01/25 15:44:50 steveu Exp $
  */
 
 /*! \file */
@@ -42,6 +42,7 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
+#include "spandsp/async.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/arctan2.h"
 #include "spandsp/complex.h"
@@ -67,18 +68,13 @@ enum
     V22BIS_TRAINING_STAGE_PARKED
 };
 
-/* The following is not an issue for multi-threading, as this is a global table
-   of constants. The first thread generates it. A second thread, starting around
-   the same time as the first, might duplicate the work. The outcome will still be
-   the same. */
-uint8_t space_map_v22bis[30][30];
-
 /* Raised root cosine pulse shaping; Beta = 0.75; 4 symbols either
    side of the centre. We cannot simplify this by using only half
-   the filter, as each variant are each skewed by a n/48 of a
+   the filter, as each variant are each skewed by a n/PULSESHAPER_COEFF_SETS of a
    sample. Only one is symmetric. */
-#define PULSESHAPER_GAIN    39.98830768
-static const float pulseshaper[12][107] =
+#define PULSESHAPER_GAIN        39.98830768
+#define PULSESHAPER_COEFF_SETS  12
+static const float pulseshaper[PULSESHAPER_COEFF_SETS][107] =
 {
     {
          0.0068651997,    /* Filter 0 */
@@ -1539,18 +1535,6 @@ static void tune_equalizer(v22bis_state_t *s, const complex_t *z, const complex_
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int find_quadrant(complex_t *z)
-{
-    int b1;
-    int b2;
-
-    /* Split the space along the two diagonals. */
-    b1 = (z->im > z->re);
-    b2 = (z->im < -z->re);
-    return (b2 << 1) | (b1 ^ b2);
-}
-/*- End of function --------------------------------------------------------*/
-
 static __inline__ void track_carrier(v22bis_state_t *s, const complex_t *z, const complex_t *target)
 {
     complex_t zz;
@@ -1593,6 +1577,15 @@ static inline void put_bit(v22bis_state_t *s, int bit)
 
 static void decode_baud(v22bis_state_t *s, complex_t *z)
 {
+    static const uint8_t space_map_v22bis[6][6] =
+    {
+        {11, 10, 10,  5,  5,  7},
+        { 9,  8,  8,  4,  4,  6},
+        { 9,  8,  8,  4,  4,  6},
+        {14, 12, 12,  0,  0,  1},
+        {14, 12, 12,  0,  0,  1},
+        {15, 13, 13,  2,  2,  3}
+    };
     static const uint8_t phase_steps[4] =
     {
         0, 2, 3, 1
@@ -1603,31 +1596,26 @@ static void decode_baud(v22bis_state_t *s, complex_t *z)
     int re;
     int im;
 
+    re = z->re + 3.0;
+    if (re > 5)
+        re = 5;
+    else if (re < 0)
+        re = 0;
+    im = z->im + 3.0;
+    if (im > 5)
+        im = 5;
+    else if (im < 0)
+        im = 0;
+    nearest = space_map_v22bis[re][im];
+    raw_bits = phase_steps[((nearest - s->rx_constellation_state) >> 2) & 3];
+    /* The first two bits are the quadrant */
+    put_bit(s, raw_bits);
+    put_bit(s, raw_bits >> 1);
     if (s->bit_rate == 2400)
     {
-        re = (z->re + 3.0)*3.0;
-        if (re > 29)
-            re = 29;
-        else if (re < 0)
-            re = 0;
-        im = (z->im + 3.0)*3.0;
-        if (im > 29)
-            im = 29;
-        else if (im < 0)
-            im = 0;
-        nearest = space_map_v22bis[re][im];
-        put_bit(s, nearest >> 3);
-        put_bit(s, nearest >> 2);
-        raw_bits = phase_steps[(nearest - s->rx_constellation_state) & 3];
-        put_bit(s, raw_bits);
-        put_bit(s, raw_bits >> 1);
-    }
-    else
-    {
-        nearest = (find_quadrant(z) << 2) | 0x01;
-        raw_bits = phase_steps[(nearest - s->rx_constellation_state) & 3];
-        put_bit(s, raw_bits);
-        put_bit(s, raw_bits >> 1);
+        /* The other two bits are the position within the quadrant */
+        put_bit(s, nearest >> 1);
+        put_bit(s, nearest >> 0);
     }
     //track_carrier(s, z, &v22bis_constellation[nearest]);
 span_log(&s->logging, SPAN_LOG_FLOW, "Tune eq %10.5f,%10.5f -> %10.5f,%10.5f\n", z->re, z->im, v22bis_constellation[nearest].re, v22bis_constellation[nearest].im);
@@ -1657,7 +1645,7 @@ static void process_baud(v22bis_state_t *s, const complex_t *sample)
 
     /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
        will fiddle the step to align this with the bits. */
-    if ((s->eq_put_step -= 12) > 0)
+    if ((s->eq_put_step -= PULSESHAPER_COEFF_SETS) > 0)
     {
         //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, 0, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
         return;
@@ -1665,8 +1653,8 @@ static void process_baud(v22bis_state_t *s, const complex_t *sample)
 
     /* This is our interpolation filter, as well as our demod filter. */
     j = -s->eq_put_step;
-    if (j > 12 - 1)
-        j = 12 - 1;
+    if (j > PULSESHAPER_COEFF_SETS - 1)
+        j = PULSESHAPER_COEFF_SETS - 1;
     z = complex_set(0.0, 0.0);
     for (i = 0;  i < V22BIS_RX_FILTER_STEPS;  i++)
     {
@@ -1676,7 +1664,7 @@ static void process_baud(v22bis_state_t *s, const complex_t *sample)
     z.re *= 1.0/PULSESHAPER_GAIN;
     z.im *= 1.0/PULSESHAPER_GAIN;
 
-    s->eq_put_step += 80;
+    s->eq_put_step += PULSESHAPER_COEFF_SETS*40/(3*2);
 
     /* Add a sample to the equalizer's circular buffer, but don't calculate anything
        at this time. */
@@ -1684,7 +1672,7 @@ static void process_baud(v22bis_state_t *s, const complex_t *sample)
     s->eq_step = (s->eq_step + 1) & V22BIS_EQUALIZER_MASK;
 
     /* On alternate insertions we have a whole baud and must process it. */
-    if ((++s->rx_baud_phase & 1))
+    if ((s->rx_baud_phase ^= 1))
         return;
 
     /* Perform a Gardner test for baud alignment on the three most recent samples. */
@@ -1917,8 +1905,8 @@ int v22bis_rx_restart(v22bis_state_t *s, int bit_rate)
     s->rx_carrier_phase_rate = dds_phase_stepf((s->caller)  ?  2400.0  :  1200.0);
     s->rx_carrier_phase = 0;
     power_meter_init(&(s->rx_power), 5);
-    s->carrier_on_power = power_meter_level(-43);
-    s->carrier_off_power = power_meter_level(-48);
+    s->carrier_on_power = power_meter_level_dbm0(-43);
+    s->carrier_off_power = power_meter_level_dbm0(-48);
     s->agc_scaling = 0.0005;
 
     s->rx_constellation_state = 0;

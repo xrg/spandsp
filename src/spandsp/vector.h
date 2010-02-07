@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector.h,v 1.2 2004/03/30 14:29:41 steveu Exp $
+ * $Id: vector.h,v 1.3 2005/11/25 14:52:00 steveu Exp $
  */
 
 #if !defined(_VECTOR_H_)
@@ -33,9 +33,9 @@
 extern "C" {
 #endif
 
-static inline int vec_dot_prod(const int16_t *vec1,
-                               const int16_t *vec2,
-                               int len)
+static __inline__ int vec_dot_prod(const int16_t *vec1,
+                                   const int16_t *vec2,
+                                   int len)
 {
     int i;
     int sum;
@@ -46,7 +46,7 @@ static inline int vec_dot_prod(const int16_t *vec1,
     return sum;
 }
 
-static inline int vec_norm2(const int16_t *vec, int len)
+static __inline__ int vec_norm2(const int16_t *vec, int len)
 {
     int i;
     int sum;
@@ -57,7 +57,7 @@ static inline int vec_norm2(const int16_t *vec, int len)
     return sum;
 }
 
-static inline void vec_sar(int16_t *vec, int len, int shift)
+static __inline__ void vec_sar(int16_t *vec, int len, int shift)
 {
     int i;
 
@@ -65,7 +65,7 @@ static inline void vec_sar(int16_t *vec, int len, int shift)
         vec[i] >>= shift;
 }
 
-static inline int vec_max_bits(const int16_t *vec, int len)
+static __inline__ int vec_max_bits(const int16_t *vec, int len)
 {
     int i;
     int max;

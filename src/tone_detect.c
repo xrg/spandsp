@@ -2,11 +2,11 @@
  * SpanDSP - a series of DSP components for telephony
  *
  * tone_detect.c - General telephony tone detection, and specific
- *                 detection of DTMF.
+ *                 detection of DTMF, Bell MF, and MFC/R2.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
- * Copyright (C) 2001-2003 Steve Underwood
+ * Copyright (C) 2001-2003, 2005 Steve Underwood
  *
  * All rights reserved.
  *
@@ -24,20 +24,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect.c,v 1.6 2005/08/31 19:27:52 steveu Exp $
+ * $Id: tone_detect.c,v 1.18 2006/02/06 15:00:56 steveu Exp $
  */
  
 /*! \file tone_detect.h */
-
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <math.h>
 #include <inttypes.h>
+#include <stdlib.h>
+#include <math.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
@@ -54,66 +52,12 @@
 
 //#define USE_3DNOW
 
-/* Basic DTMF specs:
- *
- * Minimum tone on = 40ms
- * Minimum tone off = 50ms
- * Maximum digit rate = 10 per second
- * Normal twist <= 8dB accepted
- * Reverse twist <= 4dB accepted
- * S/N >= 15dB will detect OK
- * Attenuation <= 26dB will detect OK
- * Frequency tolerance +- 1.5% will detect, +-3.5% will reject
- */
-
-/* Basic Bell MF specs:
- *
- * Signal generation:
- *   Tone on time = KP: 100+-7ms. All other signals: 68+-7ms
- *   Tone off time (between digits) = 68+-7ms
- *   Frequency tolerance +- 1.5%
- *   Signal level -7+-1dBm per frequency
- *
- * Signal reception:
- *   Frequency tolerance +- 1.5% +-10Hz
- *   Signal level -14dBm to 0dBm
- *   Perform a "two and only two tones present" test.
- *   Twist <= 6dB accepted
- *   Receiver sensitive to signals above -22dBm per frequency
- *   Test for a minimum of 55ms if KP, or 30ms of other signals.
- *   Signals to be recognised if the two tones arrive within 8ms of each other.
- *   Invalid signals result in the return of the re-order tone.
- *
- * Note: Above -3dBm the signal starts to clip. We can detect with a little clipping,
- *       but not up to 0dBm, which the above spec seems to require. There isn't a lot
- *       we can do about that. Is the spec. incorrectly worded about the dBm0 reference
- *       point, or have I misunderstood it?
- */
-
-/* Basic MFC/R2 tone detection specs:
- *  Receiver response range: -5dBm to -35dBm
- *  Difference in level for a pair of frequencies
- *      Adjacent tones: <5dB
- *      Non-adjacent tones: <7dB
- *  Receiver not to detect a signal of 2 frequencies of level -5dB and
- *  duration <7ms.
- *  Receiver not to recognise a signal of 2 frequencies having a difference
- *  in level >=20dB.
- *  Max received signal frequency error: +-10Hz
- *  The sum of the operate and release times of a 2 frequency signal not to
- *  exceed 80ms (there are no individual specs for the operate and release
- *  times).
- *  Receiver not to release for signal interruptions <=7ms.
- *  System malfunction due to signal interruptions >7ms (typically 20ms) is
- *  prevented by further logic elements.
- */
-
 #define DTMF_THRESHOLD              8.0e7
 #define DTMF_NORMAL_TWIST           6.3     /* 8dB */
 #define DTMF_REVERSE_TWIST          2.5     /* 4dB */
 #define DTMF_RELATIVE_PEAK_ROW      6.3     /* 8dB */
 #define DTMF_RELATIVE_PEAK_COL      6.3     /* 8dB */
-#define DTMF_TO_TOTAL_ENERGY	    42.0
+#define DTMF_TO_TOTAL_ENERGY        42.0
 
 #define BELL_MF_THRESHOLD           1.6e9
 #define BELL_MF_TWIST               4.0     /* 6dB */
@@ -131,18 +75,18 @@ static goertzel_descriptor_t bell_mf_detect_desc[6];
 static goertzel_descriptor_t mf_fwd_detect_desc[6];
 static goertzel_descriptor_t mf_back_detect_desc[6];
 
-static float dtmf_row[] =
+static const float dtmf_row[] =
 {
      697.0,  770.0,  852.0,  941.0
 };
-static float dtmf_col[] =
+static const float dtmf_col[] =
 {
     1209.0, 1336.0, 1477.0, 1633.0
 };
 
-static char dtmf_positions[] = "123A" "456B" "789C" "*0#D";
+static const char dtmf_positions[] = "123A" "456B" "789C" "*0#D";
 
-static float bell_mf_tones[] =
+static const float bell_mf_tones[] =
 {
      700.0,  900.0, 1100.0, 1300.0, 1500.0, 1700.0
 };
@@ -153,19 +97,19 @@ static float bell_mf_tones[] =
     ST'   - use 'A'
     ST''  - use 'B'
     ST''' - use 'C' */
-static char bell_mf_positions[] = "1247C-358A--69*---0B----#";
+static const char bell_mf_positions[] = "1247C-358A--69*---0B----#";
 
-static float r2_mf_fwd_tones[] =
+static const float r2_mf_fwd_tones[] =
 {
     1380.0, 1500.0, 1620.0, 1740.0, 1860.0, 1980.0
 };
 
-static float r2_mf_back_tones[] =
+static const float r2_mf_back_tones[] =
 {
     1140.0, 1020.0,  900.0,  780.0,  660.0,  540.0
 };
 
-static char mf_positions[] = "1247A-358B--69C---0D----E";
+static const char mf_positions[] = "1247A-358B--69C---0D----E";
 
 void make_goertzel_descriptor(goertzel_descriptor_t *t, int freq, int samples)
 {
@@ -174,14 +118,18 @@ void make_goertzel_descriptor(goertzel_descriptor_t *t, int freq, int samples)
 }
 /*- End of function --------------------------------------------------------*/
 
-void goertzel_init(goertzel_state_t *s,
-                   goertzel_descriptor_t *t)
+goertzel_state_t *goertzel_init(goertzel_state_t *s,
+                                goertzel_descriptor_t *t)
 {
-    s->v2 =
-    s->v3 = 0.0;
-    s->fac = t->fac;
-    s->samples = t->samples;
-    s->current_sample = 0;
+    if (s  ||  (s = malloc(sizeof(goertzel_state_t))))
+    {
+        s->v2 =
+        s->v3 = 0.0;
+        s->fac = t->fac;
+        s->samples = t->samples;
+        s->current_sample = 0;
+    }
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -201,7 +149,7 @@ int goertzel_update(goertzel_state_t *s,
         s->v3 = s->fac*s->v2 - v1 + amp[i];
     }
     s->current_sample += samples;
-    return  samples;
+    return samples;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -248,7 +196,7 @@ static inline void _dtmf_goertzel_update(goertzel_state_t *s,
     //s->v3 = s->fac*s->v2 - v1 + x[0];
 
     __asm__ __volatile__ (
-    	     " femms;\n"
+             " femms;\n"
 
              " movq        16(%%edx),%%mm2;\n"
              " movq        24(%%edx),%%mm3;\n"
@@ -260,7 +208,7 @@ static inline void _dtmf_goertzel_update(goertzel_state_t *s,
              " jmp         1f;\n"
              " .align 32;\n"
 
-    	     " 1: ;\n"
+             " 1: ;\n"
              " prefetch    (%%eax);\n"
              " movq        %%mm3,%%mm1;\n"
              " movq        %%mm2,%%mm0;\n"
@@ -289,7 +237,7 @@ static inline void _dtmf_goertzel_update(goertzel_state_t *s,
              " movq        %%mm5,40(%%edx);\n"
 
              " femms;\n"
-	     :
+             :
              : "c" (samples), "a" (x), "d" (vv)
              : "memory", "eax", "ecx");
 
@@ -305,19 +253,25 @@ static inline void _dtmf_goertzel_update(goertzel_state_t *s,
 #endif
 /*- End of function --------------------------------------------------------*/
 
-void dtmf_rx_init(dtmf_rx_state_t *s,
-                  void (*callback)(void *data, char *digits, int len),
-                  void *data)
+dtmf_rx_state_t *dtmf_rx_init(dtmf_rx_state_t *s,
+                              void (*callback)(void *user_data, const char *digits, int len),
+                              void *user_data)
 {
     int i;
     static int initialised = FALSE;
 
     s->callback = callback;
-    s->callback_data = data;
+    s->callback_data = user_data;
+    s->realtime_callback = NULL;
+    s->realtime_callback_data = NULL;
+    s->filter_dialtone = FALSE;
+    s->normal_twist = DTMF_NORMAL_TWIST;
+    s->reverse_twist = DTMF_REVERSE_TWIST;
 
     s->hits[0] = 
     s->hits[1] =
     s->hits[2] = 0;
+    s->in_digit = FALSE;
 
     if (!initialised)
     {
@@ -331,14 +285,45 @@ void dtmf_rx_init(dtmf_rx_state_t *s,
     for (i = 0;  i < 4;  i++)
     {
         goertzel_init(&s->row_out[i], &dtmf_detect_row[i]);
-    	goertzel_init(&s->col_out[i], &dtmf_detect_col[i]);
+        goertzel_init(&s->col_out[i], &dtmf_detect_col[i]);
     }
     s->energy = 0.0;
     s->current_sample = 0;
-    s->detected_digits = 0;
     s->lost_digits = 0;
     s->current_digits = 0;
     s->digits[0] = '\0';
+    return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+void dtmf_rx_set_realtime_callback(dtmf_rx_state_t *s,
+                                   void (*callback)(void *user_data, int signal),
+                                   void *user_data)
+{
+    s->realtime_callback = callback;
+    s->realtime_callback_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+void dtmf_rx_parms(dtmf_rx_state_t *s,
+                   int filter_dialtone,
+                   int twist,
+                   int reverse_twist)
+{
+    float x;
+
+    if (filter_dialtone >= 0)
+    {
+        s->z350_1 = 0.0;
+        s->z350_2 = 0.0;
+        s->z440_1 = 0.0;
+        s->z440_2 = 0.0;
+        s->filter_dialtone = filter_dialtone;
+    }
+    if (twist >= 0)
+        s->normal_twist = powf(10.0, twist/10.0);
+    if (reverse_twist >= 0)
+        s->reverse_twist = powf(10.0, reverse_twist/10.0);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -373,9 +358,22 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t *amp, int samples)
         for (j = sample;  j < limit;  j++)
         {
             famp = amp[j];
-	    
+            if (s->filter_dialtone)
+            {
+                /* Sharp notches applied at 350Hz and 440Hz - the two common dialtone frequencies.
+                   These are rather high Q, to achieve the required narrowness, without using lots of
+                   sections. */
+                v1 = 0.98356*famp + 1.8954426*s->z350_1 - 0.9691396*s->z350_2;
+                famp = v1 - 1.9251480*s->z350_1 + s->z350_2;
+                s->z350_2 = s->z350_1;
+                s->z350_1 = v1;
+
+                v1 = 0.98456*famp + 1.8529543*s->z440_1 - 0.9691396*s->z440_2;
+                famp = v1 - 1.8819938*s->z440_1 + s->z440_2;
+                s->z440_2 = s->z440_1;
+                s->z440_1 = v1;
+            }
             s->energy += famp*famp;
-	    
             /* With GCC 2.95, the following unrolled code seems to take about 35%
                (rough estimate) as long as a neat little 0-3 loop */
             v1 = s->row_out[0].v2;
@@ -417,27 +415,27 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t *amp, int samples)
 
         /* We are at the end of a DTMF detection block */
         /* Find the peak row and the peak column */
-        row_energy[0] = goertzel_result (&s->row_out[0]);
-        col_energy[0] = goertzel_result (&s->col_out[0]);
+        row_energy[0] = goertzel_result(&s->row_out[0]);
+        col_energy[0] = goertzel_result(&s->col_out[0]);
 
-	for (best_row = best_col = 0, i = 1;  i < 4;  i++)
-	{
-    	    row_energy[i] = goertzel_result (&s->row_out[i]);
+        for (best_row = best_col = 0, i = 1;  i < 4;  i++)
+        {
+            row_energy[i] = goertzel_result(&s->row_out[i]);
             if (row_energy[i] > row_energy[best_row])
                 best_row = i;
-    	    col_energy[i] = goertzel_result (&s->col_out[i]);
+            col_energy[i] = goertzel_result(&s->col_out[i]);
             if (col_energy[i] > col_energy[best_col])
                 best_col = i;
-    	}
+        }
         hit = 0;
         /* Basic signal level test and the twist test */
         if (row_energy[best_row] >= DTMF_THRESHOLD
-	    &&
-	    col_energy[best_col] >= DTMF_THRESHOLD
             &&
-            col_energy[best_col] < row_energy[best_row]*DTMF_REVERSE_TWIST
+            col_energy[best_col] >= DTMF_THRESHOLD
             &&
-            col_energy[best_col]*DTMF_NORMAL_TWIST > row_energy[best_row])
+            col_energy[best_col] < row_energy[best_row]*s->reverse_twist
+            &&
+            col_energy[best_col]*s->normal_twist > row_energy[best_row])
         {
             /* Relative peak test */
             for (i = 0;  i < 4;  i++)
@@ -476,30 +474,46 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t *amp, int samples)
                        and often slip in units large than a sample. */
                 if (hit == s->hits[2]  &&  hit != s->hits[1]  &&  hit != s->hits[0])
                 {
-                    s->digit_hits[(best_row << 2) + best_col]++;
-                    s->detected_digits++;
-                    if (s->current_digits < MAX_DTMF_DIGITS)
+                    if (s->realtime_callback)
                     {
-                        s->digits[s->current_digits++] = hit;
-                        s->digits[s->current_digits] = '\0';
+                        /* Confirmed start of the digit */
+                        s->realtime_callback(s->realtime_callback_data, hit);
+                        s->in_digit = hit;
                     }
                     else
                     {
-                        if (s->callback)
+                        if (s->current_digits < MAX_DTMF_DIGITS)
                         {
-                            s->callback(s->callback_data,
-                                        s->digits,
-                                        s->current_digits);
-                            s->digits[0] = hit;
-                            s->digits[1] = '\0';
-                            s->current_digits = 1;
+                            s->digits[s->current_digits++] = hit;
+                            s->digits[s->current_digits] = '\0';
                         }
                         else
                         {
-                            s->lost_digits++;
+                            if (s->callback)
+                            {
+                                s->callback(s->callback_data,
+                                            s->digits,
+                                            s->current_digits);
+                                s->digits[0] = hit;
+                                s->digits[1] = '\0';
+                                s->current_digits = 1;
+                            }
+                            else
+                            {
+                                s->lost_digits++;
+                            }
                         }
                     }
                 }
+            }
+        }
+        if (s->in_digit)
+        {
+            /* Look for the end of the digit */
+            if (s->in_digit != hit  &&  s->in_digit != s->hits[2])
+            {
+                s->realtime_callback(s->realtime_callback_data, 0);
+                s->in_digit = 0;
             }
         }
         s->hits[0] = s->hits[1];
@@ -508,7 +522,7 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t *amp, int samples)
         /* Reinitialise the detector for the next block */
         for (i = 0;  i < 4;  i++)
         {
-       	    goertzel_init(&s->row_out[i], &dtmf_detect_row[i]);
+            goertzel_init(&s->row_out[i], &dtmf_detect_row[i]);
             goertzel_init(&s->col_out[i], &dtmf_detect_col[i]);
         }
         s->energy = 0.0;
@@ -539,21 +553,12 @@ int dtmf_get(dtmf_rx_state_t *s, char *buf, int max)
 }
 /*- End of function --------------------------------------------------------*/
 
-void bell_mf_rx_init(bell_mf_rx_state_t *s,
-                     void (*callback)(void *data, char *digits, int len),
-                     void *data)
+bell_mf_rx_state_t *bell_mf_rx_init(bell_mf_rx_state_t *s,
+                                    void (*callback)(void *user_data, const char *digits, int len),
+                                    void *user_data)
 {
     int i;
     static int initialised = FALSE;
-
-    s->callback = callback;
-    s->callback_data = data;
-
-    s->hits[0] = 
-    s->hits[1] =
-    s->hits[2] =
-    s->hits[3] = 
-    s->hits[4] = 0;
 
     if (!initialised)
     {
@@ -561,13 +566,22 @@ void bell_mf_rx_init(bell_mf_rx_state_t *s,
             make_goertzel_descriptor(&bell_mf_detect_desc[i], bell_mf_tones[i], 120);
         initialised = TRUE;
     }
+    s->callback = callback;
+    s->callback_data = user_data;
+
+    s->hits[0] = 
+    s->hits[1] =
+    s->hits[2] =
+    s->hits[3] = 
+    s->hits[4] = 0;
+
     for (i = 0;  i < 6;  i++)
         goertzel_init(&s->out[i], &bell_mf_detect_desc[i]);
     s->current_sample = 0;
-    s->detected_digits = 0;
     s->lost_digits = 0;
     s->current_digits = 0;
     s->digits[0] = '\0';
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -594,7 +608,7 @@ int bell_mf_rx(bell_mf_rx_state_t *s, const int16_t *amp, int samples)
         for (j = sample;  j < limit;  j++)
         {
             famp = amp[j];
-	    
+    
             /* With GCC 2.95, the following unrolled code seems to take about 35%
                (rough estimate) as long as a neat little 0-5 loop */
             v1 = s->out[0].v2;
@@ -644,7 +658,6 @@ int bell_mf_rx(bell_mf_rx_state_t *s, const int16_t *amp, int samples)
             best = 1;
             second_best = 0;
         }
-        /*endif*/
         for (i = 2;  i < 6;  i++)
         {
             energy[i] = goertzel_result(&s->out[i]);
@@ -708,7 +721,6 @@ int bell_mf_rx(bell_mf_rx_state_t *s, const int16_t *amp, int samples)
                     ||
                     (hit == '*'  &&  hit == s->hits[2]  &&  hit != s->hits[1]  &&  hit != s->hits[0])))
             {
-                s->detected_digits++;
                 if (s->current_digits < MAX_DTMF_DIGITS)
                 {
                     s->digits[s->current_digits++] = hit;
@@ -743,7 +755,7 @@ int bell_mf_rx(bell_mf_rx_state_t *s, const int16_t *amp, int samples)
         s->hits[4] = hit;
         /* Reinitialise the detector for the next block */
         for (i = 0;  i < 6;  i++)
-       	    goertzel_init(&s->out[i], &bell_mf_detect_desc[i]);
+            goertzel_init(&s->out[i], &bell_mf_detect_desc[i]);
         s->current_sample = 0;
     }
     if (s->current_digits  &&  s->callback)
@@ -771,7 +783,7 @@ int bell_mf_get(bell_mf_rx_state_t *s, char *buf, int max)
 }
 /*- End of function --------------------------------------------------------*/
 
-void r2_mf_rx_init(r2_mf_rx_state_t *s, int fwd)
+r2_mf_rx_state_t *r2_mf_rx_init(r2_mf_rx_state_t *s, int fwd)
 {
     int i;
     static int initialised = FALSE;
@@ -802,8 +814,7 @@ void r2_mf_rx_init(r2_mf_rx_state_t *s, int fwd)
     }
     s->samples = 133;
     s->current_sample = 0;
-    s->current_digits = 0;
-    s->digits[0] = '\0';
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -832,7 +843,7 @@ int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t *amp, int samples)
         for (j = sample;  j < limit;  j++)
         {
             famp = amp[j];
-	    
+    
             /* With GCC 2.95, the following unrolled code seems to take about 35%
                (rough estimate) as long as a neat little 0-5 loop */
             v1 = s->out[0].v2;
@@ -877,7 +888,6 @@ int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t *amp, int samples)
             best = 1;
             second_best = 0;
         }
-        /*endif*/
         
         for (i = 2;  i < 6;  i++)
         {
@@ -938,12 +948,12 @@ int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t *amp, int samples)
         if (s->fwd)
         {
             for (i = 0;  i < 6;  i++)
-       	        goertzel_init(&s->out[i], &mf_fwd_detect_desc[i]);
+                goertzel_init(&s->out[i], &mf_fwd_detect_desc[i]);
         }
         else
         {
             for (i = 0;  i < 6;  i++)
-       	        goertzel_init(&s->out[i], &mf_back_detect_desc[i]);
+                goertzel_init(&s->out[i], &mf_back_detect_desc[i]);
         }
         s->current_sample = 0;
     }

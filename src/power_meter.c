@@ -23,11 +23,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter.c,v 1.7 2005/08/31 19:27:52 steveu Exp $
+ * $Id: power_meter.c,v 1.12 2005/11/27 12:36:22 steveu Exp $
  */
 
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
+/*! \file */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -39,35 +38,38 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
+#include <float.h>
 #include <math.h>
 #include <assert.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/power_meter.h"
 
-power_meter_t *power_meter_init(power_meter_t *meter, int shift)
+power_meter_t *power_meter_init(power_meter_t *s, int shift)
 {
-    meter->shift = shift;
-    meter->reading = 0;
-    return  meter;
+    if (s == NULL)
+        return NULL;
+    s->shift = shift;
+    s->reading = 0;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
-power_meter_t *power_meter_damping(power_meter_t *meter, int shift)
+power_meter_t *power_meter_damping(power_meter_t *s, int shift)
 {
-    meter->shift = shift;
-    return  meter;
+    s->shift = shift;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 
-int32_t power_meter_update(power_meter_t *meter, int16_t amp)
+int32_t power_meter_update(power_meter_t *s, int16_t amp)
 {
-    meter->reading += ((amp*amp - meter->reading) >> meter->shift);
-    return meter->reading;
+    s->reading += ((amp*amp - s->reading) >> s->shift);
+    return s->reading;
 }
 /*- End of function --------------------------------------------------------*/
 
-int32_t power_meter_level(float level)
+int32_t power_meter_level_dbm0(float level)
 {
     float l;
 
@@ -76,13 +78,32 @@ int32_t power_meter_level(float level)
 }
 /*- End of function --------------------------------------------------------*/
 
-float power_meter_dbm0(power_meter_t *meter)
+int32_t power_meter_level_dbov(float level)
+{
+    float l;
+
+    l = pow(10.0, (level + 3.14)/20.0)*(32768.0*0.70711);
+    return l*l;
+}
+/*- End of function --------------------------------------------------------*/
+
+float power_meter_dbm0(power_meter_t *s)
 {
     float val;
     
-    if ((val = sqrt((float) meter->reading)) <= 0.0)
-        return -INFINITY;
+    if ((val = sqrt((float) s->reading)) <= 0.0)
+        return FLT_MIN;
     return log10(val/(32768.0*0.70711))*20.0 + 3.14;
+}
+/*- End of function --------------------------------------------------------*/
+
+float power_meter_dbov(power_meter_t *s)
+{
+    float val;
+    
+    if ((val = sqrt((float) s->reading)) <= 0.0)
+        return FLT_MIN;
+    return log10(val/(32768.0*0.70711))*20.0 - 3.14;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

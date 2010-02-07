@@ -23,10 +23,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: logging.h,v 1.2 2005/10/08 04:40:58 steveu Exp $
+ * $Id: logging.h,v 1.5 2006/01/15 08:13:30 steveu Exp $
  */
 
 /*! \file */
+
+/*! \page logging_page Logging
+\section logging_page_sec_1 What does it do?
+???.
+*/
 
 #if !defined(_LOGGING_H_)
 #define _LOGGING_H_
@@ -57,6 +62,10 @@ enum
     SPAN_LOG_DEBUG_3                    = 10
 };
 
+/*!
+    Logging descriptor. This defines the working state for a single instance of
+    the logging facility for spandsp.
+*/
 typedef struct
 {
     int level;
@@ -99,6 +108,8 @@ int span_log_buf(logging_state_t *s, int level, const char *tag, const uint8_t *
 int span_log_init(logging_state_t *s, int level, const char *tag);
 
 int span_log_set_protocol(logging_state_t *s, const char *protocol);
+
+void span_set_message_handler(void (*func)(int level, const char *text));
 
 void span_set_error_handler(void (*func)(const char *text));
 

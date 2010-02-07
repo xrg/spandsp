@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc_tests.c,v 1.6 2005/09/01 17:06:45 steveu Exp $
+ * $Id: plc_tests.c,v 1.11 2005/12/25 15:08:37 steveu Exp $
  */
 
 /*! \page plc_tests_page Packet loss concealment tests
@@ -31,10 +31,21 @@
 These tests run a speech file through the packet loss concealment routines.
 The loss rate, in percent, and the packet size, in samples, may be specified
 on the command line.
+
+\section plc_tests_page_sec_2 How are the tests run?
+These tests process a speech file called pre_plc.wav. This file should contain
+8000 sample/second 16 bits/sample linear audio. The tests read this file in
+blocks, of a size specified on the command line. Some of these blocks are
+dropped, to simulate packet loss. The rate of loss is also specified on the
+command line. The PLC module is then used to reconstruct an acceptable
+approximation to the original signal. The resulting audio is written to a new
+audio file, called post_plc.wav. This file contains 8000 sample/second
+16 bits/sample linear audio.
 */
 
-//#define _ISOC9X_SOURCE  1
-//#define _ISOC99_SOURCE  1
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -46,6 +57,9 @@ on the command line.
 #include <audiofile.h>
 
 #include "spandsp.h"
+
+#define INPUT_FILE_NAME     "pre_plc.wav"
+#define OUTPUT_FILE_NAME    "post_plc.wav"
 
 int main(int argc, char *argv[])
 {
@@ -81,16 +95,16 @@ int main(int argc, char *argv[])
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
 
-    inhandle = afOpenFile("plc_in.wav", "r", NULL);
+    inhandle = afOpenFile(INPUT_FILE_NAME, "r", NULL);
     if (inhandle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Failed to open in file\n");
+        fprintf(stderr, "    Failed to open wave file '%s'\n", INPUT_FILE_NAME);
         exit(2);
     }
-    outhandle = afOpenFile("plc_out.wav", "w", filesetup);
+    outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup);
     if (outhandle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Failed to open out file\n");
+        fprintf(stderr, "    Failed to open wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
     plc_init(&plc);
@@ -123,14 +137,15 @@ int main(int argc, char *argv[])
     printf("Dropped %d of %d blocks\n", lost_blocks, block_no);
     if (afCloseFile(inhandle) != 0)
     {
-        fprintf(stderr, "    Cannot close speech file '%s'\n", "plc_in.wav");
+        fprintf(stderr, "    Cannot close wave file '%s'\n", INPUT_FILE_NAME);
         exit(2);
     }
     if (afCloseFile(outhandle) != 0)
     {
-        fprintf(stderr, "    Cannot close speech file '%s'\n", "plc_out.wav");
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
+    afFreeFileSetup(filesetup);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

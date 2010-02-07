@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dc_restore.h,v 1.7 2005/07/02 07:05:25 steveu Exp $
+ * $Id: dc_restore.h,v 1.10 2005/11/23 17:09:47 steveu Exp $
  */
 
 /*! \file */
@@ -66,26 +66,26 @@ typedef struct
 extern "C" {
 #endif
 
-static inline void dc_restore_init(dc_restore_state_t *dc)
+static __inline__ void dc_restore_init(dc_restore_state_t *dc)
 {
     dc->state = 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int16_t dc_restore(dc_restore_state_t *dc, int16_t sample)
+static __inline__ int16_t dc_restore(dc_restore_state_t *dc, int16_t sample)
 {
     dc->state += ((((int32_t) sample << 15) - dc->state) >> 14);
     return  sample - (dc->state >> 15);
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int16_t dc_restore_estimate(dc_restore_state_t *dc)
+static __inline__ int16_t dc_restore_estimate(dc_restore_state_t *dc)
 {
     return  (dc->state >> 15);
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int16_t saturate(int32_t amp)
+static __inline__ int16_t saturate(int32_t amp)
 {
     if (amp > INT16_MAX)
         return  INT16_MAX;
@@ -95,17 +95,13 @@ static inline int16_t saturate(int32_t amp)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int16_t fsaturate(double damp)
+static __inline__ int16_t fsaturate(double damp)
 {
     if (damp > 32767.0)
         return  INT16_MAX;
     if (damp < -32768.0)
         return  INT16_MIN;
-#ifdef __cplusplus
-    return damp;
-#else
-    return rint(damp);
-#endif
+    return lrintf(damp);
 }
 /*- End of function --------------------------------------------------------*/
 

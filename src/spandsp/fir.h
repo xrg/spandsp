@@ -23,8 +23,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fir.h,v 1.3 2004/12/16 15:33:55 steveu Exp $
+ * $Id: fir.h,v 1.4 2005/11/23 17:09:47 steveu Exp $
  */
+
+/*! \page fir_page FIR filtering
+\section fir_page_sec_1 What does it do?
+???.
+
+\section fir_page_sec_2 How does it work?
+???.
+*/
 
 #if !defined(_FIR_H_)
 #define _FIR_H_

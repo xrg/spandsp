@@ -16,32 +16,38 @@
 ##
 ## $Id: Makefile.am,v 1.37 2005/06/09 13:27:11 steveu Exp $
 
+AM_CFLAGS = -std=c99
+
 LIBS += $(TESTLIBS)
+
+nobase_data_DATA = sound_c1_8k.wav sound_c3_8k.wav
 
 MAINTAINERCLEANFILES = Makefile.in
 
 INCLUDES = -I$(top_builddir)/src -I/usr/include/libxml2 -DDATADIR="\"$(pkgdatadir)\""
 
 noinst_PROGRAMS =   adsi_tests \
+                    alaw_ulaw_tests \
                     async_tests \
                     awgn_tests \
                     bell_mf_tests \
                     bert_tests \
                     dc_restore_tests \
                     dds_tests \
-                    dtmf_tests \
-                    dtmf_gen_tests \
-                    ec_disable_detector_tests \
+                    dtmf_tx_tests \
+                    dtmf_rx_tests \
+                    ec_disable_tone_tests \
                     echo_tests \
                     fax_decode \
                     fax_tests \
                     fsk_tests \
                     g168_tests \
                     g722_tests \
+                    g726_tests \
                     hdlc_tests \
                     ima_adpcm_tests \
                     line_model_tests \
-                    makecss \
+                    make_g168_css \
                     make_line_models \
                     modem_echo_tests \
                     noise_tests \
@@ -68,12 +74,15 @@ noinst_PROGRAMS =   adsi_tests \
                     testadsi \
                     testfax
 
-noinst_HEADERS =        constel.h \
-			echo_monitor.h \
-                        line_model.h
+noinst_HEADERS =    modem_monitor.h \
+                    echo_monitor.h \
+                    line_model.h
 
 adsi_tests_SOURCES = adsi_tests.c
 adsi_tests_LDADD = -L$(top_builddir)/src -lspandsp
+
+alaw_ulaw_tests_SOURCES = alaw_ulaw_tests.c
+alaw_ulaw_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
 async_tests_SOURCES = async_tests.c
 async_tests_LDADD = -L$(top_builddir)/src -lspandsp
@@ -93,16 +102,16 @@ dc_restore_tests_LDADD = -L$(top_builddir)/src -lspandsp
 dds_tests_SOURCES = dds_tests.c
 dds_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
-dtmf_tests_SOURCES = dtmf_tests.c
-dtmf_tests_LDADD = -L$(top_builddir)/src -lspandsp
+dtmf_tx_tests_SOURCES = dtmf_tx_tests.c
+dtmf_tx_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
-dtmf_gen_tests_SOURCES = dtmf_gen_tests.c
-dtmf_gen_tests_LDADD = -L$(top_builddir)/src -lspandsp
+dtmf_rx_tests_SOURCES = dtmf_rx_tests.c
+dtmf_rx_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
-ec_disable_detector_tests_SOURCES = ec_disable_detector_tests.c
-ec_disable_detector_tests_LDADD = -L$(top_builddir)/src -lspandsp
+ec_disable_tone_tests_SOURCES = ec_disable_tone_tests.c
+ec_disable_tone_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
-echo_tests_SOURCES = echo_tests.c
+echo_tests_SOURCES = echo_tests.c echo_monitor.cpp
 echo_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
 fax_decode_SOURCES = fax_decode.c
@@ -120,6 +129,9 @@ g168_tests_LDADD = -L$(top_builddir)/src -lspandsp
 g722_tests_SOURCES = g722_tests.c
 g722_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
+g726_tests_SOURCES = g726_tests.c
+g726_tests_LDADD = -L$(top_builddir)/src -lspandsp
+
 hdlc_tests_SOURCES = hdlc_tests.c
 hdlc_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
@@ -129,8 +141,8 @@ ima_adpcm_tests_LDADD = -L$(top_builddir)/src -lspandsp
 line_model_tests_SOURCES = line_model_tests.c line_model.c
 line_model_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
-makecss_SOURCES = makecss.c
-makecss_LDADD = -L$(top_builddir)/src -lspandsp
+make_g168_css_SOURCES = make_g168_css.c
+make_g168_css_LDADD = -L$(top_builddir)/src -lspandsp
 
 make_line_models_SOURCES = make_line_models.c
 make_line_models_LDADD = -L$(top_builddir)/src -lspandsp
@@ -180,16 +192,16 @@ time_scale_tests_LDADD = -L$(top_builddir)/src -lspandsp
 tone_generate_tests_SOURCES = tone_generate_tests.c
 tone_generate_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
-v17_tests_SOURCES = v17_tests.c line_model.c constel.cpp
+v17_tests_SOURCES = v17_tests.c line_model.c modem_monitor.cpp
 v17_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
-v22bis_tests_SOURCES = v22bis_tests.c line_model.c constel.cpp
+v22bis_tests_SOURCES = v22bis_tests.c line_model.c modem_monitor.cpp
 v22bis_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
-v27ter_tests_SOURCES = v27ter_tests.c line_model.c constel.cpp
+v27ter_tests_SOURCES = v27ter_tests.c line_model.c modem_monitor.cpp
 v27ter_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
-v29_tests_SOURCES = v29_tests.c line_model.c constel.cpp
+v29_tests_SOURCES = v29_tests.c line_model.c modem_monitor.cpp
 v29_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
 v42_tests_SOURCES = v42_tests.c
@@ -212,5 +224,13 @@ testfax_LDADD = -L$(top_builddir)/src -lspandsp
 
 line_model.$(OBJEXT): make_line_models$(EXEEXT) line_models.h
 
-line_models.h:
+line_models.h: make_line_models$(EXEEXT)
 	./make_line_models$(EXEEXT)
+    
+# We need to create the CSS files for echo cancellation tests.
+
+sound_c1_8k.wav sound_c3_8k.wav: make_g168_css$(EXEEXT)
+	./make_g168_css$(EXEEXT)
+	sox sound_c1.wav -r8000 sound_c1_8k.wav
+	sox sound_c3.wav -r8000 sound_c3_8k.wav
+	rm sound_c1.wav sound_c3.wav

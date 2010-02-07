@@ -23,11 +23,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_gen_tests.c,v 1.5 2005/09/01 17:06:45 steveu Exp $
+ * $Id: dtmf_tx_tests.c,v 1.4 2006/01/31 05:34:27 steveu Exp $
  */
 
-//#define _ISOC9X_SOURCE	1
-//#define _ISOC99_SOURCE	1
+/*! \file */
+
+/*! \page dtmf_tx_tests_page DTMF generation tests
+\section dtmf_tx_tests_page_sec_1 What does it do?
+???.
+
+\section dtmf_tx_tests_page_sec_2 How does it work?
+???.
+*/
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -42,7 +53,9 @@
 
 #include "spandsp.h"
 
-int main (int argc, char *argv[])
+#define OUTPUT_FILE_NAME    "dtmf.wav"
+
+int main(int argc, char *argv[])
 {
     dtmf_tx_state_t gen;
     int16_t amp[16384];
@@ -52,10 +65,10 @@ int main (int argc, char *argv[])
     int outframes;
     int add_digits;
 
-    filesetup = afNewFileSetup ();
+    filesetup = afNewFileSetup();
     if (filesetup == AF_NULL_FILESETUP)
     {
-    	fprintf(stderr, "    Failed to create file setup\n");
+        fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
     }
     afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
@@ -64,10 +77,10 @@ int main (int argc, char *argv[])
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
 
-    outhandle = afOpenFile ("audio.wav", "w", filesetup);
+    outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup);
     if (outhandle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Cannot open audio file '%s'\n", "audio.wav");
+        fprintf(stderr, "    Cannot open wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
 
@@ -120,9 +133,9 @@ int main (int argc, char *argv[])
         if (len > 0)
         {
             outframes = afWriteFrames(outhandle,
-   	         	    	      AF_DEFAULT_TRACK,
-		    	              amp,
-			              len);
+                                      AF_DEFAULT_TRACK,
+                                      amp,
+                                      len);
         }
         if (add_digits)
         {
@@ -191,9 +204,9 @@ int main (int argc, char *argv[])
         if (len > 0)
         {
             outframes = afWriteFrames(outhandle,
-   	         	    	      AF_DEFAULT_TRACK,
-		    	              amp,
-			              len);
+                                      AF_DEFAULT_TRACK,
+                                      amp,
+                                      len);
         }
         if (add_digits)
         {
@@ -206,11 +219,13 @@ int main (int argc, char *argv[])
     }
     while (len > 0);
 
-    if (afCloseFile (outhandle) != 0)
+    if (afCloseFile(outhandle) != 0)
     {
-        fprintf(stderr, "    Cannot close audio file '%s'\n", "audio.wav");
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
         exit (2);
     }
+    afFreeFileSetup(filesetup);
+
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

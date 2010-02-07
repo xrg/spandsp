@@ -23,8 +23,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds_tests.c,v 1.6 2005/09/01 17:06:45 steveu Exp $
+ * $Id: dds_tests.c,v 1.10 2005/12/25 15:08:36 steveu Exp $
  */
+
+/*! \file */
+
+/*! \page dds_tests_page Direct digital synthesis tests
+\section dds_tests_page_sec_1 What does it do?
+???.
+
+\section dds_tests_page_sec_2 How does it work?
+???.
+*/
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -36,6 +50,9 @@
 #include <tiffio.h>
 
 #include "spandsp.h"
+
+#define OUTPUT_FILE_NAME            "dds.wav"
+#define OUTPUT_FILE_NAME_COMPLEX    "complex_dds.wav"
 
 int main(int argc, char *argv[])
 {
@@ -59,10 +76,10 @@ int main(int argc, char *argv[])
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
 
-    outhandle = afOpenFile("dds.wav", "w", filesetup);
+    outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup);
     if (outhandle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", "dds.wav");
+        fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
 
@@ -121,10 +138,10 @@ int main(int argc, char *argv[])
 
     if (afCloseFile(outhandle) != 0)
     {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", "dds.wav");
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
-
+    afFreeFileSetup(filesetup);
 
     filesetup = afNewFileSetup();
     if (filesetup == AF_NULL_FILESETUP)
@@ -137,10 +154,10 @@ int main(int argc, char *argv[])
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
 
-    outhandle = afOpenFile("complex_dds.wav", "w", filesetup);
+    outhandle = afOpenFile(OUTPUT_FILE_NAME_COMPLEX, "w", filesetup);
     if (outhandle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", "complex_dds.wav");
+        fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME_COMPLEX);
         exit(2);
     }
 
@@ -163,9 +180,11 @@ int main(int argc, char *argv[])
 
     if (afCloseFile(outhandle) != 0)
     {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", "complex_dds.wav");
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME_COMPLEX);
         exit(2);
     }
+    afFreeFileSetup(filesetup);
+
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

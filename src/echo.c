@@ -28,13 +28,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo.c,v 1.8 2005/08/31 19:27:52 steveu Exp $
+ * $Id: echo.c,v 1.10 2005/11/11 12:34:33 steveu Exp $
  */
 
 /*! \file */
 
 /* TODO:
-   Finish the echo suppressor option, however nasty suppression may be
+   Finish the echo suppressor option, however nasty suppression may be.
    Add an option to reintroduce side tone at -24dB under appropriate conditions.
    Improve double talk detector (iterative!)
 */
@@ -47,7 +47,8 @@
    peaky autocorrelation function is a clear sign of a narrowband signal. We only need
    perform the autocorrelation at well spaced intervals, so the compute load is not too
    great. Multiple successive autocorrelation functions with a similar peaky shape are a
-   clear indication of a stationary narrowband signal. */
+   clear indication of a stationary narrowband signal. Using TKEO, it should be possible to
+   greatly reduce the compute requirement for narrowband detection. */
 
 /* The FIR taps must be adapted as 32 bit values, to get the necessary finesse
    in the adaption process. However, they are applied as 16 bit values (bits 30-15
@@ -75,7 +76,8 @@
 
    When we revert to an older set of taps, we must replace both the 16 bit and 32 bit
    working tap sets. The saved 16 bit values are good enough to also be used as a replacement
-   for the 32 bit values. */
+   for the 32 bit values. We loose the fractions, but they should soon settle down in a
+   reasonable way. */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -100,94 +102,53 @@
 #define MIN_TX_POWER_FOR_ADAPTION   64*64
 #define MIN_RX_POWER_FOR_ADAPTION   64*64
 
-static void autocorrelation(int16_t s[], int len, int32_t acf[], int alen)
+static int narrowband_detect(echo_can_state_t *ec)
 {
-    register int k;
-    register int i;
-    register float *sf;
-    register float *sfl;
-    register float temp;
+    int k;
+    int i;
+    float temp;
     float scale;
-    float s_f[128];
+    float sf[128];
     float f_acf[128];
-
-    sf = s_f;
+    int32_t acf[28];
+    int score;
+    int len = 32;
+    int alen = 9;
+    
+    k = ec->curr_pos;
     for (i = 0;  i < len;  i++)
-        sf[i] = s[i];
+    {
+        sf[i] = ec->fir_state.history[k++];
+        if (k >= 256)
+            k = 0;
+    }
     for (k = 0;  k < alen;  k++)
     {
-        sfl = sf - k;
         temp = 0;
         for (i = k;  i < len;  i++)
-            temp += sf[i]*sfl[i];
+            temp += sf[i]*sf[i - k];
         f_acf[k] = temp;
     }
     scale = 0x1FFFFFFF/f_acf[0];
     for (k = 0;  k < alen;  k++)
         acf[k] = f_acf[k]*scale;
-}
-
-#if 0
-void reflection_coefficients(int32_t acf[], int16_t r[]);
-
-void reflection_coefficients(int32_t acf[], int16_t r[])
-{
-    int i;
-    int m;
-    int n;
-    register int32_t temp;
-    int xacf[9];
-    int p[9];
-    int k[9];
-
-    /* Schur recursion with 16 bit arithmetic. */
-    if (acf[0] == 0)
+    score = 0;
+    for (i = 0;  i < 9;  i++)
     {
-        for (i = 8;  i--;  *r++ = 0)
-            ;
-        return;
-    }
-
-    temp = gsm_norm(acf[0]);
-
-    for (i = 0;  i <= 8;  i++)
-        xacf[i] = acf[i] >> (16 - temp);
-
-    for (i = 1;  i <= 7;  i++)
-        k[i] = xacf[i];
-    for (i = 0;  i <= 8;  i++)
-        p[i] = xacf[i];
-
-    /* Compute the reflection coefficients */
-    for (n = 1;  n <= 8;  n++, r++)
-    {
-	temp = abs(p[1]);
-	if (p[0] < temp)
+        if (ec->last_acf[i] >= 0  &&  acf[i] >= 0)
         {
-	    for (i = n;  i <= 8;  i++)
-                *r++ = 0;
-	    return;
-	}
-
-	*r = temp/p[0];
-
-	if (p[1] > 0)
-            *r = -*r;
-
-	if (n == 8)
-            return; 
-
-	/* Schur recursion */
-	p[0] += p[1]*(*r);
-
-	for (m = 1;  m <= 8 - n;  m++)
+            if ((ec->last_acf[i] >> 1) < acf[i]  &&  acf[i] < (ec->last_acf[i] << 1))
+                score++;
+        }
+        else if (ec->last_acf[i] < 0  &&  acf[i] < 0)
         {
-	    p[m] = p[m + 1] + k[m]*(*r);
-	    k[m] += p[m + 1]*(*r);
-	}
+            if ((ec->last_acf[i] >> 1) > acf[i]  &&  acf[i] > (ec->last_acf[i] << 1))
+                score++;
+        }
     }
+    memcpy(ec->last_acf, acf, alen*sizeof(ec->last_acf[0]));
+    return score;
 }
-#endif
 
 static inline void lms_adapt(echo_can_state_t *ec, int factor)
 {
@@ -230,7 +191,7 @@ static inline void lms_adapt(echo_can_state_t *ec, int factor)
         i -= 4;
     )
     emms();
-#elif 1
+#elif 0
     /* Update the FIR taps */
     for (i = ec->taps - 1;  i >= 0;  i--)
     {
@@ -239,7 +200,7 @@ static inline void lms_adapt(echo_can_state_t *ec, int factor)
         ec->fir_taps32[i] -= (ec->fir_taps32[i] >> 23);
         ec->fir_taps32[i] += (ec->fir_state.history[i + ec->curr_pos]*factor);
         ec->latest_correction = (ec->fir_state.history[i + ec->curr_pos]*factor);
-        //ec->fir_state.coeffs[i] = ec->fir_taps32[i] >> 15;
+        ec->fir_taps16[ec->tap_set][i] = ec->fir_taps32[i] >> 15;
     }
 #else
     int offset1;
@@ -251,12 +212,12 @@ static inline void lms_adapt(echo_can_state_t *ec, int factor)
     for (i = ec->taps - 1;  i >= offset1;  i--)
     {
         ec->fir_taps32[i] += (ec->fir_state.history[i - offset1]*factor);
-        ec->fir_state.coeffs[i] = ec->fir_taps32[i] >> 15;
+        ec->fir_taps16[ec->tap_set][i] = ec->fir_taps32[i] >> 15;
     }
     for (  ;  i >= 0;  i--)
     {
         ec->fir_taps32[i] += (ec->fir_state.history[i + offset2]*factor);
-        ec->fir_state.coeffs[i] = ec->fir_taps32[i] >> 15;
+        ec->fir_taps16[ec->tap_set][i] = ec->fir_taps32[i] >> 15;
     }
 #endif
 }
@@ -297,25 +258,25 @@ echo_can_state_t *echo_can_create(int len, int adaption_mode)
                  ec->fir_taps16[0],
                  ec->taps);
     ec->rx_power_threshold = 10000000;
-    ec->adaption_mode = adaption_mode;
     ec->geigel_max = 0;
     ec->geigel_lag = 0;
     ec->dtd_onset = FALSE;
     ec->tap_set = 0;
     ec->tap_rotate_counter = 1600;
     ec->cng_level = 1000;
+    echo_can_adaption_mode(ec, adaption_mode);
     return  ec;
 }
 /*- End of function --------------------------------------------------------*/
 
 void echo_can_free(echo_can_state_t *ec)
 {
+    int i;
+    
     fir16_free(&ec->fir_state);
     free(ec->fir_taps32);
-    free(ec->fir_taps16[0]);
-    free(ec->fir_taps16[1]);
-    free(ec->fir_taps16[2]);
-    free(ec->fir_taps16[3]);
+    for (i = 0;  i < 4;  i++)
+        free(ec->fir_taps16[i]);
     free(ec);
 }
 /*- End of function --------------------------------------------------------*/
@@ -330,13 +291,10 @@ void echo_can_flush(echo_can_state_t *ec)
 {
     int i;
 
-    ec->tx_power[3] = 0;
-    ec->tx_power[2] = 0;
-    ec->tx_power[1] = 0;
-    ec->tx_power[0] = 0;
-    ec->rx_power[2] = 0;
-    ec->rx_power[1] = 0;
-    ec->rx_power[0] = 0;
+    for (i = 0;  i < 4;  i++)
+        ec->tx_power[i] = 0;
+    for (i = 0;  i < 3;  i++)
+        ec->rx_power[i] = 0;
     ec->clean_rx_power = 0;
     ec->nonupdate_dwell = 0;
 
@@ -365,8 +323,7 @@ void echo_can_flush(echo_can_state_t *ec)
     ec->latest_correction = 0;
 
     memset(ec->last_acf, 0, sizeof(ec->last_acf));
-    memset(ec->acf, 0, sizeof(ec->acf));
-    ec->acf_count = 0;
+    ec->narrowband_count = 0;
     ec->narrowband_score = 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -378,6 +335,7 @@ int16_t echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t rx)
     int32_t echo_value;
     int clean_rx;
     int nsuppr;
+    int score;
     int i;
 
 sample_no++;
@@ -400,7 +358,7 @@ sample_no++;
 
     /* And the answer is..... */
     clean_rx = rx - echo_value;
-
+printf("echo is %d\n", echo_value);
     /* That was the easy part. Now we need to adapt! */
     if (ec->nonupdate_dwell > 0)
         ec->nonupdate_dwell--;
@@ -432,56 +390,35 @@ sample_no++;
             /* There is no (or little) far-end speech. */
             if (ec->nonupdate_dwell == 0)
             {
-                if ((ec->acf_count++)%160 == 0)
+                if (++ec->narrowband_count >= 160)
                 {
-                    autocorrelation(&ec->fir_state.history[ec->curr_pos], 64, ec->acf, 9);
+                    ec->narrowband_count = 0;
+                    score = narrowband_detect(ec);
+printf("Do the narrowband test %d at %d\n", score, ec->curr_pos);
+                    if (score > 6)
                     {
-                        int i;
-                        int score;
-
-                        score = 0;
-                        for (i = 0;  i < 9;  i++)
+                        if (ec->narrowband_score == 0)
+                            memcpy(ec->fir_taps16[3], ec->fir_taps16[(ec->tap_set + 1)%3], ec->taps*sizeof(int16_t));
+                        ec->narrowband_score += score;
+                    }
+                    else
+                    {
+                        if (ec->narrowband_score > 200)
                         {
-                            if (ec->last_acf[i] >= 0  &&  ec->acf[i] >= 0)
-                            {
-                                if ((ec->last_acf[i] >> 1) < ec->acf[i]  &&  ec->acf[i] < (ec->last_acf[i] << 1))
-                                    score++;
-                            }
-                            else if (ec->last_acf[i] < 0  &&  ec->acf[i] < 0)
-                            {
-                                if ((ec->last_acf[i] >> 1) > ec->acf[i]  &&  ec->acf[i] > (ec->last_acf[i] << 1))
-                                    score++;
-                            }
+printf("Revert to %d at %d\n", (ec->tap_set + 1)%3, sample_no);
+                            memcpy(ec->fir_taps16[ec->tap_set], ec->fir_taps16[3], ec->taps*sizeof(int16_t));
+                            memcpy(ec->fir_taps16[(ec->tap_set - 1)%3], ec->fir_taps16[3], ec->taps*sizeof(int16_t));
+                            for (i = 0;  i < ec->taps;  i++)
+                                ec->fir_taps32[i] = ec->fir_taps16[3][i] << 15;
+                            ec->tap_rotate_counter = 1600;
                         }
-                        //for (i = 0;  i < 9;  i++)
-                        //    printf("%12d ", ec->acf[i]);
-                        //printf("%12d\n", score);
-                        if (score > 6)
-                        {
-                            if (ec->narrowband_score == 0)
-                                memcpy(ec->fir_taps16[3], ec->fir_taps16[(ec->tap_set + 1)%3], ec->taps*sizeof(int16_t));
-                            ec->narrowband_score += score;
-                        }
-                        else
-                        {
-                            if (ec->narrowband_score > 200)
-                            {
-//printf("Revert to %d\n", (ec->tap_set + 1)%3);
-                                memcpy(ec->fir_taps16[ec->tap_set], ec->fir_taps16[3], ec->taps*sizeof(int16_t));
-                                memcpy(ec->fir_taps16[(ec->tap_set - 1)%3], ec->fir_taps16[3], ec->taps*sizeof(int16_t));
-                                for (i = 0;  i < ec->taps;  i++)
-                                    ec->fir_taps32[i] = ec->fir_taps16[3][i] << 15;
-                                ec->tap_rotate_counter = 1600;
-                            }
-                            ec->narrowband_score = 0;
-                        }
-                        memcpy(ec->last_acf, ec->acf, sizeof(ec->acf));
+                        ec->narrowband_score = 0;
                     }
                 }
                 ec->dtd_onset = FALSE;
                 if (--ec->tap_rotate_counter <= 0)
                 {
-//printf("Rotate to %d\n", ec->tap_set);
+printf("Rotate to %d at %d\n", ec->tap_set, sample_no);
                     ec->tap_rotate_counter = 1600;
                     ec->tap_set++;
                     if (ec->tap_set > 2)
@@ -489,7 +426,7 @@ sample_no++;
                     ec->fir_state.coeffs = ec->fir_taps16[ec->tap_set];
                 }
                 /* ... and we are not in the dwell time from previous speech. */
-                if (!(ec->adaption_mode & ECHO_CAN_FREEZE_ADAPTION))
+                if ((ec->adaption_mode & ECHO_CAN_USE_ADAPTION)  &&   ec->narrowband_score == 0)
                 {
                     //nsuppr = saturate((clean_rx << 16)/ec->tx_power[1]);
                     //nsuppr = clean_rx/ec->tx_power[1];
@@ -519,7 +456,7 @@ sample_no++;
         {
             if (!ec->dtd_onset)
             {
-//printf("Revert to %d\n", (ec->tap_set + 1)%3);
+printf("Revert to %d at %d\n", (ec->tap_set + 1)%3, sample_no);
                 memcpy(ec->fir_taps16[ec->tap_set], ec->fir_taps16[(ec->tap_set + 1)%3], ec->taps*sizeof(int16_t));
                 memcpy(ec->fir_taps16[(ec->tap_set - 1)%3], ec->fir_taps16[(ec->tap_set + 1)%3], ec->taps*sizeof(int16_t));
                 for (i = 0;  i < ec->taps;  i++)
@@ -574,7 +511,8 @@ sample_no++;
             {
                 /* Very elementary comfort noise generation */
                 /* Just random numbers rolled off very vaguely Hoth-like */
-                ec->cng_filter += ((int16_t) (rand() & 0xFFFF) - ec->cng_filter) >> 2;
+                ec->cng_rndnum = 1664525U*ec->cng_rndnum + 1013904223U;
+                ec->cng_filter = ((ec->cng_rndnum & 0xFFFF) - 32768 + 5*ec->cng_filter) >> 3;
                 clean_rx = (ec->cng_filter*ec->cng_level) >> 17;
                 /* TODO: A better CNG, with more accurate (tracking) spectral shaping! */
             }
@@ -594,6 +532,7 @@ sample_no++;
         ec->cng = FALSE;
     }
 
+printf("Narrowband score %4d %5d at %d\n", ec->narrowband_score, score, sample_no);
     /* Roll around the rolling buffer */
     if (ec->curr_pos <= 0)
         ec->curr_pos = ec->taps;

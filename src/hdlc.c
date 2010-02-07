@@ -23,13 +23,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.c,v 1.15 2005/10/08 04:40:57 steveu Exp $
+ * $Id: hdlc.c,v 1.20 2005/11/28 13:43:34 steveu Exp $
  */
 
 /*! \file */
-
-//#define _ISOC9X_SOURCE  1
-//#define _ISOC99_SOURCE  1
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -41,13 +38,12 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/power_meter.h"
-#include "spandsp/fsk.h"
+#include "spandsp/async.h"
 #include "spandsp/hdlc.h"
+#include "spandsp/fsk.h"
+#include "spandsp/alaw_ulaw.h"
 
 #include "spandsp/timing.h"
-
-/* Yes, yes, I know. HDLC is not DSP. It is needed to go with some DSP
-   components, though. */
 
 static const uint32_t crc_itu32_table[] =
 {
@@ -117,21 +113,20 @@ static const uint32_t crc_itu32_table[] =
     0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
 };
 
-uint32_t crc_itu32_calc(const uint8_t *buf, int len)
+uint32_t crc_itu32_calc(const uint8_t *buf, int len, uint32_t crc)
 {
-    uint32_t crc = 0xFFFFFFFF;
-
     while (len-- > 0)
         crc = ((crc >> 8) & 0x00FFFFFF) ^ crc_itu32_table[(crc ^ *buf++) & 0xFF];
-    return crc ^ 0xFFFFFFFF;
+    return crc;
 }
 /*- End of function --------------------------------------------------------*/
 
 int crc_itu32_append(uint8_t *buf, int len)
 {
-    uint32_t crc = 0xFFFFFFFF;
+    uint32_t crc;
     int new_len;
 
+    crc = 0xFFFFFFFF;
     new_len = len + 4;
     while (len-- > 0)
         crc = ((crc >> 8) & 0x00FFFFFF) ^ crc_itu32_table[(crc ^ *buf++) & 0xFF];
@@ -146,8 +141,9 @@ int crc_itu32_append(uint8_t *buf, int len)
 
 int crc_itu32_check(const uint8_t *buf, int len)
 {
-    uint32_t crc = 0xFFFFFFFF;
+    uint32_t crc;
 
+    crc = 0xFFFFFFFF;
     while (len-- > 0)
         crc = ((crc >> 8) & 0x00FFFFFF) ^ crc_itu32_table[(crc ^ *buf++) & 0xFF];
     return (crc == 0xDEBB20E3);
@@ -190,21 +186,20 @@ static const uint16_t crc_itu16_table[] =
     0x7BC7, 0x6A4E, 0x58D5, 0x495C, 0x3DE3, 0x2C6A, 0x1EF1, 0x0F78
 };
 
-uint16_t crc_itu16_calc(const uint8_t *buf, int len)
+uint16_t crc_itu16_calc(const uint8_t *buf, int len, uint16_t crc)
 {
-    uint16_t crc = 0xFFFF;
-
     while (len-- > 0)
         crc = (crc >> 8) ^ crc_itu16_table[(crc ^ *buf++) & 0xFF];
-    return crc ^ 0xFFFF;
+    return crc;
 }
 /*- End of function --------------------------------------------------------*/
 
 int crc_itu16_append(uint8_t *buf, int len)
 {
-    uint16_t crc = 0xFFFF;
+    uint16_t crc;
     int new_len;
 
+    crc = 0xFFFF;
     new_len = len + 2;
     while (len-- > 0)
         crc = (crc >> 8) ^ crc_itu16_table[(crc ^ *buf++) & 0xFF];
@@ -217,8 +212,9 @@ int crc_itu16_append(uint8_t *buf, int len)
 
 int crc_itu16_check(const uint8_t *buf, int len)
 {
-    uint16_t crc = 0xFFFF;
+    uint16_t crc;
 
+    crc = 0xFFFF;
     while (len-- > 0)
         crc = (crc >> 8) ^ crc_itu16_table[(crc ^ *buf++) & 0xFF];
     return (crc & 0xFFFF) == 0xF0B8;
@@ -240,6 +236,7 @@ void hdlc_rx_bit(hdlc_rx_state_t *s, int new_bit)
         case PUTBIT_CARRIER_DOWN:
         case PUTBIT_TRAINING_SUCCEEDED:
         case PUTBIT_TRAINING_FAILED:
+        case PUTBIT_END_OF_DATA:
             s->frame_handler(s->user_data, TRUE, NULL, new_bit);
             break;
         default:
@@ -427,94 +424,75 @@ void hdlc_tx_frame(hdlc_tx_state_t *s, const uint8_t *frame, int len)
 {
     int i;
     int j;
+    int x;
     int byte_in_progress;
     int bits;
+    int forming;
     uint32_t crc;
     
     if (s->crc_bytes == 2)
-        crc = crc_itu16_calc(frame, len);
+        crc = crc_itu16_calc(frame, len, 0xFFFF) ^ 0xFFFF;
     else
-        crc = crc_itu32_calc(frame, len);
+        crc = crc_itu32_calc(frame, len, 0xFFFFFFFF) ^ 0xFFFFFFFF;
 
-    if (s->num_bits)
-    {
-        /* Complete the flag byte currently in progress */
-        s->buffer[s->len] = s->idle_byte >> (8 - s->num_bits);
-    }
+    /* Complete the flag octet currently in progress */
+    forming = s->idle_byte >> (8 - s->num_bits);
     bits = s->num_bits;
     byte_in_progress = 0;
+
     while (len--)
     {
-        byte_in_progress |= ((int) *frame++ << 8);
+        byte_in_progress = (int) *frame++;
         for (i = 0;  i < 8;  i++)
         {
-            if (byte_in_progress & 0x0100)
-            {
-                s->buffer[s->len] = (s->buffer[s->len] << 1) | 0x01;
-                if ((byte_in_progress & 0x1F0) == 0x1F0)
-                {
-                    byte_in_progress &= ~0x1F0;
-                    if (++bits == 8)
-                    {
-                        s->len++;
-                        bits = 0;
-                    }
-                    s->buffer[s->len] <<= 1;
-                }
-            }
-            else
-            {
-                s->buffer[s->len] <<= 1;
-            }
-            if (++bits == 8)
-            {
-                s->len++;
-                bits = 0;
-            }
+            forming = (forming << 1) | (byte_in_progress & 0x01);
             byte_in_progress >>= 1;
+            if ((forming & 0x1F) == 0x1F)
+            {
+                /* There are 5 ones - stuff */
+                forming <<= 1;
+                bits++;
+            }
+        }
+        /* An input byte will generate between 8 and 10 output bits */
+        s->buffer[s->len++] = forming >> bits;
+        if (bits >= 8)
+        {
+            bits -= 8;
+            s->buffer[s->len++] = forming >> bits;
         }
     }
     /* Now add the CRC */
     for (j = 0;  j < s->crc_bytes;  j++)
     {
-        byte_in_progress |= ((crc & 0xFF) << 8);
+        byte_in_progress = (crc & 0xFF);
         for (i = 0;  i < 8;  i++)
         {
-            if (byte_in_progress & 0x0100)
-            {
-                s->buffer[s->len] = (s->buffer[s->len] << 1) | 0x01;
-                if ((byte_in_progress & 0x1F0) == 0x1F0)
-                {
-                    byte_in_progress &= ~0x1F0;
-                    if (++bits == 8)
-                    {
-                        s->len++;
-                        bits = 0;
-                    }
-                    s->buffer[s->len] <<= 1;
-                }
-            }
-            else
-            {
-                s->buffer[s->len] <<= 1;
-            }
-            if (++bits == 8)
-            {
-                s->len++;
-                bits = 0;
-            }
+            forming = (forming << 1) | (byte_in_progress & 0x01);
             byte_in_progress >>= 1;
+            if ((forming & 0x1F) == 0x1F)
+            {
+                /* There are 5 ones - stuff */
+                forming <<= 1;
+                bits++;
+            }
+        }
+        /* An input byte will generate between 8 and 10 output bits */
+        s->buffer[s->len++] = forming >> bits;
+        if (bits >= 8)
+        {
+            bits -= 8;
+            s->buffer[s->len++] = forming >> bits;
         }
         crc >>= 8;
     }
     /* Finish off the current byte with some flag bits. If we are at the
        start of a byte we need a whole byte of flag to ensure we cannot
-       end up with back to back frames, and no flag byte at all */
-    s->buffer[s->len] <<= (8 - bits);
-    s->buffer[s->len++] |= (0x7E >> bits);
+       end up with back to back frames, and no flag octet at all */
+    s->buffer[s->len++] = (forming << (8 - bits)) | (0x7E >> bits);
     /* Now create a full byte of flag */
+    s->idle_byte = (0x7E7E >> bits) & 0xFF;
     s->num_bits = bits;
-    s->idle_byte = (0x7E7E >> s->num_bits) & 0xFF;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -551,7 +529,7 @@ int hdlc_tx_getbyte(hdlc_tx_state_t *s)
             s->underflow_reported = TRUE;
         }
     }
-    return  txbyte;
+    return txbyte;
 }
 /*- End of function --------------------------------------------------------*/
 

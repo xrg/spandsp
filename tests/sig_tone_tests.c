@@ -23,11 +23,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone_tests.c,v 1.4 2005/09/01 17:06:45 steveu Exp $
+ * $Id: sig_tone_tests.c,v 1.8 2006/01/31 05:34:28 steveu Exp $
  */
 
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
+/*! \file */
+
+/*! \page sig_tone_tests_page The signaling tone processor tests
+\section sig_tone_tests_sec_1 What does it do?
+???.
+
+\section sig_tone_tests_sec_2 How does it work?
+???.
+*/
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -121,7 +132,7 @@ void map_response(sig_tone_state_t *s)
     for (f = 1;  f < 4000;  f++)
     {
         phase_rate = dds_phase_step(f);
-        scaling = dds_scaling(-10);
+        scaling = dds_scaling_dbm0(-10);
         phase_acc = 0;
         for (i = 0;  i < 8192;  i++)
             buf[i] = dds_mod(&phase_acc, phase_rate, scaling, 0);
@@ -221,6 +232,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
+    afFreeFileSetup(filesetup);
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

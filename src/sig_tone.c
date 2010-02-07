@@ -24,22 +24,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.c,v 1.5 2005/08/31 19:27:52 steveu Exp $
+ * $Id: sig_tone.c,v 1.8 2006/01/31 05:34:27 steveu Exp $
  */
 
 /*! \file */
-
-#define	_ISOC9X_SOURCE	1
-#define _ISOC99_SOURCE	1
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
 #include <math.h>
 #include <memory.h>
+#include <string.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/dc_restore.h"
@@ -484,7 +483,7 @@ int sig_tone_tx(sig_tone_state_t *s, int16_t amp[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-int sig_tone_init(sig_tone_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data)
+sig_tone_state_t *sig_tone_init(sig_tone_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data)
 {
     int32_t itone;
     int i;
@@ -492,7 +491,7 @@ int sig_tone_init(sig_tone_state_t *s, int tone_type, sig_tone_func_t sig_update
     double tone;
 
     if (tone_type <= 0  ||  tone_type > 3)
-        return -1;
+        return NULL;
     /*endif*/
 
     memset(s, 0, sizeof(*s));
@@ -509,15 +508,15 @@ int sig_tone_init(sig_tone_state_t *s, int tone_type, sig_tone_func_t sig_update
     else
         s->phase_rate[1] = 0;
     /*endif*/
-    s->tone_scaling[0] = dds_scaling(s->desc->tone_amp[0]);
-    s->tone_scaling[1] = dds_scaling(s->desc->tone_amp[1]);
+    s->tone_scaling[0] = dds_scaling_dbm0(s->desc->tone_amp[0]);
+    s->tone_scaling[1] = dds_scaling_dbm0(s->desc->tone_amp[1]);
 
     /* Set up the receive side */
     s->flat_mode_timeout = 0;
     s->notch_insertion_timeout = 0;
     s->tone_persistence_timeout = 0;
     s->signaling_state_duration = 0;
-    return 0;
+    return s;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

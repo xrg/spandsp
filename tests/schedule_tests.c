@@ -23,11 +23,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule_tests.c,v 1.3 2005/09/01 17:06:45 steveu Exp $
+ * $Id: schedule_tests.c,v 1.6 2005/12/29 12:46:21 steveu Exp $
  */
 
-//#define _ISOC9X_SOURCE  1
-//#define _ISOC99_SOURCE  1
+/*! \page schedule_tests_page Event scheduler tests
+\section schedule_tests_page_sec_1 What does it do?
+???.
+
+\section schedule_tests_page_sec_2 How does it work?
+???.
+*/
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -64,6 +73,7 @@ int main(int argc, char *argv[])
     {
         sp_schedule_update(&sched, 160);
     }
+    sp_schedule_release(&sched);
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

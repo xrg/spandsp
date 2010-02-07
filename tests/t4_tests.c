@@ -25,8 +25,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.17 2005/09/01 17:06:45 steveu Exp $
+ * $Id: t4_tests.c,v 1.19 2006/02/04 14:14:58 steveu Exp $
  */
+
+/*! \file */
+
+/*! \page t4_tests_page T.4 tests
+\section t4_tests_page_sec_1 What does it do
+These tests exercise the image compression and decompression methods defined
+in ITU specifications T.4 and T.6.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,6 +87,8 @@ int main(int argc, char* argv[])
             compression = T4_COMPRESSION_ITU_T4_1D;
         else if (strcmp(argv[i], "-2") == 0)
             compression = T4_COMPRESSION_ITU_T4_2D;
+        else if (strcmp(argv[i], "-6") == 0)
+            compression = T4_COMPRESSION_ITU_T6;
         i++;
     }
     /* Create a send and a receive end */
@@ -105,7 +115,7 @@ int main(int argc, char* argv[])
             exit(0);
         }
         
-        t4_rx_set_rx_encoding(&receive_state, T4_COMPRESSION_ITU_T4_2D);
+        t4_rx_set_rx_encoding(&receive_state, compression);
         t4_rx_set_row_resolution(&receive_state, T4_X_RESOLUTION_R8);
         t4_rx_set_column_resolution(&receive_state, T4_Y_RESOLUTION_FINE);
         t4_rx_set_columns(&receive_state, XSIZE);

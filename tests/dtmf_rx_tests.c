@@ -1,8 +1,8 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * dtmf_tests.c - Test the DTMF detector against the spec., whatever the spec.
- *                may be :)
+ * dtmf_rx_tests.c - Test the DTMF detector against the spec., whatever the spec.
+ *                   may be :)
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_tests.c,v 1.7 2005/09/01 17:06:45 steveu Exp $
+ * $Id: dtmf_rx_tests.c,v 1.10 2006/02/06 15:00:56 steveu Exp $
  */
 
 /*
@@ -45,8 +45,8 @@
  *
  */
 
-/*! \page DTMF_rx_tests_page DTMF receiver tests
-\section DTMF_rx_tests_page_sec_1 What does it do?
+/*! \page dtmf_rx_tests_page DTMF receiver tests
+\section dtmf_rx_tests_page_sec_1 What does it do?
 
 The DTMF detection test suite performs similar tests to the Mitel test tape,
 traditionally used for testing DTMF receivers. Mitel seem to have discontinued
@@ -85,8 +85,9 @@ and it is their right to do as they wish with it. Currently I see no indication
 they wish to give it away for free. 
 */
 
-#define _ISOC9X_SOURCE  1
-#define _ISOC99_SOURCE  1
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -117,10 +118,14 @@ they wish to give it away for free.
 #define DTMF_PAUSE                  400
 #define DTMF_CYCLE                  (DTMF_DURATION + DTMF_PAUSE)
 
-#define BELLCORE_DIR    "/home/steveu/bellcore/"
+#define ALL_POSSIBLE_DIGITS         "123A456B789C*0#D"
+
+#define MITEL_DIR                   "../itutests/mitel/"
+#define BELLCORE_DIR                "../itutests/bellcore/"
 
 char *bellcore_files[] =
 {
+    MITEL_DIR    "mitel-cm7291-talkoff.wav",
     BELLCORE_DIR "tr-tsy-00763-1.wav",
     BELLCORE_DIR "tr-tsy-00763-2.wav",
     BELLCORE_DIR "tr-tsy-00763-3.wav",
@@ -143,8 +148,10 @@ float dtmf_col[] =
 
 char dtmf_positions[] = "123A" "456B" "789C" "*0#D";
 
+int callback_hit;
 int callback_ok;
 int callback_roll;
+int step;
 
 static void my_dtmf_gen_init(float low_fudge,
                              int low_level,
@@ -160,16 +167,16 @@ static void my_dtmf_gen_init(float low_fudge,
     {
         for (col = 0;  col < 4;  col++)
         {
-            make_tone_gen_descriptor (&my_dtmf_digit_tones[row*4 + col],
-                                      dtmf_row[row]*(1.0 + low_fudge),
-                                      low_level,
-                                      dtmf_col[col]*(1.0 + high_fudge),
-                                      high_level,
-                                      duration,
-                                      gap,
-                                      0,
-                                      0,
-                                      FALSE);
+            make_tone_gen_descriptor(&my_dtmf_digit_tones[row*4 + col],
+                                     dtmf_row[row]*(1.0 + low_fudge),
+                                     low_level,
+                                     dtmf_col[col]*(1.0 + high_fudge),
+                                     high_level,
+                                     duration,
+                                     gap,
+                                     0,
+                                     0,
+                                     FALSE);
         }
     }
 }
@@ -187,7 +194,7 @@ static int my_dtmf_generate(int16_t amp[], char *digits)
         cp = strchr(dtmf_positions, *digits);
         if (cp)
         {
-            tone_gen_init (&tone, &my_dtmf_digit_tones[cp - dtmf_positions]);
+            tone_gen_init(&tone, &my_dtmf_digit_tones[cp - dtmf_positions]);
             len += tone_gen(&tone, amp + len, 1000);
         }
         digits++;
@@ -203,24 +210,22 @@ static void alaw_munge(int16_t amp[], int len)
     
     for (i = 0;  i < len;  i++)
     {
-        alaw = linear_to_alaw (amp[i]);
-        amp[i] = alaw_to_linear (alaw);
+        alaw = linear_to_alaw(amp[i]);
+        amp[i] = alaw_to_linear(alaw);
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-#define ALL_POSSIBLE_DIGITS     "123A456B789C*0#D"
-
-static void digit_delivery(void *data, char *digits, int len)
+static void digit_delivery(void *data, const char *digits, int len)
 {
     int i;
     int seg;
     char *s = ALL_POSSIBLE_DIGITS;
     char *t;
 
+    callback_hit = TRUE;
     if (data == (void *) 0x12345678)
     {
-        callback_ok = TRUE;
         t = s + callback_roll;
         seg = 16 - callback_roll;
         for (i = 0;  i < len;  i += seg, seg = 16)
@@ -244,6 +249,60 @@ static void digit_delivery(void *data, char *digits, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
+static void digit_status(void *data, int signal)
+{
+    char *s = ALL_POSSIBLE_DIGITS;
+    int len;
+    static int last_step = 0;
+    static int first = TRUE;
+
+    callback_hit = TRUE;
+    len = step - last_step;
+    if (data == (void *) 0x12345678)
+    {
+        if (len < 320  ||  len > 480)
+        {
+            if (first)
+            {
+                /* At the beginning the apparent duration is expected to be wrong */
+                first = FALSE;
+            }
+            else
+            {
+                printf("Failed for signal %s length %d at %d\n", (callback_roll & 1)  ?  "on"  :  "off", len, step);
+                callback_ok = FALSE;
+            }
+        }
+        if (callback_roll & 1)
+        {
+            if (signal != 0)
+            {
+                printf("Failed for signal %x instead of 0\n", signal);
+                callback_ok = FALSE;
+            }
+        }
+        else
+        {
+            if (signal != s[callback_roll >> 1])
+            {
+                printf("Failed for signal %x instead of %x\n", signal, s[callback_roll >> 1]);
+                callback_ok = FALSE;
+            }
+        }
+        if (++callback_roll >= 32)
+            callback_roll = 0;
+    }
+    else
+    {
+        callback_ok = FALSE;
+    }
+    last_step = step;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int16_t amp[1000000];
+static int16_t amp2[1000000];
+
 int main(int argc, char *argv[])
 {
     int duration;
@@ -259,7 +318,6 @@ int main(int argc, char *argv[])
     int nminus;
     float rrb;
     float rcfo;
-    int16_t amp[1000000];
     time_t now;
     dtmf_rx_state_t dtmf_state;
     awgn_state_t noise_source;
@@ -268,20 +326,34 @@ int main(int argc, char *argv[])
     AFfilehandle inhandle;
     int frames;
     float x;
+    int use_dialtone_filter;
+    tone_gen_descriptor_t dial_tone_desc;
+    tone_gen_state_t dial_tone;
 
+    use_dialtone_filter = FALSE;
+    for (i = 1;  i < argc;  i++)
+    {
+        if (strcmp(argv[i], "-f") == 0)
+        {
+            use_dialtone_filter = TRUE;
+            continue;
+        }
+    }
     time(&now);
     dtmf_rx_init(&dtmf_state, NULL, NULL);
+    if (use_dialtone_filter)
+        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1);
 
     /* Test 1: Mitel's test 1 isn't really a test. Its a calibration step,
        which has no meaning here. */
-    printf ("Test 1: Calibration\n");
-    printf ("    Passed\n");
+    printf("Test 1: Calibration\n");
+    printf("    Passed\n");
 
     /* Test 2: Decode check
        This is a sanity check, that all digits are reliably detected
        under ideal conditions.  Each possible digit repeated 10 times,
        with 50ms bursts. The level of each tone is about 6dB down from clip */
-    printf ("Test 2: Decode check\n");
+    printf("Test 2: Decode check\n");
     my_dtmf_gen_init(0.0, -3, 0.0, -3, 50, 50);
     s = ALL_POSSIBLE_DIGITS;
     digit[1] = '\0';
@@ -290,7 +362,7 @@ int main(int argc, char *argv[])
         digit[0] = *s++;
         for (i = 0;  i < 10;  i++)
         {
-            len = my_dtmf_generate (amp, digit);
+            len = my_dtmf_generate(amp, digit);
             alaw_munge(amp, len);
             dtmf_rx(&dtmf_state, amp, len);
 
@@ -298,14 +370,14 @@ int main(int argc, char *argv[])
 
             if (actual != 1  ||  buf[0] != digit[0])
             {
-                printf ("    Sent     '%s'\n", digit);
-                printf ("    Received '%s'\n", buf);
-                printf ("    Failed\n");
-                exit (2);
+                printf("    Sent     '%s'\n", digit);
+                printf("    Received '%s'\n", buf);
+                printf("    Failed\n");
+                exit(2);
             }
         }
     }
-    printf ("    Passed\n");
+    printf("    Passed\n");
 
     /* Test 3: Recognition bandwidth and channel centre frequency check.
        Use only the diagonal pairs of tones (digits 1, 5, 9 and D). Each
@@ -335,7 +407,7 @@ int main(int argc, char *argv[])
        and the results are quite inaccurate, if not a downright lie! However,
        it follows the Mitel procedure, so how can it be bad? :)
     */
-    printf ("Test 3: Recognition bandwidth and channel centre frequency check\n");
+    printf("Test 3: Recognition bandwidth and channel centre frequency check\n");
     s = "159D";
     digit[1] = '\0';
     while (*s)
@@ -344,7 +416,7 @@ int main(int argc, char *argv[])
         for (nplus = 0, i = 1;  i <= 60;  i++)
         {
             my_dtmf_gen_init((float) i/1000.0, -17, 0.0, -17, 50, 50);
-            len = my_dtmf_generate (amp, digit);
+            len = my_dtmf_generate(amp, digit);
             alaw_munge(amp, len);
             dtmf_rx(&dtmf_state, amp, len);
             nplus += dtmf_get(&dtmf_state, buf, 128);
@@ -352,29 +424,29 @@ int main(int argc, char *argv[])
         for (nminus = 0, i = -1;  i >= -60;  i--)
         {
             my_dtmf_gen_init((float) i/1000.0, -17, 0.0, -17, 50, 50);
-            len = my_dtmf_generate (amp, digit);
+            len = my_dtmf_generate(amp, digit);
             alaw_munge(amp, len);
             dtmf_rx(&dtmf_state, amp, len);
             nminus += dtmf_get(&dtmf_state, buf, 128);
         }
         rrb = (float) (nplus + nminus)/10.0;
         rcfo = (float) (nplus - nminus)/10.0;
-        printf ("    %c (low)  rrb = %5.2f%%, rcfo = %5.2f%%, max -ve = %5.2f, max +ve = %5.2f\n",
-                digit[0],
-                rrb,
-                rcfo,
-                (float) nminus/10.0,
-                (float) nplus/10.0);
+        printf("    %c (low)  rrb = %5.2f%%, rcfo = %5.2f%%, max -ve = %5.2f, max +ve = %5.2f\n",
+               digit[0],
+               rrb,
+               rcfo,
+               (float) nminus/10.0,
+               (float) nplus/10.0);
         if (rrb < 3.0 + rcfo  ||  rrb >= 15.0 + rcfo)
         {
-            printf ("    Failed\n");
-            exit (2);
+            printf("    Failed\n");
+            exit(2);
         }
 
         for (nplus = 0, i = 1;  i <= 60;  i++)
         {
             my_dtmf_gen_init(0.0, -17, (float) i/1000.0, -17, 50, 50);
-            len = my_dtmf_generate (amp, digit);
+            len = my_dtmf_generate(amp, digit);
             alaw_munge(amp, len);
             dtmf_rx(&dtmf_state, amp, len);
             nplus += dtmf_get(&dtmf_state, buf, 128);
@@ -382,26 +454,26 @@ int main(int argc, char *argv[])
         for (nminus = 0, i = -1;  i >= -60;  i--)
         {
             my_dtmf_gen_init(0.0, -17, (float) i/1000.0, -17, 50, 50);
-            len = my_dtmf_generate (amp, digit);
+            len = my_dtmf_generate(amp, digit);
             alaw_munge(amp, len);
             dtmf_rx(&dtmf_state, amp, len);
             nminus += dtmf_get(&dtmf_state, buf, 128);
         }
         rrb = (float) (nplus + nminus)/10.0;
         rcfo = (float) (nplus - nminus)/10.0;
-        printf ("    %c (high) rrb = %5.2f%%, rcfo = %5.2f%%, max -ve = %5.2f, max +ve = %5.2f\n",
-                digit[0],
-                rrb,
-                rcfo,
-                (float) nminus/10.0,
-                (float) nplus/10.0);
+        printf("    %c (high) rrb = %5.2f%%, rcfo = %5.2f%%, max -ve = %5.2f, max +ve = %5.2f\n",
+               digit[0],
+               rrb,
+               rcfo,
+               (float) nminus/10.0,
+               (float) nplus/10.0);
         if (rrb < 3.0 + rcfo  ||  rrb >= 15.0 + rcfo)
         {
-            printf ("    Failed\n");
-            exit (2);
+            printf("    Failed\n");
+            exit(2);
         }
     }
-    printf ("    Passed\n");
+    printf("    Passed\n");
 
     /* Test 4: Acceptable amplitude ratio (twist).
        Use only the diagonal pairs of tones (digits 1, 5, 9 and D). 
@@ -426,7 +498,7 @@ int main(int argc, char *argv[])
              steps, as the current tone generator has its amplitude set in
              1dB steps.
     */
-    printf ("Test 4: Acceptable amplitude ratio (twist)\n");
+    printf("Test 4: Acceptable amplitude ratio (twist)\n");
     s = "159D";
     digit[1] = '\0';
     while (*s)
@@ -436,34 +508,34 @@ int main(int argc, char *argv[])
         {
             my_dtmf_gen_init(0.0, -3, 0.0, i/10, 50, 50);
 
-            len = my_dtmf_generate (amp, digit);
+            len = my_dtmf_generate(amp, digit);
             alaw_munge(amp, len);
             dtmf_rx(&dtmf_state, amp, len);
             nplus += dtmf_get(&dtmf_state, buf, 128);
         }
-        printf ("    %c normal twist  = %.2fdB\n", digit[0], (float) nplus/10.0);
+        printf("    %c normal twist  = %.2fdB\n", digit[0], (float) nplus/10.0);
         if (nplus < 80)
         {
-            printf ("    Failed\n");
-            exit (2);
+            printf("    Failed\n");
+            exit(2);
         }
         for (nminus = 0, i = -30;  i >= -230;  i--)
         {
             my_dtmf_gen_init(0.0, i/10, 0.0, -3, 50, 50);
 
-            len = my_dtmf_generate (amp, digit);
+            len = my_dtmf_generate(amp, digit);
             alaw_munge(amp, len);
             dtmf_rx(&dtmf_state, amp, len);
             nminus += dtmf_get(&dtmf_state, buf, 128);
         }
-        printf ("    %c reverse twist = %.2fdB\n", digit[0], (float) nminus/10.0);
+        printf("    %c reverse twist = %.2fdB\n", digit[0], (float) nminus/10.0);
         if (nminus < 40)
         {
-            printf ("    Failed\n");
-            exit (2);
+            printf("    Failed\n");
+            exit(2);
         }
     }
-    printf ("    Passed\n");
+    printf("    Passed\n");
 
     /* Test 5: Dynamic range
        This test utilizes tone pair L1 H1 (digit 1). Thirty-five tone pair
@@ -474,18 +546,18 @@ int main(int argc, char *argv[])
        
        Well not really, but that is the Mitel test. Lets sweep a bit further,
        and see what the real range is */
-    printf ("Test 5: Dynamic range\n");
+    printf("Test 5: Dynamic range\n");
     for (nplus = 0, i = +3;  i >= -50;  i--)
     {
         my_dtmf_gen_init(0.0, i, 0.0, i, 50, 50);
 
-        len = my_dtmf_generate (amp, "1");
+        len = my_dtmf_generate(amp, "1");
         alaw_munge(amp, len);
         dtmf_rx(&dtmf_state, amp, len);
         nplus += dtmf_get(&dtmf_state, buf, 128);
     }
-    printf ("    Dynamic range = %ddB\n", nplus);
-    printf ("    Passed\n");
+    printf("    Dynamic range = %ddB\n", nplus);
+    printf("    Passed\n");
 
     /* Test 6: Guard time
        This test utilizes tone pair L1 H1 (digit 1). Four hundred pulses
@@ -496,18 +568,18 @@ int main(int argc, char *argv[])
        That is the Mitel test, and we will follow it. Its totally bogus,
        though. Just what the heck is a pass or fail here? */
 
-    printf ("Test 6: Guard time\n");
+    printf("Test 6: Guard time\n");
     for (nplus = 0, i = 490;  i >= 100;  i--)
     {
         my_dtmf_gen_init(0.0, -3, 0.0, -3, i/10, 50);
 
-        len = my_dtmf_generate (amp, "1");
+        len = my_dtmf_generate(amp, "1");
         alaw_munge(amp, len);
         dtmf_rx(&dtmf_state, amp, len);
         nplus += dtmf_get(&dtmf_state, buf, 128);
     }
-    printf ("    Guard time = %dms\n", (500 - nplus)/10);
-    printf ("    Passed\n");
+    printf("    Guard time = %dms\n", (500 - nplus)/10);
+    printf("    Passed\n");
 
     /* Test 7: Acceptable signal to noise ratio
        This test utilizes tone pair L1 H1, transmitted on a noise background.
@@ -521,19 +593,19 @@ int main(int argc, char *argv[])
        Well, that is the Mitel test, but it doesn't tell you what the
        decoder can really do. Lets do a more comprehensive test */
 
-    printf ("Test 7: Acceptable signal to noise ratio\n");
+    printf("Test 7: Acceptable signal to noise ratio\n");
     my_dtmf_gen_init(0.0, -3, 0.0, -3, 50, 50);
 
     for (j = -13;  j > -50;  j--)
     {
-        awgn_init (&noise_source, 1234567, j);
+        awgn_init(&noise_source, 1234567, j);
         for (i = 0;  i < 1000;  i++)
         {
-            len = my_dtmf_generate (amp, "1");
+            len = my_dtmf_generate(amp, "1");
 
             // TODO: Clip
             for (sample = 0;  sample < len;  sample++)
-                amp[sample] = saturate (amp[sample] + awgn (&noise_source));
+                amp[sample] = saturate(amp[sample] + awgn(&noise_source));
             
             alaw_munge(amp, len);
             dtmf_rx(&dtmf_state, amp, len);
@@ -544,13 +616,13 @@ int main(int argc, char *argv[])
         if (i == 1000)
             break;
     }
-    printf ("    Acceptable S/N ratio is %ddB\n", -3 - j);
+    printf("    Acceptable S/N ratio is %ddB\n", -3 - j);
     if (-3 - j > 26)
     {
-        printf ("    Failed\n");
-        exit (2);
+        printf("    Failed\n");
+        exit(2);
     }
-    printf ("    Passed\n");
+    printf("    Passed\n");
 
     /* The remainder of the Mitel tape is the talk-off test */
     /* Here we use the Bellcore test tapes (much tougher), in six
@@ -562,16 +634,24 @@ int main(int argc, char *argv[])
     memset(hit_types, '\0', sizeof(hit_types));
     for (j = 0;  bellcore_files[j][0];  j++)
     {
-        inhandle = afOpenFile(bellcore_files[j], "r", 0);
-        if (inhandle == AF_NULL_FILEHANDLE)
+        if ((inhandle = afOpenFile(bellcore_files[j], "r", 0)) == AF_NULL_FILEHANDLE)
         {
             printf("    Cannot open speech file '%s'\n", bellcore_files[j]);
             exit(2);
         }
-        x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1);
-        if (x != 2.0)
+        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
         {
             printf("    Unexpected frame size in speech file '%s'\n", bellcore_files[j]);
+            exit(2);
+        }
+        if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
+        {
+            printf("    Unexpected sample rate in speech file '%s'\n", bellcore_files[j]);
+            exit(2);
+        }
+        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
+        {
+            printf("    Unexpected number of channels in speech file '%s'\n", bellcore_files[j]);
             exit(2);
         }
         hits = 0;
@@ -601,20 +681,59 @@ int main(int argc, char *argv[])
             j += hit_types[i];
         }
     }
-    printf ("    %d hits in total\n", j);
+    printf("    %d hits in total\n", j);
     if (j > 470)
     {
         printf("    Failed\n");
-        exit (2);
+        exit(2);
     }
-    printf ("    Passed\n");
+    printf("    Passed\n");
+
+    /* Test dial tone tolerance */
+    printf("Test: Dial tone tolerance.\n");
+    if (use_dialtone_filter)
+        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1);
+    my_dtmf_gen_init(0.0, -15, 0.0, -15, 50, 50);
+
+    for (j = -30;  j < -3;  j++)
+    {
+        make_tone_gen_descriptor(&dial_tone_desc, 350, j, 440, j, 1, 0, 0, 0, TRUE);
+        tone_gen_init(&dial_tone, &dial_tone_desc);
+        for (i = 0;  i < 10;  i++)
+        {
+            len = my_dtmf_generate(amp, ALL_POSSIBLE_DIGITS);
+            tone_gen(&dial_tone, amp2, len);
+
+            for (sample = 0;  sample < len;  sample++)
+                amp[sample] = saturate(amp[sample] + amp2[sample]);
+            
+            alaw_munge(amp, len);
+            dtmf_rx(&dtmf_state, amp, len);
+
+            if (dtmf_get(&dtmf_state, buf, 128) != strlen(ALL_POSSIBLE_DIGITS))
+                break;
+        }
+        if (i != 10)
+            break;
+    }
+    printf("    Acceptable signal to dial tone ratio is %ddB\n", -15 - j);
+    if ((use_dialtone_filter  &&  (-15 - j > -12))
+        ||
+        (!use_dialtone_filter  &&  (-15 - j) > 10)) 
+    {
+        printf("    Failed\n");
+        exit(2); 
+    }
+    printf("    Passed\n");
 
     /* Test the callback mode for delivering detected digits */
-
     printf("Test: Callback digit delivery mode.\n");
-    callback_ok = FALSE;
+    callback_hit = FALSE;
+    callback_ok = TRUE;
     callback_roll = 0;
     dtmf_rx_init(&dtmf_state, digit_delivery, (void *) 0x12345678);
+    if (use_dialtone_filter)
+        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1);
     my_dtmf_gen_init(0.0, -10, 0.0, -10, 50, 50);
     for (i = 1;  i < 10;  i++)
     {
@@ -622,18 +741,50 @@ int main(int argc, char *argv[])
         for (j = 0;  j < i;  j++)
             len += my_dtmf_generate(amp + len, ALL_POSSIBLE_DIGITS);
         dtmf_rx(&dtmf_state, amp, len);
-        if (!callback_ok)
+        if (!callback_hit  ||  !callback_ok)
             break;
     }
-    if (!callback_ok)
+    if (!callback_hit  ||  !callback_ok)
     {
         printf("    Failed\n");
-        exit (2);
+        exit(2);
     }
-    printf ("    Passed\n");
+    printf("    Passed\n");
 
-    duration = time (NULL) - now;
-    printf ("Tests completed in  %ds\n", duration);
+    /* Test the realtime callback mode for reporting detected digits */
+    printf("Test: Realtime callback digit delivery mode.\n");
+    callback_hit = FALSE;
+    callback_ok = TRUE;
+    callback_roll = 0;
+    dtmf_rx_init(&dtmf_state, NULL, NULL);
+    dtmf_rx_set_realtime_callback(&dtmf_state, digit_status, (void *) 0x12345678);
+    if (use_dialtone_filter)
+        dtmf_rx_parms(&dtmf_state, TRUE, -1, -1);
+    my_dtmf_gen_init(0.0, -10, 0.0, -10, 50, 50);
+    step = 0;
+    for (i = 1;  i < 10;  i++)
+    {
+        len = 0;
+        for (j = 0;  j < i;  j++)
+            len += my_dtmf_generate(amp + len, ALL_POSSIBLE_DIGITS);
+        for (sample = 0, j = 160;  sample < len;  sample += 160, j = ((len - sample) >= 160)  ?  160  :  (len - sample))
+        {
+            dtmf_rx(&dtmf_state, &amp[sample], j);
+            if (!callback_ok)
+                break;
+            step += j;
+        }
+        if (!callback_hit  ||  !callback_ok)
+            break;
+    }
+    if (!callback_hit  ||  !callback_ok)
+    {
+        printf("    Failed\n");
+        exit(2);
+    }
+    printf("    Passed\n");
+    duration = time(NULL) - now;
+    printf("Tests completed in %ds\n", duration);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

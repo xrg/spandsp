@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.c,v 1.6 2005/10/08 04:40:58 steveu Exp $
+ * $Id: v8.c,v 1.9 2005/12/25 17:33:37 steveu Exp $
  */
  
 /*! \file */
@@ -41,8 +41,9 @@
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
 #include "spandsp/queue.h"
+#include "spandsp/async.h"
 #include "spandsp/biquad.h"
-#include "spandsp/ec_disable_detector.h"
+#include "spandsp/ec_disable_tone.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/fsk.h"
 #include "spandsp/v8.h"
@@ -149,6 +150,7 @@ void v8_log_supported_modulations(v8_state_t *s, int modulation_schemes)
     }
     span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, " supported\n");
 }
+/*- End of function --------------------------------------------------------*/
 
 void v8_log_selected_modulation(v8_state_t *s, int modulation_scheme)
 {
@@ -206,12 +208,14 @@ void v8_log_selected_modulation(v8_state_t *s, int modulation_scheme)
     }
     span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "\n");
 }
+/*- End of function --------------------------------------------------------*/
 
 static void ci_decode(v8_state_t *s)
 {
     if (s->rx_data[0] == 0xC1)
         span_log(&s->logging, SPAN_LOG_FLOW, "CI: data call\n");
 }
+/*- End of function --------------------------------------------------------*/
 
 static void cm_jm_decode(v8_state_t *s)
 {
@@ -324,6 +328,7 @@ static void cm_jm_decode(v8_state_t *s)
         span_log(&s->logging, SPAN_LOG_FLOW, "Call function is in extention octet\n");
     }
 }
+/*- End of function --------------------------------------------------------*/
 
 static void put_bit(void *user_data, int bit)
 {
@@ -421,6 +426,7 @@ static void put_bit(void *user_data, int bit)
         }
     }
 }
+/*- End of function --------------------------------------------------------*/
 
 static void v8_decode_init(v8_state_t *s)
 {
@@ -436,6 +442,7 @@ static void v8_decode_init(v8_state_t *s)
     s->zero_byte_count = 0;
     s->rx_data_ptr = 0;
 }
+/*- End of function --------------------------------------------------------*/
 
 static int get_bit(void *user_data)
 {
@@ -447,6 +454,7 @@ static int get_bit(void *user_data)
         bit = 1;
     return bit;
 }
+/*- End of function --------------------------------------------------------*/
 
 static void v8_put_byte(v8_state_t *s, int data)
 {
@@ -463,6 +471,7 @@ static void v8_put_byte(v8_state_t *s, int data)
     bits[9] = 1;
     queue_write(&s->tx_queue, bits, 10);
 }
+/*- End of function --------------------------------------------------------*/
 
 static void send_cm_jm(v8_state_t *s, int mod_mask)
 {
@@ -520,6 +529,7 @@ static void send_cm_jm(v8_state_t *s, int mod_mask)
     /* No cellular right now */    
     v8_put_byte(s, 0x0D);
 }
+/*- End of function --------------------------------------------------------*/
 
 static int select_modulation(int mask)
 {
@@ -535,30 +545,32 @@ static int select_modulation(int mask)
         return V8_MOD_V21;
     return V8_MOD_FAILED;
 }
+/*- End of function --------------------------------------------------------*/
 
-int v8_tx(v8_state_t *s, int16_t *amp, int max_samples)
+int v8_tx(v8_state_t *s, int16_t *amp, int max_len)
 {
-    int samples;
+    int len;
 
     //span_log(&s->logging, SPAN_LOG_FLOW, "v8_tx state %d\n", s->state);
-    samples = 0;
+    len = 0;
     switch (s->state)
     {
     case V8_CI_ON:
     case V8_CM_ON:
     case V8_JM_ON:
     case V8_CJ_ON:
-        samples = fsk_tx(&s->v21tx, amp, max_samples);
+        len = fsk_tx(&s->v21tx, amp, max_len);
         break;
     case V8_CM_WAIT:
         /* Send the ANSam tone */
-        samples = echo_can_disable_tone_tx(&s->v8_tx, amp, max_samples);
+        len = echo_can_disable_tone_tx(&s->v8_tx, amp, max_len);
         break;
     }
-    return samples;
+    return len;
 }
+/*- End of function --------------------------------------------------------*/
 
-int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
+int v8_rx(v8_state_t *s, const int16_t *amp, int len)
 {
     int i;
     int residual_samples;
@@ -574,7 +586,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
     {
     case V8_WAIT_1S:
         /* Wait 1 second before sending the first CI packet */
-        if ((s->negotiation_timer -= samples) > 0)
+        if ((s->negotiation_timer -= len) > 0)
             break;
         s->state = V8_CI;
         s->ci_count = 0;
@@ -582,7 +594,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         fsk_tx_init(&s->v21tx, &preset_fsk_specs[FSK_V21CH1], get_bit, s);
         /* Fall through to the next state */
     case V8_CI:
-        residual_samples = echo_can_disable_tone_rx(&s->v8_rx, amp, samples);
+        residual_samples = echo_can_disable_tone_rx(&s->v8_rx, amp, len);
         /* Send 4 CI packets in a burst (the spec says at least 3) */
         for (i = 0;  i < 4;  i++)
         {
@@ -593,7 +605,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         s->state = V8_CI_ON;
         break;
     case V8_CI_ON:
-        residual_samples = echo_can_disable_tone_rx(&s->v8_rx, amp, samples);
+        residual_samples = echo_can_disable_tone_rx(&s->v8_rx, amp, len);
         if (queue_empty(&s->tx_queue))
         {
             s->state = V8_CI_OFF;
@@ -601,7 +613,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         }
         break;
     case V8_CI_OFF:
-        residual_samples = echo_can_disable_tone_rx(&s->v8_rx, amp, samples);
+        residual_samples = echo_can_disable_tone_rx(&s->v8_rx, amp, len);
         /* Check if an ANSam tone has been detected */
         if (s->v8_rx.hit)
         {
@@ -611,7 +623,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
             s->state = V8_HEARD_ANSAM;
             break;
         }
-        if ((s->ci_timer -= samples) <= 0)
+        if ((s->ci_timer -= len) <= 0)
         {
             if (++s->ci_count >= 10)
             {
@@ -630,16 +642,16 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
     case V8_HEARD_ANSAM:
         /* We have heard the ANSam signal, but we still need to wait for the
            end of the Te timeout period to comply with the spec. */
-        if ((s->ci_timer -= samples) <= 0)
+        if ((s->ci_timer -= len) <= 0)
         {
             v8_decode_init(s);
             s->state = V8_CM_ON;
             s->negotiation_timer = ms_to_samples(5000);
             send_cm_jm(s, s->available_modulations);
-	}
+        }
         break;
     case V8_CM_ON:
-        residual_samples = fsk_rx(&s->v21rx, amp, samples);
+        residual_samples = fsk_rx(&s->v21rx, amp, len);
         if (s->got_cm_jm)
         {
             /* Now JM has been detected we send CJ and wait for 75 ms
@@ -659,7 +671,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
             s->state = V8_CJ_ON;
             break;
         }
-        if ((s->negotiation_timer -= samples) <= 0)
+        if ((s->negotiation_timer -= len) <= 0)
         {
             /* Timeout */
             s->state = V8_PARKED;
@@ -673,7 +685,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         }
         break;
     case V8_CJ_ON:
-        residual_samples = fsk_rx(&s->v21rx, amp, samples);
+        residual_samples = fsk_rx(&s->v21rx, amp, len);
         if (queue_empty(&s->tx_queue))
         {
             s->negotiation_timer = ms_to_samples(75);
@@ -681,7 +693,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         }
         break;
     case V8_SIGC:
-        if ((s->negotiation_timer -= samples) <= 0)
+        if ((s->negotiation_timer -= len) <= 0)
         {
             /* The V.8 negotiation has succeeded. */
             s->state = V8_PARKED;
@@ -690,7 +702,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         }
         break;
     case V8_WAIT_200MS:
-        if ((s->negotiation_timer -= samples) <= 0)
+        if ((s->negotiation_timer -= len) <= 0)
         {
             /* Send the ANSam tone */
             echo_can_disable_tone_tx_init(&s->v8_tx, TRUE);
@@ -701,7 +713,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         }
         break;
     case V8_CM_WAIT:
-        residual_samples = fsk_rx(&s->v21rx, amp, samples);
+        residual_samples = fsk_rx(&s->v21rx, amp, len);
         if (s->got_cm_jm)
         {
             /* Stop sending ANSam and send JM instead */
@@ -714,7 +726,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
             send_cm_jm(s, s->common_modulations);
             break;
         }
-        if ((s->negotiation_timer -= samples) <= 0)
+        if ((s->negotiation_timer -= len) <= 0)
         {
             /* Timeout */
             s->state = V8_PARKED;
@@ -723,7 +735,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         }
         break;
     case V8_JM_ON:
-        residual_samples = fsk_rx(&s->v21rx, amp, samples);
+        residual_samples = fsk_rx(&s->v21rx, amp, len);
         if (s->got_cj)
         {
             /* Stop sending JM, and wait 75 ms */
@@ -731,7 +743,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
             s->state = V8_SIGA;
             break;
         }
-        if ((s->negotiation_timer -= samples) <= 0)
+        if ((s->negotiation_timer -= len) <= 0)
         {
             /* Timeout */
             s->state = V8_PARKED;
@@ -746,7 +758,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         }
         break;
     case V8_SIGA:
-        if ((s->negotiation_timer -= samples) <= 0)
+        if ((s->negotiation_timer -= len) <= 0)
         {
             /* The V.8 negotiation has succeeded. */
             s->state = V8_PARKED;
@@ -755,11 +767,12 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         }
         break;
     case V8_PARKED:
-        residual_samples = samples;
+        residual_samples = len;
         break;
     }
     return residual_samples;
 }
+/*- End of function --------------------------------------------------------*/
 
 v8_state_t *v8_init(v8_state_t *s,
                     int caller,
@@ -788,3 +801,11 @@ v8_state_t *v8_init(v8_state_t *s,
         return NULL;
     return s;
 }
+/*- End of function --------------------------------------------------------*/
+
+int v8_release(v8_state_t *s)
+{
+    return queue_delete(&s->tx_queue);
+}
+/*- End of function --------------------------------------------------------*/
+/*- End of file ------------------------------------------------------------*/

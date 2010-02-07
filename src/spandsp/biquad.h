@@ -24,8 +24,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: biquad.h,v 1.2 2004/03/30 14:29:40 steveu Exp $
+ * $Id: biquad.h,v 1.5 2006/02/03 15:56:27 steveu Exp $
  */
+
+/*! \page biquad_page Bi-quadratic filter sections
+\section biquad_page_sec_1 What does it do?
+???.
+
+\section biquad_page_sec_2 How does it work?
+???.
+*/
 
 #if !defined(_BIQUAD_H_)
 #define _BIQUAD_H_
@@ -53,12 +61,12 @@ typedef struct
 extern "C" {
 #endif
 
-static inline void biquad2_init (biquad2_state_t *bq,
-                	 	 int32_t gain,
-		                 int32_t a1,
-            	                 int32_t a2,
-		                 int32_t b1,
-		                 int32_t b2)
+static inline void biquad2_init(biquad2_state_t *bq,
+                                int32_t gain,
+                                int32_t a1,
+                                int32_t a2,
+                                int32_t b1,
+                                int32_t b2)
 {
     bq->gain = gain;
     bq->a1 = a1;
@@ -77,8 +85,8 @@ static inline void biquad2_init (biquad2_state_t *bq,
 #endif
 }
 /*- End of function --------------------------------------------------------*/
-    
-static inline int16_t biquad2 (biquad2_state_t *bq, int16_t sample)
+
+static inline int16_t biquad2(biquad2_state_t *bq, int16_t sample)
 {
     int32_t y;
     int32_t z0;

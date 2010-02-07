@@ -23,14 +23,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate_tests.c,v 1.5 2005/09/01 17:06:45 steveu Exp $
+ * $Id: tone_generate_tests.c,v 1.8 2006/01/31 05:34:28 steveu Exp $
  */
 
-/*! \page tone_generation_tests_page Tone generation tests
-\section tone_generation_tests_page_sec_1 What does it do?
+/*! \page tone_generate_tests_page Tone generation tests
+\section tone_generate_tests_page_sec_1 What does it do?
 */
-
-/* "We can generate exactly repetitive tones" demo */
 
 #include <stdlib.h>
 #include <math.h>
@@ -39,9 +37,12 @@
 #include <stdio.h>
 #include <time.h>
 #include <fcntl.h>
+#include <audiofile.h>
 #include <tiffio.h>
 
 #include "spandsp.h"
+
+#define OUTPUT_FILE_NAME    "tone_generate.wav"
 
 int main(int argc, char *argv[])
 {
@@ -50,67 +51,86 @@ int main(int argc, char *argv[])
     int pitch;
     int level;
     int i;
-    int longest_span;
-    int16_t amp[1];
-    int initial_v2;
-    int initial_v3;
+    int16_t amp[16384];
+    int len;
+    AFfilehandle outhandle;
+    AFfilesetup filesetup;
+    int outframes;
 
-
-    /* Try this test for all telephony frequencies (1Hz steps), and varying
-       levels from clip (+3dBm) down, in 1dB steps. This takes ages to run,
-       but I like to be thorough :) Enjoy coffee, the arms of your lover,
-       or whatever takes your fancy for a while */
-
-    /* For each test we generate the tone until it repeats exactly, or the
-       world ends (or until we reach 0x7FFFFFFF samples, whichever occurs
-       first). */
-    printf ("Test 1: An exhaustive check that all tones are repeatable.\n");
-    printf ("        This takes a while!\n");
-    longest_span = 0;
-    for (level = +3;  level > -55;  level--)
+    filesetup = afNewFileSetup ();
+    if (filesetup == AF_NULL_FILESETUP)
     {
-    	for (pitch = 300;  pitch < 3400;  pitch++)
-    	{
-	    make_tone_gen_descriptor (&tone_desc,
-		    	    	      pitch,
-				      level,
-				      0,
-				      0,
-				      1,
-				      0,
-				      0,
-				      0,
-				      TRUE);
-	    tone_gen_init (&tone_state, &tone_desc);
-            /* Remember the starting conditions, and wait for them to repeat. If
-               they ever do, the oscillator must be long term stable. */
-            initial_v2 = tone_desc.v2_1;
-            initial_v3 = tone_desc.v3_1;
-            /* If these conditions do not repeat before a 32 bit int rolls over,
-               something is probably amiss! */
-            for (i = 0;  i < 0x7FFFFFFF;  i++)
-            {
-            	tone_gen (&tone_state, amp, 1);
-                //printf ("%12d %12d %12d %12d %12d\n", tone_state.v2_1, tone_state.v3_1,initial_v2, initial_v3, amp[0]);
-                if (initial_v2 == tone_state.v2_1  &&  initial_v3 == tone_state.v3_1)
-                {
-            	    //printf ("%4dHz tone repeats accurately with an offset of %d samples at %ddBm\n", pitch, i, level);
-                    if (i > longest_span)
-                        longest_span = i;
-                    break;
-                }
-            }
-            if (i == 0x7FFFFFFF)
-	    {
-	    	printf ("ERROR: %dHz tone does not repeat accurately at %ddBm\n", pitch, level);
-	    	exit (2);
-	    }
-    	}
-    	printf ("All OK at %ddBm\n", level);
+    	fprintf(stderr, "    Failed to create file setup\n");
+        exit(2);
     }
-    printf ("Hurrah! It worked.\n");
-    printf ("Things eventually repeated for every frequency, and level tested.\n");
-    printf ("The longest repeat span was %d\n", longest_span);
+    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
+    afInitRate(filesetup, AF_DEFAULT_TRACK, 8000.0);
+    //afInitCompression(filesetup, AF_DEFAULT_TRACK, AF_COMPRESSION_G711_ALAW);
+    afInitFileFormat(filesetup, AF_FILE_WAVE);
+    afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
+
+    outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup);
+    if (outhandle == AF_NULL_FILEHANDLE)
+    {
+        fprintf(stderr, "    Cannot open wave file '%s'\n", OUTPUT_FILE_NAME);
+        exit(2);
+    }
+    
+    make_tone_gen_descriptor(&tone_desc,
+                             440,
+                             -10,
+                             620,
+                             -15,
+                             100,
+                             200,
+                             300,
+                             400,
+                             FALSE);
+    tone_gen_init(&tone_state, &tone_desc);
+
+    for (i = 0;  i < 1000;  i++)
+    {
+        len = tone_gen(&tone_state, amp, 160);
+        printf("Generated %d samples\n", len);
+        if (len <= 0)
+            break;
+        outframes = afWriteFrames(outhandle,
+                                  AF_DEFAULT_TRACK,
+                                  amp,
+                                  len);
+    }
+    
+    make_tone_gen_descriptor(&tone_desc,
+                             350,
+                             -10,
+                             440,
+                             -15,
+                             100,
+                             200,
+                             300,
+                             400,
+                             TRUE);
+    tone_gen_init(&tone_state, &tone_desc);
+
+    for (i = 0;  i < 1000;  i++)
+    {
+        len = tone_gen(&tone_state, amp, 160);
+        printf("Generated %d samples\n", len);
+        if (len <= 0)
+            break;
+        outframes = afWriteFrames(outhandle,
+                                  AF_DEFAULT_TRACK,
+                                  amp,
+                                  len);
+    }
+    
+    if (afCloseFile(outhandle) != 0)
+    {
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
+        exit (2);
+    }
+    afFreeFileSetup(filesetup);
+
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

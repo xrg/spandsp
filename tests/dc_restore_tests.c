@@ -23,15 +23,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dc_restore_tests.c,v 1.8 2005/09/01 17:06:45 steveu Exp $
+ * $Id: dc_restore_tests.c,v 1.11 2005/11/27 12:36:23 steveu Exp $
  */
 
 /*! \page dc_restore_tests_page DC restoration tests
 \section dc_restore_tests_page_sec_1 What does it do?
 */
 
-#define _ISOC9X_SOURCE  1
-#define _ISOC99_SOURCE  1
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -53,19 +54,19 @@ int main (int argc, char *argv[])
     int16_t dirty;
     int16_t clean;
 
-    awgn_init (&noise_source, idum, -10);
+    awgn_init(&noise_source, idum, -10);
     dc_restore_init (&dc_state);
     for (i = 0;  i < 100000;  i++)
     {
-    	dirty = awgn (&noise_source) + 5000;
+        dirty = awgn(&noise_source) + 5000;
         clean = dc_restore (&dc_state, dirty);
-	//if ((i % 1000) == 0)
-	{
-            printf ("Sample %6d: %d (expect %d)\n",
-	    	    i,
-	    	    dc_restore_estimate (&dc_state),
-		    5000);
-	}
+        if ((i % 1000) == 0)
+        {
+            printf("Sample %6d: %d (expect %d)\n",
+                   i,
+                   dc_restore_estimate (&dc_state),
+                   5000);
+        }
     }
     return  0;
 }

@@ -31,12 +31,12 @@
 #if !defined(_T30_H_)
 #define _T30_H_
 
-/*! \page T30_page T.30 FAX protocol handling
+/*! \page t30_page T.30 FAX protocol handling
 
-\section T30_page_sec_1 What does it do?
+\section t30_page_sec_1 What does it do?
 The T.30 protocol is the core protocol used for FAX transmission.
 
-\section T30_page_sec_2 How does it work?
+\section t30_page_sec_2 How does it work?
 
 Some of the following is paraphrased from some notes found a while ago on the Internet.
 I cannot remember exactly where they came from, but they are useful.
@@ -144,9 +144,9 @@ typedef void (t30_phase_d_handler_t)(t30_state_t *s, void *user_data, int result
     \brief T.30 phase E callback handler.
     \param s The T.30 context.
     \param user_data An opaque pointer.
-    \param result The phase E result code.
+    \param completion_code The phase E completion_code.
 */
-typedef void (t30_phase_e_handler_t)(t30_state_t *s, void *user_data, int status);
+typedef void (t30_phase_e_handler_t)(t30_state_t *s, void *user_data, int completion_code);
 
 typedef void (t30_flush_handler_t)(t30_state_t *s,  void *user_data, int which);
 
@@ -204,7 +204,7 @@ enum
     T30_ERR_T2EXPMPSRX,     /* Timer T2 expired while waiting for next fax page */
     T30_ERR_T2EXPRRRX,      /* Timer T2 expired while waiting for RR command */
     T30_ERR_T2EXPRX,        /* Timer T2 expired while waiting for NSS, DCS or MCF */
-    T30_ERR_WHYDCNRX,       /* Unexpected DCN while waiting for DCS or DIS */
+    T30_ERR_DCNWHYRX,       /* Unexpected DCN while waiting for DCS or DIS */
     T30_ERR_DCNDATARX,      /* Unexpected DCN while waiting for image data */
     T30_ERR_DCNFAXRX,       /* Unexpected DCN while waiting for EOM, EOP or MPS */
     T30_ERR_DCNPHDRX,       /* Unexpected DCN after EOM or MPS sequence */
@@ -364,7 +364,7 @@ struct t30_state_s
     /* timer_t0 is the answer timeout when calling another FAX machine.
        Placing calls is handled outside the FAX processing. */
     /*! \brief Remote terminal identification timeout (in audio samples) */
-    int timer_t1;
+    int timer_t0_t1;
     /*! \brief HDLC timer (in audio samples) */
     int timer_t2;
     /*! \brief Procedural interrupt timeout (in audio samples) */
@@ -374,6 +374,8 @@ struct t30_state_s
     /* timer_t5 is only used with error correction */
     /*! \brief Signal on timer (in audio samples) */
     int timer_sig_on;
+
+    int far_end_detected;
 
     int line_encoding;
     int min_row_bits;
@@ -418,16 +420,14 @@ extern "C" {
     \brief Return a text name for a T.30 frame type.
     \param x The frametype octet.
     \return A pointer to the text name for the frame type. If the frame type is
-            not value, the string "???" is returned.
-*/
+            not value, the string "???" is returned. */
 char *t30_frametype(uint8_t x);
 
 /*! Decode a DIS, DTC or DCS frame, and log the contents.
     \brief Decode a DIS, DTC or DCS frame, and log the contents.
     \param s The T.30 context.
     \param dis A pointer to the frame to be decoded.
-    \param len The length of the frame.
-*/
+    \param len The length of the frame. */
 void t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *dis, int len);
 
 /*! Initialise a T.30 context.
@@ -437,90 +437,124 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *dis, int len);
            context is for an answering party.
     \param user_data An opaque pointer which is associated with the T.30 context,
            and supplied in callbacks.
-    \return ???
-*/
+    \return 0 for OK, else -1. */
 int fax_init(t30_state_t *s, int calling_party, void *user_data);
 
 /*! Release a T.30 context.
     \brief Release a T.30 context.
-    \param s The T.30 context.
-    \return ???
-*/
-int fax_release(t30_state_t *s);
+    \param s The T.30 context. */
+void fax_release(t30_state_t *s);
 
 /*! Set the sub-address associated with a T.30 context.
     \brief Set the sub-address associated with a T.30 context.
     \param s The T.30 context.
     \param sub_address A pointer to the sub-address.
-    \return ???
-*/
-int fax_set_sub_address(t30_state_t *s, const char *sub_address);
+    \return 0 for OK, else -1. */
+int t30_set_sub_address(t30_state_t *s, const char *sub_address);
 
-int fax_set_header_info(t30_state_t *s, const char *info);
+/*! Set the header information associated with a T.30 context.
+    \brief Set the header information associated with a T.30 context.
+    \param s The T.30 context.
+    \param info A pointer to the information string.
+    \return 0 for OK, else -1. */
+int t30_set_header_info(t30_state_t *s, const char *info);
 
 /*! Set the local identifier associated with a T.30 context.
     \brief Set the local identifier associated with a T.30 context.
     \param s The T.30 context.
     \param id A pointer to the identifier.
-    \return ???
-*/
-int fax_set_local_ident(t30_state_t *s, const char *id);
+    \return 0 for OK, else -1. */
+int t30_set_local_ident(t30_state_t *s, const char *id);
 
 /*! Get the sub-address associated with a T.30 context.
     \brief Get the sub-address associated with a T.30 context.
     \param s The T.30 context.
     \param sub_address A pointer to a buffer for the sub-address.  The buffer
            should be at least 21 bytes long.
-    \return ???
-*/
-int fax_get_sub_address(t30_state_t *s, char *sub_address);
+    \return the length of the string. */
+int t30_get_sub_address(t30_state_t *s, char *sub_address);
 
-int fax_get_header_info(t30_state_t *s, char *info);
+/*! Get the header information associated with a T.30 context.
+    \brief Get the header information associated with a T.30 context.
+    \param s The T.30 context.
+    \param sub_address A pointer to a buffer for the header information.  The buffer
+           should be at least 51 bytes long.
+    \return the length of the string. */
+int t30_get_header_info(t30_state_t *s, char *info);
 
 /*! Get the local FAX machine identifier associated with a T.30 context.
     \brief Get the local identifier associated with a T.30 context.
     \param s The T.30 context.
     \param id A pointer to a buffer for the identifier. The buffer should
            be at least 21 bytes long.
-    \return ???
-*/
-int fax_get_local_ident(t30_state_t *s, char *id);
+    \return the length of the string. */
+int t30_get_local_ident(t30_state_t *s, char *id);
 
 /*! Get the remote FAX machine identifier associated with a T.30 context.
     \brief Get the remote identifier associated with a T.30 context.
     \param s The T.30 context.
     \param id A pointer to a buffer for the identifier. The buffer should
            be at least 21 bytes long.
-    \return ???
-*/
-int fax_get_far_ident(t30_state_t *s, char *id);
+    \return the length of the string. */
+int t30_get_far_ident(t30_state_t *s, char *id);
 
 /*! Get the current transfer statistics for the file being sent or received.
     \brief Get the current transfer statistics.
     \param s The T.30 context.
-    \param t A pointer to a buffer for the statistics.
-*/
-void fax_get_transfer_statistics(t30_state_t *s, t30_stats_t *t);
+    \param t A pointer to a buffer for the statistics. */
+void t30_get_transfer_statistics(t30_state_t *s, t30_stats_t *t);
 
-void fax_set_phase_b_handler(t30_state_t *s, t30_phase_b_handler_t *handler, void *user_data);
-void fax_set_phase_d_handler(t30_state_t *s, t30_phase_d_handler_t *handler, void *user_data);
-void fax_set_phase_e_handler(t30_state_t *s, t30_phase_e_handler_t *handler, void *user_data);
+/*! Set a callback function for T.30 phase B handling.
+    \brief Set a callback function for T.30 phase B handling.
+    \param s The T.30 context.
+    \param handler The callback function
+    \param user_data An opaque pointer passed to the callback function. */
+void t30_set_phase_b_handler(t30_state_t *s, t30_phase_b_handler_t *handler, void *user_data);
+
+/*! Set a callback function for T.30 phase D handling.
+    \brief Set a callback function for T.30 phase D handling.
+    \param s The T.30 context.
+    \param handler The callback function
+    \param user_data An opaque pointer passed to the callback function. */
+void t30_set_phase_d_handler(t30_state_t *s, t30_phase_d_handler_t *handler, void *user_data);
+
+/*! Set a callback function for T.30 phase E handling.
+    \brief Set a callback function for T.30 phase E handling.
+    \param s The T.30 context.
+    \param handler The callback function
+    \param user_data An opaque pointer passed to the callback function. */
+void t30_set_phase_e_handler(t30_state_t *s, t30_phase_e_handler_t *handler, void *user_data);
+
 void fax_set_flush_handler(t30_state_t *s, t30_flush_handler_t *handler, void *user_data);
 
-/*! Specify the file name of the next TIFF file to be transmitted by a T.30
-    context
-    \brief Set next receive file name
+/*! Specify the file name of the next TIFF file to be received by a T.30
+    context.
+    \brief Set next receive file name.
     \param s The T.30 context.
     \param file The file name
-*/
-void fax_set_rx_file(t30_state_t *s, const char *file);
+    \param stop_page The maximum page to receive. -1 for no restriction. */
+void t30_set_rx_file(t30_state_t *s, const char *file, int stop_page);
 
-/*! Specify the file name of the next TIFF file to be received by a T.30 context
-    \brief Set next transmit file name
+/*! Specify the file name of the next TIFF file to be transmitted by a T.30
+    context.
+    \brief Set next transmit file name.
     \param s The T.30 context.
     \param file The file name
-*/
-void fax_set_tx_file(t30_state_t *s, const char *file);
+    \param start_page The first page to send. -1 for no restriction.
+    \param stop_page The last page to send. -1 for no restriction. */
+void t30_set_tx_file(t30_state_t *s, const char *file, int start_page, int stop_page);
+
+/*! Request a local interrupt of FAX exchange.
+    \brief Request a local interrupt of FAX exchange.
+    \param s The T.30 context.
+    \param state TRUE to enable interrupt request, else FALSE. */
+void t30_local_interrupt_request(t30_state_t *s, int state);
+
+/*! Convert a phase E completion code to a short text description.
+    \brief Convert a phase E completion code to a short text description.
+    \param err The error code.
+    \return A pointer to the description. */
+char *t30_completion_code_to_str(int err);
 
 /*! Apply FAX receive processing to a block of audio samples.
     \brief Apply FAX receive processing to a block of audio samples.
@@ -528,9 +562,8 @@ void fax_set_tx_file(t30_state_t *s, const char *file);
     \param buf The audio sample buffer.
     \param len The number of samples in the buffer.
     \return The number of samples unprocessed. This should only be non-zero if
-            the software has reached the end of the FAX call.
-*/
-int fax_rx_process(t30_state_t *s, int16_t *buf, int len);
+            the software has reached the end of the FAX call. */
+int fax_rx(t30_state_t *s, int16_t *buf, int len);
 
 /*! Apply FAX transmit processing to generate a block of audio samples.
     \brief Apply FAX transmit processing to generate a block of audio samples.
@@ -538,9 +571,8 @@ int fax_rx_process(t30_state_t *s, int16_t *buf, int len);
     \param buf The audio sample buffer.
     \param max_len The number of samples to be generated.
     \return The number of samples actually generated. This will be zero when
-            there is nothing to send.
-*/
-int fax_tx_process(t30_state_t *s, int16_t *buf, int max_len);
+            there is nothing to send. */
+int fax_tx(t30_state_t *s, int16_t *buf, int max_len);
 
 #ifdef __cplusplus
 }
