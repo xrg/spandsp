@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector_int.c,v 1.18 2008/10/17 18:39:11 steveu Exp $
+ * $Id: vector_int.c,v 1.19 2008/12/09 14:10:41 steveu Exp $
  */
 
 /*! \file */
@@ -76,106 +76,7 @@ int32_t vec_dot_prodi16(const int16_t x[], const int16_t y[], int n)
 {
     int32_t z;
 
-#if defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX)
-#if defined(__x86_64__)
-    __asm__ __volatile__(
-        " emms;\n"
-        " pxor %%mm0,%%mm0;\n"
-        " leal -32(%%rsi,%%eax,2),%%edx;\n"     /* edx = top - 32 */
-
-        " cmpl %%rdx,%%rsi;\n"
-        " ja 1f;\n"
-
-        /* Work in blocks of 16 int16_t's until we are near the end */
-        " .p2align 2;\n"
-        "2:\n"
-        " movq (%%rdi),%%mm1;\n"
-        " movq (%%rsi),%%mm2;\n"
-        " pmaddwd %%mm2,%%mm1;\n"
-        " paddd %%mm1,%%mm0;\n"
-        " movq 8(%%rdi),%%mm1;\n"
-        " movq 8(%%rsi),%%mm2;\n"
-        " pmaddwd %%mm2,%%mm1;\n"
-        " paddd %%mm1,%%mm0;\n"
-        " movq 16(%%rdi),%%mm1;\n"
-        " movq 16(%%rsi),%%mm2;\n"
-        " pmaddwd %%mm2,%%mm1;\n"
-        " paddd %%mm1,%%mm0;\n"
-        " movq 24(%%rdi),%%mm1;\n"
-        " movq 24(%%rsi),%%mm2;\n"
-        " pmaddwd %%mm2,%%mm1;\n"
-        " paddd %%mm1,%%mm0;\n"
-
-        " addl $32,%%rsi;\n"
-        " addl $32,%%rdi;\n"
-        " cmpl %%rdx,%%rsi;\n"
-        " jbe 2b;\n"
-
-        " .p2align 2;\n"
-        "1:\n"
-        " addl $24,%%rdx;\n"                  /* Now edx = top - 8 */
-        " cmpl %%rdx,%%rsi;\n"
-        " ja 3f;\n"
-
-        /* Work in blocks of 4 int16_t's until we are near the end */
-        " .p2align 2;\n"
-        "4:\n"
-        " movq (%%rdi),%%mm1;\n"
-        " movq (%%rsi),%%mm2;\n"
-        " pmaddwd %%mm2,%%mm1;\n"
-        " paddd %%mm1,%%mm0;\n"
-
-        " addl $8,%%rsi;\n"
-        " addl $8,%%rdi;\n"
-        " cmpl %%rdx,%%rsi;"
-        " jbe 4b;\n"
-
-        " .p2align 2;\n"
-        "3:\n"
-        " addl $4,%%rdx;\n"                  /* Now edx = top - 4 */
-        " cmpl %%rdx,%%rsi;\n"
-        " ja 5f;\n"
-
-        /* Work in a block of 2 int16_t's */
-        " movd (%%rdi),%%mm1;\n"
-        " movd (%%rsi),%%mm2;\n"
-        " pmaddwd %%mm2,%%mm1;\n"
-        " paddd %%mm1,%%mm0;\n"
-
-        " addl $4,%%rsi;\n"
-        " addl $4,%%rdi;\n"
-
-        " .p2align 2;\n"
-        "5:\n"
-        " addl $2,%%rdx;\n"                  /* Now edx = top - 2 */
-        " cmpl %%rdx,%%rsi;\n"
-        " ja 6f;\n"
-
-        /* Deal with the very last int16_t, when n is odd */
-        " movswl (%%rdi),%%eax;\n"
-        " andl $65535,%%eax;\n"
-        " movd %%eax,%%mm1;\n"
-        " movswl (%%rsi),%%eax;\n"
-        " andl $65535,%%eax;\n"
-        " movd %%eax,%%mm2;\n"
-        " pmaddwd %%mm2,%%mm1;\n"
-        " paddd %%mm1,%%mm0;\n"
-
-        " .p2align 2;\n"
-        "6:\n"
-        /* Merge the pieces of the answer */
-        " movq %%mm0,%%mm1;\n"
-        " punpckhdq %%mm0,%%mm1;\n"
-        " paddd %%mm1,%%mm0;\n"
-        /* Et voila, eax has the final result */
-        " movd %%mm0,%%eax;\n"
-
-        " emms;\n"
-        : "=a" (z)
-        : "S" (x), "D" (y), "a" (n)
-        : "cc"
-    );
-#else
+#if defined(__GNUC__)  &&  defined(__i386__) //defined(SPANDSP_USE_MMX)
     __asm__ __volatile__(
         " emms;\n"
         " pxor %%mm0,%%mm0;\n"
@@ -273,7 +174,6 @@ int32_t vec_dot_prodi16(const int16_t x[], const int16_t y[], int n)
         : "S" (x), "D" (y), "a" (n)
         : "cc"
     );
-#endif
 #else
     int i;
 
