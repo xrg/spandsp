@@ -1,8 +1,8 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * okiadpcm.c - Conversion routines between linear 16 bit PCM data and
- *		OKI (Dialogic) ADPCM format.
+ * oki_adpcm.h - Conversion routines between linear 16 bit PCM data and
+ *		         OKI (Dialogic) ADPCM format.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -27,7 +27,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm.h,v 1.2 2004/03/15 13:17:36 steveu Exp $
+ * $Id: oki_adpcm.h,v 1.6 2004/11/15 13:36:32 steveu Exp $
  */
 
 /*! \file */
@@ -35,28 +35,76 @@
 #if !defined(_OKI_ADPCM_H_)
 #define _OKI_ADPCM_H_
 
+/*! \page okiadpcm_page OKI (Dialogic) ADPCM encoding and decoding
+\section okiadpcm_page_sec_1 What does it do
+OKI ADPCM is widely used in the CTI industry because it is the principal format
+supported by Dialogic. As the market leader, they tend to define "common
+practice". It offers a good balance of simplicity and quality at rates of
+24kbps or 32kbps. 32kbps is obtained by ADPCM compressing 8k samples/second linear
+PCM. 24kbps is obtained by resampling to 6k samples/second and using the same ADPCM
+compression algorithm on the slower samples.
+
+The algorithms for this ADPCM codec can be found in "PC Telephony - The complete guide
+to designing, building and programming systems using Dialogic and Related Hardware"
+by Bob Edgar. pg 272-276. */
+
 /*!
-    OKI (Dialogic) ADPCM conversion state descriptor. This defines the state of
-    a single working instance of the OKI ADPCM converter. This is used for
+    Oki (Dialogic) ADPCM conversion state descriptor. This defines the state of
+    a single working instance of the Oki ADPCM converter. This is used for
     either linear to ADPCM or ADPCM to linear conversion.
 */
 typedef struct
 {
+    int bit_rate;
     int16_t last;
     int16_t step_index;
-    int16_t left_over_sample;
-    int8_t  left_over_used;
+    uint8_t oki_byte;
+    int16_t history[32];
+    int ptr;
+    int mark;
+    int phase;
 } oki_adpcm_state_t;
 
-oki_adpcm_state_t *oki_adpcm_create(void);
-void oki_adpcm_free(oki_adpcm_state_t *oki);
-int oki_adpcm_to_linear(oki_adpcm_state_t *oki,
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*! Create an Oki ADPCM encode or decode context.
+    \param bit_rate The required bit rate for the ADPCM data.
+           The valid rates are 24000 and 32000.
+    \return The newly created context, or NULL for error. */
+oki_adpcm_state_t *oki_adpcm_create(int bit_rate);
+
+/*! Free an Oki ADPCM encode or decode context.
+    \param s The Oki ADPCM context.
+    \return 0 for OK. */
+int oki_adpcm_free(oki_adpcm_state_t *s);
+
+/*! Decode a buffer of Oki ADPCM data to linear PCM.
+    \param s The Oki ADPCM context.
+    \param amp
+    \param oki_data
+    \param oki_bytes
+    \return The number of samples returned. */
+int oki_adpcm_to_linear(oki_adpcm_state_t *s,
                         int16_t *amp,
-                        const uint8_t oki_data[],
+                        const uint8_t *oki_data,
                         int oki_bytes);
-int linear_to_oki_adpcm(oki_adpcm_state_t *oki,
-                        uint8_t oki_data[],
+
+/*! Encode a buffer of linear PCM data to Oki ADPCM.
+    \param s The Oki ADPCM context.
+    \param oki_data
+    \param amp
+    \param samples
+    \return The number of bytes of Oki ADPCM data produced. */
+int oki_linear_to_adpcm(oki_adpcm_state_t *s,
+                        uint8_t *oki_data,
                         const int16_t *amp,
-                        int pcm_samples);
+                        int samples);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
 /*- End of file ------------------------------------------------------------*/

@@ -23,10 +23,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: arctan2.h,v 1.1 2004/03/12 16:27:24 steveu Exp $
+ * $Id: arctan2.h,v 1.2 2004/03/30 14:29:40 steveu Exp $
  */
 
 /*! \file */
+
+#if !defined(_ARCTAN2_H_)
+#define _ARCTAN2_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Fast approximate arc tangent, based on something at dspguru.com */
 /* The worst case error is about 4.07 degrees. This is fine for many
@@ -39,7 +46,7 @@ static inline int32_t arctan2(float y, float x)
     float angle;
 
     if (x == 0.0  ||  y == 0.0)
-        return 0.0;
+        return 0;
     
     abs_y = fabs(y);
 
@@ -54,7 +61,12 @@ static inline int32_t arctan2(float y, float x)
        answer in the range +-pi */
     if (y < 0.0)
         angle = -angle;
-    return angle;
+    return (int32_t) angle;
 }
 /*- End of function --------------------------------------------------------*/
+#ifdef __cplusplus
+}
+#endif
+
+#endif
 /*- End of file ------------------------------------------------------------*/

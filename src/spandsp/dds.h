@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds.h,v 1.1 2004/03/12 16:27:24 steveu Exp $
+ * $Id: dds.h,v 1.3 2004/10/16 07:29:59 steveu Exp $
  */
 
 /*! \file */
@@ -32,6 +32,10 @@
 #define _DDS_H_
 
 #include "complex.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*! \brief Find the phase step value to achieve a particular frequency.
     \param frequency The desired frequency, in Hertz.
@@ -89,6 +93,17 @@ icomplex_t dds_complex(uint32_t *phase_acc, int32_t phase_rate);
     \return The complex signal amplitude.
 */
 icomplex_t dds_complex_mod(uint32_t *phase_acc, int32_t phase_rate, int scale, int32_t phase);
+
+int32_t dds_phase_stepf(float frequency);
+float dds_scalingf(float level);
+float ddsf(uint32_t *phase_acc, int32_t phase_rate);
+float dds_modf(uint32_t *phase_acc, int32_t phase_rate, float scale, int32_t phase);
+complex_t dds_complexf(uint32_t *phase_acc, int32_t phase_rate);
+complex_t dds_mod_complexf(uint32_t *phase_acc, int32_t phase_rate, float scale, int32_t phase);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

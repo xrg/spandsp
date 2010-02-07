@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_filters.h,v 1.1 2004/03/12 16:27:24 steveu Exp $
+ * $Id: complex_filters.h,v 1.2 2004/03/30 14:29:40 steveu Exp $
  */
 
 #if !defined(_COMPLEX_FILTERS_H_)
@@ -54,6 +54,10 @@ typedef struct
     filter_t            *imf;
 } cfilter_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 filter_t *filter_create(fspec_t *fs);
 void filter_delete(filter_t *fi);
 float filter_step(filter_t *fi, float x);
@@ -61,6 +65,10 @@ float filter_step(filter_t *fi, float x);
 cfilter_t *cfilter_create(fspec_t *fs);
 void cfilter_delete(cfilter_t *cfi);
 complex_t cfilter_step(cfilter_t *cfi, const complex_t *z);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

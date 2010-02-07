@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * super_tone_detect.c - Flexible telephony supervisory tone detection.
+ * super_tone_rx.c - Flexible telephony supervisory tone detection.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_detect.c,v 1.6 2004/03/15 13:17:35 steveu Exp $
+ * $Id: super_tone_rx.c,v 1.2 2004/10/16 15:20:49 steveu Exp $
  */
 
 /*! \file */
@@ -47,7 +47,9 @@
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
 
-#include "spandsp/super_tone_detect.h"
+#include "spandsp/super_tone_rx.h"
+
+#define THRESHOLD               8.0e7
 
 static int add_super_tone_freq(super_tone_rx_descriptor_t *desc, int freq)
 {
@@ -198,14 +200,14 @@ super_tone_rx_descriptor_t *super_tone_rx_make_descriptor(super_tone_rx_descript
 }
 /*- End of function --------------------------------------------------------*/
 
-void super_tone_rx_segment_callback(super_tone_rx_state_t *super,
+void super_tone_rx_segment_callback(super_tone_rx_state_t *s,
                                     void (*callback)(void *data, int f1, int f2, int duration))
 {
-    super->segment_callback = callback;
+    s->segment_callback = callback;
 }
 /*- End of function --------------------------------------------------------*/
 
-super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *super,
+super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *s,
                                           super_tone_rx_descriptor_t *desc,
                                           void (*callback)(void *data, int code),
                                           void *data)
@@ -214,36 +216,42 @@ super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *super,
 
     if (desc == NULL)
         return NULL;
-    if (super == NULL)
+    if (s == NULL)
     {
-        super = (super_tone_rx_state_t *) malloc(sizeof(super_tone_rx_state_t) + desc->monitored_frequencies*sizeof(goertzel_state_t));
-        if (super == NULL)
+        s = (super_tone_rx_state_t *) malloc(sizeof(super_tone_rx_state_t) + desc->monitored_frequencies*sizeof(goertzel_state_t));
+        if (s == NULL)
             return NULL;
     }
+    if (callback == NULL)
+        return NULL;
 
     for (i = 0;  i < 11;  i++)
     {
-        super->segments[i].f1 = -1;
-        super->segments[i].f2 = -1;
-        super->segments[i].min_duration = 0;
+        s->segments[i].f1 = -1;
+        s->segments[i].f2 = -1;
+        s->segments[i].min_duration = 0;
     }
-    super->segment_callback = NULL;
-    super->tone_callback = callback;
-    super->callback_data = data;
+    s->segment_callback = NULL;
+    s->tone_callback = callback;
+    s->callback_data = data;
     if (desc)
-        super->desc = desc;
-    super->detected_tone = -1;
-    super->energy = 0.0;
-    super->total_energy = 0.0;
+        s->desc = desc;
+    s->detected_tone = -1;
+    s->energy = 0.0;
+    s->total_energy = 0.0;
     for (i = 0;  i < desc->monitored_frequencies;  i++)
-        goertzel_init(&super->state[i], &super->desc->desc[i]);
-    return  super;
+        goertzel_init(&s->state[i], &s->desc->desc[i]);
+    return  s;
 }
 /*- End of function --------------------------------------------------------*/
 
-#define THRESHOLD               8.0e7
+int super_tone_rx_free(super_tone_rx_state_t *s)
+{
+    free(s);
+}
+/*- End of function --------------------------------------------------------*/
 
-int super_tone_rx(super_tone_rx_state_t *super, const int16_t *amp, int samples)
+int super_tone_rx(super_tone_rx_state_t *s, const int16_t *amp, int samples)
 {
     int i;
     int j;
@@ -256,29 +264,29 @@ int super_tone_rx(super_tone_rx_state_t *super, const int16_t *amp, int samples)
     for (sample = 0;  sample < samples;  sample += x)
     {
         x = 0;
-        for (i = 0;  i < super->desc->monitored_frequencies;  i++)
+        for (i = 0;  i < s->desc->monitored_frequencies;  i++)
         {
-            x = goertzel_update(&super->state[i],
+            x = goertzel_update(&s->state[i],
                                 amp + sample,
                                 samples - sample);
-            if (i == super->desc->monitored_frequencies - 1)
+            if (i == s->desc->monitored_frequencies - 1)
             {
                 for (j = 0;  j < x;  j++)
-                    super->energy += amp[sample + j]*amp[sample + j];
+                    s->energy += amp[sample + j]*amp[sample + j];
             }
-            if (super->state[i].current_sample >= super->state[i].samples)
+            if (s->state[i].current_sample >= s->state[i].samples)
             {
-                res[i] = goertzel_result(&super->state[i]);
-                goertzel_init(&super->state[i], &super->desc->desc[i]);
-                if (i == super->desc->monitored_frequencies - 1)
+                res[i] = goertzel_result(&s->state[i]);
+                goertzel_init(&s->state[i], &s->desc->desc[i]);
+                if (i == s->desc->monitored_frequencies - 1)
                 {
                     /* Scale the energy so it can be compared to the results from the
                        Goertzel filters. */
-                    super->total_energy = super->energy*(super->state[i].samples/2);
-                    super->energy = 0;
+                    s->total_energy = s->energy*(s->state[i].samples/2);
+                    s->energy = 0;
                     /* Find our two best monitored frequencies, which also have adequate
                        energy. */
-                    if (super->total_energy < THRESHOLD)
+                    if (s->total_energy < THRESHOLD)
                     {
                         k1 = -1;
                         k2 = -1;
@@ -295,7 +303,7 @@ int super_tone_rx(super_tone_rx_state_t *super, const int16_t *amp, int samples)
                             k1 = 1;
                             k2 = 0;
                         }
-                        for (j = 2;  j < super->desc->monitored_frequencies;  j++)
+                        for (j = 2;  j < s->desc->monitored_frequencies;  j++)
                         {
                             if (res[j] >= res[k1])
                             {
@@ -307,7 +315,7 @@ int super_tone_rx(super_tone_rx_state_t *super, const int16_t *amp, int samples)
                                 k2 = j;
                             }
                         }
-                        if (res[k1] + res[k2] < 0.5*super->total_energy)
+                        if (res[k1] + res[k2] < 0.5*s->total_energy)
                         {
                             k1 = -1;
                             k2 = -1;
@@ -324,69 +332,69 @@ int super_tone_rx(super_tone_rx_state_t *super, const int16_t *amp, int samples)
                         }
                     }
                     /* See if this looks different to last time */
-                    if (k1 != super->segments[10].f1  ||  k2 != super->segments[10].f2)
+                    if (k1 != s->segments[10].f1  ||  k2 != s->segments[10].f2)
                     {
                         /* It is different, but this might just be a transitional quirk, or
                            a one shot hiccup (eg due to noise). Only if this same thing is
                            seen a second time should we change state. */
-                        super->segments[10].f1 = k1;
-                        super->segments[10].f2 = k2;
+                        s->segments[10].f1 = k1;
+                        s->segments[10].f2 = k2;
                         /* While things are hopping around, consider this a continuance of the
                            previous state. */
-                        super->segments[9].min_duration++;
+                        s->segments[9].min_duration++;
                     }
                     else
                     {
-                        if (k1 != super->segments[9].f1  ||  k2 != super->segments[9].f2)
+                        if (k1 != s->segments[9].f1  ||  k2 != s->segments[9].f2)
                         {
-                            if (super->detected_tone >= 0)
+                            if (s->detected_tone >= 0)
                             {
                                 /* Test for the continuance of the existing tone pattern, based on our new knowledge of an
                                    entire segment length. */
-                                if (!test_cadence(super->desc->tone_list[super->detected_tone], -super->desc->tone_segs[super->detected_tone], super->segments, super->rotation++))
+                                if (!test_cadence(s->desc->tone_list[s->detected_tone], -s->desc->tone_segs[s->detected_tone], s->segments, s->rotation++))
                                 {
-                                    super->detected_tone = -1;
-                                    super->tone_callback(super->callback_data, super->detected_tone);
+                                    s->detected_tone = -1;
+                                    s->tone_callback(s->callback_data, s->detected_tone);
                                 }
                             }
-                            if (super->segment_callback)
+                            if (s->segment_callback)
                             {
-                                super->segment_callback(super->callback_data,
-                                                        super->segments[9].f1,
-                                                        super->segments[9].f2,
-                                                        super->segments[9].min_duration*BINS/8);
+                                s->segment_callback(s->callback_data,
+                                                    s->segments[9].f1,
+                                                    s->segments[9].f2,
+                                                    s->segments[9].min_duration*BINS/8);
                             }
-                            memcpy (&super->segments[0], &super->segments[1], 9*sizeof(super->segments[0]));
-                            super->segments[9].f1 = k1;
-                            super->segments[9].f2 = k2;
-                            super->segments[9].min_duration = 1;
+                            memcpy (&s->segments[0], &s->segments[1], 9*sizeof(s->segments[0]));
+                            s->segments[9].f1 = k1;
+                            s->segments[9].f2 = k2;
+                            s->segments[9].min_duration = 1;
                         }
                         else
                         {
                             /* This is a continuance of the previous state */
-                            if (super->detected_tone >= 0)
+                            if (s->detected_tone >= 0)
                             {
                                 /* Test for the continuance of the existing tone pattern. We must do this here, so we can sense the
                                    discontinuance of the tone on an excessively long segment. */
-                                if (!test_cadence(super->desc->tone_list[super->detected_tone], super->desc->tone_segs[super->detected_tone], super->segments, super->rotation))
+                                if (!test_cadence(s->desc->tone_list[s->detected_tone], s->desc->tone_segs[s->detected_tone], s->segments, s->rotation))
                                 {
-                                    super->detected_tone = -1;
-                                    super->tone_callback(super->callback_data, super->detected_tone);
+                                    s->detected_tone = -1;
+                                    s->tone_callback(s->callback_data, s->detected_tone);
                                 }
                             }
-                            super->segments[9].min_duration++;
+                            s->segments[9].min_duration++;
                         }
                     }
-                    if (super->detected_tone < 0)
+                    if (s->detected_tone < 0)
                     {
                         /* Test for the start of any of the monitored tone patterns */
-                        for (j = 0;  j < super->desc->tones;  j++)
+                        for (j = 0;  j < s->desc->tones;  j++)
                         {
-                            if (test_cadence(super->desc->tone_list[j], super->desc->tone_segs[j], super->segments, -1))
+                            if (test_cadence(s->desc->tone_list[j], s->desc->tone_segs[j], s->segments, -1))
                             {
-                                super->detected_tone = j;
-                                super->rotation = 0;
-                                super->tone_callback(super->callback_data, super->detected_tone);
+                                s->detected_tone = j;
+                                s->rotation = 0;
+                                s->tone_callback(s->callback_data, s->detected_tone);
                                 break;
                             }
                         }

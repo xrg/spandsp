@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: alaw_ulaw.h,v 1.2 2004/03/19 19:12:46 steveu Exp $
+ * $Id: alaw_ulaw.h,v 1.5 2004/11/30 00:25:11 steveu Exp $
  */
 
 /*! \file */
@@ -48,26 +48,136 @@ seem so bad :(
 #if !defined(_ALAW_ULAW_H_)
 #define _ALAW_ULAW_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if defined(__i386__)
-static inline int top_bit(unsigned int bits)
+static __inline__ int top_bit(unsigned int bits)
 {
     int res;
 
     __asm__ __volatile__(" bsrl %%eax,%%edx;"
+                         " jnz  1f;\n"
+                         " movl $-1,%%edx;\n"
+                         "1:\n"
                          : "=d" (res)
                          : "a" (bits));
     return res;
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int bottom_bit(unsigned int bits)
+static __inline__ int bottom_bit(unsigned int bits)
 {
     int res;
 
     __asm__ __volatile__(" bsfl %%eax,%%edx;"
+                         " jnz  1f;\n"
+                         " movl $-1,%%edx;\n"
+                         "1:\n"
                          : "=d" (res)
                          : "a" (bits));
     return res;
+}
+/*- End of function --------------------------------------------------------*/
+#elif defined(__x86_64__)
+static __inline__ int top_bit(unsigned int bits)
+{
+    int res;
+
+    __asm__ __volatile__(" bsrq %%rax,%%rdx;"
+                         " jnz  1f;\n"
+                         " movq $-1,%%rdx;\n"
+                         "1:\n"
+                         : "=d" (res)
+                         : "a" (bits));
+    return res;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ int bottom_bit(unsigned int bits)
+{
+    int res;
+
+    __asm__ __volatile__(" bsfq %%eax,%%edx;"
+                         " jnz  1f;\n"
+                         " movq $-1,%%rdx;\n"
+                         "1:\n"
+                         : "=d" (res)
+                         : "a" (bits));
+    return res;
+}
+/*- End of function --------------------------------------------------------*/
+#else
+static __inline__ int top_bit(unsigned int bits)
+{
+    int i;
+    
+    if (bits == 0)
+        return -1;
+    i = 0;
+    if (bits & 0xFFFF0000)
+    {
+        bits &= 0xFFFF0000;
+        i += 16;
+    }
+    if (bits & 0xFF00FF00)
+    {
+        bits &= 0xFF00FF00;
+        i += 8;
+    }
+    if (bits & 0xF0F0F0F0)
+    {
+        bits &= 0xF0F0F0F0;
+        i += 4;
+    }
+    if (bits & 0xCCCCCCCC)
+    {
+        bits &= 0xCCCCCCCC;
+        i += 2;
+    }
+    if (bits & 0xAAAAAAAA)
+    {
+        bits &= 0xAAAAAAAA;
+        i += 1;
+    }
+    return i;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ int bottom_bit(unsigned int bits)
+{
+    int i;
+    
+    if (bits == 0)
+        return -1;
+    i = 32;
+    if (bits & 0x0000FFFF)
+    {
+        bits &= 0x0000FFFF;
+        i -= 16;
+    }
+    if (bits & 0x00FF00FF)
+    {
+        bits &= 0x00FF00FF;
+        i -= 8;
+    }
+    if (bits & 0x0F0F0F0F)
+    {
+        bits &= 0x0F0F0F0F;
+        i -= 4;
+    }
+    if (bits & 0x33333333)
+    {
+        bits &= 0x33333333;
+        i -= 2;
+    }
+    if (bits & 0x55555555)
+    {
+        bits &= 0x55555555;
+        i -= 1;
+    }
+    return i;
 }
 /*- End of function --------------------------------------------------------*/
 #endif
@@ -138,7 +248,7 @@ static inline uint8_t linear_to_ulaw(int16_t linear)
     }
 
 #if defined(__i386__)
-    seg = top_bit (pcm_val | 0xFF) - 7;
+    seg = top_bit(pcm_val | 0xFF) - 7;
 #else
     /* Convert the scaled magnitude to segment number. */
     for (seg = 0;  seg < 8;  seg++)
@@ -227,12 +337,12 @@ static inline uint8_t linear_to_alaw(int16_t linear)
 
     /* Convert the scaled magnitude to segment number. */
 #if defined(__i386__)
-    seg = top_bit (pcm_val | 0xFF) - 7;
+    seg = top_bit(pcm_val | 0xFF) - 7;
 #else
     for (seg = 0;  seg < 8;  seg++)
     {
         if (pcm_val <= seg_end[seg])
-        break;
+            break;
     }
 #endif
     /* Combine the sign, segment, and quantization bits. */
@@ -253,6 +363,10 @@ static inline int16_t alaw_to_linear(uint8_t alaw)
     return (short int) ((alaw & 0x80)  ?  i  :  -i);
 }
 /*- End of function --------------------------------------------------------*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.c,v 1.8 2004/03/16 13:44:48 steveu Exp $
+ * $Id: tone_generate.c,v 1.9 2004/10/11 13:27:12 steveu Exp $
  */
 
 /*! \file */
@@ -601,8 +601,12 @@ int r2_mf_tx(tone_gen_state_t *s, int16_t *amp, int samples, int fwd, char digit
     char *cp;
 
     len = 0;
-    if (digit == (char) 0x7F)
+    /* TODO: Looking for bit 7 set is the new way looking for 0x7F is the
+             old way. When thing have properly migrated, remove the old
+             way. */
+    if ((digit & 0x80)  ||  digit == (char) 0x7F)
     {
+        /* Continue generating the tone we started earlier. */
         len = tone_gen(s, amp, samples);
     }
     else

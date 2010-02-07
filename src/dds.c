@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds.c,v 1.5 2004/03/12 16:27:23 steveu Exp $
+ * $Id: dds.c,v 1.6 2004/10/16 07:29:58 steveu Exp $
  */
 
 /*! \file */
@@ -37,8 +37,9 @@
 /* In a A-law or u-law channel, and 128 step sine table is adequate to keep the spectral
    mess due to the DDS at a similar level to the spectral mess due to the A-law or u-law
    compression. */
-#define DDS_STEPS 128
-#define DDS_SHIFT 23
+#define SLENK	7
+#define DDS_STEPS (1 << SLENK)
+#define DDS_SHIFT (32 - 2 - SLENK)
 
 static int sine_table_loaded = FALSE;
 static int16_t sine_table[DDS_STEPS];
@@ -127,7 +128,7 @@ icomplex_t dds_complex(uint32_t *phase_acc, int32_t phase_rate)
 }
 /*- End of function --------------------------------------------------------*/
 
-icomplex_t dds_complex_mod(uint32_t *phase_acc, int32_t phase_rate, int scale, int32_t phase)
+icomplex_t dds_mod_complex(uint32_t *phase_acc, int32_t phase_rate, int scale, int32_t phase)
 {
     icomplex_t amp;
 

@@ -1,9 +1,14 @@
 #
 # Makefile for building TIFF files from the ITU test pages
 #
-# $Id: Makefile.am,v 1.1 2004/03/13 13:23:04 steveu Exp $
+# $Id: Makefile.am,v 1.2 2005/01/13 15:26:21 steveu Exp $
 #
-all: itu1.tif itu2.tif itu3.tif itu4.tif itu5.tif itu6.tif itu7.tif itu8.tif test1.tif test2.tif test3.tif test4.tif
+
+EXTRA_DIST = itu1.pbm itu2.pbm itu3.pbm itu4.pbm itu5.pbm itu6.pbm itu7.pbm itu8.pbm \
+               test1.pbm test2.pbm test3.pbm test4.pbm
+
+all: itu1.tif itu2.tif itu3.tif itu4.tif itu5.tif itu6.tif itu7.tif itu8.tif \
+     test1.tif test2.tif test3.tif test4.tif
 
 clean:
 	rm -f *.tif *.g3

@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * super_tone_generate.h - Flexible telephony supervisory tone generation.
+ * super_tone_tx.h - Flexible telephony supervisory tone generation.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,11 +23,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_generate.h,v 1.2 2004/03/19 19:12:46 steveu Exp $
+ * $Id: super_tone_tx.h,v 1.2 2004/10/16 15:20:49 steveu Exp $
  */
 
-#if !defined(_SUPER_TONE_GENERATE_H_)
-#define _SUPER_TONE_GENERATE_H_
+#if !defined(_SUPER_TONE_TX_H_)
+#define _SUPER_TONE_TX_H_
 
 /*! \page super_tone_tx_page Supervisory tone generation
 
@@ -44,21 +44,10 @@ typedef struct super_tone_tx_step_s super_tone_tx_step_t;
 
 typedef struct
 {
-#if defined(PURE_INTEGER_DSP)
-    int v2_1;
-    int v3_1;
-
-    int v2_2;
-    int v3_2;
-#else
-    float v2_1;
-    float v3_1;
-
-    float v2_2;
-    float v3_2;
-#endif
+    int32_t phase_rate[2];
+    int gain[2];
+    int32_t phase[2];
     int current_position;
-
     int level;
     super_tone_tx_step_t *levels[4];
     int cycles[4];
@@ -66,24 +55,8 @@ typedef struct
 
 struct super_tone_tx_step_s
 {
-#if defined(PURE_INTEGER_DSP)
-    int v2_1;
-    int v3_1;
-    int fac_1;
-
-    int v2_2;
-    int v3_2;
-    int fac_2;
-#else
-    float v2_1;
-    float v3_1;
-    float fac_1;
-
-    float v2_2;
-    float v3_2;
-    float fac_2;
-#endif
-
+    int32_t phase_rate[2];
+    int gain[2];
     int tone;
     int length;
     int cycles;
@@ -92,13 +65,24 @@ struct super_tone_tx_step_s
 };
 
 super_tone_tx_step_t *super_tone_tx_make_step(super_tone_tx_step_t *s,
-                                              int f1,
-                                              int l1,
-                                              int f2,
-                                              int l2,
+                                              float f1,
+                                              float l1,
+                                              float f2,
+                                              float l2,
                                               int length,
                                               int cycles);
-void super_tone_tx_init(super_tone_tx_state_t *tone, super_tone_tx_step_t *tree);
+
+void super_tone_tx_free(super_tone_tx_step_t *s);
+
+/*! Initialise a supervisory tone generator.
+    \brief Initialise a supervisory tone generator.
+    \param s The supervisory tone context.
+    \param amp The audio sample buffer.
+    \param max_samples The maximum number of samples to be generated.
+    \return The number of samples generated.
+*/
+void super_tone_tx_init(super_tone_tx_state_t *s, super_tone_tx_step_t *tree);
+
 /*! Generate a block of audio samples for a supervisory tone pattern.
     \brief Generate a block of audio samples for a supervisory tone pattern.
     \param tone The supervisory tone context.
@@ -106,8 +90,7 @@ void super_tone_tx_init(super_tone_tx_state_t *tone, super_tone_tx_step_t *tree)
     \param max_samples The maximum number of samples to be generated.
     \return The number of samples generated.
 */
-int super_tone_tx(super_tone_tx_state_t *tone, int16_t amp[], int max_samples);
-void super_tone_tx_free(super_tone_tx_step_t *tree);
+int super_tone_tx(super_tone_tx_state_t *s, int16_t amp[], int max_samples);
 
 #endif
 /*- End of file ------------------------------------------------------------*/

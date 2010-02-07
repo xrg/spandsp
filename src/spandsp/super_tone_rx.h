@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * super_tone_detect.h - Flexible telephony supervisory tone detection.
+ * super_tone_rx.h - Flexible telephony supervisory tone detection.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,11 +23,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_detect.h,v 1.3 2004/03/19 19:12:46 steveu Exp $
+ * $Id: super_tone_rx.h,v 1.2 2004/10/16 15:20:49 steveu Exp $
  */
 
-#if !defined(_SUPER_TONE_DETECT_H_)
-#define _SUPER_TONE_DETECT_H_
+#if !defined(_SUPER_TONE_RX_H_)
+#define _SUPER_TONE_RX_H_
 
 /*! \page super_tone_rx_page Supervisory tone detection
 
@@ -45,6 +45,12 @@ frequency range will be used. This optimises the efficiency of the detector. The
 Goertzel filters are applied without applying any special window functional
 (i.e. they use a rectangular window), so they have a sinc like response.
 However, for most tone patterns their rejection qualities are adequate. 
+
+The detector aims to meet the need of the standard call progress tones, to
+ITU-T E.180/Q.35 (busy, dial, ringback, reorder). Also, the extended tones,
+to ITU-T E.180, Supplement 2 and EIA/TIA-464-A (recall dial tone, special
+ringback tone, intercept tone, call waiting tone, busy verification tone,
+executive override tone, confirmation tone).
 */
 
 #define BINS            128
@@ -81,17 +87,20 @@ typedef struct
     void *callback_data;
     super_tone_rx_segment_t segments[11];
     goertzel_state_t state[0];
+    uint8_t filler[80];
 } super_tone_rx_state_t;
 
 /*! Create Add a new tone pattern to a supervisory tone detector.
     \param desc The supervisory tone set desciptor. If NULL, the routine will allocate space for a
                 descriptor.
-    \return The supervisory tone set desciptor. */
+    \return The supervisory tone set descriptor. */
 super_tone_rx_descriptor_t *super_tone_rx_make_descriptor(super_tone_rx_descriptor_t *desc);
+
 /*! Add a new tone pattern to a supervisory tone detector set.
     \param desc The supervisory tone set descriptor.
     \return The new tone ID. */
 int super_tone_rx_add_tone(super_tone_rx_descriptor_t *desc);
+
 /*! Add a new tone pattern element to a tone pattern in a supervisory tone detector.
     \param desc The supervisory tone set desciptor.
     \param tone The tone ID within the descriptor.
@@ -106,22 +115,31 @@ int super_tone_rx_add_element(super_tone_rx_descriptor_t *desc,
                               int f2,
                               int min,
                               int max);
+
 /*! Initialise a supervisory tone detector.
-    \param super The supervisory tone context.
+    \param s The supervisory tone context.
     \param desc The tone descriptor.
     \param callback The callback routine called to report the valid detection or termination of
            one of the monitored tones.
     \param data An opaque pointer passed when calling the callback routine.
     \return The supervisory tone context. */
-super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *super,
+super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *s,
                                           super_tone_rx_descriptor_t *desc,
                                           void (*callback)(void *data, int code),
                                           void *data);
+
+/*! Release a supervisory tone detector.
+    \param s The supervisory tone context.
+    \return 0 for OK, -1 for fail. */
+int super_tone_rx_free(super_tone_rx_state_t *s);
+
 /*! Define a callback routine to be called each time a tone pattern element is complete. This is
     mostly used when analysing a tone.
-    \param super The supervisory tone context. */
-void super_tone_rx_segment_callback(super_tone_rx_state_t *super,
+    \param s The supervisory tone context.
+    \param callback The callback routine. */
+void super_tone_rx_segment_callback(super_tone_rx_state_t *s,
                                     void (*callback)(void *data, int f1, int f2, int duration));
+
 /*! Apply supervisory tone detection processing to a block of audio samples.
     \brief Apply supervisory tone detection processing to a block of audio samples.
     \param super The supervisory tone context.

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.7 2004/03/12 16:27:23 steveu Exp $
+ * $Id: fsk.c,v 1.11 2004/09/19 08:47:11 steveu Exp $
  */
 
 /*! \file */
@@ -114,12 +114,14 @@ void async_rx_init(async_rx_state_t *s,
                    int data_bits,
                    int parity,
                    int stop_bits,
+                   int use_v14,
                    put_byte_func_t put_byte,
                    void *user_data)
 {
     s->data_bits = data_bits;
     s->parity = parity;
     s->stop_bits = stop_bits;
+    s->use_v14 = use_v14;
 
     s->put_byte = put_byte;
     s->user_data = user_data;
@@ -186,13 +188,35 @@ void async_rx_bit(void *user_data, int bit)
     else
     {
         /* Stop bit */
-        if (s->data_bits < 8)
-            s->byte_in_progress >>= (8 - s->data_bits);
-        if (bit != 1)
-            s->framing_errors++;
-        else
+        if (bit == 1)
+        {
+            /* Align the received value */
+            if (s->data_bits < 8)
+                s->byte_in_progress >>= (8 - s->data_bits);
             s->put_byte(s->user_data, s->byte_in_progress);
-        s->bitpos = 0;
+            s->bitpos = 0;
+        }
+        else
+        {
+            if (s->use_v14)
+            {
+                /* This is actually the start bit for the next character, and
+                   the stop bit has been dropped from the stream. This is the
+                   rate adaption specified in V.14 */
+                /* Align the received value */
+                if (s->data_bits < 8)
+                    s->byte_in_progress >>= (8 - s->data_bits);
+                s->put_byte(s->user_data, s->byte_in_progress);
+                s->bitpos = 1;
+            }
+            else
+            {
+                if (bit != 1)
+                    s->framing_errors++;
+                s->bitpos = 0;
+            }
+        }
+        s->parity_bit = 0;
         s->byte_in_progress = 0;
     }
 }
@@ -202,6 +226,7 @@ void async_tx_init(async_tx_state_t *s,
                    int data_bits,
                    int parity,
                    int stop_bits,
+                   int use_v14,
                    get_byte_func_t get_byte,
                    void *user_data)
 {
@@ -277,27 +302,44 @@ void fsk_tx_init(fsk_tx_state_t *s,
     s->baud_inc = (s->baud_rate*0x10000)/SAMPLE_RATE;
     s->baud_frac = 0;
     s->current_phase_rate = s->phase_rates[1];
+    
+    s->shutdown = FALSE;
 }
 /*- End of function --------------------------------------------------------*/
 
 int fsk_tx(fsk_tx_state_t *s, int16_t *amp, int len)
 {
-    int i;
+    int sample;
+    int bit;
 
+    if (s->shutdown)
+        return 0;
     /* Make the transitions between 0 and 1 phase coherent, but instantaneous
        jumps. There is currently no interpolation for bauds that end mid-sample.
        Mainstream users will not care. Some specialist users might have a problem
        with they, if they care about accurate transition timing. */
-    for (i = 0;  i < len;  i++)
+    for (sample = 0;  sample < len;  sample++)
     {
         if ((s->baud_frac += s->baud_inc) >= 0x10000)
         {
             s->baud_frac -= 0x10000;
-            s->current_phase_rate = s->phase_rates[s->get_bit(s->user_data) & 1];
+            bit = s->get_bit(s->user_data);
+            if (bit == 2)
+            {
+                s->shutdown = TRUE;
+                break;
+            }
+            s->current_phase_rate = s->phase_rates[bit & 1];
         }
-        amp[i] = dds_mod(&(s->phase_acc), s->current_phase_rate, s->scaling, 0);
+        amp[sample] = dds_mod(&(s->phase_acc), s->current_phase_rate, s->scaling, 0);
     }
-    return len;
+    return sample;
+}
+/*- End of function --------------------------------------------------------*/
+
+void fsk_tx_power(fsk_tx_state_t *s, float power)
+{
+    s->scaling = dds_scaling(power);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -352,11 +394,11 @@ void fsk_rx_init(fsk_rx_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-void fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
+int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
 {
     int buf_ptr;
     int baudstate;
-    int i;
+    int sample;
     int j;
     int32_t dot;
     int32_t sum;
@@ -364,12 +406,12 @@ void fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
 
     buf_ptr = s->buf_ptr;
 
-    for (i = 0;  i < len;  i++)
+    for (sample = 0;  sample < len;  sample++)
     {
         /* If there isn't much signal, don't demodulate - it will only produce
            useless junk results. */
         /* TODO: The carrier signal has no hysteresis! */
-        if (power_meter_update(&(s->power), amp[i]) < s->min_power)
+        if (power_meter_update(&(s->power), amp[sample]) < s->min_power)
         {
             if (s->carrier_present)
             {
@@ -396,8 +438,8 @@ void fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
             s->dot_q[j] -= s->window_q[j][buf_ptr];
 
             ph = dds_complex(&(s->phase_acc[j]), s->phase_rate[j]);
-            s->window_i[j][buf_ptr] = (ph.re*amp[i]) >> s->scaling_shift;
-            s->window_q[j][buf_ptr] = (ph.im*amp[i]) >> s->scaling_shift;
+            s->window_i[j][buf_ptr] = (ph.re*amp[sample]) >> s->scaling_shift;
+            s->window_q[j][buf_ptr] = (ph.im*amp[sample]) >> s->scaling_shift;
 
             s->dot_i[j] += s->window_i[j][buf_ptr];
             s->dot_q[j] += s->window_q[j][buf_ptr];
@@ -447,6 +489,7 @@ void fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
             buf_ptr = 0;
     }
     s->buf_ptr = buf_ptr;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

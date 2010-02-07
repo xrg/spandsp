@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g168models.h,v 1.1 2004/03/12 16:27:25 steveu Exp $
+ * $Id: g168models.h,v 1.2 2004/06/09 15:15:18 steveu Exp $
  */
 
 /*! \file */
@@ -32,8 +32,15 @@
 #if !defined(_G168MODELS_H_)
 #define _G168MODELS_H_
 
+/*! \page G168_test_data_page The test data from the G.168 specification
+*/
+
 /*!
-    The line model from dection D.2 of G.168.
+    The line model from section D.2 of G.168.
+
+    These are the coefficients for the line simulation model defined in
+    section D.2 of G.168. It may be used with the fir32_xxx
+    routines to build a line simulator.
 */
 const int32_t line_model_d2_coeffs[] =
 {
@@ -48,7 +55,11 @@ const int32_t line_model_d2_coeffs[] =
 };
 
 /*!
-    The line model from dection D.3 of G.168.
+    The line model from section D.3 of G.168.
+
+    These are the coefficients for the line simulation model defined in
+    section D.3 of G.168. It may be used with the fir32_xxx
+    routines to build a line simulator.
 */
 const int32_t line_model_d3_coeffs[] =
 {
@@ -67,7 +78,11 @@ const int32_t line_model_d3_coeffs[] =
 };
 
 /*!
-    The line model from dection D.4 of G.168.
+    The line model from section D.4 of G.168.
+
+    These are the coefficients for the line simulation model defined in
+    section D.4 of G.168. It may be used with the fir32_xxx
+    routines to build a line simulator.
 */
 const int32_t line_model_d4_coeffs[] =
 {
@@ -86,7 +101,11 @@ const int32_t line_model_d4_coeffs[] =
 };
 
 /*!
-    The line model from dection D.5 of G.168.
+    The line model from section D.5 of G.168.
+
+    These are the coefficients for the line simulation model defined in
+    section D.5 of G.168. It may be used with the fir32_xxx
+    routines to build a line simulator.
 */
 const int32_t line_model_d5_coeffs[] =
 {
@@ -109,7 +128,11 @@ const int32_t line_model_d5_coeffs[] =
 };
 
 /*!
-    The line model from dection D.6 of G.168.
+    The line model from section D.6 of G.168.
+
+    These are the coefficients for the line simulation model defined in
+    section D.6 of G.168. It may be used with the fir32_xxx
+    routines to build a line simulator.
 */
 const int32_t line_model_d6_coeffs[] =
 {
@@ -128,7 +151,11 @@ const int32_t line_model_d6_coeffs[] =
 };
 
 /*!
-    The line model from dection D.7 of G.168.
+    The line model from section D.7 of G.168.
+
+    These are the coefficients for the line simulation model defined in
+    section D.8 of G.168. It may be used with the fir32_xxx
+    routines to build a line simulator.
 */
 const int32_t line_model_d7_coeffs[] =
 {
@@ -150,7 +177,11 @@ const int32_t line_model_d7_coeffs[] =
 };
 
 /*!
-    The line model from dection D.8 of G.168.
+    The line model from section D.8 of G.168.
+
+    These are the coefficients for the line simulation model defined in
+    section D.8 of G.168. It may be used with the fir32_xxx
+    routines to build a line simulator.
 */
 const int32_t line_model_d8_coeffs[] =
 {
@@ -169,7 +200,11 @@ const int32_t line_model_d8_coeffs[] =
 };
 
 /*!
-    The line model from dection D.9 of G.168.
+    The line model from section D.9 of G.168.
+
+    These are the coefficients for the line simulation model defined in
+    section D.9 of G.168. It may be used with the fir32_xxx
+    routines to build a line simulator.
 */
 const int32_t line_model_d9_coeffs[] =
 {

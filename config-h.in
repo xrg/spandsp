@@ -12,8 +12,29 @@
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
+/* Define to 1 if you have the <fftw3.h> header file. */
+#undef HAVE_FFTW3_H
+
+/* Define to 1 if you have the <fftw.h> header file. */
+#undef HAVE_FFTW_H
+
 /* Define to 1 if you have the <float.h> header file. */
 #undef HAVE_FLOAT_H
+
+/* Define to 1 if you have the <FL/Fl_Cartesian.H> header file. */
+#undef HAVE_FL_FL_CARTESIAN_H
+
+/* Define to 1 if you have the <FL/fl_draw.H> header file. */
+#undef HAVE_FL_FL_DRAW_H
+
+/* Define to 1 if you have the <FL/Fl.H> header file. */
+#undef HAVE_FL_FL_H
+
+/* Define to 1 if you have the <FL/Fl_Light_Button.H> header file. */
+#undef HAVE_FL_FL_LIGHT_BUTTON_H
+
+/* Define to 1 if you have the <FL/Fl_Overlay_Window.H> header file. */
+#undef HAVE_FL_FL_OVERLAY_WINDOW_H
 
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
@@ -21,26 +42,11 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the `audiofile' library (-laudiofile). */
-#undef HAVE_LIBAUDIOFILE
-
-/* Define to 1 if you have the `fftw' library (-lfftw). */
-#undef HAVE_LIBFFTW
-
-/* Define to 1 if you have the `mfcr2' library (-lmfcr2). */
-#undef HAVE_LIBMFCR2
-
-/* Define to 1 if you have the `pthread' library (-lpthread). */
-#undef HAVE_LIBPTHREAD
+/* Define to 1 if you have the `m' library (-lm). */
+#undef HAVE_LIBM
 
 /* Define to 1 if you have the `tiff' library (-ltiff). */
 #undef HAVE_LIBTIFF
-
-/* Define to 1 if you have the `unicall' library (-lunicall). */
-#undef HAVE_LIBUNICALL
-
-/* Define to 1 if you have the `xml2' library (-lxml2). */
-#undef HAVE_LIBXML2
 
 /* Define to 1 if you have the <linux/soundcard.h> header file. */
 #undef HAVE_LINUX_SOUNDCARD_H
@@ -137,14 +143,20 @@
 /* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
 #undef HAVE_SYS_WAIT_H
 
-/* Define to 1 if you have the <tiffiop.h> header file. */
-#undef HAVE_TIFFIOP_H
+/* Define to 1 if you have the <tiffio.h> header file. */
+#undef HAVE_TIFFIO_H
+
+/* Define to 1 if you have the <unicall.h> header file. */
+#undef HAVE_UNICALL_H
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
 /* Define to 1 if you have the `vprintf' function. */
 #undef HAVE_VPRINTF
+
+/* Define to 1 if you have the <X11/X.h> header file. */
+#undef HAVE_X11_X_H
 
 /* Name of package */
 #undef PACKAGE
@@ -188,9 +200,11 @@
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
 
-/* Define as `__inline' if that's what the C compiler calls it, or to nothing
-   if it is not supported. */
+/* Define to `__inline__' or `__inline' if that's what the C compiler
+   calls it, or to nothing if 'inline' is not supported under any name.  */
+#ifndef __cplusplus
 #undef inline
+#endif
 
 /* Define to rpl_malloc if the replacement function should be used. */
 #undef malloc

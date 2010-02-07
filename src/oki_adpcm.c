@@ -1,15 +1,16 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * okiadpcm.c - Conversion routines between linear 16 bit PCM data and
- *		OKI (Dialogic) ADPCM format.
+ * oki_adpcm.c - Conversion routines between linear 16 bit PCM data and
+ *	             OKI (Dialogic) ADPCM format. Supports with the 32kbps
+ *               and 24kbps variants used by Dialogic.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
- * Copyright (C) 2001 Steve Underwood
+ * Copyright (C) 2001, 2004 Steve Underwood
  *
- * Based on a bit from here, a bit from there, eye of toad,
- * ear of bat, etc - plus, of course, my own 2 cents.
+ * The actual OKI ADPCM encode and decode method is derived from freely
+ * available code, whose exact origins seem uncertain.
  *
  * All rights reserved.
  *
@@ -27,7 +28,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm.c,v 1.5 2004/03/15 13:17:35 steveu Exp $
+ * $Id: oki_adpcm.c,v 1.8 2004/11/15 13:36:31 steveu Exp $
  */
 
 /*! \file */
@@ -41,21 +42,9 @@
 #include "spandsp/oki_adpcm.h"
 
 /* Routines to convert 12 bit linear samples to the Oki ADPCM coding format,
-   widely used in CTI because Dialogic use it.
+   widely used in CTI, because Dialogic use it. */
 
-/* These can be found in "PC Telephony - The complete guide to
-   designing, building and programming systems using Dialogic
-   and Related Hardware" by Bob Edgar. pg 272-276. */
-
-/* The 24kbps and 32kbps ADPCM coders used by Dialogic vary only
-   in the sampling rate of the input data. It is 8k samples per second
-   for the 32kbps format and 6k samples per second for the 24kbps
-   format. Most of the Dialogic cards perform a rate conversion
-   between 8k and 6k samples per second, as they must always interface
-   to the PSTN at 8k samples per second. Currently these routines do no
-   rate conversion, so they are limited to the 32kbps format */
-
-static int16_t step_size[49] =
+static const int16_t step_size[49] =
 {
       16,   17,   19,   21,   23,   25,   28,   31,
       34,   37,   41,   45,   50,   55,   60,   66,
@@ -66,179 +55,315 @@ static int16_t step_size[49] =
     1552
 };
 
-static int16_t step_adjustment[8] =
+static const int16_t step_adjustment[8] =
 {
     -1, -1, -1, -1, 2, 4, 6, 8
 };
 
-static int16_t okiadpcm_decode (oki_adpcm_state_t *oki, uint8_t adpcm)
+/* Band limiting filter, to allow sample rate conversion to and
+   from 6k samples/second. */
+static const float cutoff_coeffs[] =
 {
-    int16_t E;
-    int16_t SS;
+    -3.648392e-4,
+     5.062391e-4,
+     1.206247e-3,
+     1.804452e-3,
+     1.691750e-3,
+     4.083405e-4,
+    -1.931085e-3,
+    -4.452107e-3,
+    -5.794821e-3,
+    -4.778489e-3,
+    -1.161266e-3,
+     3.928504e-3,
+     8.259786e-3,
+     9.500425e-3,
+     6.512800e-3,
+     2.227856e-4,
+    -6.531275e-3,
+    -1.026843e-2,
+    -8.718062e-3,
+    -2.280487e-3,
+     5.817733e-3,
+     1.096777e-2,
+     9.634404e-3,
+     1.569301e-3,
+    -9.522632e-3,
+    -1.748273e-2,
+    -1.684408e-2,
+    -6.100054e-3,
+     1.071206e-2,
+     2.525209e-2,
+     2.871779e-2,
+     1.664411e-2,
+    -7.706268e-3,
+    -3.331083e-2,
+    -4.521249e-2,
+    -3.085962e-2,
+     1.373653e-2,
+     8.089593e-2,
+     1.529060e-1,
+     2.080487e-1,
+     2.286834e-1,
+     2.080487e-1,
+     1.529060e-1,
+     8.089593e-2,
+     1.373653e-2,
+    -3.085962e-2,
+    -4.521249e-2,
+    -3.331083e-2,
+    -7.706268e-3,
+     1.664411e-2,
+     2.871779e-2,
+     2.525209e-2,
+     1.071206e-2,
+    -6.100054e-3,
+    -1.684408e-2,
+    -1.748273e-2,
+    -9.522632e-3,
+     1.569301e-3,
+     9.634404e-3,
+     1.096777e-2,
+     5.817733e-3,
+    -2.280487e-3,
+    -8.718062e-3,
+    -1.026843e-2,
+    -6.531275e-3,
+     2.227856e-4,
+     6.512800e-3,
+     9.500425e-3,
+     8.259786e-3,
+     3.928504e-3,
+    -1.161266e-3,
+    -4.778489e-3,
+    -5.794821e-3,
+    -4.452107e-3,
+    -1.931085e-3,
+     4.083405e-4,
+     1.691750e-3,
+     1.804452e-3,
+     1.206247e-3,
+     5.062391e-4,
+    -3.648392e-4
+};
+
+static int16_t okiadpcm_decode(oki_adpcm_state_t *s, uint8_t adpcm)
+{
+    int16_t e;
+    int16_t ss;
     int16_t linear;
 
     /* Doing the next part as follows:
      *
      * x = adpcm & 0x07;
-     * E = (step_size[oki->step_index]*(x + x + 1)) >> 3;
+     * e = (step_size[s->step_index]*(x + x + 1)) >> 3;
      * 
      * Seems an obvious improvement on a modern machine, but remember
      * the truncation errors do not come out the same. It would
      * not, therefore, be an exact match for what this code is doing.
      *
-     * Just what the Dialogic card does I do not know!
+     * Just what a Dialogic card does, I do not know!
      */
 
-    SS = step_size[oki->step_index];
-    E = SS >> 3;
+    ss = step_size[s->step_index];
+    e = ss >> 3;
     if (adpcm & 0x01)
-        E += (SS >> 2);
+        e += (ss >> 2);
     /*endif*/
     if (adpcm & 0x02)
-        E += (SS >> 1);
+        e += (ss >> 1);
     /*endif*/
     if (adpcm & 0x04)
-        E += SS;
+        e += ss;
     /*endif*/
     if (adpcm & 0x08)
-        E = -E;
+        e = -e;
     /*endif*/
-    linear = oki->last + E;
+    linear = s->last + e;
 
-    /* Clip the values to +/- 2^11 (supposed to be 12 bits) */
+    /* Saturate the values to +/- 2^11 (supposed to be 12 bits) */
     if (linear > 2047)
         linear = 2047;
-    /*endif*/
-    if (linear < -2048)
+    else if (linear < -2048)
         linear = -2048;
     /*endif*/
 
-    oki->last = linear;
-    oki->step_index += step_adjustment[adpcm & 0x07];
-    if (oki->step_index < 0)
-        oki->step_index = 0;
+    s->last = linear;
+    s->step_index += step_adjustment[adpcm & 0x07];
+    if (s->step_index < 0)
+        s->step_index = 0;
+    else if (s->step_index > 48)
+        s->step_index = 48;
     /*endif*/
-    if (oki->step_index > 48)
-        oki->step_index = 48;
-    /*endif*/
+    /* Note: the result here is a 12 bit value */
     return  linear;
 }
 /*- End of function --------------------------------------------------------*/
 
-static uint8_t okiadpcm_encode (oki_adpcm_state_t *oki, int16_t linear)
+static uint8_t okiadpcm_encode(oki_adpcm_state_t *s, int16_t linear)
 {
-    int16_t E;
-    int16_t SS;
+    int16_t e;
+    int16_t ss;
     uint8_t adpcm;
 
-    SS = step_size[oki->step_index];
-    E = linear - oki->last;
+    ss = step_size[s->step_index];
+    e = (linear >> 4) - s->last;
     adpcm = (uint8_t) 0x00;
-    if (E < 0)
+    if (e < 0)
     {
         adpcm = (uint8_t) 0x08;
-        E = -E;
+        e = -e;
     }
     /*endif*/
-    if (E >= SS)
+    if (e >= ss)
     {
         adpcm |= (uint8_t) 0x04;
-        E -= SS;
+        e -= ss;
     }
     /*endif*/
-    if (E >= (SS >> 1))
+    if (e >= (ss >> 1))
     {
         adpcm |= (uint8_t) 0x02;
-        E -= SS;
+        e -= ss;
     }
     /*endif*/
-    if (E >= (SS >> 2))
+    if (e >= (ss >> 2))
         adpcm |= (uint8_t) 0x01;
     /*endif*/
 
     /* Use the decoder to set the estimate of the last sample. */
     /* It also will adjust the step_index for us. */
-    oki->last = okiadpcm_decode (oki, adpcm);
+    s->last = okiadpcm_decode(s, adpcm);
     return  adpcm;
 }
 /*- End of function --------------------------------------------------------*/
 
-oki_adpcm_state_t *oki_adpcm_create(void)
+oki_adpcm_state_t *oki_adpcm_create(int bit_rate)
 {
-    oki_adpcm_state_t *oki;
-    
-    oki = (oki_adpcm_state_t *) malloc(sizeof(*oki));
-    if (oki == NULL)
+    oki_adpcm_state_t *s;
+
+    if (bit_rate != 32000  &&  bit_rate != 24000)
+        return NULL;
+    s = (oki_adpcm_state_t *) malloc(sizeof(*s));
+    if (s == NULL)
     	return  NULL;
-    memset(oki, 0, sizeof(*oki));
-    oki->last = 0;
-    oki->step_index = 0;
-    oki->left_over_used = FALSE;
-    oki->left_over_sample = 0;
-    return  oki;
+    memset(s, 0, sizeof(*s));
+    s->bit_rate = bit_rate;
+    
+    return  s;
 }
 /*- End of function --------------------------------------------------------*/
 
-void oki_adpcm_free(oki_adpcm_state_t *oki)
+int oki_adpcm_free(oki_adpcm_state_t *s)
 {
-    free(oki);
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-int oki_adpcm_to_linear(oki_adpcm_state_t *oki,
+int oki_adpcm_to_linear(oki_adpcm_state_t *s,
                         int16_t *amp,
-                        const uint8_t oki_data[],
+                        const uint8_t *oki_data,
                         int oki_bytes)
 {
     int i;
     int j;
+    int x;
+    int k;
+    int l;
+    int n;
+    int samples;
+    float z;
 
-    j = 0;
-    for (i = 0;  i < oki_bytes;  i++)
+    samples = 0;
+    if (s->bit_rate == 32000)
     {
-        amp[j++] = okiadpcm_decode (oki, oki_data[i] >> 4) << 4;
-        amp[j++] = okiadpcm_decode (oki, oki_data[i] & 0xF) << 4;
-    }
-    /*endwhile*/
-    return  j;
-}
-/*- End of function --------------------------------------------------------*/
-
-int linear_to_oki_adpcm(oki_adpcm_state_t *oki,
-                        uint8_t oki_data[],
-                        const int16_t *amp,
-                        int pcm_samples)
-{
-    uint8_t sample;
-    int i;
-    int j;
-
-    i = 0;
-    j = 0;
-    if (oki->left_over_used  &&  pcm_samples > 0)
-    {
-        sample = okiadpcm_encode (oki, oki->left_over_sample >> 4);
-        oki_data[j++] = (oki->left_over_sample << 4) | okiadpcm_encode (oki, amp[i++] >> 4);
-    }
-    /*endif*/
-    if (((pcm_samples - i) & 1))
-    {
-    	pcm_samples--;
-        oki->left_over_used = TRUE;
-        oki->left_over_sample = amp[pcm_samples];
+        for (i = 0;  i < oki_bytes;  i++)
+        {
+            amp[samples++] = okiadpcm_decode(s, (oki_data[i] >> 4) & 0xF) << 4;
+            amp[samples++] = okiadpcm_decode(s, oki_data[i] & 0xF) << 4;
+        }
+        /*endwhile*/
     }
     else
     {
-        oki->left_over_used = FALSE;
+        n = 0;
+        for (i = 0;  i < oki_bytes;  )
+        {
+            /* 6k to 8k sample/second conversion */
+            if (s->phase)
+            {
+                s->history[s->ptr++] =
+                    okiadpcm_decode(s, (n++ & 1)  ?  (oki_data[i++] & 0xF)  :  ((oki_data[i] >> 4) & 0xF)) << 4;
+                s->ptr &= (32 - 1);
+            }
+            /*endif*/
+            z = 0.0;
+            for (l = 80 - 3 + s->phase, x = s->ptr - 1;  l >= 0;  l -= 4, x--)
+                z += cutoff_coeffs[l]*s->history[x & (32 - 1)];
+            amp[samples++] = z*4.0;
+            if (++s->phase > 3)
+                s->phase = 0;
+            /*endif*/
+        }
+        /*endfor*/
     }
     /*endif*/
-    while (i < pcm_samples)
+    return  samples;
+}
+/*- End of function --------------------------------------------------------*/
+
+int oki_linear_to_adpcm(oki_adpcm_state_t *s,
+                        uint8_t *oki_data,
+                        const int16_t *amp,
+                        int samples)
+{
+    int x;
+    int k;
+    int l;
+    int n;
+    int bytes;
+    float z;
+
+    bytes = 0;
+    if (s->bit_rate == 32000)
     {
-        sample = okiadpcm_encode (oki, amp[i++] >> 4);
-        oki_data[j++] = (sample << 4) | okiadpcm_encode (oki, amp[i++] >> 4);
+        for (n = 0;  n < samples;  n++)
+        {
+            s->oki_byte = (s->oki_byte << 4) | okiadpcm_encode(s, amp[n]);
+            if ((s->mark++ & 1))
+                oki_data[bytes++] = s->oki_byte;
+            /*endif*/
+        }
+        /*endfor*/
     }
-    /*endwhile*/
-    return  j;
+    else
+    {
+        for (n = 0;  n < samples;  n++)
+        {
+            /* 8k to 6k sample/second conversion */
+            s->history[s->ptr++] = amp[n];
+            s->ptr &= (32 - 1);
+            z = 0.0;
+            for (l = 80 - s->phase, x = s->ptr - 1;  l >= 0;  l -= 3, x--)
+                z += cutoff_coeffs[l]*s->history[x & (32 - 1)];
+            /*endfor*/
+            s->oki_byte = (s->oki_byte << 4) | okiadpcm_encode(s, (int16_t) (z*3.0));
+            if ((s->mark++ & 1))
+                oki_data[bytes++] = s->oki_byte;
+            /*endif*/
+            if (++s->phase > 2)
+            {
+                s->history[s->ptr++] = amp[++n];
+                s->ptr &= (32 - 1);
+                s->phase = 0;
+            }
+            /*endif*/
+        }
+        /*endfor*/
+    }
+    /*endif*/
+    return  bytes;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

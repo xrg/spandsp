@@ -23,8 +23,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dc_restore_tests.c,v 1.2 2004/03/12 16:27:25 steveu Exp $
+ * $Id: dc_restore_tests.c,v 1.5 2004/12/08 14:00:35 steveu Exp $
  */
+
+/*! \page dc_restore_tests_page DC restoration tests
+\section dc_restore_tests_page_sec_1 What does it do
+*/
 
 #define _ISOC9X_SOURCE  1
 #define _ISOC99_SOURCE  1
@@ -33,10 +37,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
+#include <time.h>
 #include <tiffio.h>
 
 #include "spandsp.h"
-#include <math.h>
     
 int main (int argc, char *argv[])
 {

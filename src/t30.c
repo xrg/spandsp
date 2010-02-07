@@ -1,4 +1,4 @@
-#define LOG_FAX_AUDIO
+//#define LOG_FAX_AUDIO
 /*
  * SpanDSP - a series of DSP components for telephony
  *
@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.26 2004/03/25 15:23:17 steveu Exp $
+ * $Id: t30.c,v 1.50 2004/12/31 15:23:01 steveu Exp $
  */
 
 /*! \file */
@@ -37,23 +37,9 @@
 #include <fcntl.h>
 #include <time.h>
 
-#include <tiffiop.h>
+#include <tiffio.h>
 
-#include "spandsp/telephony.h"
-#include "spandsp/power_meter.h"
-#include "spandsp/complex.h"
-#include "spandsp/complex_filters.h"
-#include "spandsp/tone_generate.h"
-#include "spandsp/fsk.h"
-#include "spandsp/v27ter_rx.h"
-#include "spandsp/v27ter_tx.h"
-#include "spandsp/v29rx.h"
-#include "spandsp/v29tx.h"
-#include "spandsp/hdlc.h"
-#include "spandsp/t4.h"
-#include "spandsp/t35.h"
-#include "spandsp/t30_fcf.h"
-#include "spandsp/t30.h"
+#include "spandsp.h"
 
 #define MAXMESSAGE          (MAXFRAME + 4)  /* HDLC frame, including address, control, and CRC */
 
@@ -77,7 +63,8 @@ enum
     T30_PHASE_BDE_TX,       /* Transmitting a control message */
     T30_PHASE_C_RX,         /* Receiving a document message */
     T30_PHASE_C_TX,         /* Transmitting a document message */
-    T30_PHASE_E_DONE        /* Call completely finished */
+    T30_PHASE_E,            /* In phase E */
+    T30_PHASE_CALL_DONE     /* Call completely finished */
 };
 
 /* These state names are modelled after places in the T.30 flow charts. */
@@ -104,6 +91,13 @@ enum
 {
     T30_MODE_SEND_DOC = 1,
     T30_MODE_RECEIVE_DOC
+};
+
+enum
+{
+    T30_MODEM_V27TER = 0,
+    T30_MODEM_V29,
+    T30_MODEM_V17
 };
 
 #define DISBIT1     0x01
@@ -152,12 +146,28 @@ static int fax_audio_rx_log;
 static int fax_audio_tx_log;
 #endif
 
+static void queue_phase(t30_state_t *s, int phase);
 static void set_phase(t30_state_t *s, int phase);
 static void send_frame(t30_state_t *s, const uint8_t *fr, int frlen, int final);
 static void disconnect(t30_state_t *s);
-void decode_password(t30_state_t *s, char *msg, const uint8_t *pkt, int len);
-void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len);
-void decode_url_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len);
+static void decode_password(t30_state_t *s, char *msg, const uint8_t *pkt, int len);
+static void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len);
+static void decode_url_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len);
+
+static void start_page(t30_state_t *s)
+{
+    t4_rx_set_columns(&(s->t4), s->image_width);
+    t4_rx_set_sub_address(&(s->t4), s->sub_address);
+    t4_rx_set_far_ident(&(s->t4), s->far_ident);
+    t4_rx_set_vendor(&(s->t4), s->vendor);
+    t4_rx_set_model(&(s->t4), s->model);
+
+    t4_rx_set_rx_encoding(&(s->t4), s->line_encoding);
+    t4_rx_set_row_resolution(&(s->t4), s->resolution);
+
+    t4_rx_start_page(&(s->t4));
+}
+/*- End of function --------------------------------------------------------*/
 
 static void fast_putbit(void *user_data, int bit)
 {
@@ -170,11 +180,13 @@ static void fast_putbit(void *user_data, int bit)
         switch (bit)
         {
         case PUTBIT_TRAINING_FAILED:
-            fprintf(stderr, "Fast carrier training failed\n");
+            if (s->verbose)
+                fprintf(stderr, "Fast carrier training failed\n");
             break;
         case PUTBIT_TRAINING_SUCCEEDED:
             /* The modem is now trained */
-            fprintf(stderr, "Fast carrier trained\n");
+            if (s->verbose)
+                fprintf(stderr, "Fast carrier trained\n");
             /* In case we are in trainability test mode... */
             /* A FAX machine is supposed to send 1.5s of training test
                data, but some send a little bit less. Lets just check
@@ -184,40 +196,52 @@ static void fast_putbit(void *user_data, int bit)
             s->rx_signal_present = TRUE;
             break;
         case PUTBIT_CARRIER_UP:
-            fprintf(stderr, "Fast carrier up\n");
+            if (s->verbose)
+                fprintf(stderr, "Fast carrier up\n");
             break;
         case PUTBIT_CARRIER_DOWN:
-            fprintf(stderr, "Fast carrier down\n");
+            if (s->verbose)
+                fprintf(stderr, "Fast carrier down\n");
             switch (s->state)
             {
             case T30_STATE_F_TCF:
-                /* Although T.30 says the training test should be 1.5s of all 0's, some FAX
-                   machines send a burst of all 1's before the all 0's. Tolerate this. */
-                if (s->training_current_zeros > s->training_most_zeros)
-                    s->training_most_zeros = s->training_current_zeros;
-                if (s->training_most_zeros < s->bit_rate)
+                /* Only respond if we managed to actually sync up with the source. We don't
+                   want to respond just because we saw a click. These often occur just
+                   before the real signal, on many modems. Presumably this is due to switching
+                   within the far end modem. We also want to avoid the possibility of responding
+                   to the tail end of any slow modem signal. If there was a genuine data signal
+                   which we failed to train on it should not matter. If things are that bad, we
+                   do not stand much chance of good quality communications. */
+                if (s->rx_signal_present)
                 {
-                    fprintf(stderr, "Trainability test failed - longest run of zeros was %d\n", s->training_most_zeros);
-                    send_frame(s, ftt_frame, 1, TRUE);
-                }
-                else
-                {
-                    s->state = T30_STATE_F;
-                    set_phase(s, T30_PHASE_BDE_TX);
-                    if (!s->in_message  &&  t4_rx_init(&(s->t4)))
+                    /* Although T.30 says the training test should be 1.5s of all 0's, some FAX
+                       machines send a burst of all 1's before the all 0's. Tolerate this. */
+                    if (s->training_current_zeros > s->training_most_zeros)
+                        s->training_most_zeros = s->training_current_zeros;
+                    if (s->training_most_zeros < s->bit_rate)
                     {
-                        fprintf(stderr, "Cannot open target TIFF file\n");
-                        send_frame(s, dcn_frame, 1, TRUE);
+                        if (s->verbose)
+                            fprintf(stderr, "Trainability test failed - longest run of zeros was %d\n", s->training_most_zeros);
+                        send_frame(s, ftt_frame, 1, TRUE);
                     }
                     else
                     {
-                        s->in_message = TRUE;
-                        t4_rx_set_sub_address(&(s->t4), s->sub_address);
-                        t4_rx_set_far_ident(&(s->t4), s->far_ident);
-                        t4_rx_set_vendor(&(s->t4), s->vendor);
-                        t4_rx_set_model(&(s->t4), s->model);
-                        t4_rx_start_page(&(s->t4));
-                        send_frame(s, cfr_frame, 1, TRUE);
+#if defined(ENABLE_V17)
+                        s->short_train = TRUE;
+#endif
+                        s->state = T30_STATE_F;
+                        set_phase(s, T30_PHASE_BDE_TX);
+                        if (!s->in_message  &&  t4_rx_init(&(s->t4), s->rx_file, T4_COMPRESSION_ITU_T4_2D))
+                        {
+                            fprintf(stderr, "Cannot open target TIFF file '%s'\n", s->rx_file);
+                            send_frame(s, dcn_frame, 1, TRUE);
+                        }
+                        else
+                        {
+                            s->in_message = TRUE;
+                            start_page(s);
+                            send_frame(s, cfr_frame, 1, TRUE);
+                        }
                     }
                 }
                 break;
@@ -226,8 +250,8 @@ static void fast_putbit(void *user_data, int bit)
                 if (s->rx_signal_present)
                 {
                     t4_rx_end_page(&(s->t4));
-                    /* We should have changed phase already, but if we have, this
-                       should be harmless. */
+                    /* We should have changed phase already, but if we have,
+                       this should be harmless. */
                     set_phase(s, T30_PHASE_BDE_RX);
                 }
                 break;
@@ -235,7 +259,8 @@ static void fast_putbit(void *user_data, int bit)
             s->rx_signal_present = FALSE;
             break;
         default:
-            fprintf(stderr, "Eh!\n");
+            if (s->verbose)
+                fprintf(stderr, "Eh!\n");
             break;
         }
         return;
@@ -301,6 +326,8 @@ static int fast_getbit(void *user_data)
                a block it might get cut short. We should inject a few more 0 bits
                for safety. */
             set_phase(s, T30_PHASE_BDE_TX);
+            t4_tx_end_page(&(s->t4));
+            t4_tx_set_local_ident(&(s->t4), s->local_ident);
             if (t4_tx_start_page(&(s->t4)) == 0)
             {
                 send_frame(s, mps_frame, 1, TRUE);
@@ -322,7 +349,8 @@ static int fast_getbit(void *user_data)
         bit = 0;
         break;
     default:
-        fprintf(stderr, "fast_getbit in bad state %d\n", s->state);
+        if (s->verbose)
+            fprintf(stderr, "fast_getbit in bad state %d\n", s->state);
         break;
     }
     return bit;
@@ -334,13 +362,15 @@ static void hdlc_tx_underflow(void *user_data)
     t30_state_t *s;
     
     s = (t30_state_t *) user_data;
-    fprintf(stderr, "HDLC underflow in state %d\n", s->state);
+    if (s->verbose)
+        fprintf(stderr, "HDLC underflow in state %d\n", s->state);
     /* We have finished sending our messages, so move on to the next operation. */
     switch (s->state)
     {
     case T30_STATE_F:
         /* Send trainability response */
-        fprintf(stderr, "Post trainability\n");
+        if (s->verbose)
+            fprintf(stderr, "Post trainability\n");
         set_phase(s, T30_PHASE_C_RX);
         break;
     case T30_STATE_F_MPS_MCF:
@@ -369,7 +399,8 @@ static void hdlc_tx_underflow(void *user_data)
         s->timer_t4 = DEFAULT_TIMER_T4*SAMPLE_RATE;
         break;
     default:
-        fprintf(stderr, "Bad state in hdlc_tx_underflow - %d\n", s->state);
+        if (s->verbose)
+            fprintf(stderr, "Bad state in hdlc_tx_underflow - %d\n", s->state);
         break;
     }
 }
@@ -379,10 +410,13 @@ static void print_frame(t30_state_t *s, const char *io, const uint8_t *fr, int f
 {
     int i;
     
-    fprintf(stderr, "%s %s:", io, t30_frametype(fr[0]));
-    for (i = 0;  i < frlen;  i++)
-        fprintf(stderr, " %02x", fr[i]);
-    fprintf(stderr, "\n");
+    if (s->verbose)
+    {
+        fprintf(stderr, "%s %s:", io, t30_frametype(fr[0]));
+        for (i = 0;  i < frlen;  i++)
+            fprintf(stderr, " %02x", fr[i]);
+        fprintf(stderr, "\n");
+    }
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -398,7 +432,7 @@ static void send_frame(t30_state_t *s, const uint8_t *fr, int frlen, int final)
     /* Now comes the actual fax control message */
     memcpy(&message[2], fr, frlen);
     hdlc_tx_preamble(&(s->hdlctx), 2);
-    hdlc_tx_packet(&(s->hdlctx), message, frlen + 2);
+    hdlc_tx_frame(&(s->hdlctx), message, frlen + 2);
     hdlc_tx_preamble(&(s->hdlctx), 1);
 }
 /*- End of function --------------------------------------------------------*/
@@ -409,15 +443,20 @@ static void send_ident_frame(t30_state_t *s, uint8_t cmd, int lastframe)
     int p;
     uint8_t frame[123];
 
-    fprintf(stderr, "Sending ident\n");
-    len = strlen(s->local_ident);
-    p = 0;
-    frame[p++] = cmd;  /* T30_TSI or T30_CSI */
-    while (len > 0)
-        frame[p++] = s->local_ident[--len];
-    while (p < 21)
-        frame[p++] = ' ';
-    send_frame(s, frame, 21, lastframe);
+    /* Only send if there is an ident to send. */
+    if (s->local_ident[0])
+    {
+        len = strlen(s->local_ident);
+        if (s->verbose)
+            fprintf(stderr, "Sending ident\n");
+        p = 0;
+        frame[p++] = cmd;  /* T30_TSI or T30_CSI */
+        while (len > 0)
+            frame[p++] = s->local_ident[--len];
+        while (p < 21)
+            frame[p++] = ' ';
+        send_frame(s, frame, 21, lastframe);
+    }
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -426,19 +465,27 @@ static int build_dtc(t30_state_t *s)
     /* Tell the far end our capabilities. */
     s->dtc_frame[0] = T30_DTC;
     s->dtc_frame[1] = 0;
-    /* 2D compression OK; fine resolution OK; V.29 and V.27ter OK */
+#if defined(ENABLE_V17)
+    s->dtc_frame[2] = DISBIT8 | DISBIT7 | DISBIT6 | DISBIT4 | DISBIT3;
+#else
     s->dtc_frame[2] = DISBIT8 | DISBIT7 | DISBIT4 | DISBIT3;
-    if (s->t4.rx_file[0])
+#endif
+    /* If we have a file name to receive into, then we are receive capable */
+    if (s->rx_file[0])
         s->dtc_frame[2] |= DISBIT2;
-    if (s->t4.tx_file[0])
+    if (s->tx_file[0])
         s->dtc_frame[2] |= DISBIT1;
-    /* No scan-line padding required; 215mm wide only; A4 long only. */
-    s->dtc_frame[3] = DISBIT7 | DISBIT6 | DISBIT5;
+    s->dtc_frame[3] = DISBIT8 | DISBIT7 | DISBIT6 | DISBIT5 | DISBIT3 | DISBIT2;
     s->dtc_frame[4] = DISBIT8;
     s->dtc_frame[5] = DISBIT8;
-    /* Super fine resolution OK */
-    s->dtc_frame[6] = DISBIT1;
-    s->dtc_len = 7;
+    s->dtc_frame[6] = DISBIT8 | DISBIT1;
+    s->dtc_frame[7] = DISBIT8;
+    s->dtc_frame[8] = DISBIT8;
+    s->dtc_frame[9] = DISBIT8;
+    /* North American Letter (215.9mm x 279.4mm).
+       North American Legal (215.9mm x 355.6mm). */
+    s->dtc_frame[10] = DISBIT4 | DISBIT5;
+    s->dtc_len = 11;
     t30_decode_dis_dtc_dcs(s, s->dtc_frame, s->dtc_len);
     return 0;
 }
@@ -450,125 +497,192 @@ static int build_dis(t30_state_t *s)
     s->dis_frame[0] = T30_DIS;
     s->dis_frame[1] = 0;
     /* 2D compression OK; fine resolution OK; V.29 and V.27ter OK */
+#if defined(ENABLE_V17)
+    s->dis_frame[2] = DISBIT8 | DISBIT7 | DISBIT6 | DISBIT4 | DISBIT3;
+#else
     s->dis_frame[2] = DISBIT8 | DISBIT7 | DISBIT4 | DISBIT3;
-    if (s->t4.rx_file[0])
+#endif
+    /* If we have a file name to receive into, then we are receive capable */
+    if (s->rx_file[0])
         s->dis_frame[2] |= DISBIT2;
-    if (s->t4.tx_file[0])
+    if (s->tx_file[0])
         s->dis_frame[2] |= DISBIT1;
     /* No scan-line padding required; 215mm wide; A4 long. */
-    s->dis_frame[3] = DISBIT8 | DISBIT7 | DISBIT6 | DISBIT5;
+    //s->dis_frame[3] = DISBIT8 | DISBIT7 | DISBIT6 | DISBIT5;
+    s->dis_frame[3] = DISBIT8 | DISBIT7 | DISBIT6 | DISBIT5 | DISBIT3;
     s->dis_frame[4] = DISBIT8;
     s->dis_frame[5] = DISBIT8;
-    /* Super fine resolution OK */
-    s->dis_frame[6] = DISBIT1;
-    s->dis_len = 7;
+    s->dis_frame[6] = DISBIT8 | DISBIT1;
+    s->dis_frame[7] = DISBIT8;
+    s->dis_frame[8] = DISBIT8;
+    s->dis_frame[9] = DISBIT8;
+    /* North American Letter (215.9mm x 279.4mm).
+       North American Legal (215.9mm x 355.6mm). */
+    s->dis_frame[10] = DISBIT4 | DISBIT5;
+    s->dis_len = 11;
     t30_decode_dis_dtc_dcs(s, s->dis_frame, s->dis_len);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-static int build_dcs(t30_state_t *s, uint8_t *dis_frame)
+static int build_dcs(t30_state_t *s, const uint8_t *dis_frame)
 {
-    static const uint8_t translate_min_scan_time[2][8] =
+    static const uint8_t translate_min_scan_time[3][8] =
     {
         {0, 1, 2, 0, 4, 4, 2, 7}, /* normal */
-        {0, 1, 2, 2, 4, 0, 2, 7}  /* fine */
+        {0, 1, 2, 2, 4, 0, 2, 7}, /* fine */
+        {0, 1, 2, 2, 4, 0, 2, 7}  /* super-fine */
     };
     static const int scanbitstab[4][8] =
     {
-        /* Translate the minimum scan time to a minimum number of transmitted bits at 7200 and 9600bps */
+        /* Translate the minimum scan time to a minimum number of transmitted bits
+           at the various bit rates. */
         {144,  36,  72, -1,  288, -1, -1, 0},
         {192,  48,  96, -1,  384, -1, -1, 0},
         {288,  72, 144, -1,  576, -1, -1, 0},
         {576, 144, 288, -1, 1152, -1, -1, 0}
     };
     uint8_t spd;
-    uint8_t n;
+    uint8_t min_bits_field;
     
     /* Make a DCS frame from a received DIS frame. Negotiate the result
        based on what both parties can do. */
     s->dcs_frame[0] = T30_DCS;
     s->dcs_frame[1] = 0x00;
-    if (!(dis_frame[2] & (DISBIT3 | DISBIT4)))
+#if defined(ENABLE_V17)
+    if (!(dis_frame[2] & (DISBIT6 | DISBIT4 | DISBIT3)))
     {
-        fprintf(stderr, "Remote does not support V.29 or V.27ter\n");
+        if (s->verbose)
+            fprintf(stderr, "Remote does not support V.17, V.29 or V.27ter\n");
         /* We cannot talk to this machine! */
         return -1;
     }
+#else
+    if (!(dis_frame[2] & (DISBIT4 | DISBIT3)))
+    {
+        if (s->verbose)
+            fprintf(stderr, "Remote does not support V.29 or V.27ter\n");
+        /* We cannot talk to this machine! */
+        return -1;
+    }
+#endif
+
+    /* Get the minimum scan time */
+    min_bits_field = (dis_frame[3] >> 4) & 7;     /* DIS bits 21-23 */
 
     /* Set to required modem rate; standard resolution */
     /* Set the minimum scan time, in bits at the chosen bit rate */
     s->dcs_frame[2] = 0;
     switch (s->bit_rate)
     {
+#if defined(ENABLE_V17)
+    case 14400:
+        s->dcs_frame[2] |= DISBIT6;
+        s->min_row_bits = scanbitstab[0][min_bits_field];
+        break;
+    case 12000:
+        s->dcs_frame[2] |= (DISBIT6 | DISBIT4);
+        s->min_row_bits = scanbitstab[0][min_bits_field];
+        break;
+    case 9600:
+        if (s->modem_type == T30_MODEM_V17)
+            s->dcs_frame[2] |= (DISBIT6 | DISBIT3);
+        else
+            s->dcs_frame[2] |= DISBIT3;
+        s->min_row_bits = scanbitstab[0][min_bits_field];
+        break;
+    case 7200:
+        if (s->modem_type == T30_MODEM_V17)
+            s->dcs_frame[2] |= (DISBIT6 | DISBIT4 | DISBIT3);
+        else
+            s->dcs_frame[2] |= (DISBIT4 | DISBIT3);
+        s->min_row_bits = scanbitstab[1][min_bits_field];
+        break;
+#else
     case 9600:
         s->dcs_frame[2] |= DISBIT3;
-        s->scanbits = scanbitstab[0][n];
+        s->min_row_bits = scanbitstab[0][min_bits_field];
         break;
     case 7200:
         s->dcs_frame[2] |= (DISBIT4 | DISBIT3);
-        s->scanbits = scanbitstab[1][n];
+        s->min_row_bits = scanbitstab[1][min_bits_field];
         break;
+#endif
     case 4800:
         s->dcs_frame[2] |= DISBIT4;
-        s->scanbits = scanbitstab[2][n];
+        s->min_row_bits = scanbitstab[2][min_bits_field];
         break;
     case 2400:
         /* Speed bits are all zero for this */
-        s->scanbits = scanbitstab[3][n];
+        s->min_row_bits = scanbitstab[3][min_bits_field];
         break;
     }
     /* If remote supports 2D compression, use it. */
     if ((dis_frame[2] & DISBIT8))
     {
-        s->t4.remote_compression = 2;
+        s->line_encoding = T4_COMPRESSION_ITU_T4_2D;
         s->dcs_frame[2] |= DISBIT8;
     }
     else
     {
-        s->t4.remote_compression = 1;
+        s->line_encoding = T4_COMPRESSION_ITU_T4_1D;
     }
-    if (s->t4.rx_file[0])
+    /* If we have a file to send tell the far end to go into receive mode. */
+    if (s->tx_file[0])
         s->dcs_frame[2] |= DISBIT2;
-    /* Set A4 1728 dots per scan line; set scantime bits; clear extend bit */
-    n = (dis_frame[3] >> 4) & 7;     /* DIS bits 21-23 */
-    switch (s->t4.resolution)
+    /* Set scantime bits; clear extend bit */
+    switch (s->resolution)
     {
-    case 2:
+    case T4_RESOLUTION_SUPERFINE:
         if ((dis_frame[6] & DISBIT1))
         {
             s->dcs_frame[6] |= DISBIT1;
-            n = translate_min_scan_time[1][n];
-            s->dcs_frame[3] = (n + 8) << 4;
+            s->dcs_frame[3] = (translate_min_scan_time[2][min_bits_field] + 8) << 4;
             break;
         }
-        s->t4.resolution = 1;
-        fprintf(stderr, "Remote fax does not support super-fine resolution.\n");
+        s->resolution = T4_RESOLUTION_FINE;
+        if (s->verbose)
+            fprintf(stderr, "Remote fax does not support super-fine resolution.\n");
         /* Fall through */
-        break;
-    case 1:
+    case T4_RESOLUTION_FINE:
         if ((dis_frame[2] & DISBIT7))
         {
             s->dcs_frame[2] |= DISBIT7;
-            n = translate_min_scan_time[1][n];
-            s->dcs_frame[3] = (n + 8) << 4;
+            s->dcs_frame[3] = (translate_min_scan_time[1][min_bits_field] + 8) << 4;
             break;
         }
-        s->t4.resolution = 0;
-        fprintf(stderr, "Remote fax does not support fine resolution.\n");
+        s->resolution = T4_RESOLUTION_STANDARD;
+        if (s->verbose)
+            fprintf(stderr, "Remote fax does not support fine resolution.\n");
         /* Fall through */
-    case 0:
-        n = translate_min_scan_time[0][n];
-        s->dcs_frame[3] = n << 4;
+    case T4_RESOLUTION_STANDARD:
+        s->dcs_frame[3] = translate_min_scan_time[0][min_bits_field] << 4;
         break;
     }
-    s->dcs_len = 4;
+    switch (s->image_width)
+    {
+    case 2432:
+        s->dcs_frame[3] |= DISBIT2;
+        break;
+    case 2048:
+        s->dcs_frame[3] |= DISBIT1;
+        break;
+    case 1728:
+    default:
+        break;
+    }
+
+    s->dcs_frame[3] |= DISBIT8;
+    s->dcs_frame[4] = DISBIT8;
+    s->dcs_frame[5] = DISBIT8;
+    s->dcs_frame[6] = 0;
+    s->dcs_len = 7;
     t30_decode_dis_dtc_dcs(s, s->dcs_frame, s->dcs_len);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-static int check_dcs(t30_state_t *s, uint8_t *dcs_frame, int len)
+static int check_dcs(t30_state_t *s, const uint8_t *dcs_frame, int len)
 {
     static const int widths[3][4] =
     {
@@ -583,39 +697,56 @@ static int check_dcs(t30_state_t *s, uint8_t *dcs_frame, int len)
     if (len < 4)
         fprintf(stderr, "Short DCS frame\n");
     if (len >= 7  &&  (dcs_frame[6] & DISBIT1))
-        s->t4.resolution = 2;
+        s->resolution = T4_RESOLUTION_SUPERFINE;
     else if (dcs_frame[2] & DISBIT7)
-        s->t4.resolution = 1;
+        s->resolution = T4_RESOLUTION_FINE;
     else
-        s->t4.resolution = 0;
-    s->t4.image_width = widths[1][dcs_frame[3] & (DISBIT2 | DISBIT1)];
-    s->t4.remote_compression = (dcs_frame[2] & DISBIT8)  ?  2  :  1;
+        s->resolution = T4_RESOLUTION_STANDARD;
+    s->image_width = widths[1][dcs_frame[3] & (DISBIT2 | DISBIT1)];
+    s->line_encoding = (dcs_frame[2] & DISBIT8)  ?  T4_COMPRESSION_ITU_T4_2D  :  T4_COMPRESSION_ITU_T4_1D;
     if (!(dcs_frame[2] & DISBIT2))
         fprintf(stderr, "Remote cannot receive\n");
-    if ((dcs_frame[2] & (DISBIT5 | DISBIT6)))
-    {
-        fprintf(stderr, "Remote has not specified an acceptable modem rate\n");
-        /* We cannot talk to this machine! */
-        return -1;
-    }
 
     speed = dcs_frame[2] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3);
     switch (speed)
     {
+#if defined(ENABLE_V17)
+    case DISBIT6:
+        s->bit_rate = 14400;
+        s->modem_type = T30_MODEM_V17;
+        break;
+    case (DISBIT6 | DISBIT4):
+        s->bit_rate = 12000;
+        s->modem_type = T30_MODEM_V17;
+        break;
+    case (DISBIT6 | DISBIT3):
+        s->bit_rate = 9600;
+        s->modem_type = T30_MODEM_V17;
+        break;
+    case (DISBIT6 | DISBIT4 | DISBIT3):
+        s->bit_rate = 7200;
+        s->modem_type = T30_MODEM_V17;
+        break;
+#endif
     case DISBIT3:
         s->bit_rate = 9600;
+        s->modem_type = T30_MODEM_V29;
         break;
     case (DISBIT4 | DISBIT3):
         s->bit_rate = 7200;
+        s->modem_type = T30_MODEM_V29;
         break;
     case DISBIT4:
         s->bit_rate = 4800;
+        s->modem_type = T30_MODEM_V27TER;
         break;
     case 0:
         s->bit_rate = 2400;
+        s->modem_type = T30_MODEM_V27TER;
         break;
     default:
-        fprintf(stderr, "Remote asked for a modem standard we do not support\n");
+        if (s->verbose)
+            fprintf(stderr, "Remote asked for a modem standard we do not support\n");
         return -1;
     }
     return 0;
@@ -634,37 +765,45 @@ static void send_dcn(t30_state_t *s)
 
 static void disconnect(t30_state_t *s)
 {
-    fprintf(stderr, "Disconnecting\n");
+    if (s->verbose)
+        fprintf(stderr, "Disconnecting\n");
     s->timer_t1 = 0;
     s->timer_t2 = 0;
     s->timer_t3 = 0;
     s->timer_t4 = 0;
-    set_phase(s, T30_PHASE_E_DONE);
+    set_phase(s, T30_PHASE_E);
     s->state = T30_STATE_B;
 }
 /*- End of function --------------------------------------------------------*/
 
 static int start_sending_document(t30_state_t *s)
 {
-    if (s->t4.tx_file[0] == '\0')
+    if (s->tx_file[0] == '\0')
     {
         /* There is nothing to send */
         return  FALSE;
     }
-    fprintf(stderr, "Start sending document\n");
-    if (t4_tx_init(&(s->t4)))
-        return  FALSE;
-    switch (s->t4.resolution)
+    if (s->verbose)
+        fprintf(stderr, "Start sending document\n");
+    if (t4_tx_init(&(s->t4), s->tx_file))
     {
-    case 0:
+       fprintf(stderr, "Cannot open source TIFF file '%s'\n", s->tx_file);
+        return  FALSE;
+    }
+    t4_tx_set_tx_encoding(&(s->t4), s->line_encoding);
+    t4_tx_set_min_row_bits(&(s->t4), s->min_row_bits);
+    s->resolution = t4_tx_get_row_resolution(&(s->t4));
+    switch (s->resolution)
+    {
+    case T4_RESOLUTION_STANDARD:
         s->dcs_frame[2] &= ~DISBIT7;
         s->dtc_frame[6] &= ~DISBIT1;
         break;
-    case 1:
+    case T4_RESOLUTION_FINE:
         s->dcs_frame[2] |= DISBIT7;
         s->dtc_frame[6] &= ~DISBIT1;
         break;
-    case 2:
+    case T4_RESOLUTION_SUPERFINE:
         s->dcs_frame[2] &= ~DISBIT7;
         s->dtc_frame[6] |= DISBIT1;
         break;
@@ -680,12 +819,13 @@ static int start_sending_document(t30_state_t *s)
 
 static int start_receiving_document(t30_state_t *s)
 {
-    if (s->t4.rx_file[0] == '\0')
+    if (s->rx_file[0] == '\0')
     {
         /* There is nothing to receive to */
         return  FALSE;
     }
-    fprintf(stderr, "Start receiving document\n");
+    if (s->verbose)
+        fprintf(stderr, "Start receiving document\n");
     set_phase(s, T30_PHASE_BDE_TX);
     send_ident_frame(s, T30_CSI, FALSE);
     build_dis(s);
@@ -696,7 +836,7 @@ static int start_receiving_document(t30_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_dis(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_dis(t30_state_t *s, const uint8_t *msg, int len)
 {
     int incompatible;
     
@@ -733,13 +873,14 @@ static void process_rx_dis(t30_state_t *s, uint8_t *msg, int len)
         /* TODO: retry */
         break;
     default:
-        fprintf(stderr, "Unexpected DIS received in state %d\n", s->state);
+        if (s->verbose)
+            fprintf(stderr, "Unexpected DIS received in state %d\n", s->state);
         break;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_dtc(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_dtc(t30_state_t *s, const uint8_t *msg, int len)
 {
     int incompatible;
 
@@ -773,13 +914,14 @@ static void process_rx_dtc(t30_state_t *s, uint8_t *msg, int len)
         /* It appears they didn't see what we sent - retry */
         break;
     default:
-        fprintf(stderr, "Unexpected DTC received in state %d\n", s->state);
+        if (s->verbose)
+           fprintf(stderr, "Unexpected DTC received in state %d\n", s->state);
         break;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_dcs(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_dcs(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* Digital command signal */
     switch (s->state)
@@ -792,109 +934,120 @@ static void process_rx_dcs(t30_state_t *s, uint8_t *msg, int len)
         check_dcs(s, &msg[2], len - 2);
         if (s->phase_b_handler)
             s->phase_b_handler(s, s->phase_d_user_data, T30_DCS);
-        fprintf(stderr, "Get at %d\n", s->bit_rate);
+        if (s->verbose)
+            fprintf(stderr, "Get at %dbps, modem %d\n", s->bit_rate, s->modem_type);
         s->state = T30_STATE_F_TCF;
         set_phase(s, T30_PHASE_C_RX);
         break;
     default:
-        fprintf(stderr, "Unexpected DCS received in state %d\n", s->state);
+        if (s->verbose)
+            fprintf(stderr, "Unexpected DCS received in state %d\n", s->state);
         break;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_cfr(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_cfr(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* Confirmation to receive */
     switch (s->state)
     {
     case T30_STATE_D_TCF:
         /* Trainability test succeeded. Send the document. */
-        fprintf(stderr, "Trainability test succeeded\n");
+        if (s->verbose)
+            fprintf(stderr, "Trainability test succeeded\n");
         s->timer_t4 = 0;
         /* Send the first page */
+        t4_tx_set_local_ident(&(s->t4), s->local_ident);
         t4_tx_start_page(&(s->t4));
         s->state = T30_STATE_I;
-        set_phase(s, T30_PHASE_C_TX);
+        queue_phase(s, T30_PHASE_C_TX);
         break;
     default:
-        fprintf(stderr, "Unexpected CFR received in state %d\n", s->state);
+        if (s->verbose)
+            fprintf(stderr, "Unexpected CFR received in state %d\n", s->state);
         break;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_ftt(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_ftt(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* Failure to train */
     switch (s->state)
     {
     case T30_STATE_D_TCF:
         /* Trainability test failed. Try again. */
-        fprintf(stderr, "Trainability test failed\n");
-        /*TODO: Renegotiate for a different speed */
+        if (s->verbose)
+            fprintf(stderr, "Trainability test failed\n");
+        /* TODO: Renegotiate for a different speed */
         /* Sending training after the messages */
         s->state = T30_STATE_D;
-        set_phase(s, T30_PHASE_C_TX);
+        queue_phase(s, T30_PHASE_C_TX);
         break;
     default:
-        fprintf(stderr, "Unexpected FTT received in state %d\n", s->state);
+        if (s->verbose)
+            fprintf(stderr, "Unexpected FTT received in state %d\n", s->state);
         break;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_mps(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_mps(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* Multi-page signal */
     switch (s->state)
     {
     case T30_STATE_F:
         s->timer_t4 = 0;
+        /* Return to phase C */
         set_phase(s, T30_PHASE_BDE_TX);
         s->state = T30_STATE_F_MPS_MCF;
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, T30_MPS);
-        t4_rx_set_sub_address(&(s->t4), s->sub_address);
-        t4_rx_set_far_ident(&(s->t4), s->far_ident);
-        t4_rx_set_vendor(&(s->t4), s->vendor);
-        t4_rx_set_model(&(s->t4), s->model);
-        t4_rx_start_page(&(s->t4));
+        start_page(s);
         send_frame(s, mcf_frame, 1, TRUE);
         break;
     default:
-        fprintf(stderr, "Unexpected MPS received in state %d\n", s->state);
+        if (s->verbose)
+            fprintf(stderr, "Unexpected MPS received in state %d\n", s->state);
         break;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_eom(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_eom(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* End of message */
     switch (s->state)
     {
     case T30_STATE_F:
         s->timer_t4 = 0;
+        /* Return to phase B */
         set_phase(s, T30_PHASE_BDE_TX);
         s->state = T30_STATE_R;
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, T30_EOM);
-        send_frame(s, mcf_frame, 1, TRUE);
+        start_page(s);
+        send_ident_frame(s, T30_CSI, FALSE);
+        build_dis(s);
+        send_frame(s, s->dis_frame, s->dis_len, TRUE);
         break;
     default:
-        fprintf(stderr, "Unexpected EOM received in state %d\n", s->state);
+        if (s->verbose)
+            fprintf(stderr, "Unexpected EOM received in state %d\n", s->state);
         break;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_eop(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_eop(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* End of procedure */
     switch (s->state)
     {
     case T30_STATE_F:
+        s->timer_t4 = 0;
         set_phase(s, T30_PHASE_BDE_TX);
         s->state = T30_STATE_F_EOP_MCF;
         if (s->phase_d_handler)
@@ -903,14 +1056,17 @@ static void process_rx_eop(t30_state_t *s, uint8_t *msg, int len)
         send_frame(s, mcf_frame, 1, TRUE);
         break;
     default:
-        fprintf(stderr, "Unexpected EOP received in state %d\n", s->state);
+        if (s->verbose)
+            fprintf(stderr, "Unexpected EOP received in state %d\n", s->state);
         break;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_mcf(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_mcf(t30_state_t *s, const uint8_t *msg, int len)
 {
+    t4_stats_t stats;
+
     /* Message confirmation */
     switch (s->state)
     {
@@ -919,29 +1075,39 @@ static void process_rx_mcf(t30_state_t *s, uint8_t *msg, int len)
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, T30_MCF);
         s->state = T30_STATE_I;
-        set_phase(s, T30_PHASE_C_TX);
+        queue_phase(s, T30_PHASE_C_TX);
         break;
     case T30_STATE_II_EOM:
         s->timer_t4 = 0;
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, T30_MCF);
         s->state = T30_STATE_R;
-        fprintf(stderr, "Success - delivered %d pages\n", s->t4.pages_transferred);
+        if (s->verbose)
+        {
+            t4_get_transfer_statistics(&(s->t4), &stats);
+            fprintf(stderr, "Success - delivered %d pages\n", stats.pages_transferred);
+        }
         break;
     case T30_STATE_II_EOP:
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, T30_MCF);
+        t4_tx_end(&(s->t4));
         send_dcn(s);
-        fprintf(stderr, "Success - delivered %d pages\n", s->t4.pages_transferred);
+        if (s->verbose)
+        {
+            t4_get_transfer_statistics(&(s->t4), &stats);
+            fprintf(stderr, "Success - delivered %d pages\n", stats.pages_transferred);
+        }
         break;
     default:
-        fprintf(stderr, "Unexpected MCF received in state %d\n", s->state);
+        if (s->verbose)
+            fprintf(stderr, "Unexpected MCF received in state %d\n", s->state);
         break;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_rtp(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_rtp(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* Retrain positive */
     switch (s->state)
@@ -951,7 +1117,7 @@ static void process_rx_rtp(t30_state_t *s, uint8_t *msg, int len)
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, T30_RTP);
         s->state = T30_STATE_I;
-        set_phase(s, T30_PHASE_C_TX);
+        queue_phase(s, T30_PHASE_C_TX);
         break;
     case T30_STATE_II_EOM:
         s->timer_t4 = 0;
@@ -960,18 +1126,20 @@ static void process_rx_rtp(t30_state_t *s, uint8_t *msg, int len)
         s->state = T30_STATE_R;
         break;
     case T30_STATE_II_EOP:
+        t4_tx_end(&(s->t4));
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, T30_RTP);
         send_dcn(s);
         break;
     default:
-        fprintf(stderr, "Unexpected RTP received in state %d\n", s->state);
+        if (s->verbose)
+            fprintf(stderr, "Unexpected RTP received in state %d\n", s->state);
         break;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_rtn(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_rtn(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* Retrain negative */
     switch (s->state)
@@ -987,39 +1155,44 @@ static void process_rx_rtn(t30_state_t *s, uint8_t *msg, int len)
         send_dcn(s);
         break;
     case T30_STATE_II_EOP:
+        t4_tx_end(&(s->t4));
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, T30_RTN);
         send_dcn(s);
         break;
     default:
-        fprintf(stderr, "Unexpected RTN received in state %d\n", s->state);
+        if (s->verbose)
+            fprintf(stderr, "Unexpected RTN received in state %d\n", s->state);
         break;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_pip(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_pip(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* Procedure interrupt positive */
-    fprintf(stderr, "Unexpected PIP received in state %d\n", s->state);
+    if (s->verbose)
+        fprintf(stderr, "Unexpected PIP received in state %d\n", s->state);
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_pin(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_pin(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* Procedure interrupt negative */
-    fprintf(stderr, "Unexpected PIN received in state %d\n", s->state);
+    if (s->verbose)
+        fprintf(stderr, "Unexpected PIN received in state %d\n", s->state);
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_rx_crp(t30_state_t *s, uint8_t *msg, int len)
+static void process_rx_crp(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* Command repeat */
-    fprintf(stderr, "Unexpected CRP received in state %d\n", s->state);
+    if (s->verbose)
+        fprintf(stderr, "Unexpected CRP received in state %d\n", s->state);
 }
 /*- End of function --------------------------------------------------------*/
 
-static void hdlc_accept(void *user_data, uint8_t *msg, int len)
+static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
 {
     t30_state_t *s;
     int final_frame;
@@ -1032,16 +1205,27 @@ static void hdlc_accept(void *user_data, uint8_t *msg, int len)
         switch (len)
         {
         case PUTBIT_CARRIER_UP:
-            fprintf(stderr, "Slow carrier up\n");
+            if (s->verbose)
+                fprintf(stderr, "Slow carrier up\n");
             s->rx_signal_present = TRUE;
             s->timer_sig_on = SAMPLE_RATE*DEFAULT_TIMER_SIG_ON;
             break;
         case PUTBIT_CARRIER_DOWN:
-            fprintf(stderr, "Slow carrier down\n");
+            if (s->verbose)
+                fprintf(stderr, "Slow carrier down\n");
+            if (s->next_phase == T30_PHASE_C_TX)
+            {
+                s->next_phase = -1;
+                set_phase(s, T30_PHASE_C_TX);
+            }
             s->rx_signal_present = FALSE;
             break;
+        case PUTBIT_FRAMING_OK:
+            /* Just ignore these */
+            break;
         default:
-            fprintf(stderr, "Unexpected HDLC special length - %d!\n", len);
+            if (s->verbose)
+                fprintf(stderr, "Unexpected HDLC special length - %d!\n", len);
             break;
         }
         return;
@@ -1051,7 +1235,8 @@ static void hdlc_accept(void *user_data, uint8_t *msg, int len)
     s->timer_t2 = 0;
     if (msg[0] != 0xFF  ||  !(msg[1] == 0x03  ||  msg[1] == 0x13))
     {
-        fprintf(stderr, "Bad frame header - %02x %02x", msg[0], msg[1]);
+        if (s->verbose)
+            fprintf(stderr, "Bad frame header - %02x %02x", msg[0], msg[1]);
         return;
     }
     print_frame(s, "<<<", &msg[2], len - 2);
@@ -1065,13 +1250,15 @@ static void hdlc_accept(void *user_data, uint8_t *msg, int len)
         s->msgendtime = s->samplecount + 4*SAMPLE_RATE;  /* reset timeout counter (4 secs in future) */
         break;
     default:
-        fprintf(stderr, "Unexpected HDLC frame received\n");
+        if (s->verbose)
+            fprintf(stderr, "Unexpected HDLC frame received\n");
         break;
     }
 
     if (!final_frame)
     {
-        fprintf(stderr, "%s without final frame tag\n", t30_frametype(msg[2]));
+        if (s->verbose)
+            fprintf(stderr, "%s without final frame tag\n", t30_frametype(msg[2]));
         /* The following handles all the message types we expect to get without
            a final frame tag. If we get one that T.30 says we should not expect
            in a particular context, its pretty harmless, so don't worry. */
@@ -1108,7 +1295,7 @@ static void hdlc_accept(void *user_data, uint8_t *msg, int len)
             if (t35_decode(&msg[3], len - 3, &s->vendor, &s->model))
             {
                 if (s->vendor)
-                    fprintf(stderr, "The remote is made by '%s'\n", s->vendor);
+                    fprintf(stderr, "The remote was made by '%s'\n", s->vendor);
                 if (s->model)
                     fprintf(stderr, "The remote is a '%s'\n", s->model);
             }
@@ -1221,12 +1408,29 @@ static void hdlc_accept(void *user_data, uint8_t *msg, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
+static void queue_phase(t30_state_t *s, int phase)
+{
+    if (s->rx_signal_present)
+    {
+        /* We need to wait for that signal to go away */
+        s->next_phase = T30_PHASE_C_TX;
+    }
+    else
+    {
+        set_phase(s, phase);
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
 static void set_phase(t30_state_t *s, int phase)
 {
     tone_gen_descriptor_t tone_desc;
 
     if (phase != s->phase)
     {
+        /* We may be killing a receiver before it has declared the end of the
+           signal. Force the signal present indicator to off. */
+        s->rx_signal_present = FALSE;
         switch (phase)
         {
         case T30_PHASE_A_CED:
@@ -1246,7 +1450,7 @@ static void set_phase(t30_state_t *s, int phase)
             tone_gen_init(&(s->tone_gen), &tone_desc);
             if (s->t30_flush_handler)
                 s->t30_flush_handler(s, s->t30_flush_user_data, 3);
-            hdlc_rx_init(&(s->hdlcrx), hdlc_accept, s);
+            hdlc_rx_init(&(s->hdlcrx), FALSE, hdlc_accept, s);
             fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_bit, &(s->hdlcrx));
             break;
         case T30_PHASE_A_CNG:
@@ -1264,17 +1468,17 @@ static void set_phase(t30_state_t *s, int phase)
             tone_gen_init(&(s->tone_gen), &tone_desc);
             if (s->t30_flush_handler)
                 s->t30_flush_handler(s, s->t30_flush_user_data, 3);
-            hdlc_rx_init(&(s->hdlcrx), hdlc_accept, s);
+            hdlc_rx_init(&(s->hdlcrx), FALSE, hdlc_accept, s);
             fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_bit, &(s->hdlcrx));
             break;
         case T30_PHASE_BDE_RX:
             if (s->t30_flush_handler)
                 s->t30_flush_handler(s, s->t30_flush_user_data, 3);
-            hdlc_rx_init(&(s->hdlcrx), hdlc_accept, s);
+            hdlc_rx_init(&(s->hdlcrx), FALSE, hdlc_accept, s);
             fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_bit, &(s->hdlcrx));
             break;
         case T30_PHASE_BDE_TX:
-            hdlc_tx_init(&(s->hdlctx), hdlc_tx_underflow, s);
+            hdlc_tx_init(&(s->hdlctx), FALSE, hdlc_tx_underflow, s);
             fsk_tx_init(&(s->v21tx), &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_getbit, &(s->hdlctx));
             if (s->phase == T30_PHASE_C_TX)
             {
@@ -1292,21 +1496,41 @@ static void set_phase(t30_state_t *s, int phase)
                     s->t30_flush_handler(s, s->t30_flush_user_data, 3);
             }
             s->rx_signal_present = FALSE;
-            if (s->bit_rate == 4800  ||  s->bit_rate == 2400)
+            switch (s->modem_type)
+            {
+            case T30_MODEM_V27TER:
                 v27ter_rx_restart(&(s->v27ter_rx), s->bit_rate);
-            else
+                break;
+            case T30_MODEM_V29:
                 v29_rx_restart(&(s->v29rx), s->bit_rate);
+                break;
+#if defined(ENABLE_V17)
+            case T30_MODEM_V17:
+                v17_rx_restart(&(s->v17rx), s->bit_rate, FALSE);
+                break;
+#endif
+            }
             break;
         case T30_PHASE_C_TX:
             /* Pause before switching from anything to phase C */
             s->training_test_bits = (3*s->bit_rate)/2;
             s->silent_samples += SAMPLE_RATE*0.075;
-            if (s->bit_rate == 4800  ||  s->bit_rate == 2400)
+            switch (s->modem_type)
+            {
+            case T30_MODEM_V27TER:
                 v27ter_tx_restart(&(s->v27ter_tx), s->bit_rate);
-            else
+                break;
+            case T30_MODEM_V29:
                 v29_tx_restart(&(s->v29tx), s->bit_rate);
+                break;
+#if defined(ENABLE_V17)
+            case T30_MODEM_V17:
+                v17_tx_restart(&(s->v17tx), s->bit_rate, s->short_train);
+                break;
+#endif
+            }
             break;
-        case T30_PHASE_E_DONE:
+        case T30_PHASE_E:
             /* Send a little silence before ending things, to ensure the
                buffers are all flushed through, and the far end has seen
                the last message we sent. */
@@ -1314,8 +1538,11 @@ static void set_phase(t30_state_t *s, int phase)
             s->training_current_zeros = 0;
             s->training_most_zeros = 0;
             break;
+        case T30_PHASE_CALL_DONE:
+            break;
         }
-        fprintf(stderr, "Changed from phase %d to %d\n", s->phase, phase);
+        if (s->verbose)
+            fprintf(stderr, "Changed from phase %d to %d\n", s->phase, phase);
         s->phase = phase;
     }
 }
@@ -1323,7 +1550,8 @@ static void set_phase(t30_state_t *s, int phase)
 
 void timer_t1_expired(t30_state_t *s)
 {
-    fprintf(stderr, "T1 timeout in state %d\n", s->state);
+    if (s->verbose)
+        fprintf(stderr, "T1 timeout in state %d\n", s->state);
     /* The initial connection establishment has timeout out. In other words, we
        have been unable to communicate successfully with a remote machine.
        It is time to abandon the call. */
@@ -1346,21 +1574,24 @@ void timer_t1_expired(t30_state_t *s)
 
 void timer_t2_expired(t30_state_t *s)
 {
-    fprintf(stderr, "T2 timeout\n");
+    if (s->verbose)
+        fprintf(stderr, "T2 timeout\n");
     start_receiving_document(s);
 }
 /*- End of function --------------------------------------------------------*/
 
 void timer_t3_expired(t30_state_t *s)
 {
-    fprintf(stderr, "T3 timeout\n");
+    if (s->verbose)
+        fprintf(stderr, "T3 timeout\n");
 }
 /*- End of function --------------------------------------------------------*/
 
 void timer_t4_expired(t30_state_t *s)
 {
     /* There was no response (or only a corrupt response) to a command */
-    fprintf(stderr, "T4 timeout in state %d\n", s->state);
+    if (s->verbose)
+        fprintf(stderr, "T4 timeout in state %d\n", s->state);
     switch (s->state)
     {
     case T30_STATE_F_EOP_MCF:
@@ -1475,7 +1706,7 @@ char *t30_frametype(uint8_t x)
 }
 /*- End of function --------------------------------------------------------*/
 
-void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len)
+static void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len)
 {
     int p;
     int k;
@@ -1485,7 +1716,8 @@ void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len)
         msg = text;
     if (len > 21)
     {
-        fprintf(stderr, "Bad %s frame length - %d\n", t30_frametype(pkt[0]), len);
+        if (s->verbose)
+            fprintf(stderr, "Bad %s frame length - %d\n", t30_frametype(pkt[0]), len);
         msg[0] = '\0';
         return;
     }
@@ -1498,11 +1730,12 @@ void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len)
     while (p > 1)
         msg[k++] = pkt[--p];
     msg[k] = '\0';
-    fprintf(stderr, "Remote fax gave %s as: \"%s\"\n", t30_frametype(pkt[0]), msg);
+    if (s->verbose)
+        fprintf(stderr, "Remote fax gave %s as: \"%s\"\n", t30_frametype(pkt[0]), msg);
 }
 /*- End of function --------------------------------------------------------*/
 
-void decode_password(t30_state_t *s, char *msg, const uint8_t *pkt, int len)
+static void decode_password(t30_state_t *s, char *msg, const uint8_t *pkt, int len)
 {
     int p;
     int k;
@@ -1512,7 +1745,8 @@ void decode_password(t30_state_t *s, char *msg, const uint8_t *pkt, int len)
         msg = text;
     if (len > 21)
     {
-        fprintf(stderr, "Bad password frame length - %d\n", len);
+        if (s->verbose)
+            fprintf(stderr, "Bad password frame length - %d\n", len);
         msg[0] = '\0';
         return;
     }
@@ -1525,11 +1759,12 @@ void decode_password(t30_state_t *s, char *msg, const uint8_t *pkt, int len)
     while (p > 1)
         msg[k++] = pkt[--p];
     msg[k] = '\0';
-    fprintf(stderr, "Remote fax gave the password as: \"%s\"\n", msg);
+    if (s->verbose)
+        fprintf(stderr, "Remote fax gave the password as: \"%s\"\n", msg);
 }
 /*- End of function --------------------------------------------------------*/
 
-void decode_url_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len)
+static void decode_url_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len)
 {
     int p;
     int k;
@@ -1539,55 +1774,59 @@ void decode_url_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len)
         msg = text;
     if (len < 3  ||  len > 77 + 3  ||  len != pkt[2] + 3)
     {
-        fprintf(stderr, "Bad %s frame length - %d\n", t30_frametype(pkt[0]), len);
+        if (s->verbose)
+            fprintf(stderr, "Bad %s frame length - %d\n", t30_frametype(pkt[0]), len);
         msg[0] = '\0';
         return;
     }
     memcpy(msg, &pkt[3], len - 3);
     msg[len - 3] = '\0';
-    fprintf(stderr, "Remote fax gave %s as: %d, %d, \"%s\"\n", t30_frametype(pkt[0]), pkt[0], pkt[1], msg);
+    if (s->verbose)
+        fprintf(stderr, "Remote fax gave %s as: %d, %d, \"%s\"\n", t30_frametype(pkt[0]), pkt[0], pkt[1], msg);
 }
 /*- End of function --------------------------------------------------------*/
 
-void t30_decode_dis_dtc_dcs(t30_state_t *s, uint8_t *pkt, int len)
+void t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *pkt, int len)
 {
+    if (!s->verbose)
+        return;
     fprintf(stderr, "%s:\n", t30_frametype(pkt[0]));
     
     if ((pkt[1] & DISBIT1))
-        fprintf(stderr, "Store and forward Internet fax\n");
+        fprintf(stderr, "  Store and forward Internet fax\n");
     if ((pkt[1] & DISBIT3))
-        fprintf(stderr, "Real-time Internet fax\n");
+        fprintf(stderr, "  Real-time Internet fax\n");
     if (pkt[0] == T30_DCS)
     {
         if ((pkt[1] & DISBIT6))
-            fprintf(stderr, "Invalid: 1\n");
+            fprintf(stderr, "  Invalid: 1\n");
         if ((pkt[1] & DISBIT7))
-            fprintf(stderr, "Invalid: 1\n");
+            fprintf(stderr, "  Invalid: 1\n");
     }
     else
     {
         if ((pkt[1] & DISBIT6))
-            fprintf(stderr, "V.8 capable\n");
-        fprintf(stderr, "Preferred octets: %d\n", (pkt[1] & DISBIT7)  ?  64  :  256);
+            fprintf(stderr, "  V.8 capable\n");
+        fprintf(stderr, "  Prefer %d octet blocks\n", (pkt[1] & DISBIT7)  ?  64  :  256);
     }
     if ((pkt[1] & (DISBIT2 | DISBIT4 | DISBIT5 | DISBIT8)))
-        fprintf(stderr, "Reserved: 0x%X\n", (pkt[1] & (DISBIT2 | DISBIT4 | DISBIT5 | DISBIT8)));
+        fprintf(stderr, "  Reserved: 0x%X\n", (pkt[1] & (DISBIT2 | DISBIT4 | DISBIT5 | DISBIT8)));
 
     if (pkt[0] == T30_DCS)
     {
         if ((pkt[2] & DISBIT1))
-            fprintf(stderr, "Set to \"0\": 1\n");
+            fprintf(stderr, "  Set to \"0\": 1\n");
     }
     else
     {
         if ((pkt[2] & DISBIT1))
-            fprintf(stderr, "Ready to transmit a fax document (polling)\n");
+            fprintf(stderr, "  Ready to transmit a fax document (polling)\n");
     }
     if ((pkt[2] & DISBIT2))
-        fprintf(stderr, "Can receive fax\n");
+        fprintf(stderr, "  Can receive fax\n");
     if (pkt[0] == T30_DCS)
     {
-        fprintf(stderr, "Selected data signalling rate: ");
+        fprintf(stderr, "  Selected data signalling rate: ");
         switch (pkt[2] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3))
         {
         case 0:
@@ -1629,7 +1868,7 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, uint8_t *pkt, int len)
     }
     else
     {
-        fprintf(stderr, "Supported data signalling rates: ");
+        fprintf(stderr, "  Supported data signalling rates: ");
         switch (pkt[2] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3))
         {
         case 0:
@@ -1659,13 +1898,13 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, uint8_t *pkt, int len)
         }
     }
     if ((pkt[2] & DISBIT7))
-        fprintf(stderr, "R8x7.7lines/mm and/or 200x200pels/25.4mm OK\n");
+        fprintf(stderr, "  R8x7.7lines/mm and/or 200x200pels/25.4mm\n");
     if ((pkt[2] & DISBIT8))
-        fprintf(stderr, "2D coding OK\n");
+        fprintf(stderr, "  2D coding\n");
 
     if (pkt[0] == T30_DCS)
     {
-        fprintf(stderr, "Scan line length: ");
+        fprintf(stderr, "  Scan line length: ");
         switch (pkt[3] & (DISBIT2 | DISBIT1))
         {
         case 0:
@@ -1681,7 +1920,7 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, uint8_t *pkt, int len)
             fprintf(stderr, "Invalid\n");
             break;
         }
-        fprintf(stderr, "Recording length: ");
+        fprintf(stderr, "  Recording length: ");
         switch (pkt[3] & (DISBIT4 | DISBIT3))
         {
         case 0:
@@ -1697,7 +1936,7 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, uint8_t *pkt, int len)
             fprintf(stderr, "Invalid\n");
             break;
         }
-        fprintf(stderr, "Minimum scan line time: ");
+        fprintf(stderr, "  Minimum scan line time: ");
         switch (pkt[3] & (DISBIT7 | DISBIT6 | DISBIT5))
         {
         case 0:
@@ -1722,7 +1961,7 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, uint8_t *pkt, int len)
     }
     else
     {
-        fprintf(stderr, "Scan line length: ");
+        fprintf(stderr, "  Scan line length: ");
         switch (pkt[3] & (DISBIT2 | DISBIT1))
         {
         case 0:
@@ -1738,7 +1977,7 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, uint8_t *pkt, int len)
             fprintf(stderr, "Invalid\n");
             break;
         }
-        fprintf(stderr, "Recording length: ");
+        fprintf(stderr, "  Recording length: ");
         switch (pkt[3] & (DISBIT4 | DISBIT3))
         {
         case 0:
@@ -1754,7 +1993,7 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, uint8_t *pkt, int len)
             fprintf(stderr, "Invalid\n");
             break;
         }
-        fprintf(stderr, "Receiver's minimum scan line time: ");
+        fprintf(stderr, "  Receiver's minimum scan line time: ");
         switch (pkt[3] & (DISBIT7 | DISBIT6 | DISBIT5))
         {
         case 0:
@@ -1787,269 +2026,277 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, uint8_t *pkt, int len)
         return;
 
     if ((pkt[4] & DISBIT2))
-        fprintf(stderr, "Uncompressed mode\n");
+        fprintf(stderr, "  Uncompressed mode\n");
     if ((pkt[4] & DISBIT3))
-        fprintf(stderr, "Error correction mode\n");
+        fprintf(stderr, "  Error correction mode\n");
     if (pkt[2] == T30_DCS)
     {
-        fprintf(stderr, "Frame size: %s\n", (pkt[4] & DISBIT4)  ?  "256 octets"  :  "64 octets");
+        fprintf(stderr, "  Frame size: %s\n", (pkt[4] & DISBIT4)  ?  "256 octets"  :  "64 octets");
     }
     else
     {
         if ((pkt[4] & DISBIT4))
-            fprintf(stderr, "Set to \"0\": 0x%X\n", (pkt[4] & DISBIT4));
+            fprintf(stderr, "  Set to \"0\": 0x%X\n", (pkt[4] & DISBIT4));
     }
     if ((pkt[4] & DISBIT7))
-        fprintf(stderr, "T.6 coding\n");
+        fprintf(stderr, "  T.6 coding\n");
     if ((pkt[4] & (DISBIT1 | DISBIT5 | DISBIT6)))
-        fprintf(stderr, "Reserved: 0x%X\n", (pkt[4] & (DISBIT1 | DISBIT5 | DISBIT6)));
+        fprintf(stderr, "  Reserved: 0x%X\n", (pkt[4] & (DISBIT1 | DISBIT5 | DISBIT6)));
     if (!(pkt[4] & DISBIT8))
         return;
 
     if ((pkt[5] & DISBIT1))
-        fprintf(stderr, "\"Field not valid\" supported\n");
+        fprintf(stderr, "  \"Field not valid\" supported\n");
     if (pkt[2] == T30_DCS)
     {
         if ((pkt[5] & DISBIT2))
-            fprintf(stderr, "Set to \"0\": 1\n");
+            fprintf(stderr, "  Set to \"0\": 1\n");
         if ((pkt[5] & DISBIT3))
-            fprintf(stderr, "Set to \"0\": 1\n");
+            fprintf(stderr, "  Set to \"0\": 1\n");
     }
     else
     {
         if ((pkt[5] & DISBIT2))
-            fprintf(stderr, "Multiple selective polling\n");
+            fprintf(stderr, "  Multiple selective polling\n");
         if ((pkt[5] & DISBIT3))
-            fprintf(stderr, "Polled Subaddress\n");
+            fprintf(stderr, "  Polled Subaddress\n");
     }
     if ((pkt[5] & DISBIT4))
-        fprintf(stderr, "T.43 coding OK\n");
+        fprintf(stderr, "  T.43 coding\n");
     if ((pkt[5] & DISBIT5))
-        fprintf(stderr, "Plane interleave OK\n");
+        fprintf(stderr, "  Plane interleave\n");
     if ((pkt[5] & DISBIT6))
-        fprintf(stderr, "Voice coding with 32kbit/s ADPCM (Rec. G.726) OK\n");
+        fprintf(stderr, "  Voice coding with 32kbit/s ADPCM (Rec. G.726)\n");
     if ((pkt[5] & DISBIT7))
-        fprintf(stderr, "Reserved for the use of extended voice coding set\n");
+        fprintf(stderr, "  Reserved for the use of extended voice coding set\n");
     if (!(pkt[5] & DISBIT8))
         return;
 
     if ((pkt[6] & DISBIT1))
-        fprintf(stderr, "R8x15.4lines/mm OK\n");
+        fprintf(stderr, "  R8x15.4lines/mm\n");
     if ((pkt[6] & DISBIT2))
-        fprintf(stderr, "300x300pels/25.4mm OK\n");
+        fprintf(stderr, "  300x300pels/25.4mm\n");
     if ((pkt[6] & DISBIT3))
-        fprintf(stderr, "R16x15.4lines/mm and/or 400x400pels/25.4 mm OK\n");
+        fprintf(stderr, "  R16x15.4lines/mm and/or 400x400pels/25.4 mm\n");
     if (pkt[2] == T30_DCS)
     {
-        fprintf(stderr, "Resolution type selection: %s\n", (pkt[6] & DISBIT4)  ?  "inch-based"  :  "metric-based");
+        fprintf(stderr, "  Resolution type selection: %s\n", (pkt[6] & DISBIT4)  ?  "inch-based"  :  "metric-based");
         if ((pkt[6] & DISBIT5))
-            fprintf(stderr, "Don't care: 1\n");
+            fprintf(stderr, "  Don't care: 1\n");
         if ((pkt[6] & DISBIT6))
-            fprintf(stderr, "Don't care: 1\n");
+            fprintf(stderr, "  Don't care: 1\n");
     }
     else
     {
         if ((pkt[6] & DISBIT4))
-            fprintf(stderr, "Inch-based resolution preferred\n");
+            fprintf(stderr, "  Inch-based resolution preferred\n");
         if ((pkt[6] & DISBIT5))
-            fprintf(stderr, "Metric-based resolution preferred\n");
-        fprintf(stderr, "Minimum scan line time for higher resolutions: %s\n", (pkt[6] & DISBIT6)  ?  "T15.4 = 1/2 T7.7"  :  "T15.4 = T7.7");
+            fprintf(stderr, "  Metric-based resolution preferred\n");
+        fprintf(stderr, "  Minimum scan line time for higher resolutions: %s\n", (pkt[6] & DISBIT6)  ?  "T15.4 = 1/2 T7.7"  :  "T15.4 = T7.7");
     }
     if (pkt[2] == T30_DCS)
     {
         if ((pkt[6] & DISBIT7))
-            fprintf(stderr, "Set to \"0\": 1\n");
+            fprintf(stderr, "  Set to \"0\": 1\n");
     }
     else
     {
         if ((pkt[6] & DISBIT7))
-            fprintf(stderr, "Selective polling OK\n");
+            fprintf(stderr, "  Selective polling OK\n");
     }
     if (!(pkt[6] & DISBIT8))
         return;
 
     if ((pkt[7] & DISBIT1))
-        fprintf(stderr, "Subaddressing OK\n");
+        fprintf(stderr, "  Subaddressing\n");
     if ((pkt[7] & DISBIT2))
-        fprintf(stderr, "Password OK\n");
+        fprintf(stderr, "  Password\n");
     if (pkt[2] == T30_DCS)
     {
         if ((pkt[7] & DISBIT3))
-            fprintf(stderr, "Set to \"0\": 1\n");
+            fprintf(stderr, "  Set to \"0\": 1\n");
     }
     else
     {
         if ((pkt[7] & DISBIT3))
-            fprintf(stderr, "Ready to transmit a data file (polling)\n");
+            fprintf(stderr, "  Ready to transmit a data file (polling)\n");
     }
     if ((pkt[7] & DISBIT5))
-        fprintf(stderr, "Binary file transfer (BFT) OK\n");
+        fprintf(stderr, "  Binary file transfer (BFT)\n");
     if ((pkt[7] & DISBIT6))
-        fprintf(stderr, "Document transfer mode (DTM) OK\n");
+        fprintf(stderr, "  Document transfer mode (DTM)\n");
     if ((pkt[7] & DISBIT7))
-        fprintf(stderr, "Electronic data interchange (EDI) OK\n");
+        fprintf(stderr, "  Electronic data interchange (EDI)\n");
     if ((pkt[7] & DISBIT4))
-        fprintf(stderr, "Reserved: 1\n");
+        fprintf(stderr, "  Reserved: 1\n");
     if (!(pkt[7] & DISBIT8))
         return;
 
     if ((pkt[8] & DISBIT1))
-        fprintf(stderr, "Basic transfer mode (BTM) OK\n");
+        fprintf(stderr, "  Basic transfer mode (BTM)\n");
     if (pkt[2] == T30_DCS)
     {
         if ((pkt[8] & DISBIT3))
-            fprintf(stderr, "Set to \"0\": 1\n");
+            fprintf(stderr, "  Set to \"0\": 1\n");
     }
     else
     {
         if ((pkt[8] & DISBIT3))
-            fprintf(stderr, "Ready to transfer a character or mixed mode document (polling) OK\n");
+            fprintf(stderr, "  Ready to transfer a character or mixed mode document (polling)\n");
     }
     if ((pkt[8] & DISBIT4))
-        fprintf(stderr, "Character mode\n");
+        fprintf(stderr, "  Character mode\n");
     if ((pkt[8] & DISBIT6))
-        fprintf(stderr, "Mixed mode (Annex E/T.4)\n");
+        fprintf(stderr, "  Mixed mode (Annex E/T.4)\n");
     if ((pkt[8] & (DISBIT2 | DISBIT5 | DISBIT7)))
-        fprintf(stderr, "Reserved: 0x%X\n", (pkt[8] & (DISBIT2 | DISBIT5 | DISBIT7)));
+        fprintf(stderr, "  Reserved: 0x%X\n", (pkt[8] & (DISBIT2 | DISBIT5 | DISBIT7)));
     if (!(pkt[8] & DISBIT8))
         return;
 
     if ((pkt[9] & DISBIT1))
-        fprintf(stderr, "Processable mode 26 (Rec. T.505)\n");
+        fprintf(stderr, "  Processable mode 26 (Rec. T.505)\n");
     if ((pkt[9] & DISBIT2))
-        fprintf(stderr, "Digital network\n");
+        fprintf(stderr, "  Digital network\n");
     if (pkt[2] == T30_DCS)
     {
         if ((pkt[9] & DISBIT3))
-            fprintf(stderr, "Duplex or half-duplex\n");
+            fprintf(stderr, "  Duplex or half-duplex\n");
         if ((pkt[9] & DISBIT4))
-            fprintf(stderr, "Full colour mode\n");
+            fprintf(stderr, "  Full colour mode\n");
     }
     else
     {
         if ((pkt[9] & DISBIT3))
-            fprintf(stderr, "Duplex\n");
+            fprintf(stderr, "  Duplex\n");
         if ((pkt[9] & DISBIT4))
-            fprintf(stderr, "JPEG coding\n");
+            fprintf(stderr, "  JPEG coding\n");
     }
     if ((pkt[9] & DISBIT5))
-        fprintf(stderr, "Full colour mode\n");
+        fprintf(stderr, "  Full colour mode\n");
     if (pkt[2] == T30_DCS)
     {
         if ((pkt[9] & DISBIT6))
-            fprintf(stderr, "Preferred Huffman tables\n");
+            fprintf(stderr, "  Preferred Huffman tables\n");
     }
     else
     {
         if ((pkt[9] & DISBIT6))
-            fprintf(stderr, "Set to \"0\": 1\n");
+            fprintf(stderr, "  Set to \"0\": 1\n");
     }
     if ((pkt[9] & DISBIT7))
-        fprintf(stderr, "12bits/pel component\n");
+        fprintf(stderr, "  12bits/pel component\n");
     if (!(pkt[9] & DISBIT8))
         return;
 
     if ((pkt[10] & DISBIT1))
-        fprintf(stderr, "No subsampling (1:1:1)\n");
+        fprintf(stderr, "  No subsampling (1:1:1)\n");
     if ((pkt[10] & DISBIT2))
-        fprintf(stderr, "Custom illuminant\n");
+        fprintf(stderr, "  Custom illuminant\n");
     if ((pkt[10] & DISBIT3))
-        fprintf(stderr, "Custom gamut range\n");
+        fprintf(stderr, "  Custom gamut range\n");
     if ((pkt[10] & DISBIT4))
-        fprintf(stderr, "North American Letter (215.9mm x 279.4mm)\n");
+        fprintf(stderr, "  North American Letter (215.9mm x 279.4mm)\n");
     if ((pkt[10] & DISBIT5))
-        fprintf(stderr, "North American Legal (215.9mm x 355.6mm)\n");
+        fprintf(stderr, "  North American Legal (215.9mm x 355.6mm)\n");
     if ((pkt[10] & DISBIT6))
-        fprintf(stderr, "Single-progression sequential coding (Rec. T.85) basic\n");
+        fprintf(stderr, "  Single-progression sequential coding (Rec. T.85) basic\n");
     if ((pkt[10] & DISBIT7))
-        fprintf(stderr, "Single-progression sequential coding (Rec. T.85) optional L0\n");
+        fprintf(stderr, "  Single-progression sequential coding (Rec. T.85) optional L0\n");
     if (!(pkt[10] & DISBIT8))
         return;
 
     if ((pkt[11] & DISBIT1))
-        fprintf(stderr, "HKM key management\n");
+        fprintf(stderr, "  HKM key management\n");
     if ((pkt[11] & DISBIT2))
-        fprintf(stderr, "RSA key management\n");
+        fprintf(stderr, "  RSA key management\n");
     if ((pkt[11] & DISBIT3))
-        fprintf(stderr, "Override\n");
+        fprintf(stderr, "  Override\n");
     if ((pkt[11] & DISBIT4))
-        fprintf(stderr, "HFX40 cipher\n");
+        fprintf(stderr, "  HFX40 cipher\n");
     if ((pkt[11] & DISBIT5))
-        fprintf(stderr, "Alternative cipher number 2\n");
+        fprintf(stderr, "  Alternative cipher number 2\n");
     if ((pkt[11] & DISBIT6))
-        fprintf(stderr, "Alternative cipher number 3\n");
+        fprintf(stderr, "  Alternative cipher number 3\n");
     if ((pkt[11] & DISBIT7))
-        fprintf(stderr, "HFX40-I hashing\n");
+        fprintf(stderr, "  HFX40-I hashing\n");
     if (!(pkt[11] & DISBIT8))
         return;
 
     if ((pkt[12] & DISBIT1))
-        fprintf(stderr, "Alternative hashing system 2\n");
+        fprintf(stderr, "  Alternative hashing system 2\n");
     if ((pkt[12] & DISBIT2))
-        fprintf(stderr, "Alternative hashing system 3\n");
+        fprintf(stderr, "  Alternative hashing system 3\n");
     if ((pkt[12] & DISBIT3))
-        fprintf(stderr, "Reserved for future security features\n");
+        fprintf(stderr, "  Reserved for future security features\n");
     if ((pkt[12] & (DISBIT4 | DISBIT5 | DISBIT6)))
-        fprintf(stderr, "T.44 (Mixed Raster Content): 0x%X\n", (pkt[12] & (DISBIT4 | DISBIT5 | DISBIT6)));
+        fprintf(stderr, "  T.44 (Mixed Raster Content): 0x%X\n", (pkt[12] & (DISBIT4 | DISBIT5 | DISBIT6)));
     if ((pkt[12] & DISBIT6))
-        fprintf(stderr, "Page length maximum stripe size for T.44 (Mixed Raster Content)\n");
+        fprintf(stderr, "  Page length maximum stripe size for T.44 (Mixed Raster Content)\n");
     if (!(pkt[12] & DISBIT8))
         return;
 
     if ((pkt[13] & DISBIT1))
-        fprintf(stderr, "Colour/gray-scale 300pels/25.4mm x 300lines/25.4mm or 400pels/25.4mm x 400lines/25.4mm resolution\n");
+        fprintf(stderr, "  Colour/gray-scale 300pels/25.4mm x 300lines/25.4mm or 400pels/25.4mm x 400lines/25.4mm resolution\n");
     if ((pkt[13] & DISBIT2))
-        fprintf(stderr, "100pels/25.4mm x 100lines/25.4mm for colour/gray scale\n");
+        fprintf(stderr, "  100pels/25.4mm x 100lines/25.4mm for colour/gray scale\n");
     if ((pkt[13] & DISBIT3))
-        fprintf(stderr, "Simple phase C BFT negotiations\n");
+        fprintf(stderr, "  Simple phase C BFT negotiations\n");
     if (pkt[2] == T30_DCS)
     {
         if ((pkt[13] & DISBIT4))
-            fprintf(stderr, "Set to \"0\": 1\n");
+            fprintf(stderr, "  Set to \"0\": 1\n");
         if ((pkt[13] & DISBIT5))
-            fprintf(stderr, "Set to \"0\": 1\n");
+            fprintf(stderr, "  Set to \"0\": 1\n");
     }
     else
     {
         if ((pkt[13] & DISBIT4))
-            fprintf(stderr, "Reserved for Extended BFT Negotiations capable\n");
+            fprintf(stderr, "  Reserved for Extended BFT Negotiations capable\n");
         if ((pkt[13] & DISBIT5))
-            fprintf(stderr, "Internet Selective Polling address (ISP)\n");
+            fprintf(stderr, "  Internet Selective Polling address (ISP)\n");
     }
     if ((pkt[13] & DISBIT6))
-        fprintf(stderr, "Internet Routing Address (IRA)\n");
+        fprintf(stderr, "  Internet Routing Address (IRA)\n");
     if ((pkt[13] & DISBIT7))
-        fprintf(stderr, "Reserved: 1\n");
+        fprintf(stderr, "  Reserved: 1\n");
     if (!(pkt[13] & DISBIT8))
         return;
 
     if ((pkt[14] & DISBIT1))
-        fprintf(stderr, "600pels/25.4mm x 600lines/25.4mm\n");
+        fprintf(stderr, "  600pels/25.4mm x 600lines/25.4mm\n");
     if ((pkt[14] & DISBIT2))
-        fprintf(stderr, "1200pels/25.4mm x 1200lines/25.4mm\n");
+        fprintf(stderr, "  1200pels/25.4mm x 1200lines/25.4mm\n");
     if ((pkt[14] & DISBIT3))
-        fprintf(stderr, "300pels/25.4mm x 600lines/25.4mm\n");
+        fprintf(stderr, "  300pels/25.4mm x 600lines/25.4mm\n");
     if ((pkt[14] & DISBIT4))
-        fprintf(stderr, "400pels/25.4mm x 800lines/25.4mm\n");
+        fprintf(stderr, "  400pels/25.4mm x 800lines/25.4mm\n");
     if ((pkt[14] & DISBIT5))
-        fprintf(stderr, "600pels/25.4mm x 1200lines/25.4mm\n");
+        fprintf(stderr, "  600pels/25.4mm x 1200lines/25.4mm\n");
     if ((pkt[14] & (DISBIT6 | DISBIT7)))
-        fprintf(stderr, "Reserved: 0x%X\n", (pkt[14] & (DISBIT6 | DISBIT7)));
+        fprintf(stderr, "  Reserved: 0x%X\n", (pkt[14] & (DISBIT6 | DISBIT7)));
     if (!(pkt[14] & DISBIT8))
         return;
-    fprintf(stderr, "Extended beyond the current T.30 specification!\n");
+    fprintf(stderr, "  Extended beyond the current T.30 specification!\n");
 }
 /*- End of function --------------------------------------------------------*/
 
 int fax_init(t30_state_t *s, int calling_party, void *user_data)
 {
     memset(s, 0, sizeof(*s));
-    s->bit_rate = 9600;
     s->phase = T30_PHASE_IDLE;
-    v27ter_rx_init(&(s->v27ter_rx), s->bit_rate, fast_putbit, s);
-    v27ter_tx_init(&(s->v27ter_tx), s->bit_rate, fast_getbit, s);
-    v29_rx_init(&(s->v29rx), s->bit_rate, fast_putbit, s);
-    v29_tx_init(&(s->v29tx), s->bit_rate, fast_getbit, s);
+#if defined(ENABLE_V17)
+    s->bit_rate = 14400;
+    s->modem_type = T30_MODEM_V17;
+    v17_rx_init(&(s->v17rx), 14400, fast_putbit, s);
+    v17_tx_init(&(s->v17tx), 14400, fast_getbit, s);
+#else
+    s->bit_rate = 9600;
+    s->modem_type = T30_MODEM_V29;
+#endif
+    v29_rx_init(&(s->v29rx), 9600, fast_putbit, s);
+    v29_tx_init(&(s->v29tx), 9600, fast_getbit, s);
+    v27ter_rx_init(&(s->v27ter_rx), 4800, fast_putbit, s);
+    v27ter_tx_init(&(s->v27ter_tx), 4800, fast_getbit, s);
     s->rx_signal_present = FALSE;
     if (calling_party)
     {
@@ -2108,13 +2355,26 @@ int fax_rx_process(t30_state_t *s, int16_t *buf, int len)
         fsk_rx(&(s->v21rx), buf, len);
         break;
     case T30_PHASE_C_RX:
-        if (s->bit_rate == 4800  ||  s->bit_rate == 2400)
+        switch (s->modem_type)
+        {
+        case T30_MODEM_V27TER:
             v27ter_rx(&(s->v27ter_rx), buf, len);
-        else
+            break;
+        case T30_MODEM_V29:
             v29_rx(&(s->v29rx), buf, len);
+            break;
+#if defined(ENABLE_V17)
+        case T30_MODEM_V17:
+            v17_rx(&(s->v17rx), buf, len);
+            break;
+#endif
+        }
         break;
+    case T30_PHASE_CALL_DONE:
+        /* No longer absorb the data when the call is finished. */
+        return len;
     default:
-        /* Ignore */
+        /* Absorb the data, but ignore it. */
         break;
     }
     if (s->timer_t1 > 0)
@@ -2161,13 +2421,14 @@ int fax_tx_process(t30_state_t *s, int16_t *buf, int max_len)
         memset(buf, 0, len*sizeof(int16_t));
         if (s->silent_samples <= 0)
         {
-            if (s->phase == T30_PHASE_E_DONE)
+            if (s->phase == T30_PHASE_E)
             {
                 /* We have now allowed time for the last message to flush
                    through the system, so it is safe to report the end of the
                    call. */
                 if (s->phase_e_handler)
                     s->phase_e_handler(s, s->phase_e_user_data, TRUE);
+                set_phase(s, T30_PHASE_CALL_DONE);
             }
         }
     }
@@ -2176,24 +2437,39 @@ int fax_tx_process(t30_state_t *s, int16_t *buf, int max_len)
         switch (s->phase)
         {
         case T30_PHASE_A_CED:
-        case T30_PHASE_A_CNG:
             lenx = tone_gen(&(s->tone_gen), buf + len, max_len);
             len += lenx;
             if (lenx <= 0)
-                start_receiving_document(s);
+            {
+                set_phase(s, T30_PHASE_BDE_TX);
+                send_ident_frame(s, T30_CSI, FALSE);
+                build_dis(s);
+                send_frame(s, s->dis_frame, s->dis_len, TRUE);
+                s->state = T30_STATE_R;
+                s->timer_t2 = SAMPLE_RATE*DEFAULT_TIMER_T2;
+            }
+            break;
+        case T30_PHASE_A_CNG:
+            len += tone_gen(&(s->tone_gen), buf + len, max_len);
             break;
         case T30_PHASE_BDE_TX:
             len += fsk_tx(&(s->v21tx), buf + len, max_len);
             break;
         case T30_PHASE_C_TX:
-            if (s->bit_rate == 4800  ||  s->bit_rate == 2400)
+            switch (s->modem_type)
+            {
+            case T30_MODEM_V27TER:
                 len += v27ter_tx(&(s->v27ter_tx), buf + len, max_len);
-            else
+                break;
+            case T30_MODEM_V29:
                 len += v29_tx(&(s->v29tx), buf + len, max_len);
-            break;
-        default:
-            /* Send silence */
-            memset(buf + len, 0, max_len*sizeof(int16_t));
+                break;
+#if defined(ENABLE_V17)
+            case T30_MODEM_V17:
+                len += v17_tx(&(s->v17tx), buf + len, max_len);
+                break;
+#endif
+            }
             break;
         }
     }
@@ -2202,6 +2478,12 @@ int fax_tx_process(t30_state_t *s, int16_t *buf, int max_len)
         write(fax_audio_tx_log, buf, len*sizeof(int16_t));
 #endif
     return len;
+}
+/*- End of function --------------------------------------------------------*/
+
+int fax_set_header_info(t30_state_t *s, const char *info)
+{
+    return t4_tx_set_header_info(&(s->t4), info);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -2233,28 +2515,71 @@ int fax_set_sub_address(t30_state_t *s, const char *sub_address)
 }
 /*- End of function --------------------------------------------------------*/
 
-int fax_get_far_ident(t30_state_t *s, char *id)
+int fax_get_sub_address(t30_state_t *s, char *sub_address)
 {
-    strcpy(id, s->far_ident);
-    return strlen(id);
+    if (sub_address)
+        strcpy(sub_address, s->sub_address);
+    return strlen(s->sub_address);
 }
 /*- End of function --------------------------------------------------------*/
 
-void fax_set_phase_b_handler(t30_state_t *s, phase_b_handler_t *handler, void *user_data)
+int fax_get_header_info(t30_state_t *s, char *info)
+{
+    if (info)
+        strcpy(info, t4_tx_get_header_info(&(s->t4)));
+    return strlen(info);
+}
+/*- End of function --------------------------------------------------------*/
+
+int fax_get_local_ident(t30_state_t *s, char *id)
+{
+    if (id)
+        strcpy(id, s->local_ident);
+    return strlen(s->local_ident);
+}
+/*- End of function --------------------------------------------------------*/
+
+int fax_get_far_ident(t30_state_t *s, char *id)
+{
+    if (id)
+        strcpy(id, s->far_ident);
+    return strlen(s->far_ident);
+}
+/*- End of function --------------------------------------------------------*/
+
+void fax_get_transfer_statistics(t30_state_t *s, t30_stats_t *t)
+{
+    t4_stats_t stats;
+
+    t->bit_rate = s->bit_rate;
+    t4_get_transfer_statistics(&(s->t4), &stats);
+    t->pages_transferred = stats.pages_transferred;
+    t->columns = stats.columns;
+    t->rows = stats.rows;
+    t->bad_rows = stats.bad_rows;
+    t->longest_bad_row_run = stats.longest_bad_row_run;
+    t->column_resolution = stats.column_resolution;
+    t->row_resolution = stats.row_resolution;
+    t->encoding = stats.encoding;
+    t->image_size = stats.image_size;
+}
+/*- End of function --------------------------------------------------------*/
+
+void fax_set_phase_b_handler(t30_state_t *s, t30_phase_b_handler_t *handler, void *user_data)
 {
     s->phase_b_handler = handler;
     s->phase_b_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
-void fax_set_phase_d_handler(t30_state_t *s, phase_d_handler_t *handler, void *user_data)
+void fax_set_phase_d_handler(t30_state_t *s, t30_phase_d_handler_t *handler, void *user_data)
 {
     s->phase_d_handler = handler;
     s->phase_d_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
-void fax_set_phase_e_handler(t30_state_t *s, phase_e_handler_t *handler, void *user_data)
+void fax_set_phase_e_handler(t30_state_t *s, t30_phase_e_handler_t *handler, void *user_data)
 {
     s->phase_e_handler = handler;
     s->phase_e_user_data = user_data;
@@ -2270,15 +2595,15 @@ void fax_set_flush_handler(t30_state_t *s, t30_flush_handler_t *handler, void *u
 
 void fax_set_rx_file(t30_state_t *s, const char *file)
 {
-    strncpy(s->t4.rx_file, file, sizeof(s->t4.rx_file));
-    s->t4.rx_file[sizeof(s->t4.rx_file) - 1] = 0;
+    strncpy(s->rx_file, file, sizeof(s->rx_file));
+    s->rx_file[sizeof(s->rx_file) - 1] = 0;
 }
 /*- End of function --------------------------------------------------------*/
 
 void fax_set_tx_file(t30_state_t *s, const char *file)
 {
-    strncpy(s->t4.tx_file, file, sizeof(s->t4.tx_file));
-    s->t4.tx_file[sizeof(s->t4.tx_file) - 1] = 0;
+    strncpy(s->tx_file, file, sizeof(s->tx_file));
+    s->tx_file[sizeof(s->tx_file) - 1] = 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

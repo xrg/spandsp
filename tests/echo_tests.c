@@ -26,7 +26,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo_tests.c,v 1.5 2004/03/25 13:28:37 steveu Exp $
+ * $Id: echo_tests.c,v 1.6 2004/12/16 15:33:55 steveu Exp $
  */
 
 /*! \page echo_can_tests_page Echo cancellation tests
@@ -99,14 +99,14 @@ cancellor.
 //#define PERFORM_TEST_2B
 //#define PERFORM_TEST_2C
 //#define PERFORM_TEST_3A
-//#define PERFORM_TEST_3B
+#define PERFORM_TEST_3B
 //#define PERFORM_TEST_3C
 //#define PERFORM_TEST_4
 //#define PERFORM_TEST_5
 //#define PERFORM_TEST_6
 //#define PERFORM_TEST_7
 //#define PERFORM_TEST_8
-#define PERFORM_TEST_9
+//#define PERFORM_TEST_9
 //#define PERFORM_TEST_10A
 //#define PERFORM_TEST_10B
 //#define PERFORM_TEST_10C

@@ -15,7 +15,7 @@
 
     1997-98 by H. Dietz and R. Fisher
 
-    $Id: mmx.h,v 1.1 2004/03/12 16:27:25 steveu Exp $
+    $Id: mmx.h,v 1.2 2004/03/30 14:29:40 steveu Exp $
 */
 
 #if !defined(_MMX_H_)
@@ -52,6 +52,10 @@ typedef union
     uint8_t     ub[16]; /* 8 Unsigned Byte */
     float       s[4];   /* Single-precision (32-bit) value */
 } xmm_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
     Function to test if multimedia instructions are supported...
@@ -560,6 +564,10 @@ static inline int mmx_ok(void)
 #define psrldq_m2r(var, reg)        mmx_m2r(psrldq, var, reg)
 #define psrldq_r2r(regs, regd)      mmx_r2r(psrldq, regs, regd)
 #define psrldq(vars, vard)          mmx_m2m(psrldq, vars, vard)
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

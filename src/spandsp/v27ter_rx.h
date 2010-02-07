@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * v27ter_rx.h - ITU V.29 modem receive part
+ * v27ter_rx.h - ITU V.27ter modem receive part
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.h,v 1.2 2004/03/15 13:17:36 steveu Exp $
+ * $Id: v27ter_rx.h,v 1.10 2004/10/02 08:34:02 steveu Exp $
  */
 
 /*! \file */
@@ -32,6 +32,9 @@
 #define _V27TER_RX_H_
 
 #include "fsk.h"
+
+/*! \page V27ter_rx_page The V.27ter receiver
+*/
 
 #define V27_EQUALIZER_LEN   7  /* this much to the left and this much to the right */
 #define V27_EQUALIZER_MASK  15 /* one less than a power of 2 >= (2*V27_EQUALIZER_LEN + 1) */
@@ -57,6 +60,12 @@ typedef struct
     put_bit_func_t put_bit;
     /*! \brief A user specified opaque pointer passed to the callback function. */
     void *user_data;
+    /*! \brief A callback function which may be enabled to report every symbol's
+               constellation position. */
+    qam_report_handler_t *qam_report;
+    /*! \brief A user specified opaque pointer passed to the qam_report callback
+               function. */
+    void *qam_user_data;
 
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
     complex_t rrc_filter[2*V27RX_FILTER_STEPS];
@@ -66,7 +75,7 @@ typedef struct
     /*! \brief The register for the training and data scrambler. */
     unsigned int scramble_reg;
     /*! \brief A counter for the number of consecutive bits of repeating pattern through
-              the scrambler. */
+               the scrambler. */
     int scrambler_pattern_count;
     int in_training;
     int training_bc;
@@ -78,6 +87,8 @@ typedef struct
     uint32_t carrier_phase;
     /*! \brief The update rate for the phase of the carrier (i.e. the DDS increment). */
     int32_t carrier_phase_rate;
+    float carrier_track_p;
+    float carrier_track_i;
 
     power_meter_t power;
     int32_t carrier_on_power;
@@ -93,29 +104,29 @@ typedef struct
     /*! \brief Current offset into equalizer buffer. */
     int eq_step;
     int eq_put_step;
+    int eq_skip;
 
     /*! \brief Integration variable for damping the Gardner algorithm tests. */
     int gardner_integrate;
+    /*! \brief Current step size of Gardner algorithm integration. */
     int gardner_step;
+    /*! \brief The total gardner timing correction, since the carrier came up.
+               This is only for performance analysis purposes. */
+    int gardner_total_correction;
     /*! \brief The current fractional phase of the baud timing. */
     int baud_phase;
-    /*! \brief The integrated lead or lag of the carrier phase against its expected
-               value. This is used in fine carrier tracking. */
-    int lead_lag;
-    /*! \brief The number of bauds over which lead_lag has been gathered. */
-    int lead_lag_time;
 
-    /*! \brief A starting phase angle for the coarse carrier aquisition step. */
-    int32_t start_angle_a;
-    /*! \brief A final phase angle for the coarse carrier aquisition step. */
-    int32_t last_angle_a;
-    /*! \brief A starting phase angle for the coarse carrier aquisition step. */
-    int32_t start_angle_b;
-    /*! \brief A final phase angle for the coarse carrier aquisition step. */
-    int32_t last_angle_b;
-
-    FILE *qam_log;
+    /*! \brief Starting phase angles for the coarse carrier aquisition step. */
+    int32_t start_angles[2];
+    /*! \brief History list of phase angles for the coarse carrier aquisition step. */
+    int32_t angles[16];
 } v27ter_rx_state_t;
+
+extern const complex_t v27ter_constellation[8];
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*! Initialise a V.27ter modem receive context.
     \brief Initialise a V.27ter modem receive context.
@@ -128,16 +139,42 @@ void v27ter_rx_init(v27ter_rx_state_t *s, int bit_rate, put_bit_func_t put_bit, 
 /*! Reinitialise an existing V.27ter modem receive context.
     \brief Reinitialise an existing V.27ter modem receive context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 2400 and 4800. */
-void v27ter_rx_restart(v27ter_rx_state_t *s, int bit_rate);
+    \param bit_rate The bit rate of the modem. Valid values are 2400 and 4800.
+    \return 0 for OK, -1 for bad parameter */
+int v27ter_rx_restart(v27ter_rx_state_t *s, int bit_rate);
 
 /*! Process a block of received V.27ter modem audio samples.
     \brief Process a block of received V.27ter modem audio samples.
     \param s The modem context.
     \param amp The audio sample buffer.
     \param len The number of samples in the buffer.
+    \return The number of samples unprocessed.
 */
-void v27ter_rx(v27ter_rx_state_t *s, const int16_t *amp, int len);
+int v27ter_rx(v27ter_rx_state_t *s, const int16_t *amp, int len);
+
+/*! Get a snapshot of the current equalizer coefficients.
+    \brief Get a snapshot of the current equalizer coefficients.
+    \param coeffs The vector of complex coefficients.
+    \return The number of coefficients in the vector. */
+int v27ter_rx_equalizer_state(v27ter_rx_state_t *s, complex_t **coeffs);
+
+/*! Get a current received carrier frequency.
+    \param s The modem context.
+    \return The frequency, in Hertz. */
+float v27ter_rx_carrier_frequency(v27ter_rx_state_t *s);
+
+float v27ter_rx_symbol_timing_correction(v27ter_rx_state_t *s);
+
+/*! Get a current received signal power.
+    \param s The modem context.
+    \return The signal power, in dBm0. */
+float v27ter_rx_signal_power(v27ter_rx_state_t *s);
+
+void v27ter_rx_set_qam_report_handler(v27ter_rx_state_t *s, qam_report_handler_t *handler, void *user_data);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

@@ -23,11 +23,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector.h,v 1.1 2004/03/12 16:27:25 steveu Exp $
+ * $Id: vector.h,v 1.2 2004/03/30 14:29:41 steveu Exp $
  */
 
 #if !defined(_VECTOR_H_)
 #define _VECTOR_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 static inline int vec_dot_prod(const int16_t *vec1,
                                const int16_t *vec2,
@@ -83,6 +87,10 @@ static inline int vec_max_bits(const int16_t *vec, int len)
     }
     return b;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

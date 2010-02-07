@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dc_restore.h,v 1.2 2004/03/19 19:12:46 steveu Exp $
+ * $Id: dc_restore.h,v 1.4 2004/03/31 15:06:30 steveu Exp $
  */
 
 /*! \file */
@@ -59,6 +59,10 @@ typedef struct
 {
     int32_t state;
 } dc_restore_state_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 static inline void dc_restore_init(dc_restore_state_t *dc)
 {
@@ -95,9 +99,17 @@ static inline int16_t fsaturate(double damp)
         return  INT16_MAX;
     if (damp < -32768.0)
         return  INT16_MIN;
+#ifdef __cplusplus
+    return damp;
+#else
     return lrint(damp);
+#endif
 }
 /*- End of function --------------------------------------------------------*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

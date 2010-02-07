@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_generate_tests.c,v 1.5 2004/03/12 16:27:25 steveu Exp $
+ * $Id: super_tone_tx_tests.c,v 1.2 2004/10/16 15:20:49 steveu Exp $
  */
 
 #define	_ISOC9X_SOURCE	1
@@ -54,6 +54,8 @@
 
 #include "spandsp.h"
 
+#define OUT_FILE_NAME   "super_tone.wav"
+
 AFfilehandle outhandle;
 AFfilesetup filesetup;
 
@@ -76,11 +78,17 @@ static void play_tones(super_tone_tx_state_t *tone, int max_samples)
                                   AF_DEFAULT_TRACK,
                                   amp,
                                   len);
+        if (outframes != len)
+        {
+            fprintf(stderr, "    Error writing wave file\n");
+            exit(2);
+        }
         total_length += len;
     }
     while (len > 0  &&  --i > 0);
     printf("Tone length = %d samples (%dms)\n", total_length, total_length/8);
 }
+/*- End of function --------------------------------------------------------*/
 
 static int parse_tone(super_tone_tx_step_t **tree, xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur)
 {
@@ -101,6 +109,7 @@ static int parse_tone(super_tone_tx_step_t **tree, xmlDocPtr doc, xmlNsPtr ns, x
         if (xmlStrcmp(cur->name, (const xmlChar *) "step") == 0)
         {
             printf("Step - ");
+            /* Set some defaults */
             f1 = 0.0;
             f2 = 0.0;
             f_tol = 1.0;
@@ -126,22 +135,24 @@ static int parse_tone(super_tone_tx_step_t **tree, xmlDocPtr doc, xmlNsPtr ns, x
                 sscanf(x, "%f [%f%%]", &length, &length_tol);
                 printf("Length=%.2f [%.2f%%]", length, length_tol);
             }
+            if ((x = xmlGetProp(cur, (const xmlChar *) "recognition-length")))
+                printf("Recognition length='%s'", x);
             if ((x = xmlGetProp(cur, (const xmlChar *) "cycles")))
             {
                 if (strcasecmp(x, "endless") == 0)
                     cycles = 0;
                 else
                     cycles = atoi(x);
-                printf("Cycles='%d' ", cycles);
+                printf("Cycles=%d ", cycles);
             }
             if ((x = xmlGetProp(cur, (const xmlChar *) "recorded-announcement")))
                 printf("Recorded announcement='%s'", x);
             printf("\n");
             treep = super_tone_tx_make_step(NULL,
-                                            f1 + 0.5,
-                                            l1 + 0.5,
-                                            f2 + 0.5,
-                                            l2 + 0.5,
+                                            f1,
+                                            l1,
+                                            f2,
+                                            l2,
                                             length*1000.0 + 0.5,
                                             cycles);
             *tree = treep;
@@ -154,6 +165,7 @@ static int parse_tone(super_tone_tx_step_t **tree, xmlDocPtr doc, xmlNsPtr ns, x
     /*endwhile*/
     return  0;
 }
+/*- End of function --------------------------------------------------------*/
 
 static void parse_tone_set(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur)
 {
@@ -169,6 +181,7 @@ static void parse_tone_set(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur)
             tone_tree = NULL;
             parse_tone(&tone_tree, doc, ns, cur);
             super_tone_tx_init(&tone, tone_tree);
+printf("Len %p %p %d %d\n", tone.levels[0], tone_tree, tone_tree->length, tone_tree->tone);
             play_tones(&tone, 99999999);
             super_tone_tx_free(tone_tree);
         }
@@ -177,6 +190,7 @@ static void parse_tone_set(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur)
     }
     /*endwhile*/
 }
+/*- End of function --------------------------------------------------------*/
 
 static void get_tone_set(char *tone_file, char *set_id)
 {
@@ -222,7 +236,7 @@ static void get_tone_set(char *tone_file, char *set_id)
     }
     /*endif*/
     cur = cur->xmlChildrenNode;
-    while (cur  &&  xmlIsBlankNode (cur))
+    while (cur  &&  xmlIsBlankNode(cur))
         cur = cur->next;
     /*endwhile*/
     if (cur == NULL)
@@ -236,6 +250,7 @@ static void get_tone_set(char *tone_file, char *set_id)
             {
                 if (strcmp(x, set_id) == 0)
                     parse_tone_set(doc, ns, cur);
+                /*endif*/
             }
             /*endif*/
         }
@@ -245,8 +260,9 @@ static void get_tone_set(char *tone_file, char *set_id)
     /*endwhile*/
     xmlFreeDoc(doc);
 }
+/*- End of function --------------------------------------------------------*/
 
-int main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     filesetup = afNewFileSetup ();
     if (filesetup == AF_NULL_FILESETUP)
@@ -260,18 +276,20 @@ int main (int argc, char *argv[])
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
 
-    outhandle = afOpenFile ("audio.wav", "w", filesetup);
+    outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
     if (outhandle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Cannot open audio file '%s'\n", "audio.wav");
+        fprintf(stderr, "    Cannot open audio file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
-    get_tone_set("../global-tones.xml", argv[1]);
+    get_tone_set("../spandsp/global-tones.xml", (argc > 1)  ?  argv[1]  :  "hk");
     if (afCloseFile (outhandle) != 0)
     {
-        fprintf(stderr, "    Cannot close audio file '%s'\n", "audio.wav");
+        fprintf(stderr, "    Cannot close audio file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
     printf("Done\n");
     return 0;
 }
+/*- End of function --------------------------------------------------------*/
+/*- End of file ------------------------------------------------------------*/

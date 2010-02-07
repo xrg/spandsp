@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter.h,v 1.1 2004/03/12 16:27:25 steveu Exp $
+ * $Id: power_meter.h,v 1.2 2004/03/30 14:29:41 steveu Exp $
  */
 
 #if !defined(_POWER_METER_H_)
@@ -40,11 +40,19 @@ typedef struct
     int32_t reading;
 } power_meter_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 power_meter_t *power_meter_init(power_meter_t *meter, int shift);
 power_meter_t *power_meter_damping(power_meter_t *meter, int shift);
 int32_t power_meter_update(power_meter_t *meter, int16_t amp);
 int32_t power_meter_level(float level);
 float power_meter_dbm0(power_meter_t *meter);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

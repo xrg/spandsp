@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t35.c,v 1.4 2004/03/12 16:27:24 steveu Exp $
+ * $Id: t35.c,v 1.7 2004/11/05 14:48:40 steveu Exp $
  */
 
 /*
@@ -81,6 +81,207 @@ typedef struct
     int inverse_station_id_order;
     const model_data_t *known_models;
 } nsf_data_t;
+
+extern const char *t35_country_codes[256] =
+{
+    "Japan",                                    /* 0x00 */
+    "Albania",
+    "Algeria",
+    "American Samoa",
+    "Germany (Federal Republic of)",
+    "Anguilla",
+    "Antigua and Barbuda",
+    "Argentina",
+    "Ascension (see S. Helena)",
+    "Australia",
+    "Austria",
+    "Bahamas",
+    "Bahrain",
+    "Bangladesh",
+    "Barbados",
+    "Belgium",
+    "Belize",
+    "Benin (Republic of)",
+    "Bermudas",
+    "Bhutan (Kingdom of)",
+    "Bolivia",
+    "Botswana",
+    "Brazil",
+    "British Antarctic Territory",
+    "British Indian Ocean Territory",
+    "British Virgin Islands",
+    "Brunei Darussalam",
+    "Bulgaria",
+    "Myanmar (Union of)",
+    "Burundi",
+    "Byelorussia",
+    "Cameroon",
+    "Canada",                                   /* 0x20 */
+    "Cape Verde",
+    "Cayman Islands",
+    "Central African Republic",
+    "Chad",
+    "Chile",
+    "China",
+    "Colombia",
+    "Comoros",
+    "Congo",
+    "Cook Islands",
+    "Costa Rica",
+    "Cuba",
+    "Cyprus",
+    "Czech and Slovak Federal Republic",
+    "Cambodia",
+    "Democratic People's Republic of Korea",
+    "Denmark",
+    "Djibouti",
+    "Dominican Republic",
+    "Dominica",
+    "Ecuador",
+    "Egypt",
+    "El Salvador",
+    "Equatorial Guinea",
+    "Ethiopia",
+    "Falkland Islands",
+    "Fiji",
+    "Finland",
+    "France",
+    "French Polynesia",
+    "French Southern and Antarctic Lands",
+    "Gabon",                                        /* 0x40 */
+    "Gambia",
+    "Germany (Federal Republic of) ",
+    "Angola",
+    "Ghana",
+    "Gibraltar",
+    "Greece",
+    "Grenada",
+    "Guam",
+    "Guatemala",
+    "Guernsey",
+    "Guinea",
+    "Guinea-Bissau",
+    "Guayana",
+    "Haiti",
+    "Honduras",
+    "Hongkong",
+    "Hungary (Republic of)",
+    "Iceland",
+    "India",
+    "Indonesia",
+    "Iran (Islamic Republic of)",
+    "Iraq",
+    "Ireland",
+    "Israel",
+    "Italy",
+    "Côte d'Ivoire",
+    "Jamaica",
+    "Afghanistan",
+    "Jersey",
+    "Jordan",
+    "Kenya",
+    "Kiribati",                                     /* 0x60 */
+    "Korea (Republic of)",
+    "Kuwait",
+    "Lao (People's Democratic Republic)",
+    "Lebanon",
+    "Lesotho",
+    "Liberia",
+    "Libya",
+    "Liechtenstein",
+    "Luxembourg",
+    "Macau",
+    "Madagascar",
+    "Malaysia",
+    "Malawi",
+    "Maldives",
+    "Mali",
+    "Malta",
+    "Mauritania",
+    "Mauritius",
+    "Mexico",
+    "Monaco",
+    "Mongolia",
+    "Montserrat",
+    "Morocco",
+    "Mozambique",
+    "Nauru",
+    "Nepal",
+    "Netherlands",
+    "Netherlands Antilles",
+    "New Caledonia",
+    "New Zealand",
+    "Nicaragua",
+    "Niger",                                        /* 0x80 */
+    "Nigeria",
+    "Norway",
+    "Oman",
+    "Pakistan",
+    "Panama",
+    "Papua New Guinea",
+    "Paraguay",
+    "Peru",
+    "Philippines",
+    "Poland (Republic of)",
+    "Portugal",
+    "Puerto Rico",
+    "Qatar",
+    "Romania",
+    "Rwanda",
+    "Saint Kitts and Nevis",
+    "Saint Croix",
+    "Saint Helena and Ascension",
+    "Saint Lucia",
+    "San Marino",
+    "Saint Thomas",
+    "Sao Tomé and Principe",
+    "Saint Vincent and the Grenadines",
+    "Saudi Arabia",
+    "Senegal",
+    "Seychelles",
+    "Sierra Leone",
+    "Singapore",
+    "Solomon Islands",
+    "Somalia",
+    "South Africa",
+    "Spain",                                        /* 0xA0 */
+    "Sri Lanka",
+    "Sudan",
+    "Suriname",
+    "Swaziland",
+    "Sweden",
+    "Switzerland",
+    "Syria",
+    "Tanzania",
+    "Thailand",
+    "Togo",
+    "Tonga",
+    "Trinidad and Tobago",
+    "Tunisia",
+    "Turkey",
+    "Turks and Caicos Islands",
+    "Tuvalu",
+    "Uganda",
+    "Ukraine",
+    "United Arab Emirates",
+    "United Kingdom",
+    "United States",
+    "Burkina Faso",
+    "Uruguay",
+    "U.S.S.R.",
+    "Vanuatu",
+    "Vatican City State",
+    "Venezuela",
+    "Viet Nam",
+    "Wallis and Futuna",
+    "Western Samoa",
+    "Yemen (Republic of)",
+    "Yemen (Republic of)",                          /* 0xC0 */
+    "Yugoslavia",
+    "Zaire",
+    "Zambia",
+    "Zimbabwe"
+};
 
 static const model_data_t Canon[] =
 {
@@ -165,6 +366,12 @@ static const model_data_t PitneyBowes[] =
     {0}
 };
 
+static const model_data_t Dialogic[] = 
+{
+    {8, "\x56\x8B\x06\x55\x00\x15\x00\x00", "VFX/40ESC"},
+    {0}
+};
+
 static const model_data_t Muratec45[] =
 {
     {10, "\xF4\x91\xFF\xFF\xFF\x42\x2A\xBC\x01\x57", "M4700"},
@@ -179,13 +386,13 @@ static const model_data_t Muratec48[] =
 };
 
 /*
- * Country code first byte, then manufacturer is last two bytes. See T.35.  
+ * Country code is the first byte, then manufacturer is the last two bytes. See T.35.  
  * Japan is x00,
- * USA xB5,
- * UK xB4,
  * Canada x20,
- * Tunisia xAD,
  * Papua New Guinea x86.
+ * Tunisia xAD,
+ * UK xB4,
+ * USA xB5,
  */
 
 static const nsf_data_t known_nsf[] =
@@ -259,6 +466,7 @@ static const nsf_data_t known_nsf[] =
     {"\x86\x00\x8C", "Samsung", FALSE, Samsung8C},
     {"\x86\x00\x98", "Samsung", FALSE},
     {"\xAD\x00\x00", "Pitney Bowes", FALSE, PitneyBowes},
+    {"\xAD\x00\x0C", "Dialogic", FALSE, Dialogic},
     {"\xAD\x00\x36", "HP", FALSE, HP},
     {"\xAD\x00\x42", "FaxTalk", FALSE},
     {"\xAD\x00\x44", NULL, TRUE},
@@ -400,7 +608,7 @@ void nsf_find_station_id(int reverse_order)
 /*- End of function --------------------------------------------------------*/
 #endif
 
-int t35_decode(uint8_t *msg, int len, const char **vendor, const char **model)
+int t35_decode(const uint8_t *msg, int len, const char **vendor, const char **model)
 {
     int vendor_decoded;
     const nsf_data_t *p;
@@ -417,7 +625,7 @@ int t35_decode(uint8_t *msg, int len, const char **vendor, const char **model)
             &&
             memcmp(p->vendor_id, &msg[0], T35_VENDOR_ID_LEN) == 0)
         {
-	    if (p->vendor_name  &&  vendor)
+            if (p->vendor_name  &&  vendor)
                 *vendor = p->vendor_name;
             if (p->known_models  &&  model)
             {
@@ -441,7 +649,7 @@ int t35_decode(uint8_t *msg, int len, const char **vendor, const char **model)
     }
 #if 0
     if (!vendor_found())
-	find_station_id(0);
+        find_station_id(0);
 #endif
     return vendor_decoded;
 }

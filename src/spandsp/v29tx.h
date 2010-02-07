@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.h,v 1.2 2004/03/19 19:12:46 steveu Exp $
+ * $Id: v29tx.h,v 1.7 2005/01/12 13:39:26 steveu Exp $
  */
 
 /*! \file */
@@ -71,10 +71,10 @@ increases the variability of the received signal. However, the receiver's
 adaptive equalizer will largely compensate for these differences. The current
 design uses a root raised cosine filter with 50% excess bandwidth. 
 
-The carrier is generated using the DDS method. Using 2 second order resonators,
+The carrier is generated using the DDS method. Using two second order resonators,
 started in quadrature, might be more efficient, as it would have less impact on
 the processor cache than a table lookup approach. However, the DDS approach
-suits the receiver better, so then same signal generator is also used for the
+suits the receiver better, so the same signal generator is also used for the
 transmitter. 
 */
 
@@ -93,6 +93,8 @@ typedef struct
     /*! \brief A user specified opaque pointer passed to the callback function. */
     void *user_data;
 
+    float gain;
+
     /*! \brief The route raised cosine (RRC) pulse shaping filter buffer. */
     complex_t rrc_filter[2*V29TX_FILTER_STEPS];
     /*! \brief Current offset into the RRC pulse shaping filter buffer. */
@@ -104,7 +106,8 @@ typedef struct
     unsigned int scramble_reg;
     /*! \brief The register for the training scrambler. */
     uint8_t training_scramble_reg;
-    /*! \brief TRUE if transmitting the training sequence. FALSE if transmitting user data. */
+    /*! \brief TRUE if transmitting the training sequence, or shutting down transmission.
+               FALSE if transmitting user data. */
     int in_training;
     /*! \brief A counter used to track progress through sending the training sequence. */
     int training_step;
@@ -120,7 +123,19 @@ typedef struct
     int baud_phase;
     /*! \brief The code number for the current position in the constellation. */
     int constellation_state;
+    /*! \brief The get_bit function in use at any instant. */
+    get_bit_func_t current_get_bit;
 } v29_tx_state_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*! Adjust a V.29 modem transmit context's power output.
+    \brief Adjust a V.29 modem transmit context's output power.
+    \param s The modem context.
+    \param power The power level, in dBm0 */
+void v29_tx_power(v29_tx_state_t *s, float power);
 
 /*! Initialise a V.29 modem transmit context. This must be called before the first
     use of the context, to initialise its contents.
@@ -134,8 +149,9 @@ void v29_tx_init(v29_tx_state_t *s, int rate, get_bit_func_t get_bit, void *user
 /*! Reinitialise an existing V.29 modem transmit context, so it may be reused.
     \brief Reinitialise an existing V.29 modem transmit context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 4800, 7200 and 9600. */
-void v29_tx_restart(v29_tx_state_t *s, int rate);
+    \param rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
+    \return 0 for OK, -1 for bad parameter */
+int v29_tx_restart(v29_tx_state_t *s, int rate);
 
 /*! Generate a block of V.29 modem audio samples.
     \brief Generate a block of V.29 modem audio samples.
@@ -145,6 +161,10 @@ void v29_tx_restart(v29_tx_state_t *s, int rate);
     \return The number of samples actually generated.
 */
 int v29_tx(v29_tx_state_t *s, int16_t *amp, int len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

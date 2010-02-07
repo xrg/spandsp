@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: biquad.h,v 1.1 2004/03/12 16:27:24 steveu Exp $
+ * $Id: biquad.h,v 1.2 2004/03/30 14:29:40 steveu Exp $
  */
 
 #if !defined(_BIQUAD_H_)
@@ -48,6 +48,10 @@ typedef struct
     int32_t residue2;
 #endif
 } biquad2_state_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 static inline void biquad2_init (biquad2_state_t *bq,
                 	 	 int32_t gain,
@@ -96,6 +100,10 @@ static inline int16_t biquad2 (biquad2_state_t *bq, int16_t sample)
     return  y;
 }
 /*- End of function --------------------------------------------------------*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

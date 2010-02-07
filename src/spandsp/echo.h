@@ -28,7 +28,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo.h,v 1.2 2004/03/19 19:12:46 steveu Exp $
+ * $Id: echo.h,v 1.3 2004/12/16 15:33:55 steveu Exp $
  */
 
 /*! \file */
@@ -87,7 +87,7 @@ that assessment is complete the far end signal will have already caused major
 mis-convergence in the adaption process. An assessment algorithm is needed which
 produces a fairly accurate result from a very short burst of far end energy. 
 
-\section echo_can_page_sec_2 do I use it?
+\section echo_can_page_sec_2 How do I use it?
 
 The echo cancellor processes both the transmit and receive streams sample by
 sample. The processing function is not declared inline. Unfortunately,

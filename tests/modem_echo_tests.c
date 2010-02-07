@@ -1,0 +1,352 @@
+/*
+ * SpanDSP - a series of DSP components for telephony
+ *
+ * modem_echo_tests.c
+ *
+ * Written by Steve Underwood <steveu@coppice.org>
+ *
+ * Copyright (C) 2004 Steve Underwood
+ *
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id: modem_echo_tests.c,v 1.1 2004/12/16 15:33:55 steveu Exp $
+ */
+
+/*! \page modem_echo_can_tests_page Modem Echo cancellation tests
+
+Currently the echo cancellation tests only provide simple exercising of the
+cancellor in the way it might be used for line echo cancellation. The test code
+is in echotests.c. 
+
+The goal is to test the echo cancellor again the G.16X specs. Clearly, that also
+means the goal for the cancellor itself is to comply with those specs. Right
+now, the only aspect of these tests implemented is the line impulse response
+models in g168tests.c. 
+
+\section modem_echo_can_tests_page_sec_1 Theory of operation
+
+The current test consists of feeding a wave file of real speech to the echo
+cancellor as the transmit signal. A very simple model of a telephone line is
+used to simulate a simple echo from the transmit signal. A second wave file of
+real speech is also used to simulate a signal received form the far end of the
+line. This is gated so it is only placed for one second every 10 seconds,
+simulating the double talk condition. The resulting echo cancelled signal can
+either be store in a file for further analysis, or played back as the data is
+processed. 
+
+A number of modified versions of this test have been performed. The signal level
+of the two speech sources has been varied. Several simple models of the
+telephone line have been used. Although the current cancellor design has known
+limitations, it seems stable for all these test conditions. No instability has
+been observed in the current version due to arithmetic overflow when the speech
+is very loud (with earlier versions, well, ....:) ). The lack of saturating
+arithmetic in general purpose CPUs is a huge disadvantage here, as software
+saturation logic would cause a major slow down. Floating point would be good,
+but is not usable in the Linux kernel. Anyway, the bottom line seems to be the
+current design is genuinely useful, if imperfect. 
+
+\section modem_echo_can_tests_page_sec_2 How do I use it?
+
+Build the tests with the command "./build". Currently there is no proper make
+setup, or way to build individual tests. "./build" will built all the tests
+which currently exist for the DSP functions. The echo cancellation test assumes
+there are two wave files containing mono, 16 bit signed PCM speech data, sampled
+at 8kHz. These should be called local_sound.wav and far_sound.wav. A third wave
+file will be produced. This very crudely starts with the first 256 bytes from
+the local_sound.wav file, followed by the results of the echo cancellation. The
+resulting audio is also played to the /dev/dsp device. A printf near the end of
+echo_tests.c is commented out with a #if. If this is enabled, detailed
+information about the results of the echo cancellation will be written to
+stdout. By saving this into a file, Grace (recommended), GnuPlot, or some other
+plotting package may be used to graphically display the functioning of the
+cancellor.  
+*/
+
+#define	_ISOC9X_SOURCE	1
+#define _ISOC99_SOURCE	1
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#if defined(HAVE_FL_FL_H)  &&  defined(HAVE_FL_FL_CARTESIAN_H)
+#define ENABLE_GUI
+#endif
+
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdint.h>
+#include <string.h>
+#include <time.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <audiofile.h>
+#include <tiffio.h>
+
+#define GEN_CONST
+#include <math.h>
+
+#include "spandsp.h"
+#include "spandsp/g168models.h"
+
+#if !defined(NULL)
+#define NULL (void *) 0
+#endif
+
+typedef struct
+{
+    char *name;
+    int max;
+    int cur;
+    AFfilehandle handle;
+    int16_t signal[8000];
+} signal_source_t;
+
+signal_source_t local_css;
+
+fir32_state_t line_model;
+
+AFfilehandle resulthandle;
+int16_t residue_sound[8000];
+int residue_cur = 0;
+
+static inline void put_residue(int16_t tx, int16_t residue)
+{
+    int outframes;
+
+    residue_sound[residue_cur++] = tx;
+    residue_sound[residue_cur++] = residue;
+    if (residue_cur >= 8000)
+    {
+        residue_cur >>= 1;
+        outframes = afWriteFrames(resulthandle,
+                                  AF_DEFAULT_TRACK,
+                                  residue_sound,
+                                  residue_cur);
+        if (outframes != residue_cur)
+        {
+            fprintf(stderr, "    Error writing residue sound\n");
+            exit(2);
+        }
+        residue_cur = 0;
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
+static void signal_load(signal_source_t *sig, char *name)
+{
+    float x;
+
+    sig->name = name;
+    sig->handle = afOpenFile(sig->name, "r", 0);
+    if (sig->handle == AF_NULL_FILEHANDLE)
+    {
+        fprintf(stderr, "    Cannot open sound file '%s'\n", sig->name);
+        exit(2);
+    }
+    x = afGetFrameSize(sig->handle, AF_DEFAULT_TRACK, 1);
+    if (x != 2.0)
+    {
+        fprintf(stderr, "    Unexpected frame size in sound file '%s'\n", sig->name);
+        exit(2);
+    }
+    sig->max = afReadFrames(sig->handle, AF_DEFAULT_TRACK, sig->signal, 8000);
+    if (sig->max < 0)
+    {
+        fprintf(stderr, "    Error reading sound file '%s'\n", sig->name);
+        exit(2);
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
+static void signal_free(signal_source_t *sig)
+{
+    if (afCloseFile(sig->handle) != 0)
+    {
+        fprintf(stderr, "    Cannot close sound file '%s'\n", sig->name);
+        exit(2);
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
+static void signal_restart(signal_source_t *sig)
+{
+    sig->cur = 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int16_t signal_amp(signal_source_t *sig)
+{
+    int16_t tx;
+
+    tx = sig->signal[sig->cur++];
+    if (sig->cur >= sig->max)
+        sig->cur = 0;
+    return tx;
+}
+/*- End of function --------------------------------------------------------*/
+
+static inline int16_t alaw_munge(int16_t amp)
+{
+    return alaw_to_linear(linear_to_alaw(amp));
+}
+/*- End of function --------------------------------------------------------*/
+
+static void channel_model_create(int model)
+{
+    static const int32_t *line_models[] =
+    {
+        line_model_d2_coeffs,
+        line_model_d3_coeffs,
+        line_model_d4_coeffs,
+        line_model_d5_coeffs,
+        line_model_d6_coeffs,
+        line_model_d7_coeffs,
+        line_model_d8_coeffs,
+        line_model_d9_coeffs
+    };
+
+    static int line_model_sizes[] =
+    {
+        sizeof(line_model_d2_coeffs)/sizeof(int32_t),
+        sizeof(line_model_d3_coeffs)/sizeof(int32_t),
+        sizeof(line_model_d4_coeffs)/sizeof(int32_t),
+        sizeof(line_model_d5_coeffs)/sizeof(int32_t),
+        sizeof(line_model_d6_coeffs)/sizeof(int32_t),
+        sizeof(line_model_d7_coeffs)/sizeof(int32_t),
+        sizeof(line_model_d8_coeffs)/sizeof(int32_t),
+        sizeof(line_model_d9_coeffs)/sizeof(int32_t)
+    };
+
+    fir32_create(&line_model, line_models[model], line_model_sizes[model]);
+}
+/*- End of function --------------------------------------------------------*/
+
+static int16_t channel_model(int16_t local, int16_t far)
+{
+    int16_t echo;
+    int16_t rx;
+
+    /* Channel modelling is merely simulating the effects of A-law distortion
+       and using one of the echo models from G.168 */
+
+    /* The local tx signal will have gone through an A-law munging before
+       it reached the line's analogue area where the echo occurs. */
+    echo = fir32(&line_model, alaw_munge(local/8));
+    /* The far end signal will have been through an A-law munging, although
+       this should not affect things. */
+    rx = echo + alaw_munge(far);
+    /* This mixed echo and far end signal will have been through an A-law munging when it came back into
+       the digital network. */
+    rx = alaw_munge(rx);
+    return  rx;
+}
+/*- End of function --------------------------------------------------------*/
+
+int main(int argc, char *argv[])
+{
+    modem_echo_can_state_t *ctx;
+    awgn_state_t local_noise_source;
+    awgn_state_t far_noise_source;
+    int i;
+    int clean;
+    int16_t rx;
+    int16_t tx;
+    int local_cur;
+    int far_cur;
+    int result_cur;
+    AFfilesetup filesetup;
+    int outframes;
+    int line_model;
+    time_t now;
+
+    line_model = 0;
+    
+    if (argc > 1)
+        line_model = atoi(argv[1]);
+    time(&now);
+    ctx = modem_echo_can_create(256);
+    awgn_init(&far_noise_source, 7162534, -50);
+
+    signal_load(&local_css, "sound_c1_8k.wav");
+
+    filesetup = afNewFileSetup();
+    if (filesetup == AF_NULL_FILESETUP)
+    {
+        fprintf(stderr, "    Failed to create file setup\n");
+        exit(2);
+    }
+    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
+    afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
+    afInitFileFormat(filesetup, AF_FILE_WAVE);
+    afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
+
+    resulthandle = afOpenFile("modem_echo.wav", "w", filesetup);
+    if (resulthandle == AF_NULL_FILEHANDLE)
+    {
+        fprintf(stderr, "    Failed to open result file\n");
+        exit(2);
+    }
+
+#if defined(ENABLE_GUI)
+    start_echo_can_monitor(256);
+#endif
+
+    local_cur = 0;
+    far_cur = 0;
+    result_cur = 0;
+    channel_model_create(line_model);
+
+    modem_echo_can_flush(ctx);
+
+    /* Converge the canceller */
+    signal_restart(&local_css);
+    modem_echo_can_adaption_mode(ctx, TRUE);
+    for (i = 0;  i < 800*2;  i++)
+    {
+        clean = modem_echo_can_update(ctx, 0, 0);
+        put_residue(0, clean);
+    }
+    for (i = 0;  i < 8000*50;  i++)
+    {
+        tx = signal_amp(&local_css);
+        rx = channel_model(tx, 0);
+        tx = alaw_munge(tx);
+        clean = modem_echo_can_update(ctx, tx, rx);
+        put_residue(tx, clean);
+#if defined(ENABLE_GUI)
+        echo_can_monitor_update(ctx->fir_taps16, 256);
+#endif
+    }
+    modem_echo_can_free(ctx);
+
+    signal_free(&local_css);
+
+    if (afCloseFile(resulthandle) != 0)
+    {
+        fprintf(stderr, "    Cannot close speech file '%s'\n", "result_sound.wav");
+        exit(2);
+    }
+    
+#if defined(ENABLE_GUI)
+    echo_can_monitor_wait_to_end();
+#endif
+
+    return  0;
+}
+/*- End of function --------------------------------------------------------*/
+/*- End of file ------------------------------------------------------------*/

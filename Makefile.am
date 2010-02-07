@@ -14,13 +14,15 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.3 2004/03/13 13:23:03 steveu Exp $
+## $Id: Makefile.am,v 1.8 2004/11/15 14:18:28 steveu Exp $
 
 noinst_SCRIPTS = spandsp.spec
 
+nobase_data_DATA = spandsp/global-tones.xml spandsp/tones.dtd
+
 MAINTAINERCLEANFILES = Makefile.in
 
-EXTRA_DIST = DueDiligence spandsp.spec
+EXTRA_DIST = DueDiligence spandsp.spec doc/libspandsp-doxygen spandsp/global-tones.xml spandsp/tones.dtd
 
 if COND_DOC
     MAYBE_DOC=doc
@@ -34,6 +36,9 @@ endif
 SUBDIRS = src $(MAYBE_DOC) $(MAYBE_TESTS) $(MAYBE_ITUTESTS)
 
 DIST_SUBDIRS = src doc tests itutests
+
+faq: faq.xml
+	docbook2html -o faq faq.xml
 
 rpm: rpm-build
 

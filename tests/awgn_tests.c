@@ -23,8 +23,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn_tests.c,v 1.2 2004/03/12 16:27:25 steveu Exp $
+ * $Id: awgn_tests.c,v 1.3 2004/12/08 14:00:35 steveu Exp $
  */
+
+/*! \page awgn_tests_page AWGN tests
+\section awgn_tests_page_sec_1 What does it do
+*/
 
 //#define _ISOC9X_SOURCE  1
 //#define _ISOC99_SOURCE  1

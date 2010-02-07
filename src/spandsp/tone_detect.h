@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect.h,v 1.3 2004/03/19 19:12:46 steveu Exp $
+ * $Id: tone_detect.h,v 1.10 2005/01/17 13:12:15 steveu Exp $
  */
 
 #if !defined(_TONE_DETECT_H_)
@@ -32,18 +32,33 @@
 
 /*! \page DTMF_rx_page DTMF receiver
 \section DTMF_rx_page_sec_1 What does it do
-The DTMF receiver detects the standard DTMF digits. It is compliant with the
-DTMF specifications in most places, and passes the test suites. It also scores
-*very* well on the standard talk-off tests. 
+The DTMF receiver detects the standard DTMF digits. It is compliant with
+ITU-T Q.23, ITU-T Q.24, and the local DTMF specifications in most places.
+Its passes the test suites. It also scores *very* well on the standard
+talk-off tests. 
 
 The current design uses floating point extensively. The current design is not
-tolerant of DC or dial tone. It is exspected that a DC restore stage will be
+tolerant of DC or dial tone. It is expected that a DC restore stage will be
 placed before the DTMF detector. Whether dial tone tolerance matter depends on
 your application. If you are using the code in an IVR application you will need
 proper echo cancellation to get good performance in the prescence of speech
 prompts. 
 
 \section DTMF_rx_page_sec_2 Theory of Operation
+*/
+
+/*! \page MFC_R2_tone_rx_page MFC/R2 tone receiver
+
+The MFC/R2 tone receiver module provides for the detection of the
+repertoire of 15 dual tones needs for the digital MFC/R2 signalling protocol. 
+It is compliant with ITU-T Q.441d.
+*/
+
+/*! \page bell_mf_tone_rx_page Bell MF tone receiver
+
+The Bell MF tone receiver module provides for the detection of the
+repertoire of 15 dual tones needs for various Bell MF signalling protocols. 
+It is compliant with ITU-T Q.320, ITU-T Q.322, ITU-T Q.323B.
 */
 
 /*!
@@ -125,13 +140,17 @@ typedef struct
     int lost_digits;
 } r2_mf_rx_state_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void make_goertzel_descriptor(goertzel_descriptor_t *t,
                               int freq,
                               int samples);
 void goertzel_init(goertzel_state_t *s,
                    goertzel_descriptor_t *t);
 int goertzel_update(goertzel_state_t *s,
-                    int16_t x[],
+                    const int16_t amp[],
                     int samples);
 float goertzel_result(goertzel_state_t *s);
 
@@ -149,6 +168,10 @@ int bell_mf_get(bell_mf_rx_state_t *s, char *buf, int max);
 
 void r2_mf_rx_init(r2_mf_rx_state_t *s, int fwd);
 int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t *amp, int samples);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

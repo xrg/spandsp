@@ -23,8 +23,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: makecss.c,v 1.3 2004/03/16 13:44:48 steveu Exp $
+ * $Id: makecss.c,v 1.5 2005/01/16 10:52:02 steveu Exp $
  */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -35,14 +39,32 @@
 #include <fcntl.h>
 #include <audiofile.h>
 #include <tiffio.h>
-
+#if defined(HAVE_FFTW3_H)
+#include <fftw3.h>
+#else
 #include <fftw.h>
+#endif
 
 #define GEN_CONST
 #include <math.h>
 
 #include "spandsp.h"
 #include "spandsp/g168models.h"
+
+#if defined(HAVE_FFTW3_H)
+/* Compatibility fiddle factor between FFTW2 and FFTW3 */
+typedef union
+{
+    struct
+    {
+        double re;
+        double im;
+    };
+    double fftw[2];
+} fftwx_complex;
+#else
+typedef fftw_complex fftwx_complex;
+#endif
 
 #if !defined(NULL)
 #define NULL (void *) 0
@@ -60,8 +82,8 @@ static double scaling(double f, double start, double end, double start_gain, dou
 
 int main(int argc, char *argv[])
 {
-    fftw_complex in[8192];
-    fftw_complex out[8192];
+    fftwx_complex in[8192];
+    fftwx_complex out[8192];
     fftw_plan p;
     int16_t voiced_sound[8192];
     int16_t noise_sound[8192];
@@ -109,7 +131,11 @@ int main(int argc, char *argv[])
     ms = 20.0*log10(sqrt(ms/voiced_length)/32767.0) + 3.14;
     printf("Voiced level = %.2fdB\n", ms);
 
+#if defined(HAVE_FFTW3_H)    
+    p = fftw_plan_dft_1d(8192, &(in[0].fftw), &(out[0].fftw), FFTW_BACKWARD, FFTW_ESTIMATE);
+#else
     p = fftw_create_plan(8192, FFTW_BACKWARD, FFTW_ESTIMATE);
+#endif
     for (i = 0;  i < 8192;  i++)
     {
         in[i].re = 0.0;
@@ -153,8 +179,11 @@ int main(int argc, char *argv[])
         in[8192 - i].re = 0.0;
         in[8192 - i].im = -in[i].im;
     }
-    
+#if defined(HAVE_FFTW3_H)    
+    fftw_execute(p);
+#else
     fftw_one(p, in, out);
+#endif
     for (i = 0;  i < 8192;  i++)
     {
         //printf("%10d %15.5f %15.5f\n", i, out[i].re, out[i].im);

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fir.h,v 1.1 2004/03/12 16:27:24 steveu Exp $
+ * $Id: fir.h,v 1.3 2004/12/16 15:33:55 steveu Exp $
  */
 
 #if !defined(_FIR_H_)
@@ -70,25 +70,38 @@ typedef struct
     float *history;
 } fir_float_state_t;
 
-static inline void fir16_create(fir16_state_t *fir,
-                                const int16_t *coeffs,
-    	    	    	        int taps)
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+static inline const int16_t *fir16_create(fir16_state_t *fir,
+                                          const int16_t *coeffs,
+                                          int taps)
 {
     fir->taps = taps;
     fir->curr_pos = taps - 1;
     fir->coeffs = coeffs;
 #if defined(USE_MMX)  ||  defined(USE_SSE2)
-    fir->history = malloc(2*taps*sizeof(int16_t));
-    if (fir->history)
-        memset(fir->history, '\0', 2*taps*sizeof(int16_t));
+    if ((fir->history = malloc(2*taps*sizeof(int16_t))))
+        memset(fir->history, 0, 2*taps*sizeof(int16_t));
 #else
-    fir->history = malloc(taps*sizeof(int16_t));
-    if (fir->history)
-        memset(fir->history, '\0', taps*sizeof(int16_t));
+    if ((fir->history = (int16_t *) malloc(taps*sizeof(int16_t))))
+        memset(fir->history, 0, taps*sizeof(int16_t));
+#endif
+    return fir->history;
+}
+/*- End of function --------------------------------------------------------*/
+
+static inline void fir16_flush(fir16_state_t *fir)
+{
+#if defined(USE_MMX)  ||  defined(USE_SSE2)
+    memset(fir->history, 0, 2*fir->taps*sizeof(int16_t));
+#else
+    memset(fir->history, 0, fir->taps*sizeof(int16_t));
 #endif
 }
 /*- End of function --------------------------------------------------------*/
-    
+
 static inline void fir16_free(fir16_state_t *fir)
 {
     free(fir->history);
@@ -184,19 +197,26 @@ static inline int16_t fir16(fir16_state_t *fir, int16_t sample)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline void fir32_create(fir32_state_t *fir,
-                                const int32_t *coeffs,
-    	    	    	        int taps)
+static inline const int16_t *fir32_create(fir32_state_t *fir,
+                                          const int32_t *coeffs,
+    	    	    	                  int taps)
 {
     fir->taps = taps;
     fir->curr_pos = taps - 1;
     fir->coeffs = coeffs;
-    fir->history = malloc(taps*sizeof(int16_t));
+    fir->history = (int16_t *) malloc(taps*sizeof(int16_t));
     if (fir->history)
     	memset(fir->history, '\0', taps*sizeof(int16_t));
+    return fir->history;
 }
 /*- End of function --------------------------------------------------------*/
-    
+
+static inline void fir32_flush(fir32_state_t *fir)
+{
+    memset(fir->history, 0, fir->taps*sizeof(int16_t));
+}
+/*- End of function --------------------------------------------------------*/
+
 static inline void fir32_free(fir32_state_t *fir)
 {
     free(fir->history);
@@ -225,16 +245,17 @@ static inline int16_t fir32(fir32_state_t *fir, int16_t sample)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline void fir_float_create(fir_float_state_t *fir,
-                                    const float *coeffs,
-    	    	    	            int taps)
+static inline const float *fir_float_create(fir_float_state_t *fir,
+                                            const float *coeffs,
+    	    	    	                    int taps)
 {
     fir->taps = taps;
     fir->curr_pos = taps - 1;
     fir->coeffs = coeffs;
-    fir->history = malloc(taps*sizeof(float));
+    fir->history = (float *) malloc(taps*sizeof(float));
     if (fir->history)
         memset(fir->history, '\0', taps*sizeof(float));
+    return fir->history;
 }
 /*- End of function --------------------------------------------------------*/
     
@@ -263,9 +284,13 @@ static inline int16_t fir_float(fir_float_state_t *fir, int16_t sample)
     if (fir->curr_pos <= 0)
     	fir->curr_pos = fir->taps;
     fir->curr_pos--;
-    return  y;
+    return  (int16_t) y;
 }
 /*- End of function --------------------------------------------------------*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

@@ -23,8 +23,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate_tests.c,v 1.2 2004/03/12 16:27:25 steveu Exp $
+ * $Id: tone_generate_tests.c,v 1.3 2004/12/08 14:00:36 steveu Exp $
  */
+
+/*! \page tone_generation_tests_page Tone generation tests
+\section tone_generation_tests_page_sec_1 What does it do
+*/
 
 /* "We can generate exactly repetitive tones" demo */
 

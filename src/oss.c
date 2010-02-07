@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oss.c,v 1.2 2004/03/12 16:27:24 steveu Exp $
+ * $Id: oss.c,v 1.3 2004/10/16 07:29:58 steveu Exp $
  */
 
 #include <stdio.h>
@@ -196,7 +196,7 @@ int oss_set_out_level(int a)
 #endif
 
 #if defined(TESTBED)
-int main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     int i, p;
     short int buf[100000];
@@ -204,15 +204,15 @@ int main (int argc, char *argv[])
 
     if (oss_init(0) < 0)
     {
-	printf("Cannot open audio device - is it busy?\n");
-	return(-1);
+        printf("Cannot open audio device - is it busy?\n");
+        return(-1);
     }
 
     printf ("Go\n");
     for (i = 0;  i < 100000;  i++)
     {
-    	len = read (audio_fd, buf, 256);
-    	write (audio_fd, buf, len);
+    	len = read(audio_fd, buf, 256);
+    	write(audio_fd, buf, len);
     }
     printf ("Stop\n");
     oss_release ();

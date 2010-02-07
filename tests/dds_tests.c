@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds_tests.c,v 1.3 2004/03/12 16:27:25 steveu Exp $
+ * $Id: dds_tests.c,v 1.4 2004/10/16 07:29:59 steveu Exp $
  */
 
 #include <stdint.h>
@@ -143,10 +143,10 @@ int main(int argc, char *argv[])
         exit(2);
     }
 
-    phase_inc = complex_dds_phase_step(123.456789);
+    phase_inc = dds_phase_stepf(123.456789);
     for (i = 0;  i < 40000;  i++)
     {
-        camp = complex_dds(&phase, phase_inc);
+        camp = dds_complexf(&phase, phase_inc);
         buf[2*i] = camp.re*10000.0;
         buf[2*i + 1] = camp.im*10000.0;
     }

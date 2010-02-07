@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk_tests.c,v 1.3 2004/03/12 16:27:25 steveu Exp $
+ * $Id: fsk_tests.c,v 1.8 2005/01/12 13:39:26 steveu Exp $
  */
 
 #define	_ISOC9X_SOURCE	1
@@ -46,70 +46,51 @@
 
 #define NB_SAMPLES 160
 
-hdlc_rx_state_t rxhdlc;
-hdlc_tx_state_t txhdlc;
+int decode_test = FALSE;
 
-async_rx_state_t rxasync;
-async_tx_state_t txasync;
-
-int full_len;
-uint8_t old_buf[1000];
-uint8_t new_buf[1000];
-
-int good_hdlc_messages;
-
-int async_chars;
-int rx_async_chars;
-int rx_async_char_mask;
-
-static int test_get_bit(void *user_data)
+void reporter(void *user_data, int reason)
 {
-    return hdlc_tx_getbit(&txhdlc);
-}
-/*- End of function --------------------------------------------------------*/
+    bert_state_t *s;
+    bert_results_t bert_results;
 
-static void test_put_bit(void *user_data, int bit)
-{
-    hdlc_rx_bit(&rxhdlc, bit);
-}
-/*- End of function --------------------------------------------------------*/
-
-static int test_get_async_byte(void *user_data)
-{
-    int byte;
-    
-    byte = async_chars & 0xFF;
-    async_chars++;
-    //printf("Transmitted byte is 0x%X\n", byte);
-    return byte;
-}
-/*- End of function --------------------------------------------------------*/
-
-static void test_put_async_byte(void *user_data, int byte)
-{
-    if ((rx_async_chars & rx_async_char_mask) != byte)
-        printf("Received byte is 0x%X (expected 0x%X)\n", byte, rx_async_chars);
-    rx_async_chars++;
-}
-/*- End of function --------------------------------------------------------*/
-
-static void pkt_handler(void *user_data, uint8_t *pkt, int len)
-{
-    printf("Good message (%d bytes)\n", len);
-    good_hdlc_messages++;
-#if 0
+    s = (bert_state_t *) user_data;
+    switch (reason)
     {
-        int i;
-    
-        for (i = 0;  i < len;  i++)
-        {
-            printf("%x ", pkt[i]);
-            if ((i & 0xf) == 0xf)
-                printf("\n");
-        }
+    case BERT_REPORT_SYNCED:
+        printf("BERT report synced\n");
+        break;
+    case BERT_REPORT_UNSYNCED:
+        printf("BERT report unsync'ed\n");
+        break;
+    case BERT_REPORT_REGULAR:
+        bert_result(s, &bert_results);
+        printf("BERT report regular - %d bits, %d bad bits, %d resyncs\n", bert_results.total_bits, bert_results.bad_bits, bert_results.resyncs);
+        break;
+    case BERT_REPORT_GT_10_2:
+        printf("BERT report > 1 in 10^2\n");
+        break;
+    case BERT_REPORT_LT_10_2:
+        printf("BERT report < 1 in 10^2\n");
+        break;
+    case BERT_REPORT_LT_10_3:
+        printf("BERT report < 1 in 10^3\n");
+        break;
+    case BERT_REPORT_LT_10_4:
+        printf("BERT report < 1 in 10^4\n");
+        break;
+    case BERT_REPORT_LT_10_5:
+        printf("BERT report < 1 in 10^5\n");
+        break;
+    case BERT_REPORT_LT_10_6:
+        printf("BERT report < 1 in 10^6\n");
+        break;
+    case BERT_REPORT_LT_10_7:
+        printf("BERT report < 1 in 10^7\n");
+        break;
+    default:
+        printf("BERT report reason %d\n", reason);
+        break;
     }
-    printf("\n");
-#endif
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -117,17 +98,32 @@ int main(int argc, char *argv[])
 {
     fsk_tx_state_t tx;
     fsk_rx_state_t rx;
+    bert_state_t bert;
+    bert_results_t bert_results;
     int16_t amp[NB_SAMPLES];
+    AFfilehandle inhandle;
     AFfilehandle outhandle;
     AFfilesetup filesetup;
+    int inframes;    
     int outframes;    
     int i;
     int j;
-    int hdlc_len;
     int len;
-    int hdlc_messages;
+    int test_bps;
+    int noise_level;
+    int bits_per_test;
     awgn_state_t noise_source;
 
+    i = 1;
+    decode_test = FALSE;
+    if (argc > i)
+    {
+        if (strcmp(argv[i], "-d") == 0)
+        {
+            decode_test = TRUE;
+            i++;
+        }
+    }
     filesetup = afNewFileSetup();
     if (filesetup == AF_NULL_FILESETUP)
     {
@@ -139,6 +135,15 @@ int main(int argc, char *argv[])
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
 
+    if (decode_test)
+    {
+        inhandle = afOpenFile("fsk_samp.wav", "r", NULL);
+        if (inhandle == AF_NULL_FILEHANDLE)
+        {
+            fprintf(stderr, "    Cannot open wave file '%s'\n", "fsk_samp.wav");
+            exit(2);
+        }
+    }
     outhandle = afOpenFile("fsk.wav", "w", filesetup);
     if (outhandle == AF_NULL_FILEHANDLE)
     {
@@ -146,68 +151,36 @@ int main(int argc, char *argv[])
         exit(2);
     }
 
-    awgn_init(&noise_source, 1234567, -15);
+    printf("Test with BERT\n");
+    fsk_tx_init(&tx, &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) bert_get_bit, &bert);
+    fsk_rx_init(&rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) bert_put_bit, &bert);
+    test_bps = preset_fsk_specs[FSK_V21CH2].baud_rate;
 
-    printf("Test with HDLC\n");
-    fsk_tx_init(&tx, &preset_fsk_specs[FSK_V21CH2], test_get_bit, NULL);
-    fsk_rx_init(&rx, &preset_fsk_specs[FSK_V21CH2], TRUE, test_put_bit, NULL);
+    bits_per_test = 50000000;
+    noise_level = -16; //-17;
+    awgn_init(&noise_source, 1234567, noise_level);
 
-    hdlc_tx_init(&txhdlc, NULL, NULL);
-    hdlc_rx_init(&rxhdlc, pkt_handler, NULL);
+    bert_init(&bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
+    bert_set_report(&bert, 100000, reporter, &bert);
 
-    hdlc_tx_preamble(&txhdlc, 40);
-    hdlc_len = 2;
-
-    hdlc_messages = 0;
-    good_hdlc_messages = 0;
     for (;;)
     {
-        len = fsk_tx(&tx, amp, NB_SAMPLES);
-        outframes = afWriteFrames(outhandle,
-                                  AF_DEFAULT_TRACK,
-                                  amp,
-                                  NB_SAMPLES);
-        if (outframes != len)
+        if (decode_test)
         {
-            fprintf(stderr, "    Error writing wave file\n");
-            exit(2);
-        }
-        for (i = 0;  i < len;  i++)
-            amp[i] = alaw_to_linear(linear_to_alaw(saturate(amp[i] + awgn(&noise_source))));
-//printf("%2x %2x %2x %2x\n", amp[0], amp[1], amp[2], amp[3]);
-        fsk_rx(&rx, amp, len);
-
-        if (txhdlc.len == 0)
-        {
-            if (hdlc_messages > 100)
+            len = afReadFrames(inhandle,
+                               AF_DEFAULT_TRACK,
+                               amp,
+                               NB_SAMPLES);
+            if (len < NB_SAMPLES)
                 break;
-            memcpy(old_buf, new_buf, hdlc_len);
-            full_len = hdlc_len;
-            hdlc_len = (rand() & 0x3F) + 100;
-            for (j = 0;  j < hdlc_len;  j++)
-                new_buf[j] = rand();
-//printf("Suck - %d - %x %x %x %x\n", len, new_buf[0], new_buf[1], new_buf[2], new_buf[3]);
-            hdlc_tx_packet(&txhdlc, new_buf, hdlc_len);
-            hdlc_messages++;
         }
-    }
-    printf("%d HDLC messages sent. %d good HDLC messages received\n",
-           hdlc_messages,
-           good_hdlc_messages);
-
-    printf("Test with async 8N1\n");
-    fsk_tx_init(&tx, &preset_fsk_specs[FSK_V21CH2], async_tx_bit, &txasync);
-    fsk_rx_init(&rx, &preset_fsk_specs[FSK_V21CH2], FALSE, async_rx_bit, &rxasync);
-
-    async_tx_init(&txasync, 8, ASYNC_PARITY_NONE, 1, test_get_async_byte, NULL);
-    async_rx_init(&rxasync, 8, ASYNC_PARITY_NONE, 1, test_put_async_byte, NULL);
-
-    rx_async_chars = 0;
-    rx_async_char_mask = 0xFF;
-    async_chars = 0;
-    for (;;)
-    {
-        len = fsk_tx(&tx, amp, NB_SAMPLES);
+        else
+        {
+            len = fsk_tx(&tx, amp, NB_SAMPLES);
+        }
+        for (i = 0;  i < len;  i++)
+            amp[i] = alaw_to_linear(linear_to_alaw(saturate(amp[i] + awgn(&noise_source))));
+#if 1
         outframes = afWriteFrames(outhandle,
                                   AF_DEFAULT_TRACK,
                                   amp,
@@ -217,85 +190,27 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Error writing wave file\n");
             exit(2);
         }
-        for (i = 0;  i < len;  i++)
-            amp[i] = alaw_to_linear(linear_to_alaw(saturate(amp[i] + awgn(&noise_source))));
-        
-//printf("%2x %2x %2x %2x\n", amp[0], amp[1], amp[2], amp[3]);
+#endif
         fsk_rx(&rx, amp, len);
-
-        if (async_chars > 1000)
-            break;
-    }
-
-    printf("Chars=%d, PE=%d, FE=%d\n", rx_async_chars, rxasync.parity_errors, rxasync.framing_errors);
-    
-    printf("Test with async 7E1\n");
-    fsk_tx_init(&tx, &preset_fsk_specs[FSK_V21CH2], async_tx_bit, &txasync);
-    fsk_rx_init(&rx, &preset_fsk_specs[FSK_V21CH2], FALSE, async_rx_bit, &rxasync);
-
-    async_tx_init(&txasync, 7, ASYNC_PARITY_EVEN, 1, test_get_async_byte, NULL);
-    async_rx_init(&rxasync, 7, ASYNC_PARITY_EVEN, 1, test_put_async_byte, NULL);
-
-    rx_async_chars = 0;
-    rx_async_char_mask = 0x7F;
-    async_chars = 0;
-    for (;;)
-    {
-        len = fsk_tx(&tx, amp, NB_SAMPLES);
-        outframes = afWriteFrames(outhandle,
-                                  AF_DEFAULT_TRACK,
-                                  amp,
-                                  len);
-        if (outframes != len)
+        if (len < NB_SAMPLES)
         {
-            fprintf(stderr, "    Error writing wave file\n");
-            exit(2);
+            memset(amp, 0, sizeof(amp));
+            for (i = 0;  i < 200;  i++)
+            {
+                outframes = afWriteFrames(outhandle,
+                                          AF_DEFAULT_TRACK,
+                                          amp,
+                                          NB_SAMPLES);
+            }
+            bert_result(&bert, &bert_results);
+            fprintf(stderr, "%ddB AWGN, %d bits, %d bad bits, %d resyncs\n", noise_level, bert_results.total_bits, bert_results.bad_bits, bert_results.resyncs);
+            fsk_tx_init(&tx, &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) bert_get_bit, &bert);
+            fsk_rx_init(&rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) bert_put_bit, &bert);
+            awgn_init(&noise_source, 1234567, ++noise_level);
+            bert_init(&bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
+            bert_set_report(&bert, 100000, reporter, &bert);
         }
-        for (i = 0;  i < len;  i++)
-            amp[i] = alaw_to_linear(linear_to_alaw(saturate(amp[i] + awgn(&noise_source))));
-        
-//printf("%2x %2x %2x %2x\n", amp[0], amp[1], amp[2], amp[3]);
-        fsk_rx(&rx, amp, len);
-
-        if (async_chars > 1000)
-            break;
     }
-
-    printf("Chars=%d, PE=%d, FE=%d\n", rx_async_chars, rxasync.parity_errors, rxasync.framing_errors);
-
-    printf("Test with async 8O1\n");
-    fsk_tx_init(&tx, &preset_fsk_specs[FSK_V21CH2], async_tx_bit, &txasync);
-    fsk_rx_init(&rx, &preset_fsk_specs[FSK_V21CH2], FALSE, async_rx_bit, &rxasync);
-
-    async_tx_init(&txasync, 8, ASYNC_PARITY_ODD, 1, test_get_async_byte, NULL);
-    async_rx_init(&rxasync, 8, ASYNC_PARITY_ODD, 1, test_put_async_byte, NULL);
-
-    rx_async_chars = 0;
-    rx_async_char_mask = 0xFF;
-    async_chars = 0;
-    for (;;)
-    {
-        len = fsk_tx(&tx, amp, NB_SAMPLES);
-        outframes = afWriteFrames(outhandle,
-                                  AF_DEFAULT_TRACK,
-                                  amp,
-                                  len);
-        if (outframes != len)
-        {
-            fprintf(stderr, "    Error writing wave file\n");
-            exit(2);
-        }
-        for (i = 0;  i < len;  i++)
-            amp[i] = alaw_to_linear(linear_to_alaw(saturate(amp[i] + awgn(&noise_source))));
-        
-//printf("%2x %2x %2x %2x\n", amp[0], amp[1], amp[2], amp[3]);
-        fsk_rx(&rx, amp, len);
-
-        if (async_chars > 1000)
-            break;
-    }
-
-    printf("Chars=%d, PE=%d, FE=%d\n", rx_async_chars, rxasync.parity_errors, rxasync.framing_errors);
 
     if (afCloseFile(outhandle) != 0)
     {

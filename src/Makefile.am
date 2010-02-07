@@ -14,7 +14,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.7 2004/03/12 16:38:47 steveu Exp $
+## $Id: Makefile.am,v 1.21 2004/12/29 15:04:59 steveu Exp $
 
 MAINTAINERCLEANFILES = Makefile.in
 
@@ -24,6 +24,7 @@ lib_LTLIBRARIES = libspandsp.la
 
 libspandsp_la_SOURCES = adsi.c \
                         awgn.c \
+                        bert.c \
                         complex_dds.c \
                         complex_filters.c \
                         dds.c \
@@ -31,29 +32,43 @@ libspandsp_la_SOURCES = adsi.c \
                         echo.c \
                         fsk.c \
                         hdlc.c \
+                        ima_adpcm.c \
+                        modem_echo.c \
                         oki_adpcm.c \
                         oss.c \
+                        plc.c \
                         power_meter.c \
-                        super_tone_detect.c \
-                        super_tone_generate.c \
+                        queue.c \
+                        schedule.c \
+                        sig_tone.c \
+                        super_tone_rx.c \
+                        super_tone_tx.c \
                         t4.c \
                         t30.c \
+                        t31.c \
                         t35.c \
                         testcpuid.c \
+                        time_scale.c \
                         tone_detect.c \
                         tone_generate.c \
+                        v17rx.c \
+                        v17tx.c \
+                        v22bis_rx.c \
+                        v22bis_tx.c \
                         v27ter_rx.c \
                         v27ter_tx.c \
                         v29rx.c \
-                        v29tx.c
+                        v29tx.c \
+                        v42.c \
+                        v8.c
 
-nobase_include_HEADERS =spandsp/adsi.h \
+nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/alaw_ulaw.h \
                         spandsp/arctan2.h \
                         spandsp/awgn.h \
+                        spandsp/bert.h \
                         spandsp/biquad.h \
                         spandsp/complex.h \
-                        spandsp/complex_dds.h \
                         spandsp/complex_filters.h \
                         spandsp/dc_restore.h \
                         spandsp/dds.h \
@@ -63,23 +78,40 @@ nobase_include_HEADERS =spandsp/adsi.h \
                         spandsp/fsk.h \
                         spandsp/g168models.h \
                         spandsp/hdlc.h \
+                        spandsp/ima_adpcm.h \
                         spandsp/mmx.h \
+                        spandsp/modem_echo.h \
                         spandsp/oss.h \
                         spandsp/oki_adpcm.h \
+                        spandsp/plc.h \
                         spandsp/power_meter.h \
-                        spandsp/super_tone_detect.h \
-                        spandsp/super_tone_generate.h \
+                        spandsp/queue.h \
+                        spandsp/schedule.h \
+                        spandsp/sig_tone.h \
+                        spandsp/super_tone_rx.h \
+                        spandsp/super_tone_tx.h \
                         spandsp/t4.h \
                         spandsp/t30.h \
                         spandsp/t30_fcf.h \
+                        spandsp/t31.h \
                         spandsp/t35.h \
                         spandsp/telephony.h \
+                        spandsp/time_scale.h \
                         spandsp/timing.h \
                         spandsp/tone_detect.h \
                         spandsp/tone_generate.h \
+                        spandsp/v17rx.h \
+                        spandsp/v17tx.h \
+                        spandsp/v22bis.h \
                         spandsp/v27ter_rx.h \
                         spandsp/v27ter_tx.h \
                         spandsp/v29rx.h \
                         spandsp/v29tx.h \
+                        spandsp/v42.h \
+                        spandsp/v8.h \
                         spandsp/vector.h \
                         spandsp.h
+
+noinst_HEADERS =        t4states.h \
+			faxfont.h
+

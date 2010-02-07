@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_tests.c,v 1.4 2004/03/19 19:12:46 steveu Exp $
+ * $Id: dtmf_tests.c,v 1.5 2004/07/16 20:55:29 steveu Exp $
  */
 
 /*
@@ -117,7 +117,7 @@ they wish to give it away for free.
 #define DTMF_PAUSE                  400
 #define DTMF_CYCLE                  (DTMF_DURATION + DTMF_PAUSE)
 
-#define BELLCORE_DIR	"/home/steveu/bellcore/"
+#define BELLCORE_DIR    "/home/steveu/bellcore/"
 
 char *bellcore_files[] =
 {
@@ -158,19 +158,19 @@ static void my_dtmf_gen_init(float low_fudge,
 
     for (row = 0;  row < 4;  row++)
     {
-    	for (col = 0;  col < 4;  col++)
-	{
-    	    make_tone_gen_descriptor (&my_dtmf_digit_tones[row*4 + col],
-	    	    	    	      dtmf_row[row]*(1.0 + low_fudge),
-				      low_level,
-				      dtmf_col[col]*(1.0 + high_fudge),
-				      high_level,
-				      duration,
-				      gap,
-				      0,
-				      0,
-				      FALSE);
-	}
+        for (col = 0;  col < 4;  col++)
+        {
+            make_tone_gen_descriptor (&my_dtmf_digit_tones[row*4 + col],
+                                      dtmf_row[row]*(1.0 + low_fudge),
+                                      low_level,
+                                      dtmf_col[col]*(1.0 + high_fudge),
+                                      high_level,
+                                      duration,
+                                      gap,
+                                      0,
+                                      0,
+                                      FALSE);
+        }
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -330,7 +330,7 @@ int main(int argc, char *argv[])
             RRB% = (N+ + N-)/10
        Receiver Center Frequency Offset (RCFO) is calculated as follows:
             RCFO% = X + (N+ - N-)/20
-    	
+
        Note that this test doesn't test what it says it is testing at all,
        and the results are quite inaccurate, if not a downright lie! However,
        it follows the Mitel procedure, so how can it be bad? :)
@@ -360,11 +360,11 @@ int main(int argc, char *argv[])
         rrb = (float) (nplus + nminus)/10.0;
         rcfo = (float) (nplus - nminus)/10.0;
         printf ("    %c (low)  rrb = %5.2f%%, rcfo = %5.2f%%, max -ve = %5.2f, max +ve = %5.2f\n",
-		digit[0],
-		rrb,
-		rcfo,
-		(float) nminus/10.0,
-		(float) nplus/10.0);
+                digit[0],
+                rrb,
+                rcfo,
+                (float) nminus/10.0,
+                (float) nplus/10.0);
         if (rrb < 3.0 + rcfo  ||  rrb >= 15.0 + rcfo)
         {
             printf ("    Failed\n");
@@ -390,11 +390,11 @@ int main(int argc, char *argv[])
         rrb = (float) (nplus + nminus)/10.0;
         rcfo = (float) (nplus - nminus)/10.0;
         printf ("    %c (high) rrb = %5.2f%%, rcfo = %5.2f%%, max -ve = %5.2f, max +ve = %5.2f\n",
-		digit[0],
-		rrb,
-		rcfo,
-		(float) nminus/10.0,
-		(float) nplus/10.0);
+                digit[0],
+                rrb,
+                rcfo,
+                (float) nminus/10.0,
+                (float) nplus/10.0);
         if (rrb < 3.0 + rcfo  ||  rrb >= 15.0 + rcfo)
         {
             printf ("    Failed\n");
@@ -563,49 +563,49 @@ int main(int argc, char *argv[])
     for (j = 0;  bellcore_files[j][0];  j++)
     {
         inhandle = afOpenFile(bellcore_files[j], "r", 0);
-    	if (inhandle == AF_NULL_FILEHANDLE)
-    	{
-    	    printf("    Cannot open speech file '%s'\n", bellcore_files[j]);
-	    exit(2);
-    	}
+        if (inhandle == AF_NULL_FILEHANDLE)
+        {
+            printf("    Cannot open speech file '%s'\n", bellcore_files[j]);
+            exit(2);
+        }
         x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1);
-    	if (x != 2.0)
-	{
-    	    printf("    Unexpected frame size in speech file '%s'\n", bellcore_files[j]);
-	    exit(2);
-    	}
-    	hits = 0;
-        while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, 8000)))
-    	{
+        if (x != 2.0)
+        {
+            printf("    Unexpected frame size in speech file '%s'\n", bellcore_files[j]);
+            exit(2);
+        }
+        hits = 0;
+        while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, SAMPLE_RATE)))
+        {
             dtmf_rx(&dtmf_state, amp, frames);
             len = dtmf_get(&dtmf_state, buf, 128);
             if (len > 0)
-	    {
-		for (i = 0;  i < len;  i++)
-		    hit_types[(int) buf[i]]++;
-	    	hits += len;
-	    }
-    	}
+            {
+                for (i = 0;  i < len;  i++)
+                    hit_types[(int) buf[i]]++;
+                hits += len;
+            }
+        }
         if (afCloseFile(inhandle) != 0)
-    	{
-    	    printf("    Cannot close speech file '%s'\n", bellcore_files[j]);
-	    exit(2);
-    	}
-	printf("    File %d gave %d false hits.\n", j + 1, hits);
+        {
+            printf("    Cannot close speech file '%s'\n", bellcore_files[j]);
+            exit(2);
+        }
+        printf("    File %d gave %d false hits.\n", j + 1, hits);
     }
     for (i = 0, j = 0;  i < 256;  i++)
     {
-    	if (hit_types[i])
-	{
-	    printf("    Digit %c had %d false hits\n", i, hit_types[i]);
-	    j += hit_types[i];
-	}
+        if (hit_types[i])
+        {
+            printf("    Digit %c had %d false hits\n", i, hit_types[i]);
+            j += hit_types[i];
+        }
     }
     printf ("    %d hits in total\n", j);
     if (j > 470)
     {
         printf("    Failed\n");
-     	exit (2);
+        exit (2);
     }
     printf ("    Passed\n");
 
@@ -628,7 +628,7 @@ int main(int argc, char *argv[])
     if (!callback_ok)
     {
         printf("    Failed\n");
-     	exit (2);
+        exit (2);
     }
     printf ("    Passed\n");
 

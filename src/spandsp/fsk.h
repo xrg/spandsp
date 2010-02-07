@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.h,v 1.2 2004/03/19 19:12:46 steveu Exp $
+ * $Id: fsk.h,v 1.7 2004/09/19 08:47:13 steveu Exp $
  */
 
 /*! \file */
@@ -74,6 +74,7 @@ demodulating sample by sample is not great.
 #define PUTBIT_CARRIER_UP           -2
 #define PUTBIT_TRAINING_SUCCEEDED   -3
 #define PUTBIT_TRAINING_FAILED      -4
+#define PUTBIT_FRAMING_OK           -5
 
 /* Message I/O functions for data pumps */
 typedef void (*put_msg_func_t)(void *user_data, const uint8_t *msg, int len);
@@ -129,6 +130,7 @@ typedef struct
     uint32_t phase_acc;
     int baud_frac;
     int baud_inc;
+    int shutdown;
 } fsk_tx_state_t;
 
 /* The longest window will probably be 106 for 75 baud */
@@ -208,6 +210,8 @@ typedef struct
     int parity;
     /*! \brief The number of stop bits per character. */
     int stop_bits;
+    /*! \brief TRUE if V.14 rate adaption processing should be performed. */
+    int use_v14;
     /*! \brief A pointer to the callback routine used to handle received characters. */
     put_byte_func_t put_byte;
     /*! \brief An opaque pointer passed when calling put_byte. */
@@ -223,6 +227,10 @@ typedef struct
     int framing_errors;
 } async_rx_state_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*! Initialise an FSK modem transmit context.
     \brief Initialise an FSK modem transmit context.
     \param s The modem context.
@@ -233,6 +241,13 @@ void fsk_tx_init(fsk_tx_state_t *s,
                  fsk_spec_t *spec,
                  get_bit_func_t get_bit,
                  void *user_data);
+
+/*! Adjust an FSK modem transmit context's power output.
+    \brief Adjust an FSK modem transmit context's power output.
+    \param s The modem context.
+    \param power The power level, in dBm0 */
+void fsk_tx_power(fsk_tx_state_t *s, float power);
+
 /*! Generate a block of FSK modem audio samples.
     \brief Generate a block of FSK modem audio samples.
     \param s The modem context.
@@ -241,6 +256,7 @@ void fsk_tx_init(fsk_tx_state_t *s,
     \return The number of samples actually generated.
 */
 int fsk_tx(fsk_tx_state_t *s, int16_t *amp, int len);
+
 /*! Initialise an FSK modem receive context.
     \brief Initialise an FSK modem receive context.
     \param s The modem context.
@@ -253,13 +269,15 @@ void fsk_rx_init(fsk_rx_state_t *s,
                  int sync_mode,
                  put_bit_func_t put_bit,
                  void *user_data);
+
 /*! Process a block of received FSK modem audio samples.
     \brief Process a block of received FSK modem audio samples.
     \param s The modem context.
     \param amp The audio sample buffer.
     \param len The number of samples in the buffer.
+    \return The number of samples unprocessed.
 */
-void fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len);
+int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len);
 
 /*! Initialise an asynchronous data transmit context.
     \brief Initialise an asynchronous data transmit context.
@@ -267,14 +285,17 @@ void fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len);
     \param data_bits The number of data bit.
     \param parity_bits The type of parity.
     \param stop_bits The number of stop bits.
+    \param use_v14 TRUE if V.14 rate adaption processing should be used.
     \param get_byte The callback routine used to get the data to be transmitted.
     \param user_data An opaque pointer. */
 void async_tx_init(async_tx_state_t *s,
                    int data_bits,
                    int parity_bits,
                    int stop_bits,
+                   int use_v14,
                    get_byte_func_t get_byte,
                    void *user_data);
+
 int async_tx_bit(void *user_data);
 /*! Initialise an asynchronous data receiver context.
     \brief Initialise an asynchronous data receiver context.
@@ -282,15 +303,22 @@ int async_tx_bit(void *user_data);
     \param data_bits The number of data bit.
     \param parity_bits The type of parity.
     \param stop_bits The number of stop bits.
+    \param use_v14 TRUE if V.14 rate adaption processing should be used.
     \param put_byte The callback routine used to put the received data.
     \param user_data An opaque pointer. */
 void async_rx_init(async_rx_state_t *s,
                    int data_bits,
                    int parity_bits,
                    int stop_bits,
+                   int use_v14,
                    put_byte_func_t put_byte,
                    void *user_data);
+
 void async_rx_bit(void *user_data, int bit);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

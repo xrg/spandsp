@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn.h,v 1.2 2004/03/19 19:12:46 steveu Exp $
+ * $Id: awgn.h,v 1.3 2004/03/30 14:29:40 steveu Exp $
  */
 
 /*! \file */
@@ -82,8 +82,16 @@ typedef struct
     int iset;
 } awgn_state_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void awgn_init (awgn_state_t *s, int idum, int level);
 int16_t awgn (awgn_state_t *s);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

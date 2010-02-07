@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_detect_tests.c,v 1.5 2004/03/12 16:27:25 steveu Exp $
+ * $Id: super_tone_rx_tests.c,v 1.2 2004/10/16 15:20:49 steveu Exp $
  */
 
 #define	_ISOC9X_SOURCE	1
@@ -53,6 +53,7 @@
 
 #include "spandsp.h"
 
+#define IN_FILE_NAME    "super_tone.wav"
 #define BELLCORE_DIR	"/home/steveu/bellcore/"
 //#define BELLCORE_DIR	"c:/zaptel/bellcore/"
 
@@ -104,6 +105,7 @@ static int parse_tone(super_tone_rx_descriptor_t *desc, int tone_id, super_tone_
         if (xmlStrcmp(cur->name, (const xmlChar *) "step") == 0)
         {
             printf("Step - ");
+            /* Set some defaults */
             f1 = 0.0;
             f2 = 0.0;
             f_tol = 1.0;
@@ -170,10 +172,10 @@ static int parse_tone(super_tone_rx_descriptor_t *desc, int tone_id, super_tone_
                 super_tone_rx_add_element(desc, tone_id, f1 + 0.5, f2 + 0.5, min_duration, max_duration);
             }
             treep = super_tone_tx_make_step(NULL,
-                                            f1 + 0.5,
-                                            l1 + 0.5,
-                                            f2 + 0.5,
-                                            l2 + 0.5,
+                                            f1,
+                                            l1,
+                                            f2,
+                                            l2,
                                             length*1000.0 + 0.5,
                                             cycles);
             *tree = treep;
@@ -202,7 +204,6 @@ static void parse_tone_set(super_tone_rx_descriptor_t *desc, xmlDocPtr doc, xmlN
             tone_id = super_tone_rx_add_tone(desc);
             dialtone_tree = NULL;
             parse_tone(desc, tone_id, &dialtone_tree, doc, ns, cur);
-            //super_tone_rx_add_element(desc, tone_id, 350, 440, 300, 0);
             tone_names[tone_id] = "Dial tone";
         }
         else if (strcmp(cur->name, "ringback-tone") == 0)
@@ -211,10 +212,6 @@ static void parse_tone_set(super_tone_rx_descriptor_t *desc, xmlDocPtr doc, xmlN
             tone_id = super_tone_rx_add_tone(desc);
             ringback_tree = NULL;
             parse_tone(desc, tone_id, &ringback_tree, doc, ns, cur);
-            //super_tone_rx_add_element(desc, tone_id, 440, 480, 300, 500);
-            //super_tone_rx_add_element(desc, tone_id, 0, 0, 100, 300);
-            //super_tone_rx_add_element(desc, tone_id, 440, 480, 300, 500);
-            //super_tone_rx_add_element(desc, tone_id, 0, 0, 800, 3200);
             tone_names[tone_id] = "Ringback tone";
         }
         else if (strcmp(cur->name, "busy-tone") == 0)
@@ -223,10 +220,6 @@ static void parse_tone_set(super_tone_rx_descriptor_t *desc, xmlDocPtr doc, xmlN
             tone_id = super_tone_rx_add_tone(desc);
             busytone_tree = NULL;
             parse_tone(desc, tone_id, &busytone_tree, doc, ns, cur);
-            //super_tone_rx_add_element(desc, tone_id, 480, 620, 400, 600);
-            //super_tone_rx_add_element(desc, tone_id, 0, 0, 400, 600);
-            //super_tone_rx_add_element(desc, tone_id, 480, 620, 400, 600);
-            //super_tone_rx_add_element(desc, tone_id, 0, 0, 400, 600);
             tone_names[tone_id] = "Busy tone";
         }
         else if (strcmp(cur->name, "number-unobtainable-tone") == 0)
@@ -235,7 +228,6 @@ static void parse_tone_set(super_tone_rx_descriptor_t *desc, xmlDocPtr doc, xmlN
             tone_id = super_tone_rx_add_tone(desc);
             nutone_tree = NULL;
             parse_tone(desc, tone_id, &nutone_tree, doc, ns, cur);
-            //super_tone_rx_add_element(desc, tone_id, 480, 620, 700, 0);
             tone_names[tone_id] = "NU tone";
         }
         else if (strcmp(cur->name, "congestion-tone") == 0)
@@ -244,10 +236,6 @@ static void parse_tone_set(super_tone_rx_descriptor_t *desc, xmlDocPtr doc, xmlN
             tone_id = super_tone_rx_add_tone(desc);
             congestiontone_tree = NULL;
             parse_tone(desc, tone_id, &congestiontone_tree, doc, ns, cur);
-            //super_tone_rx_add_element(desc, tone_id, 480, 620, 150, 350);
-            //super_tone_rx_add_element(desc, tone_id, 0, 0, 150, 350);
-            //super_tone_rx_add_element(desc, tone_id, 480, 620, 150, 350);
-            //super_tone_rx_add_element(desc, tone_id, 0, 0, 150, 350);
             tone_names[tone_id] = "Congestion tone";
         }
         else if (strcmp(cur->name, "waiting-tone") == 0)
@@ -385,18 +373,18 @@ int main(int argc, char *argv[])
     	fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
     }
-    if ((inhandle = afOpenFile("audio.wav", "r", 0)) == AF_NULL_FILEHANDLE)
+    if ((inhandle = afOpenFile(IN_FILE_NAME, "r", 0)) == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Cannot open audio file '%s'\n", "audio.wav");
+        fprintf(stderr, "    Cannot open audio file '%s'\n", IN_FILE_NAME);
         exit(2);
     }
     if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
     {
-        printf("    Unexpected frame size in speech file '%s'\n", "audio.wav");
+        printf("    Unexpected frame size in speech file '%s'\n", IN_FILE_NAME);
         exit(2);
     }
     super_tone_rx_make_descriptor(&desc);
-    get_tone_set(&desc, "../global-tones.xml", argv[1]);
+    get_tone_set(&desc, "../spandsp/global-tones.xml", (argc > 1)  ?  argv[1]  :  "hk");
     super_tone_rx_fill_descriptor(&desc);
     if ((super = super_tone_rx_init(NULL, &desc, wakeup, "test")) == NULL)
     {
@@ -405,7 +393,7 @@ int main(int argc, char *argv[])
     }
     //super_tone_rx_segment_callback(super, tone_segment);
     awgn_init(&noise_source, 1234567, -30);
-    while ((frames = afReadFrames (inhandle, AF_DEFAULT_TRACK, amp, 8000)))
+    while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, 8000)))
     {
         /* Add some noise to the signal for a more meaningful test. */
         for (sample = 0;  sample < frames;  sample++)
@@ -418,7 +406,7 @@ int main(int argc, char *argv[])
     }
     if (afCloseFile(inhandle) != 0)
     {
-        fprintf(stderr, "    Cannot close audio file '%s'\n", "audio.wav");
+        fprintf(stderr, "    Cannot close audio file '%s'\n", IN_FILE_NAME);
         exit(2);
     }
     for (j = 0;  bellcore_files[j][0];  j++)

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.h,v 1.4 2004/03/18 13:24:46 steveu Exp $
+ * $Id: adsi.h,v 1.7 2004/10/19 14:53:41 steveu Exp $
  */
 
 /*! \file */
@@ -36,6 +36,7 @@
 #define ADSI_STANDARD_ACLIP     3
 #define ADSI_STANDARD_JCLIP     4
 #define ADSI_STANDARD_CLIP_DTMF 5
+#define ADSI_STANDARD_TDD       6
 
 /* In some of the messages code characters are used, as follows:
         'C' for public callbox
@@ -67,7 +68,7 @@
 #define MCLASS_ABSENCE2         0x08    /* Caller's name absent: 'O' or 'P' */
 
 /* CLASS MDMF message waiting message IDs */
-#define MCLASS_VISUAL_INDICATOR 0x0B    /* Message waiting */
+#define MCLASS_VISUAL_INDICATOR 0x0B    /* Message waiting/not waiting */
 
 /* Definitions for CLIP (Calling Line Identity Presentation) */
 #define CLIP_MDMF_CALLERID      0x80    /* Multiple data message caller ID */
@@ -133,7 +134,8 @@ typedef struct
     tone_gen_state_t alert_tone_gen;
     fsk_tx_state_t fsktx;
     dtmf_tx_state_t dtmftx;
-
+    async_tx_state_t asynctx;
+    
     int fsk_on;
     
     int byteno;
@@ -142,6 +144,7 @@ typedef struct
     uint8_t msg[256];
     int msg_len;
     int ones_len;
+    int baudot_shift;
 } adsi_tx_state_t;
 
 /*!
@@ -156,15 +159,21 @@ typedef struct
 
     fsk_rx_state_t fskrx;
     dtmf_rx_state_t dtmfrx;
+    async_rx_state_t asyncrx;
     
     int consecutive_ones;
     int bitpos;
     int in_progress;
     uint8_t msg[256];
     int msg_len;
+    int baudot_shift;
     
     int framing_errors;
 } adsi_rx_state_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*! \brief Initialise an ADSI receive context.
     \param s The ADSI receive context.
@@ -214,6 +223,10 @@ int adsi_next_field(adsi_rx_state_t *s, const uint8_t *msg, int msg_len, int pos
     \param field_len The length of the new field.
 */
 int adsi_add_field(adsi_tx_state_t *s, uint8_t *msg, int len, uint8_t field_type, uint8_t const *field_body, int field_len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

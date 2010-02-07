@@ -1,4 +1,38 @@
+/*
+ * SpanDSP - a series of DSP components for telephony
+ *
+ * testcpuid.c - Check the CPU type, to identify special features, like SSE.
+ *
+ * Written by Steve Underwood <steveu@coppice.org>
+ * Stitched together from bits of testing code found here and there
+ *
+ * Copyright (C) 2004 Steve Underwood
+ *
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id: testcpuid.c,v 1.4 2004/11/30 00:25:10 steveu Exp $
+ */
+
+/*! \file */
+
 #include <stdint.h>
+
+/* Make this file just disappear if we are not on an x86 machine */
+#if defined(__i386__) //  ||  defined(__x86_64__)
 
 #define X86_EFLAGS_CF   0x00000001 /* Carry Flag */
 #define X86_EFLAGS_PF   0x00000004 /* Parity Flag */
@@ -47,7 +81,7 @@ static int have_cpuid_p(void)
     return flag_is_changeable_p(X86_EFLAGS_ID);
 }
 
-int has_MMX (void)
+int has_MMX(void)
 {
     int result;
 
@@ -55,6 +89,7 @@ int has_MMX (void)
         return  0;
     /*endif*/
     __asm__ __volatile__ (
+        " push  %%ebx;\n"
 	" mov	$1,%%eax;\n"
 	" cpuid;\n"
 	" xor   %%eax,%%eax;\n"
@@ -62,13 +97,14 @@ int has_MMX (void)
 	" jz	1f;\n"	            /* no MMX support */
 	" inc   %%eax;\n"	    /* MMX support */
         "1:\n"
+        " pop  %%ebx;\n"
 	: "=a" (result)
         : 
-        : "ebx", "ecx", "edx");
+        : "ecx", "edx");
     return  result;
 }
         
-int has_SIMD (void)
+int has_SIMD(void)
 {
     int result;
 
@@ -76,6 +112,7 @@ int has_SIMD (void)
         return  0;
     /*endif*/
     __asm__ __volatile__ (
+        " push  %%ebx;\n"
 	" mov	$1,%%eax;\n"
 	" cpuid;\n"
 	" xor   %%eax,%%eax;\n"
@@ -83,13 +120,14 @@ int has_SIMD (void)
 	" jz	1f;\n"		        /* no SIMD support */
 	" inc	%%eax;\n"		/* SIMD support */
         "1:\n"
+        " pop  %%ebx;\n"
 	: "=a" (result)
         : 
-        : "ebx", "ecx", "edx");
+        : "ecx", "edx");
     return  result;
 }
 
-int has_SIMD2 (void)
+int has_SIMD2(void)
 {
     int result;
 
@@ -97,6 +135,7 @@ int has_SIMD2 (void)
         return  0;
     /*endif*/
     __asm__ __volatile__ (
+        " push  %%ebx;\n"
 	" mov	$1,%%eax;\n"
 	" cpuid;\n"
 	" xor   %%eax,%%eax;\n"
@@ -104,13 +143,14 @@ int has_SIMD2 (void)
 	" jz	1f;\n"		        /* no SIMD2 support */
 	" inc	%%eax;\n"		/* SIMD2 support */
         "1:\n"
+        " pop  %%ebx;\n"
 	: "=a" (result)
         : 
-        : "ebx", "ecx", "edx");
+        : "ecx", "edx");
     return  result;
 }
         
-int has_3DNow (void)
+int has_3DNow(void)
 {
     int result;
 
@@ -118,6 +158,7 @@ int has_3DNow (void)
         return  0;
     /*endif*/
     __asm__ __volatile__ (
+        " push  %%ebx;\n"
 	" mov	$0x80000000,%%eax;\n"
 	" cpuid;\n"
         " xor   %%ecx,%%ecx;\n"
@@ -130,25 +171,28 @@ int has_3DNow (void)
 	" jz	1f;\n"		        /* no 3DNow! support */
 	" inc   %%ecx;\n"		/* 3DNow! support */
         "1:\n"
+        " pop  %%ebx;\n"
 	: "=c" (result)
         : 
-        : "eax", "ebx", "edx");
+        : "eax", "edx");
     return  result;
 }
 
 #if defined(TESTBED)
-int main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     int result;
 
     result = has_MMX();
-    printf ("MMX is %x\n", result);
+    printf("MMX is %x\n", result);
     result = has_SIMD();
-    printf ("SIMD is %x\n", result);
+    printf("SIMD is %x\n", result);
     result = has_SIMD2();
-    printf ("SIMD2 is %x\n", result);
+    printf("SIMD2 is %x\n", result);
     result = has_3DNow();
-    printf ("3DNow is %x\n", result);
+    printf("3DNow is %x\n", result);
     return  0;
 }
+#endif
+
 #endif

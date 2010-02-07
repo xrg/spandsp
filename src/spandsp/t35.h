@@ -23,13 +23,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t35.h,v 1.1 2004/03/12 16:27:25 steveu Exp $
+ * $Id: t35.h,v 1.4 2004/11/05 14:48:41 steveu Exp $
  */
 
 /*! \file */
 
 #if !defined(_T35_H_)
 #define _T35_H_
+
+extern const char *t35_country_codes[256];
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*! Decode an NSF field to try to determine the make and model of the
     remote machine.
@@ -44,7 +50,11 @@
            If the model is not identified, NULL will be returned.
     \return TRUE if the machine was identified, otherwise FALSE.
 */
-int t35_decode(uint8_t *msg, int len, const char **vendor, const char **model);
+int t35_decode(const uint8_t *msg, int len, const char **vendor, const char **model);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

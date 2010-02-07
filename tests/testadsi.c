@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: testadsi.c,v 1.5 2004/03/12 16:27:25 steveu Exp $
+ * $Id: testadsi.c,v 1.11 2005/01/17 13:12:15 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -43,19 +43,22 @@
 #include <sys/wait.h>
 #include <sys/resource.h>
 #include <sys/time.h>
+
+#if defined(HAVE_LIBUNICALL)
+
 #include <linux/zaptel.h>
 #include <pthread.h>
 #include <audiofile.h>
 #include <tiffio.h>
 
-#define FALSE 0
-#define TRUE (!FALSE)
-
-#include "uni-call.h"
+#include "unicall.h"
 //#include "../libmfcr2/libmfcr2.h"
 //#include "../libpri/libpri.h"
 
 #include "spandsp.h"
+
+#define FALSE 0
+#define TRUE (!FALSE)
 
 int caller_mode = FALSE;
 static AFfilehandle rxhandle;
@@ -179,12 +182,12 @@ struct
 tone_gen_descriptor_t tone_desc;
 tone_gen_state_t gen;
 
-void channel_read_adsi_channel(uc_t *uc, int chan, int user_data, uint8_t *buf, int len);
-int channel_write_adsi_channel(uc_t *uc, int chan, int user_data, uint8_t *buf, int max_len);
-int channel_error(uc_t *uc, int chan, int user_data, int cause);
-int signaling_error(uc_t *uc, int user_data, int cause);
+void channel_read_adsi_channel(uc_t *uc, int chan, void *user_data, uint8_t *buf, int len);
+int channel_write_adsi_channel(uc_t *uc, int chan, void *user_data, uint8_t *buf, int max_len);
+int channel_error(uc_t *uc, int chan, void *user_data, int cause);
+int signaling_error(uc_t *uc, void *user_data, int cause);
 
-void channel_read_adsi_channel(uc_t *uc, int chan, int user_data, uint8_t *buf, int len)
+void channel_read_adsi_channel(uc_t *uc, int chan, void *user_data, uint8_t *buf, int len)
 {
     int i;
     int xlen;
@@ -218,8 +221,8 @@ void channel_read_adsi_channel(uc_t *uc, int chan, int user_data, uint8_t *buf, 
             {
                 uc_set_channel_read_callback(uc, 0, NULL, 0);
                 uc_set_channel_write_callback(uc, 0, NULL, 0);
-                if (uc_DropCall(uc, chan_stuff[chan].crn, UC_CAUSE_NORMAL_CLEARING))
-                    printf ("A uc_DropCall failed\n");
+                if (uc_call_control(uc, UC_OP_DROPCALL, chan_stuff[chan].crn, (void *) UC_CAUSE_NORMAL_CLEARING))
+                    printf ("A Drop Call failed\n");
                 /*endif*/
                 break;
             }
@@ -235,7 +238,7 @@ void channel_read_adsi_channel(uc_t *uc, int chan, int user_data, uint8_t *buf, 
 }
 /*- End of function --------------------------------------------------------*/
 
-int channel_write_adsi_channel(uc_t *uc, int chan, int user_data, uint8_t *buf, int max_len)
+int channel_write_adsi_channel(uc_t *uc, int chan, void *user_data, uint8_t *buf, int max_len)
 {
     int16_t pcm_buf[1024];
     int len;
@@ -264,14 +267,14 @@ int channel_write_adsi_channel(uc_t *uc, int chan, int user_data, uint8_t *buf, 
 }
 /*- End of function --------------------------------------------------------*/
 
-int channel_error(uc_t *uc, int chan, int user_data, int cause)
+int channel_error(uc_t *uc, int chan, void *user_data, int cause)
 {
     printf("Error %d\n", cause);
     return  0;
 }
 /*- End of function --------------------------------------------------------*/
 
-int signaling_error(uc_t *uc, int user_data, int cause)
+int signaling_error(uc_t *uc, void *user_data, int cause)
 {
     printf("Error %d\n", cause);
     return  0;
@@ -280,6 +283,7 @@ int signaling_error(uc_t *uc, int user_data, int cause)
 
 static void initiate_call(uc_t *uc, int chan, uc_event_t *e)
 {
+    uc_makecall_t makecall;
     uc_callparms_t *callparms;
     int ret;
 
@@ -289,15 +293,21 @@ static void initiate_call(uc_t *uc, int chan, uc_event_t *e)
     /*endif*/
     uc_callparm_originating_number(callparms, chan_stuff[chan].originating_number);
     uc_callparm_destination_number(callparms, chan_stuff[chan].destination_number);
-    if ((ret = uc_MakeCall(uc, &(chan_stuff[chan].crn), callparms)) != UC_RET_OK)
-        fprintf(stderr, "uc_MakeCall failed - %d\n", ret);
+    makecall.callparms = callparms;
+    makecall.crn = 0;
+    if (ret = uc_call_control(uc, UC_OP_MAKECALL, 0, (void *) &makecall) != UC_RET_OK)
+        fprintf(stderr, "Make Call failed - %d\n", ret);
     /*endif*/
+    chan_stuff[chan].crn = makecall.crn;
     free(callparms);
 }
 /*- End of function --------------------------------------------------------*/
 
-static void handle_uc_event(uc_t *uc, int chan, uc_event_t *e)
+static void handle_uc_event(uc_t *uc, void *user_data, uc_event_t *e)
 {
+    int chan;
+    
+    chan = (int) user_data;
     printf ("-- %s (%d)\n", uc_event2str(e->e), chan);
     switch (e->e)
     {
@@ -310,7 +320,7 @@ static void handle_uc_event(uc_t *uc, int chan, uc_event_t *e)
         printf("-- Signalling channel status - %s\n", e->sigchanstatus.ok  ?  "Up"  :  "Down");
         break;
     case UC_EVENT_ALARM:
-        printf("-- Alarm - 0x%X\n", e->alarm.type);
+        printf("-- Alarm - 0x%X 0x%X\n", e->alarm.raised, e->alarm.cleared);
         break;
     case UC_EVENT_FARBLOCKED:
         printf("-- Channel far end blocked! :-(\n");
@@ -346,16 +356,16 @@ static void handle_uc_event(uc_t *uc, int chan, uc_event_t *e)
         printf("-- Dialing on channel %d\n", e->gen.channel);
         break;
     case UC_EVENT_ACCEPTED:
-        printf("-- Accepted on channel %d\n", e->alerting.channel);
-        if (uc_AnswerCall(uc, e->offered.crn))
-            fprintf(stderr, "uc_AnswerCall failed\n");
+        printf("-- Accepted on channel %d\n", e->gen.channel);
+        if (uc_call_control(uc, UC_OP_ANSWERCALL, e->gen.crn, (void *) -1))
+            fprintf(stderr, "Answer Call failed\n");
         /*endif*/
         break;
     case UC_EVENT_DETECTED:
-        printf("-- Detected on channel %d\n", e->alerting.channel);
+        printf("-- Detected on channel %d\n", e->gen.channel);
         break;
     case UC_EVENT_ALERTING:
-        printf("-- Alerting on channel %d\n", e->alerting.channel);
+        printf("-- Alerting on channel %d\n", e->gen.channel);
         /* This is just a notification of call progress. We need take no action at this point. */
         break;
     case UC_EVENT_FARDISCONNECTED:
@@ -363,13 +373,13 @@ static void handle_uc_event(uc_t *uc, int chan, uc_event_t *e)
         /* Kill any outstanding audio processing */
         uc_set_channel_read_callback(uc, 0, NULL, 0);
         uc_set_channel_write_callback(uc, 0, NULL, 0);
-        if (uc_DropCall(uc, e->fardisconnected.crn, UC_CAUSE_NORMAL_CLEARING))
-            fprintf(stderr, "C uc_DropCall failed\n");
+        if (uc_call_control(uc, UC_OP_DROPCALL, e->fardisconnected.crn, (void *) UC_CAUSE_NORMAL_CLEARING))
+            fprintf(stderr, "C Drop Call failed\n");
         /*endif*/
         break;
     case UC_EVENT_DROPCALL:
         printf("-- Drop call on channel %d\n", e->gen.channel);
-        if (uc_ReleaseCall(uc, e->gen.crn))
+        if (uc_call_control(uc, UC_OP_RELEASECALL, e->gen.crn, NULL))
             fprintf(stderr, "uc_ReleaseCall failed\n");
         /*endif*/
         break;
@@ -386,33 +396,33 @@ static void handle_uc_event(uc_t *uc, int chan, uc_event_t *e)
             switch (chan_stuff[chan].cause)
             {
             case 0:
-                if (uc_AcceptCall(uc, e->offered.crn))
+                if (uc_call_control(uc, UC_OP_ACCEPTCALL, e->offered.crn, (void *) -1))
                     fprintf(stderr, "uc_AcceptCall failed\n");
                 /*endif*/
                 break;
             case 1:
-                if (uc_AnswerCall(uc, e->offered.crn))
+                if (uc_call_control(uc, UC_OP_ANSWERCALL, e->offered.crn, (void *) -1))
                     fprintf(stderr, "uc_AnswerCall failed\n");
                 /*endif*/
                 break;
             case 2:
-                if (uc_DropCall(uc, e->offered.crn, UC_CAUSE_USER_BUSY))
-                    fprintf(stderr, "E uc_DropCall failed\n");
+                if (uc_call_control(uc, UC_OP_DROPCALL, e->offered.crn, (void *) UC_CAUSE_USER_BUSY))
+                    fprintf(stderr, "E Drop Call failed\n");
                 /*endif*/
                 break;
             case 3:
-                if (uc_DropCall(uc, e->offered.crn, UC_CAUSE_UNASSIGNED_NUMBER))
-                    fprintf(stderr, "F uc_DropCall failed\n");
+                if (uc_call_control(uc, UC_OP_DROPCALL, e->offered.crn, (void *) UC_CAUSE_UNASSIGNED_NUMBER))
+                    fprintf(stderr, "F Drop Call failed\n");
                 /*endif*/
                 break;
             case 4:
-                if (uc_DropCall(uc, e->offered.crn, UC_CAUSE_NETWORK_CONGESTION))
-                    fprintf(stderr, "G uc_DropCall failed\n");
+                if (uc_call_control(uc, UC_OP_DROPCALL, e->offered.crn, (void *) UC_CAUSE_NETWORK_CONGESTION))
+                    fprintf(stderr, "G Drop Call failed\n");
                 /*endif*/
                 break;
             case 5:
-                if (uc_DropCall(uc, e->offered.crn, UC_CAUSE_DEST_OUT_OF_ORDER))
-                    fprintf(stderr, "H uc_DropCall failed\n");
+                if (uc_call_control(uc, UC_OP_DROPCALL, e->offered.crn, (void *) UC_CAUSE_DEST_OUT_OF_ORDER))
+                    fprintf(stderr, "H Drop Call failed\n");
                 /*endif*/
                 break;
             }
@@ -425,9 +435,9 @@ static void handle_uc_event(uc_t *uc, int chan, uc_event_t *e)
         break;
     case UC_EVENT_ANSWERED:
         printf("-- Answered on channel %d\n", e->gen.channel);
-        uc_set_channel_read_callback(uc, 0, channel_read_adsi_channel, chan);
+        uc_set_channel_read_callback(uc, 0, channel_read_adsi_channel, (void *) chan);
 printf("XXX read callback set\n");
-        uc_set_channel_write_callback(uc, 0, channel_write_adsi_channel, chan);
+        uc_set_channel_write_callback(uc, 0, channel_write_adsi_channel, (void *) chan);
 printf("XXX write callback set\n");
         adsi_tx_init(&(chan_stuff[chan].adsi_tx), ADSI_STANDARD_CLASS);
 printf("XXX ADSI inited\n");
@@ -436,8 +446,8 @@ printf("XXX DTMF inited\n");
         break;
     case UC_EVENT_CONNECTED:
         printf("-- Connected on channel %d\n", e->gen.channel);
-        if (uc_DropCall(uc, e->offered.crn, UC_CAUSE_NORMAL_CLEARING))
-            printf ("I uc_DropCall failed\n");
+        if (uc_call_control(uc, UC_OP_DROPCALL, e->offered.crn, (void *) UC_CAUSE_NORMAL_CLEARING))
+            printf ("I Drop Call failed\n");
         /*endif*/
         break;
     default:
@@ -472,11 +482,11 @@ static void *run_uc(void *arg)
         return NULL;
     }
     /*endif*/
-    uc_set_signaling_callback(uc, handle_uc_event, chan);
-    uc_set_signaling_error_callback(uc, signaling_error, chan);
-    uc_set_channel_error_callback(uc, 0, channel_error, chan);
-    uc_set_logging(uc, 0x7FFFFFFF, chan_stuff[chan].tag);
-    uc_Unblock(uc);
+    uc_set_signaling_callback(uc, handle_uc_event, (void *) chan);
+    uc_set_signaling_error_callback(uc, signaling_error, (void *) chan);
+    uc_set_channel_error_callback(uc, 0, channel_error, (void *) chan);
+    uc_set_logging(uc, 0x7FFFFFFF, 0, chan_stuff[chan].tag);
+    uc_call_control(uc, UC_OP_UNBLOCK, 0, (void *) -1);
     for (;;)
     {
         FD_ZERO(&rfds);
@@ -513,7 +523,7 @@ static void *run_uc(void *arg)
         }
         else if (res > 0)
         {
-            e = uc_CheckEvent(uc);
+            e = uc_check_event(uc);
         }
         else if (errno != EINTR)
         {
@@ -524,7 +534,7 @@ static void *run_uc(void *arg)
         if (e)
         {
             printf("Non-callback signaling event\n");
-            handle_uc_event(uc, chan, e);
+            handle_uc_event(uc, (void *) chan, e);
         }
         /*endif*/
     }
@@ -567,7 +577,7 @@ int main(int argc, char *argv[])
         exit(2);
     }
 
-    uc_Start();    
+    uc_start();    
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     if (argc < 1)
@@ -668,4 +678,11 @@ int main(int argc, char *argv[])
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
+#else
+int main(int argc, char *argv[]) 
+{
+    printf("This program was not built with Unicall available\n"); 
+}
+/*- End of function --------------------------------------------------------*/
+#endif
 /*- End of file ------------------------------------------------------------*/

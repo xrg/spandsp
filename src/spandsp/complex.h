@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex.h,v 1.1 2004/03/12 16:27:24 steveu Exp $
+ * $Id: complex.h,v 1.2 2004/03/30 14:29:40 steveu Exp $
  */
 
 /*! \file */
@@ -66,6 +66,10 @@ typedef struct
     int32_t re;
     int32_t im;
 } i32complex_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 static inline complex_t complex_set(float re, float im)
 {
@@ -174,6 +178,10 @@ static inline float power(const complex_t *x)
     return x->re*x->re + x->im*x->im;
 }
 /*- End of function --------------------------------------------------------*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

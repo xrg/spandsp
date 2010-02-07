@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.h,v 1.5 2004/03/28 12:46:42 steveu Exp $
+ * $Id: v29rx.h,v 1.16 2004/10/11 13:27:13 steveu Exp $
  */
 
 /*! \file */
@@ -45,7 +45,7 @@ used for FAX).
 \section V29rx_page_sec_2 Theory of operation
 V.29 use QAM modulation. It specifies a training sequence at the start of
 transmission, which makes the design of a V.29 receiver relatively
-straightforward. The first stage of the training sequence consists of a 128
+straightforward. The first stage of the training sequence consists of 128
 symbols, alternating between two constellation positions. The receiver monitors
 the signal power, to sense the possible presence of a valid carrier. When the
 alternating signal begins, the power rising above a minimum threshold (-26dBm0)
@@ -55,17 +55,22 @@ front end gain is locked, and the adaptive equalizer tracks any subsequent
 signal level variation. The signal is multiplied by a complex carrier, generated
 by a DDS, at 8000 samples/second. It is then fed at 24000 samples/second (i.e.
 signal, zero, zero, signal, zero, zero, ...) to a root raised cosine pulse
-shaping filter. This interpolates the samples, and pulse shapes at the same
-time. Every fifth sample is taken from the output of the filter, and fed to an
-adaptive equalizer. This means the adaptive equalizer receives samples at 4800
-samples/second, so it is a T/2 equalizer. The Gardner algorithm is used to tune
-the sampling, so the samples fed to the equalizer are close to the mid point and
-edges of each symbol. Initially the algorithm is very lightly damped, to ensure
-the symbol alignment pulls in quickly. Because the sampling rate will not be
-precisely the same as the transmitter's (the spec. says the symbol timing should
-be within 0.01%), the receiver constantly evaluates and corrects this sampling
-throughout its operation. During the symbol timing maintainence phase, the
-algorithm uses a heavily damped Gardner plus integrate and dump approach to
+shaping filter. This interpolates the samples, pulse shapes, and performs fractional
+sample delay at the same time. 48 sets of filter coefficients are used to
+achieve a set of finely spaces fractional sample delays, between zero and
+one sample. By choosing every fifth sample, and the appropriate set of filter
+coefficients, the properly tuned symbol tracker can select data samples at 4800
+samples/second from points within 1.125 degrees of the centre and mid-points of
+each symbol. It feeds these to a T/2 adaptive equalizer. The Gardner algorithm is
+used to track the symbolsm, and tune the sampling. Initially this algorithm is very
+lightly damped, to ensure the symbol alignment pulls in quickly. Because the sampling
+rate will not be precisely the same as the transmitter's (the spec. says the symbol
+timing should be within 0.01%), the receiver constantly evaluates and corrects
+this sampling throughout its operation. During the symbol timing maintainence phase,
+the algorithm uses heavier damping to stabilise the sampling points, 
+
+
+Gardner plus integrate and dump approach to
 updates. This heavy damping achieves several things - the Gardner algorithm is
 statistically based, so the statistics must be smoothed; a number of samples
 must be fed to the equalizer buffer before the equalizer output actually
@@ -123,7 +128,7 @@ therefore, only tests that bits starting at bit 24 are really ones.
 
 #define V29RX_FILTER_STEPS  27
 
-typedef void (qam_report_handler_t)(void *user_data, complex_t *constel, int symbol);
+typedef void (qam_report_handler_t)(void *user_data, const complex_t *constel, const complex_t *target, int symbol);
 
 /*!
     V.29 modem receive side descriptor. This defines the working state for a
@@ -163,7 +168,9 @@ typedef struct
     uint32_t carrier_phase;
     /*! \brief The update rate for the phase of the carrier (i.e. the DDS increment). */
     int32_t carrier_phase_rate;
-
+    float carrier_track_p;
+    float carrier_track_i;
+    
     power_meter_t power;
     int32_t carrier_on_power;
     int32_t carrier_off_power;
@@ -178,27 +185,29 @@ typedef struct
     /*! \brief Current offset into equalizer buffer. */
     int eq_step;
     int eq_put_step;
+    int eq_skip;
 
     /*! \brief Integration variable for damping the Gardner algorithm tests. */
     int gardner_integrate;
+    /*! \brief Current step size of Gardner algorithm integration. */
     int gardner_step;
+    /*! \brief The total gardner timing correction, since the carrier came up.
+               This is only for performance analysis purposes. */
+    int gardner_total_correction;
     /*! \brief The current fractional phase of the baud timing. */
     int baud_phase;
-    /*! \brief The integrated lead or lag of the carrier phase against its expected
-               value. This is used in fine carrier tracking. */
-    int lead_lag;
-    /*! \brief The number of bauds over which lead_lag has been gathered. */
-    int lead_lag_time;
 
-    /*! \brief A starting phase angle for the coarse carrier aquisition step. */
-    int32_t start_angle_a;
-    /*! \brief A starting phase angle for the coarse carrier aquisition step. */
-    int32_t start_angle_b;
+    /*! \brief Starting phase angles for the coarse carrier aquisition step. */
+    int32_t start_angles[2];
     /*! \brief History list of phase angles for the coarse carrier aquisition step. */
     int32_t angles[16];
 } v29_rx_state_t;
 
 extern const complex_t v29_constellation[16];
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*! Initialise a V.29 modem receive context.
     \brief Initialise a V.29 modem receive context.
@@ -211,23 +220,42 @@ void v29_rx_init(v29_rx_state_t *s, int bit_rate, put_bit_func_t put_bit, void *
 /*! Reinitialise an existing V.29 modem receive context.
     \brief Reinitialise an existing V.29 modem receive context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 4800, 7200 and 9600. */
-void v29_rx_restart(v29_rx_state_t *s, int bit_rate);
+    \param rate The bit rate of the modem. Valid values are 4800, 7200 and 9600.
+    \return 0 for OK, -1 for bad parameter */
+int v29_rx_restart(v29_rx_state_t *s, int bit_rate);
 
 /*! Process a block of received V.29 modem audio samples.
     \brief Process a block of received V.29 modem audio samples.
     \param s The modem context.
     \param amp The audio sample buffer.
     \param len The number of samples in the buffer.
-*/
-void v29_rx(v29_rx_state_t *s, const int16_t *amp, int len);
+    \return The number of samples unprocessed. */
+int v29_rx(v29_rx_state_t *s, const int16_t *amp, int len);
 
 /*! Get a snapshot of the current equalizer coefficients.
     \brief Get a snapshot of the current equalizer coefficients.
+    \param s The modem context.
     \param coeffs The vector of complex coefficients.
     \return The number of coefficients in the vector. */
 int v29_rx_equalizer_state(v29_rx_state_t *s, complex_t **coeffs);
 
+/*! Get a current received carrier frequency.
+    \param s The modem context.
+    \return The frequency, in Hertz. */
+float v29_rx_carrier_frequency(v29_rx_state_t *s);
+
+float v29_rx_symbol_timing_correction(v29_rx_state_t *s);
+
+/*! Get a current received signal power.
+    \param s The modem context.
+    \return The signal power, in dBm0. */
+float v29_rx_signal_power(v29_rx_state_t *s);
+
 void v29_rx_set_qam_report_handler(v29_rx_state_t *s, qam_report_handler_t *handler, void *user_data);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
 /*- End of file ------------------------------------------------------------*/

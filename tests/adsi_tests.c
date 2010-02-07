@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.8 2004/03/25 13:28:37 steveu Exp $
+ * $Id: adsi_tests.c,v 1.10 2004/11/19 14:06:55 steveu Exp $
  */
 
 #include <stdint.h>
@@ -36,6 +36,8 @@
 #include <tiffio.h>
 
 #include "spandsp.h"
+
+#define OUT_FILE_NAME   "adsi.wav"
 
 //#define TEST_CLASS
 //#define TEST_CLIP
@@ -233,6 +235,7 @@ static void put_adsi_msg(void *user_data, const uint8_t *msg, int len)
     do
     {
         l = adsi_next_field(&rx_adsi, msg, len, l, &field_type, &field_body, &field_len);
+printf("l = %d\n", l);
         if (l > 0)
         {
             if (field_body)
@@ -254,12 +257,17 @@ static void put_adsi_msg(void *user_data, const uint8_t *msg, int len)
 int main(int argc, char *argv[])
 {
     int16_t buf[NB_SAMPLES];
-    uint8_t adsi_msg[256];
+    uint8_t adsi_msg[256 + 42];
     int adsi_msg_len;
     AFfilehandle outhandle;
     AFfilesetup filesetup;
     int outframes;
     int len;
+    char *s;
+    uint8_t ch;
+    int xx;
+    int yy;
+    int i;
 
     filesetup = afNewFileSetup();
     if (filesetup == AF_NULL_FILESETUP)
@@ -272,17 +280,17 @@ int main(int argc, char *argv[])
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
 
-    outhandle = afOpenFile("adsi.wav", "w", filesetup);
+    outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
     if (outhandle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", "adsi.wav");
+        fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
 
     adsi_tx_init(&tx_adsi, STANDARD);
     adsi_rx_init(&rx_adsi, STANDARD, put_adsi_msg, NULL);
 
-    for (;;)
+    for (i = 0;  i < 1000;  i++)
     {
         len = adsi_tx(&tx_adsi, buf, NB_SAMPLES);
         outframes = afWriteFrames(outhandle,
@@ -300,9 +308,57 @@ int main(int argc, char *argv[])
         adsi_put_message(&tx_adsi, adsi_msg, adsi_msg_len);
     }
 
+    /* Now test TDD operation */
+    
+#if 0
+    /* Check the character encode/decode cycle */
+    adsi_tx_init(&tx_adsi, ADSI_STANDARD_TDD);
+    adsi_rx_init(&rx_adsi, ADSI_STANDARD_TDD, put_adsi_msg, NULL);
+    s = "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()";
+    while ((ch = *s++))
+    {
+        xx = adsi_encode_baudot(&tx_adsi, ch);
+        if ((xx & 0x3E0))
+        {
+            yy = adsi_decode_baudot(&rx_adsi, (xx >> 5) & 0x1F);
+            if (yy)
+                printf("%c", yy);
+        }
+        yy = adsi_decode_baudot(&rx_adsi, xx & 0x1F);
+        if (yy)
+            printf("%c", yy);
+    }
+    printf("\n");
+#endif
+    
+    adsi_tx_init(&tx_adsi, ADSI_STANDARD_TDD);
+    adsi_rx_init(&rx_adsi, ADSI_STANDARD_TDD, put_adsi_msg, NULL);
+
+    s = "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()";
+    for (i = 0;  i < 3000;  i++)
+    {
+        len = adsi_tx(&tx_adsi, buf, NB_SAMPLES);
+#if 0
+        if (len == 0)
+            break;
+        outframes = afWriteFrames(outhandle,
+                                  AF_DEFAULT_TRACK,
+                                  buf,
+                                  len);
+        if (outframes != len)
+        {
+            fprintf(stderr, "    Error writing wave file\n");
+            exit(2);
+        }
+#endif
+        adsi_rx(&rx_adsi, buf, len);
+        adsi_msg_len = adsi_add_field(&tx_adsi, adsi_msg, -1, 0, s, strlen(s));
+        adsi_put_message(&tx_adsi, adsi_msg, adsi_msg_len);
+    }
+
     if (afCloseFile(outhandle) != 0)
     {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", "fsk.wav");
+        fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
     return  0;

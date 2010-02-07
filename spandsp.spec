@@ -1,11 +1,11 @@
 Summary:   Steve's DSP library for telephony spans.
 Name:      spandsp
-Version:   0.0.1
+Version:   0.0.2
 Release:   1
 Copyright: GPL
 URL:       http://www.opencall.org/spandsp
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
-Source:    http://www.opencall.org/spandsp/spandsp-0.0.1.tar.gz
+Source:    http://www.opencall.org/spandsp/spandsp-0.0.2.tar.gz
 
 Group:     System Environment/Libraries
 Obsoletes: spandsp
@@ -63,3 +63,13 @@ rm -rf $RPM_BUILD_ROOT
 %{_prefix}/lib/lib*.la
 %{_prefix}/lib/lib*.so
 %{_prefix}/include/*
+
+%{_prefix}/share/%{name}/global-tones.xml
+%{_prefix}/share/%{name}/tones.dtd
+
+%changelog
+* Sat Oct 16 2004 Steve Underwood <steveu@coppice.org> 0.0.2-1
+- Preparing for 0.0.2 release
+
+* Thu Apr 15 2004 Steve Underwood <steveu@coppice.org> 0.0.1-1
+- Initial version

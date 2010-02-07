@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect.c,v 1.4 2004/03/15 13:17:35 steveu Exp $
+ * $Id: tone_detect.c,v 1.5 2005/01/17 13:12:15 steveu Exp $
  */
  
 /*! \file tone_detect.h */
@@ -186,7 +186,7 @@ void goertzel_init(goertzel_state_t *s,
 /*- End of function --------------------------------------------------------*/
 
 int goertzel_update(goertzel_state_t *s,
-                    int16_t x[],
+                    const int16_t amp[],
                     int samples)
 {
     int i;
@@ -198,7 +198,7 @@ int goertzel_update(goertzel_state_t *s,
     {
         v1 = s->v2;
         s->v2 = s->v3;
-        s->v3 = s->fac*s->v2 - v1 + x[i];
+        s->v3 = s->fac*s->v2 - v1 + amp[i];
     }
     s->current_sample += samples;
     return  samples;

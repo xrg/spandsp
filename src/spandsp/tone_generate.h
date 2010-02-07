@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.h,v 1.4 2004/03/19 19:12:46 steveu Exp $
+ * $Id: tone_generate.h,v 1.8 2004/06/09 15:15:18 steveu Exp $
  */
 
 /*! \file */
@@ -46,6 +46,24 @@ we are only concerned with telephony applications. It is possible to generate
 the tones we need with a very simple efficient scheme. It is also practical to
 use an exhaustive test to prove the oscillator is stable under all the
 conditions in which we will use it. 
+*/
+
+/*! \page DTMF_tx_page DTMF tone generation
+
+The DTMF tone generation module provides for the generation of the
+repertoire of 16 DTMF dual tones. 
+*/
+
+/*! \page MFC_R2_tone_generation_page MFC/R2 tone generation
+
+The MFC/R2 tone generation module provides for the generation of the
+repertoire of 15 dual tones needs for the digital MFC/R2 signalling protocol. 
+*/
+
+/*! \page bell_mf_tone_generation_page Bell MF tone generation
+
+The Bell MF tone generation module provides for the generation of the
+repertoire of 15 dual tones needs for various Bell MF signalling protocols. 
 */
 
 #if !defined(MAX_DTMF_DIGITS)
@@ -145,6 +163,10 @@ typedef struct
     int8_t      repeat;     /* True if cyclic tone, false for one shot. */
 } cadenced_tone_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void make_tone_descriptor(tone_gen_descriptor_t *desc, cadenced_tone_t *tone);
 void make_tone_gen_descriptor(tone_gen_descriptor_t *s,
                               int f1,
@@ -212,6 +234,10 @@ void r2_mf_tx_init(void);
     \return The number of samples actually generated.
 */
 int r2_mf_tx(tone_gen_state_t *s, int16_t *amp, int samples, int fwd, char digit);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

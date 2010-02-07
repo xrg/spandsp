@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * telephony.h - some very basic telephony definitions\
+ * telephony.h - some very basic telephony definitions
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: telephony.h,v 1.1 2004/03/12 16:27:25 steveu Exp $
+ * $Id: telephony.h,v 1.2 2004/06/12 12:48:48 steveu Exp $
  */
 
 #if !defined(_TELEPHONY_H_)

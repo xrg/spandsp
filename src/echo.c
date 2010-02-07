@@ -28,7 +28,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo.c,v 1.4 2004/03/12 16:27:23 steveu Exp $
+ * $Id: echo.c,v 1.5 2004/12/16 15:33:55 steveu Exp $
  */
 
 /*! \file */
@@ -336,7 +336,7 @@ void echo_can_flush(echo_can_state_t *ec)
     ec->clean_rx_power = 0;
     ec->nonupdate_dwell = 0;
 
-    memset(ec->fir_state.history, 0, 2*ec->taps*sizeof(int16_t));
+    fir16_flush(&ec->fir_state);
     ec->fir_state.curr_pos = ec->taps - 1;
     memset(ec->fir_taps32, 0, ec->taps*sizeof(int32_t));
     for (i = 0;  i < 4;  i++)
@@ -404,7 +404,7 @@ sample_no++;
     /* Calculate short term power levels using very simple single pole IIRs */
     /* TODO: Is the nasty modulus approach the fastest, or would a real
              tx*tx power calculation actually be faster? Using the squares
-             makes the numers grow a lot! */
+             makes the numbers grow a lot! */
     ec->tx_power[3] += ((abs(tx) - ec->tx_power[3]) >> 5);
     ec->tx_power[2] += ((tx*tx - ec->tx_power[2]) >> 8);
     ec->tx_power[1] += ((tx*tx - ec->tx_power[1]) >> 5);
