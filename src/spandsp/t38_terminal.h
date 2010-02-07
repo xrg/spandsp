@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.30 2008/05/16 12:31:23 steveu Exp $
+ * $Id: t38_terminal.h,v 1.31 2008/05/27 15:08:21 steveu Exp $
  */
 
 /*! \file */
@@ -47,8 +47,7 @@ typedef struct
     /*! Core T.38 support */
     t38_core_state_t t38;
 
-    /*! \brief Use (actually allow time for) talker echo protection when transmitting. */
-    int use_tep;    
+    int spare1;
 
     /*! \brief HDLC transmit buffer */
     uint8_t tx_buf[T38_MAX_HDLC_LEN];
@@ -93,14 +92,14 @@ typedef struct
     
     /*! \brief Required time between T.38 transmissions, in ms. */
     int ms_per_tx_chunk;
-    /*! \brief TRUE if multiple data fields should be merged into a single T.38 IFP packet. */
-    int merge_tx_fields;
+    /*! \brief Bit fields controlling the way data is packed into chunked for transmission. */
+    int chunking_modes;
 
     /*! \brief Current actual samples between T.38 transmissions, allowing for the minimum needed for a
                single octet, etc. */
     int samples_per_tx_chunk;
-    /*! \brief Current actual samples during for an FCS at the end of an HDLC frame. */
-    int samples_per_fcs;
+    /*! \brief Current bit rate. */
+    int bit_rate;
     /*! \brief A "sample" count, used to time events. */
     int32_t samples;
     /*! \brief The value for samples at the next transmission point. */

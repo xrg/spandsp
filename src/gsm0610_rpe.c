@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_rpe.c,v 1.19 2008/05/13 13:17:22 steveu Exp $
+ * $Id: gsm0610_rpe.c,v 1.20 2008/05/30 13:51:28 steveu Exp $
  */
 
 /*! \file */
@@ -60,9 +60,16 @@ static void weighting_filter(const int16_t *e,     // signal [-5..0.39.44] IN
 #if defined(__GNUC__)  &&  defined(__i386__)
     /* Table 4.4   Coefficients of the weighting filter */
     /* This must be padded to a multiple of 4 for MMX to work */
-    static const int16_t gsm_H[12] =
+    static const union
     {
-        -134, -374, 0, 2054, 5741, 8192, 5741, 2054, 0, -374, -134, 0
+        int16_t gsm_H[12];
+        uint64_t x[3];
+    } gsm_H =
+    {
+        {
+            -134, -374, 0, 2054, 5741, 8192, 5741, 2054, 0, -374, -134, 0
+        }
+
     };
 
     __asm__ __volatile__(
@@ -101,7 +108,7 @@ static void weighting_filter(const int16_t *e,     // signal [-5..0.39.44] IN
         " jle 1b;\n"
         " emms;\n"
         :
-        : "c" (e), "D" (x), [gsm_H] "X" (*((int64_t *) gsm_H)), [gsm_H8] "X" (*((int64_t *) (gsm_H + 4))), [gsm_H16] "X" (*((int64_t *) (gsm_H + 8)))
+        : "c" (e), "D" (x), [gsm_H] "X" (gsm_H.x[0]), [gsm_H8] "X" (gsm_H.x[1]), [gsm_H16] "X" (gsm_H.x[2])
         : "eax", "edx", "esi"
     );
 #else

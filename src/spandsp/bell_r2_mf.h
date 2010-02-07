@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.h,v 1.17 2008/04/17 14:26:59 steveu Exp $
+ * $Id: bell_r2_mf.h,v 1.19 2008/05/30 13:51:28 steveu Exp $
  */
 
 /*! \file */
@@ -113,10 +113,11 @@ typedef struct
     /*! The tone generator. */
     tone_gen_state_t tones;
     int current_sample;
-    /*! The queue structure MUST be followed immediately by the buffer */
-    queue_state_t queue;
-    /*! The digits currently buffered for transmission - part of the above queue. */
-    char digits[MAX_BELL_MF_DIGITS + 1];
+    union
+    {
+        queue_state_t queue;
+        uint8_t buf[QUEUE_STATE_T_SIZE(MAX_BELL_MF_DIGITS)];
+    } queue;
 } bell_mf_tx_state_t;
 
 /*!
@@ -195,7 +196,7 @@ int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int max_samples);
            assumed to be a NULL terminated string.
     \return The number of digits actually added. This may be less than the
             length of the digit string, if the buffer fills up. */
-size_t bell_mf_tx_put(bell_mf_tx_state_t *s, const char *digits, ssize_t len);
+size_t bell_mf_tx_put(bell_mf_tx_state_t *s, const char *digits, int len);
 
 /*! \brief Initialise a Bell MF generator context.
     \param s The Bell MF generator context.

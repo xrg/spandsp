@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.c,v 1.24 2008/05/13 13:17:22 steveu Exp $
+ * $Id: bell_r2_mf.c,v 1.26 2008/05/30 13:51:28 steveu Exp $
  */
 
 /*! \file */
@@ -283,7 +283,7 @@ int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int max_samples)
         /* Deal with the fragment left over from last time */
         len = tone_gen(&(s->tones), amp, max_samples);
     }
-    while (len < max_samples  &&  (digit = queue_read_byte(&s->queue)) >= 0)
+    while (len < max_samples  &&  (digit = queue_read_byte(&s->queue.queue)) >= 0)
     {
         /* Step to the next digit */
         if ((cp = strchr(bell_mf_tone_codes, digit)) == NULL)
@@ -295,7 +295,7 @@ int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int max_samples)
 }
 /*- End of function --------------------------------------------------------*/
 
-size_t bell_mf_tx_put(bell_mf_tx_state_t *s, const char *digits, ssize_t len)
+size_t bell_mf_tx_put(bell_mf_tx_state_t *s, const char *digits, int len)
 {
     size_t space;
 
@@ -307,9 +307,9 @@ size_t bell_mf_tx_put(bell_mf_tx_state_t *s, const char *digits, ssize_t len)
         if ((len = strlen(digits)) == 0)
             return 0;
     }
-    if ((space = queue_free_space(&s->queue)) < len)
+    if ((space = queue_free_space(&s->queue.queue)) < len)
         return len - space;
-    if (queue_write(&s->queue, (const uint8_t *) digits, len) >= 0)
+    if (queue_write(&s->queue.queue, (const uint8_t *) digits, len) >= 0)
         return 0;
     return -1;
 }
@@ -328,7 +328,7 @@ bell_mf_tx_state_t *bell_mf_tx_init(bell_mf_tx_state_t *s)
         bell_mf_gen_init();
     tone_gen_init(&(s->tones), &bell_mf_digit_tones[0]);
     s->current_sample = 0;
-    queue_init(&s->queue, MAX_BELL_MF_DIGITS, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC);
+    queue_init(&s->queue.queue, MAX_BELL_MF_DIGITS, QUEUE_READ_ATOMIC | QUEUE_WRITE_ATOMIC);
     s->tones.current_section = -1;
     return s;
 }

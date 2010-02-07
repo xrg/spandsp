@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.88 2008/05/16 12:31:23 steveu Exp $
+ * $Id: t38_terminal.c,v 1.90 2008/05/29 13:04:19 steveu Exp $
  */
 
 /*! \file */
@@ -72,17 +72,21 @@
 #include "spandsp/t38_terminal.h"
 
 /* Settings suitable for paced transmission over a UDP transport */
-#define MS_PER_TX_CHUNK                 30
+#define MS_PER_TX_CHUNK                         30
 
-#define INDICATOR_TX_COUNT              3
-#define DATA_TX_COUNT                   1
-#define DATA_END_TX_COUNT               3
+#define INDICATOR_TX_COUNT                      3
+#define DATA_TX_COUNT                           1
+#define DATA_END_TX_COUNT                       3
 
 /* Settings suitable for unpaced transmission over a TCP transport */
-#define MAX_OCTETS_PER_UNPACED_CHUNK    300
+#define MAX_OCTETS_PER_UNPACED_CHUNK            300
 
 /* Backstop timeout if reception of packets stops in the middle of a burst */
-#define MID_RX_TIMEOUT                  15000
+#define MID_RX_TIMEOUT                          15000
+
+#define T38_CHUNKING_MERGE_FCS_WITH_DATA        0x0001
+#define T38_CHUNKING_WHOLE_FRAMES               0x0002
+#define T38_CHUNKING_ALLOW_TEP_TIME             0x0004
 
 enum
 {
@@ -103,6 +107,56 @@ enum
     T38_TIMED_STEP_PAUSE
 };
 
+#if 0
+static int bits_in_stuffed_frame(uint8_t buf[], int len)
+{
+    int bitstream;
+    int ones;
+    int stuffed;
+    int i;
+    int j;
+    
+    bitstream = 0;
+    ones = 0;
+    stuffed = 0;
+    /* We should really append the CRC, and included the stuffed bits for that, to get
+       the exact number of bits in the frame. */
+    //len = crc_itu16_append(buf, len);
+    for (i = 0;  i < len;  i++)
+    {
+        bitstream = buf[i];
+        for (j = 0;  j < 8;  j++)
+        {
+            if ((bitstream & 1))
+            {
+                if (++ones >= 5)
+                {
+                    ones = 0;
+                    stuffed++;
+                }
+            }
+            else
+            {
+                ones = 0;
+            }
+            bitstream >>= 1;
+        }
+    }
+    /* The total length of the frame is:
+          the number of bits in the body
+        + the number of additional bits in the body due to stuffing
+        + the number of bits in the CRC
+        + the number of additional bits in the CRC due to stuffing
+        + 16 bits for the two terminating flag octets.
+       Lets just allow 3 bits for the CRC, which is the worst case. It
+       avoids calculating the real CRC, and the worst it can do is cause
+       a flag octet's worth of additional output.
+    */
+    return 8*len + stuffed + 16 + 3 + 16;
+}
+/*- End of function --------------------------------------------------------*/
+#endif
+
 static int process_rx_missing(t38_core_state_t *t, void *user_data, int rx_seq_no, int expected_seq_no)
 {
     t38_terminal_state_t *s;
@@ -120,7 +174,9 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
     s = (t38_terminal_state_t *) user_data;
     if (t->current_rx_indicator == indicator)
     {
-        /* This is probably due to the far end repeating itself. Ignore it. Its harmless */
+        /* This is probably due to the far end repeating itself, or slipping
+           preamble messages in between HDLC frames. T.38/V.1.3 tells us to
+           ignore it. Its harmless. */
         return 0;
     }
     /* In termination mode we don't care very much about indicators telling us training
@@ -399,13 +455,21 @@ static void send_hdlc(void *user_data, const uint8_t *msg, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
+static __inline__ int bits_to_samples(t38_terminal_state_t *s, int bits)
+{
+    if (s->ms_per_tx_chunk == 0)
+        return 0;
+    return bits*8000/s->bit_rate;
+}
+/*- End of function --------------------------------------------------------*/
+
 static void set_octets_per_data_packet(t38_terminal_state_t *s, int bit_rate)
 {
+    s->bit_rate = bit_rate;
     if (s->ms_per_tx_chunk == 0)
     {
         s->octets_per_data_packet = MAX_OCTETS_PER_UNPACED_CHUNK;
         s->samples_per_tx_chunk = 0;
-        s->samples_per_fcs = 0;
     }
     else
     {
@@ -417,8 +481,7 @@ static void set_octets_per_data_packet(t38_terminal_state_t *s, int bit_rate)
            approach, that the octet rate is 1/8th of the bit rate. This is untrue
            for HDLC data, because it does not allow for stuffing. The result is
            also an approximation, as the result may not be a whole number of samples. */
-        s->samples_per_tx_chunk = s->octets_per_data_packet*8*8000/bit_rate;
-        s->samples_per_fcs = 2*8*8000/bit_rate;
+        s->samples_per_tx_chunk = bits_to_samples(s, s->octets_per_data_packet*8);
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -430,39 +493,38 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
     int previous;
     uint8_t buf[MAX_OCTETS_PER_UNPACED_CHUNK + 50];
     t38_data_field_t data_fields[2];
-    /* Training times for all the modem options, with and without TEP, and with and without HDLC preamble.
+    /* The times for training, the optional TEP, and the HDLC preamble, for all the modem options, in ms.
        Note that the preamble for V.21 is 1s+-15%, and for the other modems is 200ms+100ms. */
     static const struct
     {
-        int without_tep;
-        int with_tep;
-        int without_tep_with_flags;
-        int with_tep_with_flags;
-    } training_time[] =
+        int tep;
+        int training;
+        int flags;
+    } startup_time[] =
     {
-        {   0,    0,    0,    0},   /* T38_IND_NO_SIGNAL */
-        {   0,    0,    0,    0},   /* T38_IND_CNG */
-        {   0,    0,    0,    0},   /* T38_IND_CED */
-        {   0,    0, 1000, 1000},   /* T38_IND_V21_PREAMBLE */ /* TODO: 850 should be OK for this, but it causes trouble with some ATAs. Why? */
-        { 943, 1158, 1143, 1158},   /* T38_IND_V27TER_2400_TRAINING */
-        { 708,  923,  908, 1123},   /* T38_IND_V27TER_4800_TRAINING */
-        { 234,  454,  434,  654},   /* T38_IND_V29_7200_TRAINING */
-        { 234,  454,  434,  654},   /* T38_IND_V29_9600_TRAINING */
-        { 142,  367,  342,  567},   /* T38_IND_V17_7200_SHORT_TRAINING */
-        {1393, 1618, 1593, 1818},   /* T38_IND_V17_7200_LONG_TRAINING */
-        { 142,  367,  342,  567},   /* T38_IND_V17_9600_SHORT_TRAINING */
-        {1393, 1618, 1593, 1818},   /* T38_IND_V17_9600_LONG_TRAINING */
-        { 142,  367,  342,  367},   /* T38_IND_V17_12000_SHORT_TRAINING */
-        {1393, 1618, 1593, 1818},   /* T38_IND_V17_12000_LONG_TRAINING */
-        { 142,  367,  342,  567},   /* T38_IND_V17_14400_SHORT_TRAINING */
-        {1393, 1618, 1593, 1818},   /* T38_IND_V17_14400_LONG_TRAINING */
-        {   0,    0,    0,    0},   /* T38_IND_V8_ANSAM */
-        {   0,    0,    0,    0},   /* T38_IND_V8_SIGNAL */
-        {   0,    0,    0,    0},   /* T38_IND_V34_CNTL_CHANNEL_1200 */
-        {   0,    0,    0,    0},   /* T38_IND_V34_PRI_CHANNEL */
-        {   0,    0,    0,    0},   /* T38_IND_V34_CC_RETRAIN */
-        {   0,    0,    0,    0},   /* T38_IND_V33_12000_TRAINING */
-        {   0,    0,    0,    0}    /* T38_IND_V33_14400_TRAINING */
+        {   0,    0,    0},     /* T38_IND_NO_SIGNAL */
+        {   0,    0,    0},     /* T38_IND_CNG */
+        {   0,    0,    0},     /* T38_IND_CED */
+        {   0,    0, 1000},     /* T38_IND_V21_PREAMBLE */ /* TODO: 850ms should be OK for this, but it causes trouble with some ATAs. Why? */
+        { 215,  943,  200},     /* T38_IND_V27TER_2400_TRAINING */
+        { 215,  708,  200},     /* T38_IND_V27TER_4800_TRAINING */
+        { 215,  234,  200},     /* T38_IND_V29_7200_TRAINING */
+        { 215,  234,  200},     /* T38_IND_V29_9600_TRAINING */
+        { 215,  142,  200},     /* T38_IND_V17_7200_SHORT_TRAINING */
+        { 215, 1393,  200},     /* T38_IND_V17_7200_LONG_TRAINING */
+        { 215,  142,  200},     /* T38_IND_V17_9600_SHORT_TRAINING */
+        { 215, 1393,  200},     /* T38_IND_V17_9600_LONG_TRAINING */
+        { 215,  142,  200},     /* T38_IND_V17_12000_SHORT_TRAINING */
+        { 215, 1393,  200},     /* T38_IND_V17_12000_LONG_TRAINING */
+        { 215,  142,  200},     /* T38_IND_V17_14400_SHORT_TRAINING */
+        { 215, 1393,  200},     /* T38_IND_V17_14400_LONG_TRAINING */
+        { 215,    0,    0},     /* T38_IND_V8_ANSAM */
+        { 215,    0,    0},     /* T38_IND_V8_SIGNAL */
+        { 215,    0,    0},     /* T38_IND_V34_CNTL_CHANNEL_1200 */
+        { 215,    0,    0},     /* T38_IND_V34_PRI_CHANNEL */
+        { 215,    0,    0},     /* T38_IND_V34_CC_RETRAIN */
+        { 215,    0,    0},     /* T38_IND_V33_12000_TRAINING */
+        { 215,    0,    0}      /* T38_IND_V33_14400_TRAINING */
     };
 
     if (s->current_rx_type == T30_MODEM_DONE  ||  s->current_tx_type == T30_MODEM_DONE)
@@ -496,7 +558,9 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
         /* Switch on a fast modem, and give the training time to complete */
         t38_core_send_indicator(&s->t38, s->next_tx_indicator, s->t38.indicator_tx_count);
         s->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_3;
-        s->next_tx_samples += ms_to_samples((s->use_tep)  ?  training_time[s->next_tx_indicator].with_tep  :  training_time[s->next_tx_indicator].without_tep);
+        s->next_tx_samples += ms_to_samples(startup_time[s->next_tx_indicator].training);
+        if ((s->chunking_modes & T38_CHUNKING_ALLOW_TEP_TIME))
+            s->next_tx_samples += ms_to_samples(startup_time[s->next_tx_indicator].tep);
         break;
     case T38_TIMED_STEP_NON_ECM_MODEM_3:
         /* Send a chunk of non-ECM image data */
@@ -515,7 +579,7 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
             s->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_4;
         }
         t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_T4_NON_ECM_DATA, buf, len, s->t38.data_tx_count);
-        s->next_tx_samples += s->samples_per_tx_chunk;
+        s->next_tx_samples += bits_to_samples(s, 8*len);
         break;
     case T38_TIMED_STEP_NON_ECM_MODEM_4:
         /* This pads the end of the data with some zeros. If we just stop abruptly
@@ -531,12 +595,14 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
             memset(buf, 0, len);
             t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_T4_NON_ECM_SIG_END, buf, len, s->t38.data_end_tx_count);
             s->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_5;
-            s->next_tx_samples += ms_to_samples(60);
+            /* Allow a bit more time than the data will take to play out, to ensure the far ATA does not
+               cut things short. */
+            s->next_tx_samples += (bits_to_samples(s, 8*len) + ms_to_samples(60));
             break;
         }
         memset(buf, 0, len);
         t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_T4_NON_ECM_DATA, buf, len, s->t38.data_tx_count);
-        s->next_tx_samples += s->samples_per_tx_chunk;
+        s->next_tx_samples += bits_to_samples(s, 8*len);
         break;
     case T38_TIMED_STEP_NON_ECM_MODEM_5:
         /* This should not be needed, since the message above indicates the end of the signal, but it
@@ -548,16 +614,25 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
     case T38_TIMED_STEP_HDLC_MODEM:
         /* Send HDLC preambling */
         t38_core_send_indicator(&s->t38, s->next_tx_indicator, s->t38.indicator_tx_count);
-        s->next_tx_samples += ms_to_samples((s->use_tep)  ?  training_time[s->next_tx_indicator].with_tep_with_flags  :  training_time[s->next_tx_indicator].without_tep_with_flags);
+        s->next_tx_samples += ms_to_samples(startup_time[s->next_tx_indicator].training + startup_time[s->next_tx_indicator].flags);
+        if (s->chunking_modes & T38_CHUNKING_ALLOW_TEP_TIME)
+            s->next_tx_samples += ms_to_samples(startup_time[s->next_tx_indicator].tep);
         s->timed_step = T38_TIMED_STEP_HDLC_MODEM_2;
         break;
     case T38_TIMED_STEP_HDLC_MODEM_2:
         /* Send a chunk of HDLC data */
+#if 0
+        if (s->tx_ptr == 0)
+        {
+            total_bits = bits_in_stuffed_frame(s->tx_buf, s->tx_len);
+            samples = bits_to_samples(s, total_bits);
+        }
+#endif
         i = s->tx_len - s->tx_ptr;
         if (s->octets_per_data_packet >= i)
         {
-            /* The last part of the HDLC frame */
-            if (s->merge_tx_fields)
+            /* The last part of an HDLC frame */
+            if (s->chunking_modes & T38_CHUNKING_MERGE_FCS_WITH_DATA)
             {
                 /* Copy the data, as we might be about to refill the buffer it is in */
                 memcpy(buf, &s->tx_buf[s->tx_ptr], i);
@@ -575,13 +650,17 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
                 {
                     data_fields[1].field_type = T38_FIELD_HDLC_FCS_OK_SIG_END;
                     s->timed_step = T38_TIMED_STEP_HDLC_MODEM_4;
-                    s->next_tx_samples += (s->samples_per_tx_chunk*i/s->octets_per_data_packet + s->samples_per_fcs + 100);
+                    /* Allow for the data, 2 FCS octets, and 2 flag octets. */
+                    /* We add a bit of extra time here, as with some implementations
+                       the carrier falling too abruptly causes data loss. */
+                    s->next_tx_samples += (bits_to_samples(s, (i + 4)*8) + ms_to_samples(100));
                 }
                 else
                 {
                     data_fields[1].field_type = T38_FIELD_HDLC_FCS_OK;
                     s->timed_step = T38_TIMED_STEP_HDLC_MODEM_2;
-                    s->next_tx_samples += (s->samples_per_tx_chunk*i/s->octets_per_data_packet + s->samples_per_fcs);
+                    /* Allow for the data, 2 FCS octets, and 2 flag octets. */
+                    s->next_tx_samples += bits_to_samples(s, (i + 4)*8);
                 }
                 data_fields[1].field = NULL;
                 data_fields[1].field_len = 0;
@@ -591,13 +670,13 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
             {
                 t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_DATA, &s->tx_buf[s->tx_ptr], i, s->t38.data_tx_count);
                 s->timed_step = T38_TIMED_STEP_HDLC_MODEM_3;
-                s->next_tx_samples += s->samples_per_tx_chunk*i/s->octets_per_data_packet;
+                s->next_tx_samples += bits_to_samples(s, i*8);
             }
             break;
         }
         t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_DATA, &s->tx_buf[s->tx_ptr], s->octets_per_data_packet, s->t38.data_tx_count);
         s->tx_ptr += s->octets_per_data_packet;
-        s->next_tx_samples += s->samples_per_tx_chunk;
+        s->next_tx_samples += bits_to_samples(s, s->octets_per_data_packet*8);
         break;
     case T38_TIMED_STEP_HDLC_MODEM_3:
         /* End of HDLC frame */
@@ -611,8 +690,8 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
             /* End of transmission */
             t38_core_send_data(&s->t38, previous, T38_FIELD_HDLC_FCS_OK_SIG_END, NULL, 0, s->t38.data_end_tx_count);
             s->timed_step = T38_TIMED_STEP_HDLC_MODEM_4;
-            /* TODO: what should be delay really be here? */
-            s->next_tx_samples += (s->samples_per_fcs + ms_to_samples(100));
+            /* Allow for 2 FCS octets, and 2 flag octets. */
+            s->next_tx_samples += (bits_to_samples(s, 4*8) + ms_to_samples(100));
             break;
         }
         if (s->tx_len == 0)
@@ -624,21 +703,17 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
         /* Finish the current frame off, and prepare for the next one. */
         t38_core_send_data(&s->t38, previous, T38_FIELD_HDLC_FCS_OK, NULL, 0, s->t38.data_tx_count);
         s->timed_step = T38_TIMED_STEP_HDLC_MODEM_2;
-        /* We should now wait 2 octet times - the duration of the FCS - and send the next chunk */
-        s->next_tx_samples += s->samples_per_fcs;
+        /* We should now wait 3 octet times - the duration of the FCS + a flag octet - and send the
+           next chunk. To give a little more latitude, and allow for stuffing in the FCS, add
+           time for an extra flag octet. */
+        s->next_tx_samples += bits_to_samples(s, 4*8);
         break;
     case T38_TIMED_STEP_HDLC_MODEM_4:
         /* Note that some boxes do not like us sending a T38_FIELD_HDLC_SIG_END at this point.
            A T38_IND_NO_SIGNAL should always be OK. */
         t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, s->t38.indicator_tx_count);
-        s->tx_len = 0;
+        s->timed_step = T38_TIMED_STEP_NONE;
         t30_front_end_status(&(s->t30_state), T30_FRONT_END_SEND_STEP_COMPLETE);
-        /* The above step might have started a whole new HDLC sequence */
-        if (s->tx_len)
-        {
-            s->timed_step = T38_TIMED_STEP_HDLC_MODEM;
-            s->next_tx_samples += s->samples_per_tx_chunk;
-        }
         break;
     case T38_TIMED_STEP_CED:
         /* It seems common practice to start with a no signal indicator, though
@@ -817,7 +892,6 @@ void t38_terminal_set_config(t38_terminal_state_t *s, int without_pacing)
         s->t38.data_tx_count = 1;
         s->t38.data_end_tx_count = 1;
         s->ms_per_tx_chunk = 0;
-        s->samples_per_tx_chunk = 0;
     }
     else
     {
@@ -826,14 +900,17 @@ void t38_terminal_set_config(t38_terminal_state_t *s, int without_pacing)
         s->t38.data_tx_count = DATA_TX_COUNT;
         s->t38.data_end_tx_count = DATA_END_TX_COUNT;
         s->ms_per_tx_chunk = MS_PER_TX_CHUNK;
-        s->samples_per_tx_chunk = ms_to_samples(MS_PER_TX_CHUNK);
     }
+    set_octets_per_data_packet(s, 300);
 }
 /*- End of function --------------------------------------------------------*/
 
 void t38_terminal_set_tep_mode(t38_terminal_state_t *s, int use_tep)
 {
-    s->use_tep = use_tep;
+    if (use_tep)
+        s->chunking_modes |= T38_CHUNKING_ALLOW_TEP_TIME;
+    else
+        s->chunking_modes &= ~T38_CHUNKING_ALLOW_TEP_TIME;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -879,11 +956,9 @@ t38_terminal_state_t *t38_terminal_init(t38_terminal_state_t *s,
 
     t38_terminal_set_config(s, FALSE);
 
-    s->timed_step = T38_TIMED_STEP_NONE;
     s->current_tx_data_type = T38_DATA_NONE;
     s->next_tx_samples = 0;
-    s->merge_tx_fields = FALSE;
-
+    s->chunking_modes = T38_CHUNKING_ALLOW_TEP_TIME;
 
     t30_init(&(s->t30_state),
              calling_party,

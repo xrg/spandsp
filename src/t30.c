@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.244 2008/05/13 13:17:23 steveu Exp $
+ * $Id: t30.c,v 1.245 2008/05/29 17:26:55 steveu Exp $
  */
 
 /*! \file */
@@ -1782,9 +1782,9 @@ static void unexpected_frame_length(t30_state_t *s, const uint8_t *msg, int len)
 
 static int process_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
 {
-    t30_decode_dis_dtc_dcs(s, msg, len);
     int new_status;
 
+    t30_decode_dis_dtc_dcs(s, msg, len);
     if (len < 6)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Short DIS/DTC frame\n");

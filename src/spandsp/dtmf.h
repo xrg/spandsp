@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.h,v 1.24 2008/04/27 11:58:07 steveu Exp $
+ * $Id: dtmf.h,v 1.26 2008/05/30 13:51:28 steveu Exp $
  */
 
 #if !defined(_SPANDSP_DTMF_H_)
@@ -88,9 +88,11 @@ typedef struct
     float high_level;
     int on_time;
     int off_time;
-    /* The queue structure MUST be followed immediately by the buffer */
-    queue_state_t queue;
-    char digits[MAX_DTMF_DIGITS + 1];
+    union
+    {
+        queue_state_t queue;
+        uint8_t buf[QUEUE_STATE_T_SIZE(MAX_DTMF_DIGITS)];
+    } queue;
 } dtmf_tx_state_t;
 
 /*!
@@ -159,7 +161,7 @@ int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples);
            assumed to be a NULL terminated string.
     \return The number of digits actually added. This may be less than the
             length of the digit string, if the buffer fills up. */
-size_t dtmf_tx_put(dtmf_tx_state_t *s, const char *digits, ssize_t len);
+size_t dtmf_tx_put(dtmf_tx_state_t *s, const char *digits, int len);
 
 /*! \brief Change the transmit level for a DTMF tone generator context.
     \param s The DTMF generator context.

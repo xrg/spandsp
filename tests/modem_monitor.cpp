@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_monitor.cpp,v 1.14 2007/12/20 10:56:11 steveu Exp $
+ * $Id: modem_monitor.cpp,v 1.15 2008/05/27 15:08:21 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -30,6 +30,8 @@
 #endif
 
 #if defined(HAVE_FL_FL_H)  &&  defined(HAVE_FL_FL_CARTESIAN_H)
+
+#define __STDC_LIMIT_MACROS
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -47,7 +49,7 @@
 #include <FL/Fl_Output.H>
 #include <FL/fl_draw.H>
 
-#include "../src/spandsp/complex.h"
+#include "spandsp.h"
 
 #define SYMBOL_TRACKER_POINTS   12000
 #define CARRIER_TRACKER_POINTS  12000
