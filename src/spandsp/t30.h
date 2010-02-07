@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.110 2008/06/28 02:14:26 steveu Exp $
+ * $Id: t30.h,v 1.111 2008/07/30 14:47:06 steveu Exp $
  */
 
 /*! \file */
@@ -601,7 +601,9 @@ struct t30_state_s
     int rx_signal_present;
     /*! \brief TRUE if a modem has trained correctly. */
     int rx_trained;
+    /*! \brief Current reception mode. */
     int current_rx_type;
+    /*! \brief Current transmission mode. */
     int current_tx_type;
 
     /*! \brief T0 is the answer timeout when calling another FAX machine.
@@ -609,11 +611,11 @@ struct t30_state_s
         running until V.21 modulation is sent or received.
         T1 is the remote terminal identification timeout (in audio samples). */
     int timer_t0_t1;
-    /*! \brief T2 is the HDLC command timeout.
-               T4 is the HDLC response timeout (in audio samples). */
+    /*! \brief T2 and T2A are the HDLC command timeouts.
+               T4 and T4A are the HDLC response timeouts (in audio samples). */
     int timer_t2_t4;
-    /*! \brief TRUE if the T2/T4 timer is actually timing T4 */
-    int timer_is_t4;
+    /*! \brief A value specifying which of the possible timers is currently running in timer_t2_t4 */
+    int timer_t2_t4_is;
     /*! \brief Procedural interrupt timeout (in audio samples). */
     int timer_t3;
     /*! \brief This is only used in error correcting mode. */

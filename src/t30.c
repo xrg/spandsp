@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.252 2008/07/22 13:58:40 steveu Exp $
+ * $Id: t30.c,v 1.253 2008/07/30 14:47:06 steveu Exp $
  */
 
 /*! \file */
@@ -206,11 +206,11 @@ enum
 /* Time-out T0 defines the amount of time an automatic calling terminal waits for the called terminal
 to answer the call.
 T0 begins after the dialling of the number is completed and is reset:
-a)       when T0 times out; or
-b)       when timer T1 is started; or
-c)       if the terminal is capable of detecting any condition which indicates that the call will not be
-         successful, when such a condition is detected.
-The recommended value of T0 is 60+-5s; however, when it is anticipated that a long call set-up
+a) when T0 times out; or
+b) when timer T1 is started; or
+c) if the terminal is capable of detecting any condition which indicates that the call will not be
+   successful, when such a condition is detected.
+The recommended value of T0 is 60+-5s. However, when it is anticipated that a long call set-up
 time may be encountered, an alternative value of up to 120s may be used.
 NOTE - National regulations may require the use of other values for T0. */
 #define DEFAULT_TIMER_T0                60000
@@ -225,10 +225,15 @@ transmission using the V.21 modulation scheme. */
 #define DEFAULT_TIMER_T1                35000
 
 /* Time-out T2 makes use of the tight control between commands and responses to detect the loss of
-command/response synchronization. T2 is 6+-1s and begins when initiating a command search
-(e.g., the first entrance into the "command received" subroutine, reference flow diagram in 5.2).
+command/response synchronization. T2 is 6+-1s, and begins when initiating a command search
+(e.g., the first entrance into the "command received" subroutine, reference flow diagram in section 5.2).
 T2 is reset when an HDLC flag is received or when T2 times out. */
 #define DEFAULT_TIMER_T2                7000
+
+/* Once HDLC flags begin, T2 is reset, and a 3s timer begins. This timer is unnamed in T.30. Here we
+term it T2A. No tolerance is specified for this timer. T2A specifies the maximum time to wait for the
+end of a frame, after the initial flag has been seen. */
+#define DEFAULT_TIMER_T2A               3000
 
 /* Time-out T3 defines the amount of time a terminal will attempt to alert the local operator in
 response to a procedural interrupt. Failing to achieve operator intervention, the terminal will
@@ -237,10 +242,19 @@ first detection of a procedural interrupt command/response signal (i.e., PIN/PIP
 reset when T3 times out or when the operator initiates a line request. */
 #define DEFAULT_TIMER_T3                15000
 
-/* NOTE - For manual FAX units, the value of timer T4 may be either 3.0s +-15% or 4.5s +-15%.
+/* Time-out T4 defines the amount of time a terminal will wait for flags to begin, when waiting for a
+response from a remote terminal. T2 is 3s +-15%, and begins when initiating a response search
+(e.g., the first entrance into the "response received" subroutine, reference flow diagram in section 5.2).
+T4 is reset when an HDLC flag is received or when T4 times out.
+NOTE - For manual FAX units, the value of timer T4 may be either 3.0s +-15% or 4.5s +-15%.
 If the value of 4.5s is used, then after detection of a valid response to the first DIS, it may
 be reduced to 3.0s +-15%. T4 = 3.0s +-15% for automatic units. */
 #define DEFAULT_TIMER_T4                3450
+
+/* Once HDLC flags begin, T4 is reset, and a 3s timer begins. This timer is unnamed in T.30. Here we
+term it T4A. No tolerance is specified for this timer. T4A specifies the maximum time to wait for the
+end of a frame, after the initial flag has been seen. */
+#define DEFAULT_TIMER_T4A               3000
 
 /* Time-out T5 is defined for the optional T.4 error correction mode. Time-out T5 defines the amount
 of time waiting for clearance of the busy condition of the receiving terminal. T5 is 60+-5s and
@@ -250,10 +264,20 @@ transmitting the EOR command. If the timer T5 has expired, the DCN command is tr
 call release. */
 #define DEFAULT_TIMER_T5                65000
 
+/* (Annex C - ISDN) Time-out T6 defines the amount of time two terminals will continue to attempt to
+identify each other. T6 is 5+-0.5s. The timeout begins upon entering Phase B, and is reset upon
+detecting a valid signal, or when T6 times out. */
 #define DEFAULT_TIMER_T6                5000
 
-#define DEFAULT_TIMER_T7                6000
+/* (Annex C - ISDN) Time-out T7 is used to detect loss of command/response synchronization. T7 is 6+-1s.
+The timeout begins when initiating a command search (e.g., the first entrance into the "command received"
+subroutine – see flow diagram in C.5) and is reset upon detecting a valid signal or when T7 times out. */
+#define DEFAULT_TIMER_T7                7000
 
+/* (Annex C - ISDN) Time-out T8 defines the amount of time waiting for clearance of the busy condition
+of the receiving terminal. T8 is 10+-1s. The timeout begins on the first detection of the combination
+of no outstanding corrections and the RNR response. T8 is reset when T8 times out or MCF response is
+received. If the timer T8 expires, a DCN command is transmitted for call release. */
 #define DEFAULT_TIMER_T8                10000
 
 /* Final time we allow for things to flush through the system, before we disconnect, in milliseconds.
@@ -264,6 +288,14 @@ call release. */
    but it could be varied, and the Japanese spec, for example, does make this value a
    variable. */
 #define PPR_LIMIT_BEFORE_CTC_OR_EOR     4
+
+enum
+{
+    TIMER_IS_T2 = 0,
+    TIMER_IS_T2A = 1,
+    TIMER_IS_T4 = 2,
+    TIMER_IS_T4A = 3
+};
 
 /* Start points in the fallback table for different capabilities */
 #define T30_V17_FALLBACK_START          0
@@ -302,7 +334,9 @@ static void decode_url_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int le
 static int set_min_scan_time_code(t30_state_t *s);
 static int send_cfr_sequence(t30_state_t *s, int start);
 static void timer_t2_start(t30_state_t *s);
+static void timer_t2a_start(t30_state_t *s);
 static void timer_t4_start(t30_state_t *s);
+static void timer_t4a_start(t30_state_t *s);
 
 #define test_ctrl_bit(s,bit) ((s)[3 + ((bit - 1)/8)] & (1 << ((bit - 1)%8)))
 #define set_ctrl_bit(s,bit) (s)[3 + ((bit - 1)/8)] |= (1 << ((bit - 1)%8))
@@ -2103,9 +2137,9 @@ static int process_rx_dcs(t30_state_t *s, const uint8_t *msg, int len)
     }
     if (!(s->iaf & T30_IAF_MODE_NO_TCF))
     {
-        timer_t2_start(s);
         set_state(s, T30_STATE_F_TCF);
         set_phase(s, T30_PHASE_C_NON_ECM_RX);
+        timer_t2_start(s);
     }
     return 0;
 }
@@ -2218,8 +2252,8 @@ static int process_rx_pps(t30_state_t *s, const uint8_t *msg, int len)
     case T30_PRI_MPS:
         if (s->receiver_not_ready_count > 0)
         {
-            queue_phase(s, T30_PHASE_D_TX);
             s->receiver_not_ready_count--;
+            queue_phase(s, T30_PHASE_D_TX);
             set_state(s, T30_STATE_F_POST_RCP_RNR);
             send_simple_frame(s, T30_RNR);
         }
@@ -2282,8 +2316,8 @@ static void process_rx_ppr(t30_state_t *s, const uint8_t *msg, int len)
         if (s->ecm_progress)
         {
             s->ecm_progress = 0;
-            set_state(s, T30_STATE_IV_CTC);
             queue_phase(s, T30_PHASE_D_TX);
+            set_state(s, T30_STATE_IV_CTC);
             send_simple_frame(s, T30_CTC);
         }
         else
@@ -2667,6 +2701,9 @@ static void process_state_f_ftt(t30_state_t *s, const uint8_t *msg, int len)
     /* We're waiting for a response to the FTT we sent */
     switch (msg[2] & 0xFE)
     {
+    case T30_DCS:
+        process_rx_dcs(s, msg, len);
+        break;
     case T30_CRP:
         repeat_last_command(s);
         break;
@@ -2980,8 +3017,8 @@ static void process_state_f_doc_ecm(t30_state_t *s, const uint8_t *msg, int len)
         if (s->state == T30_STATE_F_DOC_ECM)
         {
             /* Return to control for partial page */
-            set_state(s, T30_STATE_F_POST_DOC_ECM);
             queue_phase(s, T30_PHASE_D_RX);
+            set_state(s, T30_STATE_F_POST_DOC_ECM);
         }
         else
         {
@@ -3011,6 +3048,7 @@ static void process_state_f_doc_ecm(t30_state_t *s, const uint8_t *msg, int len)
         case T30_EOP:
             s->next_rx_step = fcf2;
             queue_phase(s, T30_PHASE_D_TX);
+            set_state(s, T30_STATE_F_DOC_ECM);
             send_simple_frame(s, T30_ERR);
             break;
         default:
@@ -3025,6 +3063,7 @@ static void process_state_f_doc_ecm(t30_state_t *s, const uint8_t *msg, int len)
         /* T.30 says we change back to long training here */
         s->short_train = FALSE;
         queue_phase(s, T30_PHASE_D_TX);
+        set_state(s, T30_STATE_F_DOC_ECM);
         send_simple_frame(s, T30_CTR);
         break;
     case T30_RR:
@@ -3395,6 +3434,8 @@ static void process_state_iii_q_mcf(t30_state_t *s, const uint8_t *msg, int len)
     case T30_EOM:
     case T30_EOP:
         /* Looks like they didn't see our signal. Repeat it */
+        queue_phase(s, T30_PHASE_D_TX);
+        set_state(s, T30_STATE_III_Q_MCF);
         send_simple_frame(s, T30_MCF);
         break;
     case T30_CRP:
@@ -3422,6 +3463,8 @@ static void process_state_iii_q_rtp(t30_state_t *s, const uint8_t *msg, int len)
     case T30_EOM:
     case T30_EOP:
         /* Looks like they didn't see our signal. Repeat it */
+        queue_phase(s, T30_PHASE_D_TX);
+        set_state(s, T30_STATE_III_Q_RTP);
         send_simple_frame(s, T30_RTP);
         break;
     case T30_CRP:
@@ -3446,6 +3489,8 @@ static void process_state_iii_q_rtn(t30_state_t *s, const uint8_t *msg, int len)
     case T30_EOM:
     case T30_EOP:
         /* Looks like they didn't see our signal. Repeat it */
+        queue_phase(s, T30_PHASE_D_TX);
+        set_state(s, T30_STATE_III_Q_RTN);
         send_simple_frame(s, T30_RTN);
         break;
     case T30_DCN:
@@ -3565,8 +3610,8 @@ static void process_state_iv_pps_null(t30_state_t *s, const uint8_t *msg, int le
     case T30_RNR:
         if (s->timer_t5 == 0)
             s->timer_t5 = ms_to_samples(DEFAULT_TIMER_T5);
-        set_state(s, T30_STATE_IV_PPS_RNR);
         queue_phase(s, T30_PHASE_D_TX);
+        set_state(s, T30_STATE_IV_PPS_RNR);
         send_simple_frame(s, T30_RR);
         break;
     case T30_DCN:
@@ -3667,8 +3712,8 @@ static void process_state_iv_pps_q(t30_state_t *s, const uint8_t *msg, int len)
     case T30_RNR:
         if (s->timer_t5 == 0)
             s->timer_t5 = ms_to_samples(DEFAULT_TIMER_T5);
-        set_state(s, T30_STATE_IV_PPS_RNR);
         queue_phase(s, T30_PHASE_D_TX);
+        set_state(s, T30_STATE_IV_PPS_RNR);
         send_simple_frame(s, T30_RR);
         break;
     case T30_PIP:
@@ -3787,8 +3832,8 @@ static void process_state_iv_pps_rnr(t30_state_t *s, const uint8_t *msg, int len
     case T30_RNR:
         if (s->timer_t5 == 0)
             s->timer_t5 = ms_to_samples(DEFAULT_TIMER_T5);
-        set_state(s, T30_STATE_IV_PPS_RNR);
         queue_phase(s, T30_PHASE_D_TX);
+        set_state(s, T30_STATE_IV_PPS_RNR);
         send_simple_frame(s, T30_RR);
         break;
     case T30_PIP:
@@ -3859,8 +3904,8 @@ static void process_state_iv_eor(t30_state_t *s, const uint8_t *msg, int len)
     case T30_RNR:
         if (s->timer_t5 == 0)
             s->timer_t5 = ms_to_samples(DEFAULT_TIMER_T5);
-        set_state(s, T30_STATE_IV_EOR_RNR);
         queue_phase(s, T30_PHASE_D_TX);
+        set_state(s, T30_STATE_IV_EOR_RNR);
         send_simple_frame(s, T30_RR);
         break;
     case T30_PIN:
@@ -3897,8 +3942,8 @@ static void process_state_iv_eor_rnr(t30_state_t *s, const uint8_t *msg, int len
     case T30_RNR:
         if (s->timer_t5 == 0)
             s->timer_t5 = ms_to_samples(DEFAULT_TIMER_T5);
-        set_state(s, T30_STATE_IV_EOR_RNR);
         queue_phase(s, T30_PHASE_D_TX);
+        set_state(s, T30_STATE_IV_EOR_RNR);
         send_simple_frame(s, T30_RR);
         break;
     case T30_PIN:
@@ -3946,18 +3991,6 @@ static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
     if (s->real_time_frame_handler)
         s->real_time_frame_handler(s, s->real_time_frame_user_data, TRUE, msg, len);
 
-    switch (s->phase)
-    {
-    case T30_PHASE_A_CED:
-    case T30_PHASE_A_CNG:
-    case T30_PHASE_B_RX:
-    case T30_PHASE_C_ECM_RX:
-    case T30_PHASE_D_RX:
-        break;
-    default:
-        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected HDLC frame received in phase %s, state %d\n", phase_names[s->phase], s->state);
-        break;
-    }
     if ((msg[1] & 0x10) == 0)
     {
         /* This is not a final frame */
@@ -3967,10 +4000,21 @@ static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
         if (s->phase != T30_PHASE_C_ECM_RX)
         {
             /* Restart the command or response timer, T2 or T4 */
-            if (s->timer_is_t4)
+            switch (s->timer_t2_t4_is)
+            {
+            case TIMER_IS_T2:
+                timer_t2a_start(s);
+                break;
+            case TIMER_IS_T2A:
+                timer_t2a_start(s);
+                break;
+            case TIMER_IS_T4:
                 timer_t4_start(s);
-            else
-                timer_t2_start(s);
+                break;
+            case TIMER_IS_T4A:
+                timer_t4a_start(s);
+                break;
+            }
         }
         /* The following handles all the message types we expect to get without
            a final frame tag. If we get one that T.30 says we should not expect
@@ -4413,14 +4457,28 @@ static void repeat_last_command(t30_state_t *s)
 static void timer_t2_start(t30_state_t *s)
 {
     s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2);
-    s->timer_is_t4 = FALSE;
+    s->timer_t2_t4_is = TIMER_IS_T2;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void timer_t2a_start(t30_state_t *s)
+{
+    s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2A);
+    s->timer_t2_t4_is = TIMER_IS_T2A;
 }
 /*- End of function --------------------------------------------------------*/
 
 static void timer_t4_start(t30_state_t *s)
 {
     s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T4);
-    s->timer_is_t4 = TRUE;
+    s->timer_t2_t4_is = TIMER_IS_T4;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void timer_t4a_start(t30_state_t *s)
+{
+    s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T4A);
+    s->timer_t2_t4_is = TIMER_IS_T4A;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -4524,6 +4582,14 @@ static void timer_t2_expired(t30_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
+static void timer_t2a_expired(t30_state_t *s)
+{
+    span_log(&s->logging, SPAN_LOG_FLOW, "HDLC did not stop in a timely manner in phase %s, state %d\n", phase_names[s->phase], s->state);
+    s->current_status = T30_ERR_HDLC_CARRIER;
+    disconnect(s);
+}
+/*- End of function --------------------------------------------------------*/
+
 static void timer_t3_expired(t30_state_t *s)
 {
     span_log(&s->logging, SPAN_LOG_FLOW, "T3 expired in phase %s, state %d\n", phase_names[s->phase], s->state);
@@ -4567,6 +4633,14 @@ static void timer_t4_expired(t30_state_t *s)
        In the meantime, if we get a meaningful, if somewhat delayed, response, we
        should accept it and carry on. */
     repeat_last_command(s);
+}
+/*- End of function --------------------------------------------------------*/
+
+static void timer_t4a_expired(t30_state_t *s)
+{
+    span_log(&s->logging, SPAN_LOG_FLOW, "HDLC did not stop in a timely manner in phase %s, state %d\n", phase_names[s->phase], s->state);
+    s->current_status = T30_ERR_HDLC_CARRIER;
+    disconnect(s);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -4658,10 +4732,6 @@ void t30_non_ecm_put_bit(void *user_data, int bit)
         case PUTBIT_TRAINING_FAILED:
             span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier training failed in state %d\n", s->state);
             s->rx_trained = FALSE;
-            /* Cancel the timer, since we have actually seen something, and wait until the carrier drops
-               before proceeding. */
-            // TODO: this is not a complete answer to handling failures to train
-            s->timer_t2_t4 = 0;
             break;
         case PUTBIT_TRAINING_SUCCEEDED:
             /* The modem is now trained */
@@ -4976,10 +5046,6 @@ void t30_hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
         case PUTBIT_TRAINING_FAILED:
             span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier training failed in state %d\n", s->state);
             s->rx_trained = FALSE;
-            /* Cancel the timer, since we have actually seen something, and wait until the carrier drops
-               before proceeding. */
-            // TODO: this is not a complete answer to handling failures to train
-            s->timer_t2_t4 = 0;
             break;
         case PUTBIT_TRAINING_SUCCEEDED:
             /* The modem is now trained */
@@ -4995,6 +5061,16 @@ void t30_hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
             span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier down in state %d\n", s->state);
             s->rx_signal_present = FALSE;
             s->rx_trained = FALSE;
+            if (s->timer_t2_t4 > 0)
+            {
+                switch (s->timer_t2_t4_is)
+                {
+                case TIMER_IS_T2A:
+                case TIMER_IS_T4A:
+                    s->timer_t2_t4 = 0;
+                    break;
+                }
+            }
             /* If a phase change has been queued to occur after the receive signal drops,
                its time to change. */
             if (s->next_phase != T30_PHASE_IDLE)
@@ -5012,9 +5088,26 @@ void t30_hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
                 if (s->phase == T30_PHASE_A_CED  ||  s->phase == T30_PHASE_A_CNG)
                     set_phase(s, T30_PHASE_B_RX);
             }
-            /* 5.4.3.1 Timer T2 is reset if flag is received */
-            if (!s->timer_is_t4  &&  s->timer_t2_t4 > 0)
-                s->timer_t2_t4 = 0;
+            /* 5.4.3.1 Timer T2 is reset if flag is received. Timer T2A must be started. */
+            /* Unstated, but implied, is that timer T4 and T4A are handled the same way. */
+            if (s->timer_t2_t4 > 0)
+            {
+                switch(s->timer_t2_t4_is)
+                {
+                case TIMER_IS_T2:
+                    timer_t2a_start(s);
+                    break;
+                case TIMER_IS_T2A:
+                    timer_t2a_start(s);
+                    break;
+                case TIMER_IS_T4:
+                    timer_t4a_start(s);
+                    break;
+                case TIMER_IS_T4A:
+                    timer_t4a_start(s);
+                    break;
+                }
+            }
             break;
         case PUTBIT_ABORT:
             /* Just ignore these */
@@ -5039,8 +5132,16 @@ void t30_hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
     if (!ok)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Bad CRC received\n");
+        /* We either force a resend, or we wait until a resend occurs through a timeout. */
         if ((s->supported_t30_features & T30_SUPPORT_COMMAND_REPEAT))
+        {
+            s->step = 0;
+            if (s->phase == T30_PHASE_B_RX)
+                queue_phase(s, T30_PHASE_B_TX);
+            else
+                queue_phase(s, T30_PHASE_D_TX);
             send_simple_frame(s, T30_CRP);
+        }
         return;
     }
 
@@ -5388,10 +5489,21 @@ void t30_timer_update(t30_state_t *s, int samples)
         s->timer_t2_t4 -= samples;
         if (s->timer_t2_t4 <= 0)
         {
-            if (s->timer_is_t4)
-                timer_t4_expired(s);
-            else
+            switch (s->timer_t2_t4_is)
+            {
+            case TIMER_IS_T2:
                 timer_t2_expired(s);
+                break;
+            case TIMER_IS_T2A:
+                timer_t2a_expired(s);
+                break;
+            case TIMER_IS_T4:
+                timer_t4_expired(s);
+                break;
+            case TIMER_IS_T4A:
+                timer_t4a_expired(s);
+                break;
+            }
         }
     }
     if (s->timer_t5 > 0)

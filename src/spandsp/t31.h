@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.50 2008/07/25 13:56:54 steveu Exp $
+ * $Id: t31.h,v 1.51 2008/07/26 04:53:00 steveu Exp $
  */
 
 /*! \file */
@@ -54,24 +54,8 @@ typedef int (t31_modem_control_handler_t)(t31_state_t *s, void *user_data, int o
 */
 typedef struct
 {
-    /*! TRUE is talker echo protection should be sent for the image modems */
-    int use_tep;
+    fax_modems_state_t modems;
 
-    /*! If TRUE, transmit silence when there is nothing else to transmit. If FALSE return only
-        the actual generated audio. Note that this only affects untimed silences. Timed silences
-        (e.g. the 75ms silence between V.21 and a high speed modem) will alway be transmitted as
-        silent audio. */
-    int transmit_on_idle;
-
-    fax_modems_t modems;
-
-    /*! The current receive signal handler */
-    span_rx_handler_t *rx_handler;
-    void *rx_user_data;
-
-    /*! The current transmit signal handler */
-    span_tx_handler_t *tx_handler;
-    void *tx_user_data;
     /*! The transmit signal handler to be used when the current one has finished sending. */
     span_tx_handler_t *next_tx_handler;
     void *next_tx_user_data;

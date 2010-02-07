@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_modems.h,v 1.1 2008/07/25 13:56:54 steveu Exp $
+ * $Id: fax_modems.h,v 1.2 2008/07/26 04:53:00 steveu Exp $
  */
 
 /*! \file */
@@ -35,6 +35,15 @@
 */
 typedef struct
 {
+    /*! TRUE is talker echo protection should be sent for the image modems */
+    int use_tep;
+
+    /*! If TRUE, transmit silence when there is nothing else to transmit. If FALSE return only
+        the actual generated audio. Note that this only affects untimed silences. Timed silences
+        (e.g. the 75ms silence between V.21 and a high speed modem) will alway be transmitted as
+        silent audio. */
+    int transmit_on_idle;
+
     /*! \brief An HDLC context used when transmitting HDLC messages. */
     hdlc_tx_state_t hdlc_tx;
     /*! \brief An HDLC context used when receiving HDLC messages. */
@@ -70,12 +79,38 @@ typedef struct
     silence_gen_state_t silence_gen;
     /*! \brief */
     dc_restore_state_t dc_restore;
-} fax_modems_t;
+
+    /*! \brief TRUE if a carrier is present. Otherwise FALSE. */
+    int rx_signal_present;
+    /*! \brief TRUE if a modem has trained correctly. */
+    int rx_trained;
+
+    /*! The current receive signal handler */
+    span_rx_handler_t *rx_handler;
+    void *rx_user_data;
+
+    /*! The current transmit signal handler */
+    span_tx_handler_t *tx_handler;
+    void *tx_user_data;
+
+    /*! \brief Audio logging file handle for received audio. */
+    int audio_rx_log;
+    /*! \brief Audio logging file handle for transmitted audio. */
+    int audio_tx_log;
+    /*! \brief Error and flow logging control */
+    logging_state_t logging;
+} fax_modems_state_t;
 
 #if defined(__cplusplus)
 extern "C"
 {
 #endif
+
+/* N.B. the following are currently a work in progress */
+int fax_modems_v17_v21_rx(void *user_data, const int16_t amp[], int len);
+int fax_modems_v27ter_v21_rx(void *user_data, const int16_t amp[], int len);
+int fax_modems_v29_v21_rx(void *user_data, const int16_t amp[], int len);
+fax_modems_state_t *fax_modems_init(fax_modems_state_t *s, void *user_data);
 
 #if defined(__cplusplus)
 }

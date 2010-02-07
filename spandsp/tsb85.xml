@@ -30,7 +30,7 @@
             <check name="MRGN01M02" desc="CED is 2.6s to 4s"/>
         </step>
         <!--<step dir="R" type="NSF/CSI/DIS">-->
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ...">
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000">
             <check name="MRGN01M03" desc="receipt of DIS"/>
             <check name="MRGN01M04" desc="CED to DIS silence is 55ms to 95ms"/>
             <check name="MRGN01M05" desc="preamble is 850ms to 1150ms"/>
@@ -40,6 +40,7 @@
             <check name="MRGN01M09" desc="DIS framing"/>
             <check name="MRGN01M10" desc="DIS FIF content"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -48,11 +49,12 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21">
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000">
             <check name="MRGN01M11" desc="Respond CFR to DCS TCF"/>
             <check name="MRGN01M12" desc="CFR preamble"/>
             <check name="MRGN01M13" desc="CFR framing"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -61,9 +63,10 @@
         <step dir="T" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31">
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000">
             <check name="MRGN01M14" desc="Respond MCF to MPS"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -72,11 +75,12 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31">
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000">
             <check name="MRGN01M15" desc="MCF preamble"/>
             <check name="MRGN01M16" desc="MCF framing"/>
             <check name="MRGN01M17" desc="Respond MCF to EOP"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -91,7 +95,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -101,6 +106,7 @@
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
         <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-diago1.tif">
@@ -111,7 +117,8 @@
         <step dir="T" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-diago2.tif">
@@ -122,7 +129,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -135,7 +143,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -144,7 +153,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-duration1.tif">
@@ -155,7 +165,8 @@
         <step dir="T" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-duration2.tif">
@@ -187,7 +198,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -196,7 +208,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-error.tif" bad_rows="
@@ -207,9 +220,10 @@
         <step dir="T" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF or RTP" value="FF C8 31" xxx="FF C8 33">
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF or RTP" value="FF C8 31" xxx="FF C8 33" timeout="7000">
             <check name="MRGN02M01" desc="Accept 4.9% of scan lines in error"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-error.tif" bad_rows="
@@ -222,9 +236,10 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="RTN" value="FF C8 32">
+        <step dir="R" type="HDLC" modem="V.21" tag="RTN" value="FF C8 32" timeout="7000">
             <check name="MRGN02M01" desc="Reject 15.1% of scan lines in error"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -237,7 +252,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -246,7 +262,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-impress.tif"/>
@@ -255,7 +272,7 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31">
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000">
             <check name="MRGN05M01" desc="Check IMPRESS picture orientation"/>
             <check name="MRGN05M02" desc="Check IMPRESS area 9 - horizontal intensity"/>
             <check name="MRGN05M03" desc="Check IMPRESS area 2 - horizontal alignment"/>
@@ -269,6 +286,7 @@
             <check name="MRGN05M11" desc="Check IMPRESS area 14 - black cross on white"/>
             <check name="MRGN05M12" desc="Check IMPRESS area 15 - vertical one pixel wide line"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -281,20 +299,21 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="55"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="DCS" value="FF C8 41 00 50 00">
             <check name="MRGN06M01" desc="Low side of acceptable DIS to DCS limit as receiver (55ms)"/>
-            <check name="MRGN06M02" desc="High side of acceptable DIS to DCS limit as receiver (2650ms)"/>
             <check name="MRGN06M03" desc="Accept DCS with 8 byte FIF"/>
         </step>
         <step dir="T" type="POSTAMBLE"/>
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="810"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="55"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -303,7 +322,8 @@
         <step dir="T" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="55"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -312,7 +332,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -325,20 +346,21 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
-        <step type="WAIT" value="2650"/>
+        <step type="WAIT" value="2550"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="DCS" value="FF C8 41 00 50 00">
-            <check name="MRGN06M01" desc="Low side of acceptable DIS to DCS limit as receiver (55ms)"/>
-            <check name="MRGN06M02" desc="High side of acceptable DIS to DCS limit as receiver (2650ms)"/>
+            <check name="MRGN06M02" desc="High side of acceptable DIS to DCS limit as receiver (2550ms)"/>
             <check name="MRGN06M03" desc="Accept DCS with 8 byte FIF"/>
         </step>
         <step dir="T" type="POSTAMBLE"/>
-        <step type="WAIT" value="75"/>
+        <step type="WAIT" value="95"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="990"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="5000"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -347,7 +369,8 @@
         <step dir="T" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="5000"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -356,7 +379,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -369,7 +393,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -378,18 +403,20 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900" pattern="1010"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="FTT" value="FF C8 22">
+        <step dir="R" type="HDLC" modem="V.21" tag="FTT" value="FF C8 22" timeout="7000">
             <check name="MRGN07M01" desc="FTT returned for corrupted TCF pattern"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="DCS" value="FF C8 41 00 50 00"/>
         <step dir="T" type="POSTAMBLE"/>
         <step type="WAIT" value="75"/>
-        <step dir="T" type="TCF" modem="V.27ter/4800" value="900" pattern="10101010101010101010101010101010101010101010101010000000000"/>
+        <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -398,7 +425,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -411,7 +439,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -420,11 +449,12 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/2400" value="450"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="FTT" value="FF C8 22">
+        <step dir="R" type="HDLC" modem="V.21" tag="FTT" value="FF C8 22" timeout="7000">
             <check name="MRGN07M01" desc="FTT returned for corrupted TCF pattern"/>
             <check name="MRGN07M02" desc="FTT preamble between 850ms and 1150ms"/>
             <check name="MRGN07M03" desc="FTT is 0xFF, 0xC8, FCF with MSB of zero, and no FIF bytes"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -433,9 +463,10 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21">
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000">
             <check name="MRGN07M04" desc="Accept TCF"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -444,7 +475,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -455,7 +487,8 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -464,7 +497,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -473,12 +507,14 @@
         <step dir="T" type="HDLC" tag="EOM" value="FF C8 71"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ...">
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000">
             <check name="MRGN09M01" desc="Device goes to phase B after receiving EOM"/>
             <check name="MRGN09M02" desc="T2 elapses after MCF response to EOM"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -487,7 +523,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -496,7 +533,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -509,11 +547,12 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ...">
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="7000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="7000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="7000">
             <check name="MRGN10M01" desc="Two non-responses to DIS"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -522,7 +561,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -531,7 +571,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -544,7 +585,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -553,7 +595,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -562,9 +605,10 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ...">
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="7000">
             <check name="MRGN11M01" desc="Two bad FCS responses to first DIS"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -573,7 +617,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -582,7 +627,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -595,22 +641,26 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
-        <step dir="T" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58"/>
+        <step dir="T" type="HDLC" tag="CRP" value="FF C8 58"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
-        <step dir="T" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58">
+        <step dir="T" type="PREAMBLE" modem="V.21"/>
+        <step dir="T" type="HDLC" tag="CRP" value="FF C8 58">
             <check name="MRGN12M01" desc="Two CRP responses to first DIS"/>
         </step>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -619,7 +669,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -628,7 +679,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -641,33 +693,36 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="DCS" value="FF C8 41 00 50 00"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="FTT" value="FF C8 22"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="FTT" value="FF C8 22" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="DCS" value="FF C8 41 00 50 00"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="FTT" value="FF C8 22">
+        <step dir="R" type="HDLC" modem="V.21" tag="FTT" value="FF C8 22" timeout="7000">
             <check name="MRGN13M01" desc="Two DCS lacking TCF responses to first DIS"/>
-
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
-        <step dir="T" type="POSTAMBLE"/>
         <step dir="T" type="HDLC" tag="DCS" value="FF C8 41 00 50 00"/>
+        <step dir="T" type="POSTAMBLE"/>
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -676,7 +731,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -689,7 +745,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -698,7 +755,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -707,9 +765,10 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing">
+        <step type="WAIT" value="7000"> <!-- dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing" timeout="7000"> -->
             <check name="MRGN14M01" desc="One bad FCS DCS command after CFR"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -718,7 +777,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -727,7 +787,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="DCN" value="FF C8 5F"/>
@@ -739,7 +800,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -748,16 +810,18 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="DCS" value="FF C8 41 00 50 00"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="FTT" value="FF C8 22">
+        <step dir="R" type="HDLC" modem="V.21" tag="FTT" value="FF C8 22" timeout="7000">
             <check name="MRGN15M01" desc="One DCS lacking TCF command after CFR"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -766,7 +830,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -775,7 +840,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -788,7 +854,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -797,7 +864,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -806,23 +874,29 @@
         <step dir="T" type="HDLC" tag="EOM" value="FF C8 71"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="EOM" value="FF C8 71"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
+        <step type="WAIT" value="75"/>
+        <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="EOM" value="FF C8 71">
             <check name="MRGN16M01" desc="Repeated EOM commands"/>
         </step>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -831,7 +905,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -840,14 +915,16 @@
         <step dir="T" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -856,15 +933,18 @@
         </step>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -873,7 +953,8 @@
         </step>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -886,7 +967,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -895,7 +977,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -904,25 +987,28 @@
         <step dir="T" type="HDLC" tag="EOM" value="FF C8 71" crc="BAD"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing"/>
+        <!-- <step dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing" timeout="7000"/> -->
+        <step type="WAIT" value="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="EOM" value="FF C8 71" crc="BAD"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing"/>
+        <!-- <step dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing" timeout="7000"/> -->
+        <step type="WAIT" value="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="EOM" value="FF C8 71"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31">
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000">
             <check name="MRGN17M01" desc="Do not respond to bad EOM commands"/>
         </step>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -931,7 +1017,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -940,23 +1027,26 @@
         <step dir="T" type="HDLC" tag="MPS" value="FF C8 72" crc="BAD"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing"/>
+        <!-- <step dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing" timeout="7000"/> -->
+        <step type="WAIT" value="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MPS" value="FF C8 72" crc="BAD"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing"/>
+        <!-- <step dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing" timeout="7000"/> -->
+        <step type="WAIT" value="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31">
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000">
             <check name="MRGN17M02" desc="Do not respond to bad MPS commands"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -965,24 +1055,27 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74" crc="BAD"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing"/>
+        <!-- <step dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing" timeout="7000"/> -->
+        <step type="WAIT" value="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74" crc="BAD"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing"/>
+        <!-- <step dir="R" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58 | nothing" timeout="7000"/> -->
+        <step type="WAIT" value="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31">
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000">
             <check name="MRGN17M03" desc="Do not respond to bad EOP commands"/>
         </step>
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -997,7 +1090,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1006,7 +1100,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-diago1.tif"/>
@@ -1015,7 +1110,8 @@
         <step dir="T" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-diago2.tif"/>
@@ -1024,7 +1120,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1037,7 +1134,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1046,7 +1144,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -1055,7 +1154,8 @@
         <step dir="T" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -1064,7 +1164,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1077,7 +1178,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1086,7 +1188,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-impress.tif"/>
@@ -1095,7 +1198,8 @@
         <step dir="T" type="HDLC" tag="EOP" value="FF C8 74"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1110,7 +1214,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1119,7 +1224,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP"/>
@@ -1128,7 +1234,8 @@
         <step dir="T" type="PPS-NULL"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP"/>
@@ -1138,14 +1245,16 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
+            <step dir="R" type="SILENCE"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="RR"/>
             <step dir="T" type="POSTAMBLE"/>
         </possible-step>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP"/>
@@ -1153,14 +1262,16 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
+            <step dir="R" type="SILENCE"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="RR"/>
             <step dir="T" type="POSTAMBLE"/>
         </possible-step>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1173,7 +1284,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1182,7 +1294,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
@@ -1190,7 +1303,8 @@
         <step dir="T" type="PPS-NULL"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="PPR"/>
+        <step dir="R" type="PPR" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP"/>
@@ -1198,7 +1312,8 @@
         <step dir="T" type="PPS-NULL"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
@@ -1206,7 +1321,8 @@
         <step dir="T" type="PPS-MPS"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="PPR"/>
+        <step dir="R" type="PPR" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP"/>
@@ -1214,7 +1330,8 @@
         <step dir="T" type="PPS-MPS"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
@@ -1222,7 +1339,7 @@
         <step dir="T" type="PPS-MPS"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="PPR"/>
+        <step dir="R" type="PPR" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP"/>
@@ -1231,14 +1348,14 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="RR"/>
             <step dir="T" type="POSTAMBLE"/>
         </possible-step>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
@@ -1246,7 +1363,7 @@
         <step dir="T" type="PPS-EOP"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="PPR"/>
+        <step dir="R" type="PPR" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP"/>
@@ -1255,14 +1372,14 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="RR"/>
             <step dir="T" type="POSTAMBLE"/>
         </possible-step>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1275,7 +1392,7 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1284,7 +1401,7 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
@@ -1293,7 +1410,7 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1301,7 +1418,7 @@
             <step dir="T" type="POSTAMBLE"/>
         </possible-step>
 
-        <step dir="R" type="PPR"/>
+        <step dir="R" type="PPR" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
@@ -1311,7 +1428,7 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1319,7 +1436,7 @@
             <step dir="T" type="POSTAMBLE"/>
         </possible-step>
 
-        <step dir="R" type="PPR"/>
+        <step dir="R" type="PPR" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
@@ -1329,7 +1446,7 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1337,7 +1454,7 @@
             <step dir="T" type="POSTAMBLE"/>
         </possible-step>
 
-        <step dir="R" type="PPR"/>
+        <step dir="R" type="PPR" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
@@ -1347,7 +1464,7 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1362,7 +1479,7 @@
         <step dir="T" type="CTC"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="CTR"/>
+        <step dir="R" type="CTR" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP"/>
@@ -1372,7 +1489,7 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1380,7 +1497,7 @@
             <step dir="T" type="POSTAMBLE"/>
         </possible-step>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1393,7 +1510,7 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1402,7 +1519,7 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
@@ -1412,7 +1529,7 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1420,7 +1537,7 @@
             <step dir="T" type="POSTAMBLE"/>
         </possible-step>
 
-        <step dir="R" type="PPR"/>
+        <step dir="R" type="PPR" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
@@ -1430,7 +1547,7 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1438,7 +1555,7 @@
             <step dir="T" type="POSTAMBLE"/>
         </possible-step>
 
-        <step dir="R" type="PPR"/>
+        <step dir="R" type="PPR" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
@@ -1448,7 +1565,7 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1456,7 +1573,7 @@
             <step dir="T" type="POSTAMBLE"/>
         </possible-step>
 
-        <step dir="R" type="PPR"/>
+        <step dir="R" type="PPR" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP" crc="BAD"/>
@@ -1466,7 +1583,7 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1474,14 +1591,14 @@
             <step dir="T" type="POSTAMBLE"/>
         </possible-step>
 
-        <step dir="R" type="PPR"/>
+        <step dir="R" type="PPR" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="EOR-NULL"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="ERR"/>
+        <step dir="R" type="ERR" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PP-STAIRSTEP"/>
@@ -1491,7 +1608,7 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1499,7 +1616,7 @@
             <step dir="T" type="POSTAMBLE"/>
         </possible-step>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1512,7 +1629,7 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1531,7 +1648,7 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <possible-step>
-            <step dir="R" type="RNR"/>
+            <step dir="R" type="RNR" timeout="7000"/>
 
             <step type="WAIT" value="75"/>
             <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1631,7 +1748,7 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1750,7 +1867,7 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1841,7 +1958,7 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1894,7 +2011,7 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1932,7 +2049,7 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1963,16 +2080,16 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MRGX02">
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -1983,7 +2100,7 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -2007,7 +2124,7 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -2029,7 +2146,7 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -2060,7 +2177,7 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -2089,7 +2206,7 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -2118,7 +2235,7 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -2147,7 +2264,7 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="UNKNOWN_BCS_2"/>
@@ -2181,12 +2298,12 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="UNKNOWN_BCS_3"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="UNKNOWN_BCS_1"/>
@@ -2216,12 +2333,12 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="UNKNOWN_BCS_4"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -2250,7 +2367,7 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -2291,7 +2408,7 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -2321,7 +2438,7 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -2352,7 +2469,7 @@
         <step type="CALL"/>
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -2389,7 +2506,7 @@
         <step dir="T" type="DIS" fif="00 40 10"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGP02">
         <step type="ANSWER"/>
@@ -2403,7 +2520,7 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <step dir="R" type="CIG" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
-        <step dir="R" type="DTC"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DTC" value="FF C8 81 ..."/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -2448,7 +2565,7 @@
         <step dir="T" type="DIS" fif="00 80 11 01 01 01 40"/>
 
         <step dir="R" type="PWD"/>
-        <step dir="R" type="DTC"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DTC" value="FF C8 81 ..."/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -2512,15 +2629,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800"  timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN02">
         <step type="ANSWER"/>
@@ -2542,15 +2659,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN03">
         <step type="ANSWER"/>
@@ -2571,15 +2688,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN04">
         <step type="ANSWER"/>
@@ -2600,15 +2717,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN05">
         <step type="ANSWER"/>
@@ -2629,15 +2746,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN06">
         <step type="ANSWER"/>
@@ -2658,15 +2775,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN07">
         <step type="ANSWER"/>
@@ -2679,7 +2796,7 @@
         <step dir="T" type="DIS" fif="00 00 00"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN08">
         <step type="ANSWER"/>
@@ -2700,7 +2817,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
 
         <step type="WAIT" value="75"/>
@@ -2708,15 +2825,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN09">
         <step type="ANSWER"/>
@@ -2745,15 +2862,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN10">
         <step type="ANSWER"/>
@@ -2788,15 +2905,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN11">
         <step type="ANSWER"/>
@@ -2821,15 +2938,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN12">
         <step type="ANSWER"/>
@@ -2858,15 +2975,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN13">
         <step type="ANSWER"/>
@@ -2895,15 +3012,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN14">
         <step type="ANSWER"/>
@@ -2924,7 +3041,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="EOM" value="FF C8 71"/>
         <step dir="R" type="HDLC" tag="EOM" value="FF C8 71"/>
 
@@ -2946,15 +3063,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN15">
         <step type="ANSWER"/>
@@ -2975,7 +3092,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="EOM" value="FF C8 71"/>
 
         <step type="WAIT" value="75"/>
@@ -3010,15 +3127,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN16">
         <step type="ANSWER"/>
@@ -3039,7 +3156,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="EOM" value="FF C8 71"/>
 
         <step type="WAIT" value="75"/>
@@ -3074,15 +3191,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN17">
         <step type="ANSWER"/>
@@ -3103,7 +3220,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
@@ -3113,15 +3230,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN18">
         <step type="ANSWER"/>
@@ -3142,7 +3259,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
 
         <step type="WAIT" value="75"/>
@@ -3164,15 +3281,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN19">
         <step type="ANSWER"/>
@@ -3193,7 +3310,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
 
         <step type="WAIT" value="75"/>
@@ -3215,15 +3332,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="POSTAMBLE"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN20">
         <step type="ANSWER"/>
@@ -3244,17 +3361,17 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN21">
         <step type="ANSWER"/>
@@ -3275,29 +3392,29 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31" crc="BAD"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31" crc="BAD"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN22">
         <step type="ANSWER"/>
@@ -3318,29 +3435,29 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN23">
         <step type="ANSWER"/>
@@ -3361,7 +3478,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="EOM" value="FF C8 71"/>
 
         <step type="WAIT" value="75"/>
@@ -3382,15 +3499,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN24">
         <step type="ANSWER"/>
@@ -3411,7 +3528,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
 
         <step type="WAIT" value="75"/>
@@ -3427,15 +3544,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN25">
         <step type="ANSWER"/>
@@ -3456,8 +3573,8 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -3469,7 +3586,7 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN26">
         <step type="ANSWER"/>
@@ -3490,7 +3607,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="EOM" value="FF C8 71"/>
 
         <step type="WAIT" value="75"/>
@@ -3511,15 +3628,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN27">
         <step type="ANSWER"/>
@@ -3540,7 +3657,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
 
         <step type="WAIT" value="75"/>
@@ -3556,15 +3673,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGN28">
         <step type="ANSWER"/>
@@ -3585,15 +3702,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="RTN"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
 </test-group>
 <test-group name="Annex G - Capability transmit tests">
@@ -3624,15 +3741,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTGC02">
         <step type="ANSWER"/>
@@ -3661,15 +3778,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTGC03">
         <step type="ANSWER"/>
@@ -3698,15 +3815,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTGC04">
         <step type="ANSWER"/>
@@ -3743,15 +3860,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTGC05">
         <step type="ANSWER"/>
@@ -3780,15 +3897,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTGC06">
         <step type="ANSWER"/>
@@ -3817,15 +3934,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTGC07">
         <step type="ANSWER"/>
@@ -3870,15 +3987,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTGC08">
         <step type="ANSWER"/>
@@ -3931,15 +4048,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTGC09">
         <step type="ANSWER"/>
@@ -3960,7 +4077,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
 
         <step type="WAIT" value="75"/>
@@ -3968,15 +4085,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTGC10">
         <step type="ANSWER"/>
@@ -4008,7 +4125,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
 
         <step type="WAIT" value="75"/>
@@ -4032,15 +4149,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTGC11">
         <step type="ANSWER"/>
@@ -4062,14 +4179,14 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-impress.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
 </test-group>
 <test-group name="Annex H - ECM transmit test procedures">
@@ -4116,7 +4233,7 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTEN02">
         <step type="ANSWER"/>
@@ -4185,7 +4302,7 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTEN03">
         <step type="ANSWER"/>
@@ -4221,7 +4338,7 @@
         <step dir="T" type="RNR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTEN04">
         <step type="ANSWER"/>
@@ -4281,7 +4398,7 @@
         <step dir="T" type="ERR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTEN05">
         <step type="ANSWER"/>
@@ -4349,7 +4466,7 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="OTEN06">
         <step type="ANSWER"/>
@@ -4378,7 +4495,7 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
 </test-group>
 <test-group name="Annex I - Exception transmit test procedures">
@@ -4450,7 +4567,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="EOM" value="FF C8 71"/>
 
         <step type="WAIT" value="75"/>
@@ -4477,7 +4594,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
 
         <step type="WAIT" value="75"/>
@@ -4504,8 +4621,8 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -4529,7 +4646,7 @@
         <step dir="R" type="TCF" modem="V.27ter/4800"/>
         <step dir="R" type="HDLC" tag="DCS" value="FF C8 41 00 50 00"/>
         <step dir="R" type="TCF" modem="V.27ter/4800"/>
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX08">
         <step type="ANSWER"/>
@@ -4550,11 +4667,11 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="EOM" value="FF C8 71"/>
         <step dir="R" type="HDLC" tag="EOM" value="FF C8 71"/>
         <step dir="R" type="HDLC" tag="EOM" value="FF C8 71"/>
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX09">
         <step type="ANSWER"/>
@@ -4575,11 +4692,11 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX10">
         <step type="ANSWER"/>
@@ -4600,11 +4717,11 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
+        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX11">
         <step type="ANSWER"/>
@@ -4641,7 +4758,7 @@
         <step dir="T" type="FTT"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX12">
         <step type="ANSWER"/>
@@ -4678,7 +4795,7 @@
         <step dir="T" type="DIS" fif="00 50 00"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX13">
         <step type="ANSWER"/>
@@ -4715,7 +4832,7 @@
         <step dir="T" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX14">
         <step type="ANSWER"/>
@@ -4736,7 +4853,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="EOM" value="FF C8 71"/>
 
         <step type="WAIT" value="75"/>
@@ -4758,7 +4875,7 @@
         <step dir="T" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX15">
         <step type="ANSWER"/>
@@ -4779,7 +4896,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
 
         <step type="WAIT" value="75"/>
@@ -4801,7 +4918,7 @@
         <step dir="T" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX16">
         <step type="ANSWER"/>
@@ -4814,37 +4931,37 @@
         <step dir="T" type="DIS" fif="00 50 00"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCS" value="FF C8 41 00 50 00"/>
-        <step dir="R" type="TCF" modem="V.27ter/4800"/>
+        <step dir="R" type="HDLC" tag="DCS" value="FF C8 41 00 50 00" timeout="7000"/>
+        <step dir="R" type="TCF" modem="V.27ter/4800" timeout="60000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" modem="V.21" tag="CRP" value="FF C8 58"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX17">
         <step type="ANSWER"/>
@@ -4909,15 +5026,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX19">
         <step type="ANSWER"/>
@@ -4945,15 +5062,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800"  timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX20">
         <step type="ANSWER"/>
@@ -4974,15 +5091,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="T_UNKNOWN_BCS_2"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F">
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000">
             <check name="MTGX20M01" desc="Unknown frame for response received"/>
         </step>
     </test>
@@ -5005,7 +5122,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
 
         <step type="WAIT" value="75"/>
@@ -5022,15 +5139,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800"  timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX22">
         <step type="ANSWER"/>
@@ -5051,7 +5168,7 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
 
         <step type="WAIT" value="75"/>
@@ -5068,15 +5185,15 @@
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
     <test name="MTGX23">
         <step type="ANSWER"/>
@@ -5099,15 +5216,15 @@
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
     </test>
 </test-group>
 <test-group name="Annex J - Polling transmit test procedures">
@@ -5117,13 +5234,14 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ...">
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000">
             <check name="MRGP01M01" desc="DIS exhibits T.4 transmitter ability without password"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
-        <step dir="T" type="DTC" fif="00 50 10"/>
+        <step dir="T" type="HDLC" tag="DTC" value="FF C8 81 00 50 10"/>
         <step dir="T" type="POSTAMBLE"/>
 
         <step dir="R" type="TSI" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20">
@@ -5140,6 +5258,7 @@
         <step dir="R" type="TCF">
             <check name="MRGP01M09" desc="Polled, DCS TCF"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -5154,32 +5273,35 @@
             <check name="MRGP01M12" desc="Polled, MPS preamble"/>
             <check name="MRGP01M13" desc="Polled, MPS framing"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif">
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000">
             <check name="MRGP01M14" desc="Polled, MSG1"/>
         </step>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74">
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000">
             <check name="MRGP01M15" desc="Polled, EOP"/>
             <check name="MRGP01M16" desc="Polled, EOP preamble"/>
             <check name="MRGP01M17" desc="Polled, EOP framing"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F">
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000">
             <check name="MRGP01M18" desc="Polled, DCN"/>
             <check name="MRGP01M19" desc="Polled, DCN preamble"/>
             <check name="MRGP01M20" desc="Polled, DCN framing"/>
             <check name="MRGP01M21" desc="Polled, disconnect after DCN"/>
         </step>
+        <step dir="R" type="SILENCE"/>
     </test>
     <test name="MRGP02">
         <step type="CALL"/>
@@ -5187,45 +5309,51 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ...">
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000">
             <check name="MRGP02M01" desc="DIS exhibits T.4 transmitter ability with password"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="PWD" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
-        <step dir="T" type="DTC" fif="00 50 11 01 01 01 40"/>
+        <step dir="T" type="HDLC" tag="DTC" value="FF C8 81 00 50 11 01 01 01 40"/>
         <step dir="T" type="POSTAMBLE"/>
 
         <step dir="R" type="TSI"/>
         <step dir="R" type="HDLC" tag="DCS" value="FF C8 41 00 50 00">
             <check name="MRGP02M02" desc="Polled, DUT accepts tester's password"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step dir="R" type="TCF" modem="V.27ter/4800"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
     </test>
     <test name="MRGP03">
         <step type="CALL"/>
@@ -5233,17 +5361,19 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
-        <step dir="T" type="PWD" fif="30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
-        <step dir="T" type="DTC" fif="00 50 11 01 01 01 40"/>
+        <step dir="T" type="HDLC" tag="PWD" value="FF C0 83 30 31 32 33 34 35 36 37 38 39 2B 20 20 20 20 20 20 20 20 20"/>
+        <step dir="T" type="HDLC" tag="DTC" value="FF C8 81 00 50 11 01 01 01 40"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F">
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000">
             <check name="MRGP03M01" desc="Polled, DUT rejects tester's password"/>
         </step>
+        <step dir="R" type="SILENCE"/>
     </test>
     <test name="MRGP04">
         <step type="CALL"/>
@@ -5251,16 +5381,18 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
-        <step dir="T" type="DTC"/>
+        <step dir="T" type="HDLC" tag="DTC" value="FF C8 81 00 74 00"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F">
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000">
             <check name="MRGP04M01" desc="Polled, DUT rejects DTC for lack of password"/>
         </step>
+        <step dir="R" type="SILENCE"/>
     </test>
     <test name="MRGP05">
         <step type="CALL"/>
@@ -5268,18 +5400,20 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ...">
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000">
             <check name="MRGP05M01" desc="DIS not exhibit T.4 transmit capability"/>
         </step>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
-        <step dir="T" type="DTC"/>
+        <step dir="T" type="HDLC" tag="DTC" value="FF C8 81 00 74 00"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F">
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000">
             <check name="MRGP05M02" desc="Polled, DUT rejects DTC for no document available"/>
         </step>
+        <step dir="R" type="SILENCE"/>
     </test>
     <test name="MRGP06">
         <step type="CALL"/>
@@ -5287,40 +5421,45 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="DIS" fif="00 50 00"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCS" value="FF C8 41 00 50 00">
+        <step dir="R" type="HDLC" tag="DCS" value="FF C8 41 00 50 00" timeout="7000">
             <check name="MRGP06M01" desc="Polled, DUT accepts DIS in place of DTC"/>
         </step>
-        <step dir="R" type="TCF" modem="V.27ter/4800"/>
+        <step dir="R" type="TCF" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
         <step dir="R" type="HDLC" tag="MPS" value="FF C8 72"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
     </test>
     <test name="MRGP07">
         <step type="CALL"/>
@@ -5328,7 +5467,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -5338,6 +5478,7 @@
         <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F">
             <check name="MRGP07M01" desc="Polled, DUT rejects DIS in place of DTC for lackof password"/>
         </step>
+        <step dir="R" type="SILENCE"/>
     </test>
     <test name="MRGP08">
         <step type="CALL"/>
@@ -5345,7 +5486,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -5355,6 +5497,7 @@
         <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F">
             <check name="MRGP08M01" desc="Polled, DUT rejects DIS in place of DTC for no document available"/>
         </step>
+        <step dir="R" type="SILENCE"/>
     </test>
     <test name="ORGP09">
         <step type="CALL"/>
@@ -5362,7 +5505,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -5371,7 +5515,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -5381,32 +5526,36 @@
         <step dir="T" type="POSTAMBLE"/>
 
         <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
-        <step dir="T" type="DTC" fif="00 74 00"/>
+        <step dir="T" type="HDLC" tag="DTC" value="FF C8 81 00 74 00"/>
         <step dir="T" type="POSTAMBLE"/>
 
         <step dir="R" type="HDLC" tag="DCS" value="FF C8 41 00 50 00">
             <check name="ORGP09M01" desc="Reception followed by invited polling transmission"/>
         </step>
         <step dir="R" type="TCF" modem="V.27ter/4800"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DCN" value="FF C8 5F" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
     </test>
     <test name="ORGP10">
         <step type="CALL"/>
@@ -5414,7 +5563,8 @@
         <!--<step dir="T" type="CNG"/>-->
 
         <step dir="R" type="CED"/>
-        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..."/>
+        <step dir="R" type="HDLC" modem="V.21" tag="DIS" value="FF C8 01 ..." timeout="60000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
@@ -5423,7 +5573,8 @@
         <step type="WAIT" value="75"/>
         <step dir="T" type="TCF" modem="V.27ter/4800" value="900"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="CFR" value="FF C8 21" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="MSG" modem="V.27ter/4800" value="a4-white.tif"/>
@@ -5432,31 +5583,36 @@
         <step dir="T" type="HDLC" tag="EOM" value="FF C8 71"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="MCF" value="FF C8 31" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="2000"/>
-        <step dir="T" type="DTC" fif="00 74 00"/>
+        <step dir="T" type="PREAMBLE" modem="V.21"/>
+        <step dir="T" type="HDLC" tag="DTC" value="FF C8 81 00 74 00"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCS" value="FF C8 41 00 50 00">
+        <step dir="R" type="HDLC" tag="DCS" value="FF C8 41 00 50 00" timeout="7000">
             <check name="ORGP10M01" desc="Reception followed by immediate polling transmission"/>
         </step>
-        <step dir="R" type="TCF" modem="V.27ter/4800"/>
+        <step dir="R" type="TCF" modem="V.27ter/4800" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="CFR"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="MSG"/>
-        <step dir="R" type="HDLC" tag="EOP" value="FF C8 74"/>
+        <step dir="R" type="MSG" modem="V.27ter/4800" timeout="60000"/>
+        <step dir="R" type="HDLC" modem="V.21" tag="EOP" value="FF C8 74" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
 
         <step type="WAIT" value="75"/>
         <step dir="T" type="PREAMBLE" modem="V.21"/>
         <step dir="T" type="HDLC" tag="MCF" value="FF C8 31"/>
         <step dir="T" type="POSTAMBLE"/>
 
-        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F"/>
+        <step dir="R" type="HDLC" tag="DCN" value="FF C8 5F" timeout="7000"/>
+        <step dir="R" type="SILENCE"/>
     </test>
 </test-group>
 </fax-tests>

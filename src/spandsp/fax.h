@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.h,v 1.32 2008/07/25 13:56:54 steveu Exp $
+ * $Id: fax.h,v 1.33 2008/07/26 04:53:00 steveu Exp $
  */
 
 /*! \file */
@@ -47,27 +47,11 @@ typedef void (fax_flush_handler_t)(fax_state_t *s, void *user_data, int which);
 */
 typedef struct
 {
-    /*! TRUE is talker echo protection should be sent for the image modems */
-    int use_tep;
-
-    /*! If TRUE, transmit silence when there is nothing else to transmit. If FALSE return only
-        the actual generated audio. Note that this only affects untimed silences. Timed silences
-        (e.g. the 75ms silence between V.21 and a high speed modem) will alway be transmitted as
-        silent audio. */
-    int transmit_on_idle;
-
-    fax_modems_t modems;
+    fax_modems_state_t modems;
 
     fax_flush_handler_t *flush_handler;
     void *flush_user_data;
 
-    /*! The current receive signal handler */
-    span_rx_handler_t *rx_handler;
-    void *rx_user_data;
-
-    /*! The current transmit signal handler */
-    span_tx_handler_t *tx_handler;
-    void *tx_user_data;
     /*! The transmit signal handler to be used when the current one has finished sending. */
     span_tx_handler_t *next_tx_handler;
     void *next_tx_user_data;
@@ -82,11 +66,6 @@ typedef struct
     int current_rx_type;
     /*! \brief The currently select transmitter type */
     int current_tx_type;
-
-    /*! \brief Audio logging file handle for received audio. */
-    int fax_audio_rx_log;
-    /*! \brief Audio logging file handle for transmitted audio. */
-    int fax_audio_tx_log;
 } fax_modem_front_end_state_t;
 
 /*!

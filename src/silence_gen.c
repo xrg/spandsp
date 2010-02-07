@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: silence_gen.c,v 1.13 2008/07/16 18:09:59 steveu Exp $
+ * $Id: silence_gen.c,v 1.14 2008/07/26 04:53:00 steveu Exp $
  */
 
 /*! \file */
@@ -125,6 +125,21 @@ silence_gen_state_t *silence_gen_init(silence_gen_state_t *s, int silent_samples
     memset(s, 0, sizeof(*s));
     s->remaining_samples = silent_samples;
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+/* The following dummy routines, to absorb data, don't really have a proper home,
+   so they have been put here. */
+
+int span_dummy_rx(void *user_data, const int16_t amp[], int len)
+{
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int span_dummy_mod(void *user_data, int16_t amp[], int len)
+{
+    return len;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

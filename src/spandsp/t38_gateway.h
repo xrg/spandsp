@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.51 2008/07/25 13:56:54 steveu Exp $
+ * $Id: t38_gateway.h,v 1.52 2008/07/26 04:53:00 steveu Exp $
  */
 
 /*! \file */
@@ -96,16 +96,7 @@ typedef struct
 */
 typedef struct
 {
-    /*! \brief Use talker echo protection when transmitting. */
-    int use_tep;    
-
-    /*! \brief If TRUE, transmit silence when there is nothing else to transmit. If FALSE return only
-               the actual generated audio. Note that this only affects untimed silences. Timed silences
-               (e.g. the 75ms silence between V.21 and a high speed modem) will alway be transmitted as
-               silent audio. */
-    int transmit_on_idle;
-
-    fax_modems_t modems;
+    fax_modems_state_t modems;
 
     /*! \brief TRUE if in image data modem is to use short training. */
     int short_train;
@@ -113,31 +104,14 @@ typedef struct
     /*! \brief Progressively calculated CRC for HDLC messaging received from a modem. */
     uint16_t crc;
 
-    /*! \brief TRUE if a carrier is present. Otherwise FALSE. */
-    int rx_signal_present;
-    /*! \brief TRUE if a modem has trained correctly. */
-    int rx_trained;
-
-    /*! \brief The current transmit signal handler */
-    span_tx_handler_t *tx_handler;
-    /*! \brief An opaque pointer, passed to tx_handler. */
-    void *tx_user_data;
     /*! \brief The transmit signal handler to be used when the current one has finished sending. */
     span_tx_handler_t *next_tx_handler;
     /*! \brief An opaque pointer, passed to next_tx_handler. */
     void *next_tx_user_data;
 
-    /*! \brief The immediately active receive signal handler, which may hop between
-               rx_handler and dummy_rx(). */
-    span_rx_handler_t *immediate_rx_handler;
-    /*! \brief The current receive signal handler */
-    span_rx_handler_t *rx_handler;
-    /*! \brief An opaque pointer, passed to rx_handler. */
-    void *rx_user_data;
-
-    /*! \brief Audio logging file handles */
-    int fax_audio_rx_log;
-    int fax_audio_tx_log;
+    /*! \brief The current receive signal handler. Actual receiving hop between this
+               and a dummy receive routine. */
+    span_rx_handler_t *base_rx_handler;
 } t38_gateway_audio_state_t;
 
 /*!

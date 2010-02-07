@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: silence_gen.h,v 1.11 2008/07/16 17:54:23 steveu Exp $
+ * $Id: silence_gen.h,v 1.12 2008/07/26 04:53:00 steveu Exp $
  */
 
 #if !defined(_SPANDSP_SILENCE_GEN_H_)
@@ -104,6 +104,31 @@ void silence_gen_status_handler(silence_gen_state_t *s, modem_tx_status_func_t h
     \return A pointer to the silence generator context.
 */
 silence_gen_state_t *silence_gen_init(silence_gen_state_t *s, int silent_samples);
+
+/* The following dummy routines, to absorb data, don't really have a proper home,
+   so they have been put here. */
+
+/*! A dummy routine to use as a receive callback, when we aren't really
+    trying to process what is received. It just absorbs and ignores the
+    data.
+    \brief Dummy receive callback.
+    \param user_data The context.
+    \param amp The signal.buffer
+    \param len The length of the signal buffer
+    \return 0.
+*/
+int span_dummy_rx(void *user_data, const int16_t amp[], int len);
+
+/*! A dummy routine to use as a signal modifier callback, when we aren't
+    really trying to process the signal. It just returns without affecting
+    anything.
+    \brief Dummy signal modifier callback.
+    \param user_data The context.
+    \param amp The signal.buffer
+    \param len The length of the signal buffer
+    \return 0.
+*/
+int span_dummy_mod(void *user_data, int16_t amp[], int len);
 
 #if defined(__cplusplus)
 }

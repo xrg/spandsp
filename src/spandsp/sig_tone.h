@@ -1,8 +1,8 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * sig_tone.h - Signalling tone processing for the 2280Hz, 2600Hz and similar
- *              signalling tone used in older protocols.
+ * sig_tone.h - Signalling tone processing for the 2280Hz, 2400Hz, 2600Hz
+ *              and similar signalling tone used in older protocols.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.h,v 1.12 2008/04/17 14:27:00 steveu Exp $
+ * $Id: sig_tone.h,v 1.14 2008/07/29 14:15:21 steveu Exp $
  */
 
 /*! \file */
@@ -34,7 +34,21 @@ The signaling tone processor handles the 2280Hz, 2400Hz and 2600Hz tones, used
 in many analogue signaling procotols, and digital ones derived from them.
 
 \section sig_tone_sec_2 How does it work?
-TBD
+Most single and two voice frequency signalling systems share many features, as these
+features have developed in similar ways over time, to address the limitations of
+early tone signalling systems.
+
+The usual practice is to start the generation of tone at a high energy level, so a
+strong signal is available at the receiver, for crisp tone detection. If the tone
+remains on for a significant period, the energy level is reduced, to minimise crosstalk.
+During the signalling transitions, only the tone is sent through the channel, and the media
+signal is suppressed. This means the signalling receiver has a very clean signal to work with,
+allowing for crisp detection of the signalling tone. However, when the signalling tone is on
+for extended periods, there may be supervisory information in the media signal, such as voice
+announcements. To allow these to pass through the system, the signalling tone is mixed with
+the media signal. It is the job of the signalling receiver to separate the signalling tone
+and the media. The necessary filtering may degrade the quality of the voice signal, but at
+least supervisory information may be heard.
 */
 
 #if !defined(_SPANDSP_SIG_TONE_H_)
@@ -45,18 +59,28 @@ typedef int (*sig_tone_func_t)(void *user_data, int what);
 /* The optional tone sets */
 enum
 {
+    /*! European 2280Hz signaling tone */
     SIG_TONE_2280HZ = 1,
+    /*! US 2600Hz signaling tone */
     SIG_TONE_2600HZ,
+    /*! US 2400Hz + 2600Hz signaling tones */
     SIG_TONE_2400HZ_2600HZ
 };
 
-#define SIG_TONE_1_PRESENT          0x001
-#define SIG_TONE_1_CHANGE           0x002
-#define SIG_TONE_2_PRESENT          0x004
-#define SIG_TONE_2_CHANGE           0x008
-#define SIG_TONE_TX_PASSTHROUGH     0x010
-#define SIG_TONE_RX_PASSTHROUGH     0x020
-#define SIG_TONE_UPDATE_REQUEST     0x100
+enum
+{
+    /*! Signaling tone 1 is present */
+    SIG_TONE_1_PRESENT          = 0x001,
+    SIG_TONE_1_CHANGE           = 0x002,
+    /*! Signaling tone 2 is present */
+    SIG_TONE_2_PRESENT          = 0x004,
+    SIG_TONE_2_CHANGE           = 0x008,
+    /*! The media signal is passing through. Tones might be added to it. */
+    SIG_TONE_TX_PASSTHROUGH     = 0x010,
+    /*! The media signal is passing through. Tones might be extracted from it, if detected. */
+    SIG_TONE_RX_PASSTHROUGH     = 0x020,
+    SIG_TONE_UPDATE_REQUEST     = 0x100
+};
 
 /*!
     Signaling tone descriptor. This defines the working state for a
@@ -89,18 +113,34 @@ typedef struct
     /*! \brief The tone off persistence check, in audio samples. */
     int tone_off_check_time;
 
+    int tones;
     /*! \brief The coefficients for the cascaded bi-quads notch filter. */
-    int32_t notch_a1[3];
-    int32_t notch_b1[3];
-    int32_t notch_a2[3];
-    int32_t notch_b2[3];
-    int notch_postscale;
+    struct
+    {
+#if defined(SPANDSP_USE_FIXED_POINT)
+        int32_t notch_a1[3];
+        int32_t notch_b1[3];
+        int32_t notch_a2[3];
+        int32_t notch_b2[3];
+        int notch_postscale;
+#else
+        float notch_a1[3];
+        float notch_b1[3];
+        float notch_a2[3];
+        float notch_b2[3];
+#endif
+    } tone[2];
+
 
     /*! \brief Flat mode bandpass bi-quad parameters */
+#if defined(SPANDSP_USE_FIXED_POINT)
     int32_t broad_a[3];
     int32_t broad_b[3];
     int broad_postscale;
-
+#else
+    float broad_a[3];
+    float broad_b[3];
+#endif
     /*! \brief The coefficients for the post notch leaky integrator. */
     int32_t notch_slugi;
     int32_t notch_slugp;
@@ -131,28 +171,58 @@ typedef struct
     /*! \brief A user specified opaque pointer passed to the callback function. */
     void *user_data;
 
-    /*! \brief Transmit side parameters */
     sig_tone_descriptor_t *desc;
-    int32_t phase_rate[2];
-    int32_t tone_scaling[2];
-    uint32_t phase_acc[2];
 
+    /*! The scaling values for the high and low level tones */
+    int32_t tone_scaling[2];
+    /*! The sample timer, used to switch between the high and low level tones. */
     int high_low_timer;
 
-    /*! \brief The z's for the notch filter */
-    int32_t notch_z1[3];
-    int32_t notch_z2[3];
+    /*! The phase rates for the one or two tones */
+    int32_t phase_rate[2];
+    /*! The phase accumulators for the one or two tones */
+    uint32_t phase_acc[2];
+
+    int current_tx_tone;
+    int current_tx_timeout;
+    int signaling_state_duration;
+} sig_tone_tx_state_t;
+
+typedef struct
+{
+    /*! \brief The callback function used to handle signaling changes. */
+    sig_tone_func_t sig_update;
+    /*! \brief A user specified opaque pointer passed to the callback function. */
+    void *user_data;
+
+    sig_tone_descriptor_t *desc;
+
+    int current_rx_tone;
+    int high_low_timer;
+
+    struct
+    {
+        /*! \brief The z's for the notch filter */
+#if defined(SPANDSP_USE_FIXED_POINT)
+        int32_t notch_z1[3];
+        int32_t notch_z2[3];
+#else
+        float notch_z1[3];
+        float notch_z2[3];
+#endif
+
+        /*! \brief The z's for the notch integrators. */
+        int32_t notch_zl;
+    } tone[2];
 
     /*! \brief The z's for the weighting/bandpass filter. */
+#if defined(SPANDSP_USE_FIXED_POINT)
     int32_t broad_z[3];
-
-    /*! \brief The z's for the integrators. */
-    int32_t notch_zl;
+#else
+    float broad_z[3];
+#endif
+    /*! \brief The z for the broadband integrator. */
     int32_t broad_zl;
-
-    /*! \brief The thresholded data. */
-    int32_t mown_notch;
-    int32_t mown_bandpass;
 
     int flat_mode;
     int tone_present;
@@ -161,24 +231,13 @@ typedef struct
     int notch_insertion_timeout;
     int tone_persistence_timeout;
     
-    int current_tx_tone;
-    int current_tx_timeout;
     int signaling_state_duration;
-} sig_tone_state_t;
+} sig_tone_rx_state_t;
 
 #if defined(__cplusplus)
 extern "C"
 {
 #endif
-
-/*! Initialise a signaling tone context.
-    \brief Initialise a signaling tone context.
-    \param s The signaling tone context.
-    \param tone_type The type of signaling tone.
-    \param sig_update Callback function to handle signaling updates.
-    \param user_data An opaque pointer.
-    \return A pointer to the signalling tone context, or NULL if there was a problem. */
-sig_tone_state_t *sig_tone_init(sig_tone_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data);
 
 /*! Process a block of received audio samples.
     \brief Process a block of received audio samples.
@@ -186,7 +245,16 @@ sig_tone_state_t *sig_tone_init(sig_tone_state_t *s, int tone_type, sig_tone_fun
     \param amp The audio sample buffer.
     \param len The number of samples in the buffer.
     \return The number of samples unprocessed. */
-int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len);
+int sig_tone_rx(sig_tone_rx_state_t *s, int16_t amp[], int len);
+
+/*! Initialise a signaling tone receiver context.
+    \brief Initialise a signaling tone context.
+    \param s The signaling tone context.
+    \param tone_type The type of signaling tone.
+    \param sig_update Callback function to handle signaling updates.
+    \param user_data An opaque pointer.
+    \return A pointer to the signalling tone context, or NULL if there was a problem. */
+sig_tone_rx_state_t *sig_tone_rx_init(sig_tone_rx_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data);
 
 /*! Generate a block of signaling tone audio samples.
     \brief Generate a block of signaling tone audio samples.
@@ -194,7 +262,22 @@ int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len);
     \param amp The audio sample buffer.
     \param len The number of samples to be generated.
     \return The number of samples actually generated. */
-int sig_tone_tx(sig_tone_state_t *s, int16_t amp[], int len);
+int sig_tone_tx(sig_tone_tx_state_t *s, int16_t amp[], int len);
+
+/*! Set the tone mode.
+    \brief Set the tone mode.
+    \param s The signaling tone context.
+    \param mode The new mode for the transmitted tones. */
+void sig_tone_tx_set_mode(sig_tone_tx_state_t *s, int mode);
+
+/*! Initialise a signaling tone transmitter context.
+    \brief Initialise a signaling tone context.
+    \param s The signaling tone context.
+    \param tone_type The type of signaling tone.
+    \param sig_update Callback function to handle signaling updates.
+    \param user_data An opaque pointer.
+    \return A pointer to the signalling tone context, or NULL if there was a problem. */
+sig_tone_tx_state_t *sig_tone_tx_init(sig_tone_tx_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data);
 
 #if defined(__cplusplus)
 }

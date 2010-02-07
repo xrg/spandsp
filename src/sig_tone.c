@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.c,v 1.21 2008/07/02 14:48:26 steveu Exp $
+ * $Id: sig_tone.c,v 1.23 2008/07/29 14:15:21 steveu Exp $
  */
 
 /*! \file */
@@ -45,6 +45,7 @@
 #include <memory.h>
 #include <string.h>
 
+#undef SPANDSP_USE_FIXED_POINT
 #include "spandsp/telephony.h"
 #include "spandsp/dc_restore.h"
 #include "spandsp/complex.h"
@@ -61,31 +62,56 @@ sig_tone_descriptor_t sig_tones[4] =
     {
         /* 2280Hz (e.g. AC15, and many other European protocols) */
         {2280,  0},
-        {-10, -20},
-        400*8,
+        {-10, -20},                 /* -10+-1 dBmO and -20+-1 dBm0 */
+        400*(SAMPLE_RATE/1000),     /* 300ms to 550ms */
     
-        225*8,
+        225*(SAMPLE_RATE/1000),
     
-        225*8,
+        225*(SAMPLE_RATE/1000),
         TRUE,
     
         24,
         64,
-    
-        {  3600,  14397,  32767},
-        {     0,  -9425, -28954},
-        {     0,  14196,  32767},
-        {     0, -17393, -28954},
-        12,
-/*
-    0.1098633,  0.4393615,   1.0,
-    0,         -0.2876274,  -0.8836059,
-    0,          0.4332275,   1.0,
-    0,         -0.5307922,  -0.8836059,
-*/
-        { 12900, -16384, -16384}, 
-        {     0,  -8578, -11796},
+
+        1,
+        {
+            {
+#if defined(SPANDSP_USE_FIXED_POINT)
+                {  3600,        14397,          32767},
+                {     0,        -9425,         -28954},
+                {     0,        14196,          32767},
+                {     0,       -17393,         -28954},
+                12,
+#else
+                {0.878906f,     0.439362f,      1.0f},
+                {0.0f,         -0.287627f,     -0.883605f},
+                {0.0f,          0.433228f,      1.0f},
+                {0.0f,         -0.530792f,     -0.883605f},
+#endif
+            },
+            {
+#if defined(SPANDSP_USE_FIXED_POINT)
+                {     0,            0,              0},
+                {     0,            0,              0},
+                {     0,            0,              0},
+                {     0,            0,              0},
+                0,
+#else
+                {0.0f,          0.0f,           0.0f},
+                {0.0f,          0.0f,           0.0f},
+                {0.0f,          0.0f,           0.0f},
+                {0.0f,          0.0f,           0.0f},
+#endif
+            }
+        },
+#if defined(SPANDSP_USE_FIXED_POINT)
+        { 12900,       -16384,         -16384}, 
+        {     0,        -8578,         -11796},
         15,
+#else
+        {0.393676f,    -0.5f,          -0.5f}, 
+        {0.0f,         -0.261778f,     -0.359985f},
+#endif
 
         31744,
         1024,
@@ -105,30 +131,55 @@ sig_tone_descriptor_t sig_tones[4] =
         /* 2600Hz (e.g. many US protocols) */
         {2600, 0},
         {-8, -8},
-        400*8,
+        400*(SAMPLE_RATE/1000),
     
-        225*8,
+        225*(SAMPLE_RATE/1000),
     
-        225*8,
+        225*(SAMPLE_RATE/1000),
         FALSE,
     
         24,
         64,
-    
-        {  3539,  29569,  32767},
-        {     0, -24010, -28341},
-        {     0,  29844,  32767},
-        {     0, -31208, -28341},
-        12,
-/*
-    0.1080017,  0.9023743,   1.0,
-    0,         -0.7327271,  -0.86489868,
-    0,          0.9107666,   1.0,
-    0,         -0.9523925,  -0.86489868,
-*/
-        { 32768,      0,      0},
-        {     0,      0,      0},
+
+        1,
+        {
+            {            
+#if defined(SPANDSP_USE_FIXED_POINT)
+                {  3539,        29569,          32767},
+                {     0,       -24010,         -28341},
+                {     0,        29844,          32767},
+                {     0,       -31208,         -28341},
+                12,
+#else
+                {0.864014f,     0.902374f,      1.0f},
+                {0.0f,         -0.732727f,     -0.864899f},
+                {0.0f,          0.910766f,      1.0f},
+                {0.0f,         -0.952393f,     -0.864899f},
+#endif
+            },
+            {            
+#if defined(SPANDSP_USE_FIXED_POINT)
+                {     0,            0,              0},
+                {     0,            0,              0},
+                {     0,            0,              0},
+                {     0,            0,              0},
+                0,
+#else
+                {0.0f,          0.0f,           0.0f},
+                {0.0f,          0.0f,           0.0f},
+                {0.0f,          0.0f,           0.0f},
+                {0.0f,          0.0f,           0.0f},
+#endif
+            }
+        },
+#if defined(SPANDSP_USE_FIXED_POINT)
+        { 32768,            0,              0},
+        {     0,            0,              0},
         15,
+#else
+        {1.0f,          0.0f,           0.0f},
+        {0.0f,          0.0f,           0.0f},
+#endif
     
         31744,
         1024,
@@ -145,34 +196,58 @@ sig_tone_descriptor_t sig_tones[4] =
         52
     },
     {
-        /* 2400Hz / 2600Hz (e.g. SS5 and SS5bis) */
+        /* 2400Hz/2600Hz (e.g. SS5 and SS5bis) */
         {2400, 2600},
         {-8, -8},
-        400*8,
-    
-        225*8,
-    
-        225*8,
+        400*(SAMPLE_RATE/1000),
+
+        225*(SAMPLE_RATE/1000),
+
+        225*(SAMPLE_RATE/1000),
         FALSE,
-    
+
         24,
         64,
-    
-        {  3539,  20349,  32767},
-        {     0, -22075, -31856},
-        {     0,  20174,  32767},
-        {     0, -17832, -31836},
-        12,
-/*
-    0.1080017,  0.6210065,   1.0,
-    0,         -0.6736673,  -0.9721678,
-    0,          0.6156693,   1.0,
-    0,         -0.5441804,  -0.9715460,
-*/
-    
-        { 32768,      0,      0},
-        {     0,      0,      0},
+
+        2,
+        {
+            {
+#if defined(SPANDSP_USE_FIXED_POINT)
+                {  3539,        29569,          32767},
+                {     0,       -24010,         -28341},
+                {     0,        29844,          32767},
+                {     0,       -31208,         -28341},
+                12,
+#else
+                {0.864014f,     0.902374f,      1.0f},
+                {0.0f,         -0.732727f,     -0.864899f},
+                {0.0f,          0.910766f,      1.0f},
+                {0.0f,         -0.952393f,     -0.864899f},
+#endif
+            },
+            {
+#if defined(SPANDSP_USE_FIXED_POINT)
+                {  3539,        20349,          32767},
+                {     0,       -22075,         -31856},
+                {     0,        20174,          32767},
+                {     0,       -17832,         -31836},
+                12,
+#else
+                {0.864014f,     0.621007f,      1.0f},
+                {0.0f,         -0.673667f,     -0.972167f},
+                {0.0f,          0.615669f,      1.0f},
+                {0.0f,         -0.544180f,     -0.971546f},
+#endif
+            }
+        },
+#if defined(SPANDSP_USE_FIXED_POINT)
+        { 32768,            0,              0},
+        {     0,            0,              0},
         15,
+#else
+        {1.0f,          0.0f,           0.0f},
+        {0.0f,          0.0f,           0.0f},
+#endif
     
         31744,
         1024,
@@ -190,48 +265,198 @@ sig_tone_descriptor_t sig_tones[4] =
     }
 };
 
-int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len)
+int sig_tone_tx(sig_tone_tx_state_t *s, int16_t amp[], int len)
 {
+    int i;
+    int j;
+    int n;
+    int16_t tone;
+    int update;
+    int high_low;
+
+    for (i = 0;  i < len;  i += n)
+    {
+        if (s->current_tx_timeout < len - i)
+            n = s->current_tx_timeout;
+        else
+            n = len - i;
+        if ((s->current_tx_tone & (SIG_TONE_1_PRESENT  ||  SIG_TONE_2_PRESENT)))
+        {
+            /* Are we in the early phase (high tone energy level), or the sustaining
+               phase (low tone energy level) of tone generation? */
+            if (s->high_low_timer > 0)
+            {
+                if (n > s->high_low_timer)
+                    n = s->high_low_timer;
+                s->high_low_timer -= n;
+                high_low = 0;
+            }
+            else
+            {
+                high_low = 1;
+            }
+            /*endif*/
+            if (s->current_tx_tone & SIG_TONE_TX_PASSTHROUGH)
+            {
+                for (j = i;  j < i + n;  j++)
+                {
+                    tone = dds_mod(&(s->phase_acc[0]), s->phase_rate[0], s->tone_scaling[high_low], 0);
+                    amp[j] = saturate(amp[j] + tone);
+                }
+                /*endfor*/
+            }
+            else
+            {
+                for (j = i;  j < i + n;  j++)
+                    amp[j] = dds_mod(&(s->phase_acc[0]), s->phase_rate[0], s->tone_scaling[high_low], 0);
+                /*endfor*/
+            }
+            /*endif*/
+        }
+        else
+        {
+            /* There is no tone. We either leave the audio in the buffer, or silence it. */
+            if (!(s->current_tx_tone & SIG_TONE_TX_PASSTHROUGH))
+            {
+                /* Zap any audio in the buffer */
+                memset(amp + i, 0, sizeof(int16_t)*n);
+            }
+            /*endif*/
+        }
+        /*endif*/
+        if ((s->current_tx_timeout -= n) <= 0)
+        {
+            if (s->sig_update)
+            {
+                update = s->sig_update(s->user_data, SIG_TONE_UPDATE_REQUEST);
+                if ((update & 0x03) == 0x03)
+                    s->high_low_timer = s->desc->high_low_timeout;
+                /*endif*/
+                s->current_tx_tone = update & 0xFFFF;
+                s->current_tx_timeout = (update >> 16) & 0xFFFF;
+            }
+            /*endif*/
+        }
+        /*endif*/
+    }
+    /*endfor*/
+    return len;
+}
+/*- End of function --------------------------------------------------------*/
+
+void sig_tone_tx_set_mode(sig_tone_tx_state_t *s, int mode)
+{
+    if ((mode & 0x03) == 0x03  &&  !(s->current_tx_tone & SIG_TONE_1_PRESENT))
+        s->high_low_timer = s->desc->high_low_timeout;
+    /*endif*/
+    s->current_tx_tone = mode & 0xFFFF;
+    s->current_tx_timeout = (mode >> 16) & 0xFFFF;
+}
+/*- End of function --------------------------------------------------------*/
+
+sig_tone_tx_state_t *sig_tone_tx_init(sig_tone_tx_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data)
+{
+    int i;
+
+    if (sig_update == NULL  ||  tone_type < 1  ||  tone_type > 3)
+        return NULL;
+    /*endif*/
+
+    if (s == NULL)
+    {
+        if ((s = (sig_tone_tx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
+    memset(s, 0, sizeof(*s));
+
+    s->sig_update = sig_update;
+    s->user_data = user_data;
+
+    s->desc = &sig_tones[tone_type - 1];
+
+    for (i = 0;  i < 2;  i++)
+    {
+        if (s->desc->tone_freq[i])
+            s->phase_rate[i] = dds_phase_rate((float) s->desc->tone_freq[i]);
+        else
+            s->phase_rate[i] = 0;
+        s->tone_scaling[i] = dds_scaling_dbm0((float) s->desc->tone_amp[i]);
+    }
+    return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int sig_tone_rx(sig_tone_rx_state_t *s, int16_t amp[], int len)
+{
+#if defined(SPANDSP_USE_FIXED_POINT)
     int32_t x;
     int32_t notched_signal;
     int32_t bandpass_signal;
+#else
+    float x;
+    float notched_signal;
+    float bandpass_signal;
+#endif
     int i;
+    int j;
+    int32_t mown_notch[2];
+    int32_t mown_bandpass;
 
     for (i = 0;  i < len;  i++)
     {
         if (s->signaling_state_duration < 0xFFFF)
             s->signaling_state_duration++;
         /*endif*/
-        /* The notch filter is two cascaded biquads. */
-        notched_signal = amp[i];
-        
-        notched_signal *= s->desc->notch_a1[0];
-        notched_signal += s->notch_z1[1]*s->desc->notch_b1[1];
-        notched_signal += s->notch_z1[2]*s->desc->notch_b1[2];
-        x = notched_signal;
-        notched_signal += s->notch_z1[1]*s->desc->notch_a1[1];
-        notched_signal += s->notch_z1[2]*s->desc->notch_a1[2];
-        s->notch_z1[2] = s->notch_z1[1];
-        s->notch_z1[1] = x >> 15;
-        
-        notched_signal += s->notch_z2[1]*s->desc->notch_b2[1];
-        notched_signal += s->notch_z2[2]*s->desc->notch_b2[2];
-        x = notched_signal;
-        notched_signal += s->notch_z2[1]*s->desc->notch_a2[1];
-        notched_signal += s->notch_z2[2]*s->desc->notch_a2[2];
-        s->notch_z2[2] = s->notch_z2[1];
-        s->notch_z2[1] = x >> 15;
-        
-        notched_signal >>= s->desc->notch_postscale;
+        for (j = 0;  j < s->desc->tones;  j++)
+        {
+            /* The notch filter is two cascaded biquads. */
+            notched_signal = amp[i];
 
-        /* Modulus and leaky integrate the notched data. The result of
-           this isn't used in low tone detect mode, but we must keep notch_zl
-           rolling along. */
-        s->notch_zl = ((s->notch_zl*s->desc->notch_slugi) >> 15)
-                    + ((abs(notched_signal)*s->desc->notch_slugp) >> 15);
+#if defined(SPANDSP_USE_FIXED_POINT)
+            notched_signal *= s->desc->tone[j].notch_a1[0];
+            notched_signal += s->tone[j].notch_z1[1]*s->desc->tone[j].notch_b1[1];
+            notched_signal += s->tone[j].notch_z1[2]*s->desc->tone[j].notch_b1[2];
+            x = notched_signal;
+            notched_signal += s->tone[j].notch_z1[1]*s->desc->tone[j].notch_a1[1];
+            notched_signal += s->tone[j].notch_z1[2]*s->desc->tone[j].notch_a1[2];
+            s->tone[j].notch_z1[2] = s->tone[j].notch_z1[1];
+            s->tone[j].notch_z1[1] = x >> 15;
 
-        /* Mow the grass to weed out the noise! */
-        s->mown_notch = s->notch_zl & s->desc->notch_threshold;
+            notched_signal += s->tone[j].notch_z2[1]*s->desc->tone[j].notch_b2[1];
+            notched_signal += s->tone[j].notch_z2[2]*s->desc->tone[j].notch_b2[2];
+            x = notched_signal;
+            notched_signal += s->tone[j].notch_z2[1]*s->desc->tone[j].notch_a2[1];
+            notched_signal += s->tone[j].notch_z2[2]*s->desc->tone[j].notch_a2[2];
+            s->tone[j].notch_z2[2] = s->tone[j].notch_z2[1];
+            s->tone[j].notch_z2[1] = x >> 15;
+
+            notched_signal >>= s->desc->notch_postscale;
+#else
+            notched_signal *= s->desc->tone[j].notch_a1[0];
+            notched_signal += s->tone[j].notch_z1[1]*s->desc->tone[j].notch_b1[1];
+            notched_signal += s->tone[j].notch_z1[2]*s->desc->tone[j].notch_b1[2];
+            x = notched_signal;
+            notched_signal += s->tone[j].notch_z1[1]*s->desc->tone[j].notch_a1[1];
+            notched_signal += s->tone[j].notch_z1[2]*s->desc->tone[j].notch_a1[2];
+            s->tone[j].notch_z1[2] = s->tone[j].notch_z1[1];
+            s->tone[j].notch_z1[1] = x;
+
+            notched_signal += s->tone[j].notch_z2[1]*s->desc->tone[j].notch_b2[1];
+            notched_signal += s->tone[j].notch_z2[2]*s->desc->tone[j].notch_b2[2];
+            x = notched_signal;
+            notched_signal += s->tone[j].notch_z2[1]*s->desc->tone[j].notch_a2[1];
+            notched_signal += s->tone[j].notch_z2[2]*s->desc->tone[j].notch_a2[2];
+            s->tone[j].notch_z2[2] = s->tone[j].notch_z2[1];
+            s->tone[j].notch_z2[1] = x;
+#endif
+            /* Modulus and leaky integrate the notched data. The result of
+               this isn't used in low tone detect mode, but we must keep notch_zl
+               rolling along. */
+            s->tone[j].notch_zl = ((s->tone[j].notch_zl*s->desc->notch_slugi) >> 15)
+                                + ((abs(notched_signal)*s->desc->notch_slugp) >> 15);
+            /* Mow the grass to weed out the noise! */
+            mown_notch[j] = s->tone[0].notch_zl & s->desc->notch_threshold;
+        }
 
         if (s->tone_present)
         {
@@ -254,6 +479,7 @@ int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len)
     
             /* The bandpass filter is a single bi-quad stage */
             bandpass_signal = amp[i];
+#if defined(SPANDSP_USE_FIXED_POINT)
             bandpass_signal *= s->desc->broad_a[0];
             bandpass_signal += s->broad_z[1]*s->desc->broad_b[1];
             bandpass_signal += s->broad_z[2]*s->desc->broad_b[2];
@@ -263,7 +489,16 @@ int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len)
             s->broad_z[2] = s->broad_z[1];
             s->broad_z[1] = x >> 15;
             bandpass_signal >>= s->desc->broad_postscale;
-    
+#else
+            bandpass_signal *= s->desc->broad_a[0];
+            bandpass_signal += s->broad_z[1]*s->desc->broad_b[1];
+            bandpass_signal += s->broad_z[2]*s->desc->broad_b[2];
+            x = bandpass_signal;
+            bandpass_signal += s->broad_z[1]*s->desc->broad_a[1];
+            bandpass_signal += s->broad_z[2]*s->desc->broad_a[2];
+            s->broad_z[2] = s->broad_z[1];
+            s->broad_z[1] = x;
+#endif            
             /* Leaky integrate the bandpassed data */
             s->broad_zl = ((s->broad_zl*s->desc->broad_slugi) >> 15)
                         + ((abs(bandpass_signal)*s->desc->broad_slugp) >> 15);
@@ -321,12 +556,12 @@ int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len)
                         + ((abs(amp[i])*s->desc->unfiltered_slugp) >> 15);
      
             /* Mow the grass to weed out the noise! */
-            s->mown_bandpass = s->broad_zl & s->desc->unfiltered_threshold;
+            mown_bandpass = s->broad_zl & s->desc->unfiltered_threshold;
     
             /* Persistence checking and notch insertion logic */
             if (!s->tone_present)
             {
-                if (s->mown_notch < s->mown_bandpass)
+                if (mown_notch[0] < mown_bandpass)
                 {
                     /* Tone is detected this sample */
                     if (s->tone_persistence_timeout <= 0)
@@ -364,7 +599,7 @@ int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len)
             }
             else
             {
-                if (s->mown_notch > s->mown_bandpass)
+                if (mown_notch[0] > mown_bandpass)
                 {
                     /* Tone is not detected this sample */
                     if (s->tone_persistence_timeout <= 0)
@@ -392,9 +627,9 @@ int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len)
         }
         /*endif*/
 
-        if ((s->current_tx_tone & SIG_TONE_RX_PASSTHROUGH))
+        if ((s->current_rx_tone & SIG_TONE_RX_PASSTHROUGH))
         {
-            //if (s->notch_enabled)
+            if (s->notch_enabled)
                 amp[i] = (int16_t) notched_signal;
             /*endif*/
         }
@@ -405,103 +640,20 @@ int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len)
         /*endif*/
     }
     /*endfor*/
-    return  len;
-}
-/*- End of function --------------------------------------------------------*/
-
-int sig_tone_tx(sig_tone_state_t *s, int16_t amp[], int len)
-{
-    int i;
-    int16_t tone;
-    int update;
-    int high_low;
-
-    if (s->current_tx_tone & SIG_TONE_1_PRESENT)
-    {
-        for (i = 0;  i < len;  i++)
-        {
-            if (s->high_low_timer > 0  &&  --s->high_low_timer > 0)
-                high_low = 1;
-            else
-                high_low = 0;
-            /*endif*/
-            tone = dds_mod(&(s->phase_acc[0]), s->phase_rate[0], s->tone_scaling[high_low], 0);
-            if (s->current_tx_tone & SIG_TONE_TX_PASSTHROUGH)
-                amp[i] = saturate(amp[i] + tone);
-            else
-                amp[i] = tone;
-            /*endif*/
-            if (--s->current_tx_timeout <= 0)
-            {
-                if (s->sig_update)
-                {
-                    update = s->sig_update(s->user_data, SIG_TONE_UPDATE_REQUEST);
-                    if ((update & 0x03) == 0x03  &&  !(s->current_tx_tone & SIG_TONE_1_PRESENT))
-                        s->high_low_timer = s->desc->high_low_timeout;
-                    /*endif*/
-                    s->current_tx_tone = update & 0xFFFF;
-                    s->current_tx_timeout = (update >> 16) & 0xFFFF;
-                }
-                /*endif*/
-            }
-            /*endif*/
-        }
-        /*endfor*/
-    }
-    else
-    {
-        for (i = 0;  i < len;  )
-        {
-            if (s->current_tx_timeout < len - i)
-            {
-                if (!(s->current_tx_tone & SIG_TONE_TX_PASSTHROUGH))
-                {
-                    /* Zap any audio in the buffer */
-                    memset(amp + i, 0, sizeof(int16_t)*s->current_tx_timeout);
-                }
-                /*endif*/
-                i += s->current_tx_timeout;
-                if (s->sig_update)
-                {
-                    update = s->sig_update(s->user_data, SIG_TONE_UPDATE_REQUEST);
-                    if ((update & 0x03) == 0x03)
-                        s->high_low_timer = s->desc->high_low_timeout;
-                    /*endif*/
-                    s->current_tx_tone = update & 0xFFFF;
-                    s->current_tx_timeout = (update >> 16) & 0xFFFF;
-                }
-                /*endif*/
-            }
-            else
-            {
-                s->current_tx_timeout -= (len - i);
-                if (!(s->current_tx_tone & SIG_TONE_TX_PASSTHROUGH))
-                {
-                    /* Zap any audio in the buffer */
-                    memset(amp + i, 0, sizeof(int16_t)*(len - i));
-                    i = len;
-                }
-                /*endif*/
-            }
-            /*endif*/
-        }
-        /*endfor*/
-    }
-    /*endif*/
     return len;
 }
 /*- End of function --------------------------------------------------------*/
 
-sig_tone_state_t *sig_tone_init(sig_tone_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data)
+sig_tone_rx_state_t *sig_tone_rx_init(sig_tone_rx_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data)
 {
-    if (tone_type <= 0  ||  tone_type > 3)
+    if (sig_update == NULL  ||  tone_type < 1  ||  tone_type > 3)
         return NULL;
     /*endif*/
 
     if (s == NULL)
     {
-        if ((s = (sig_tone_state_t *) malloc(sizeof(*s))) == NULL)
-            return  NULL;
+        if ((s = (sig_tone_rx_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
     }
     memset(s, 0, sizeof(*s));
 
@@ -510,17 +662,6 @@ sig_tone_state_t *sig_tone_init(sig_tone_state_t *s, int tone_type, sig_tone_fun
 
     s->desc = &sig_tones[tone_type - 1];
 
-    /* Set up the transmit side */
-    s->phase_rate[0] = dds_phase_rate((float) s->desc->tone_freq[0]);
-    if (s->desc->tone_freq[1])
-        s->phase_rate[1] = dds_phase_rate((float) s->desc->tone_freq[1]);
-    else
-        s->phase_rate[1] = 0;
-    /*endif*/
-    s->tone_scaling[0] = dds_scaling_dbm0((float) s->desc->tone_amp[0]);
-    s->tone_scaling[1] = dds_scaling_dbm0((float) s->desc->tone_amp[1]);
-
-    /* Set up the receive side */
     s->flat_mode_timeout = 0;
     s->notch_insertion_timeout = 0;
     s->tone_persistence_timeout = 0;

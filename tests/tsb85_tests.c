@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tsb85_tests.c,v 1.8 2008/07/25 13:56:54 steveu Exp $
+ * $Id: tsb85_tests.c,v 1.9 2008/07/30 14:47:06 steveu Exp $
  */
 
 /*! \file */
@@ -78,6 +78,9 @@ int test_local_interrupt = FALSE;
 faxtester_state_t state;
 
 uint8_t image[1000000];
+
+uint8_t awaited[1000];
+int awaited_len = 0;
 
 static int next_step(faxtester_state_t *s);
 
@@ -220,10 +223,33 @@ static void faxtester_real_time_frame_handler(faxtester_state_t *s,
                                               const uint8_t *msg,
                                               int len)
 {
+    int i;
+
     printf("Tester: Real time frame handler - %s, %s, length = %d\n",
            (direction)  ?  "line->tester"  : "tester->line",
            t30_frametype(msg[2]),
            len);
+    if (direction  &&  msg[1] == 0x13)
+    {
+        if ((awaited_len >= 0  &&  len != abs(awaited_len))
+            ||
+            (awaited_len < 0  &&  len < abs(awaited_len))
+            ||
+            memcmp(msg, awaited, abs(awaited_len)) != 0)
+        {
+            printf("Expected %d -", awaited_len);
+            for (i = 0;  i < abs(awaited_len);  i++)
+                printf(" %02X", awaited[i]);
+            if (awaited_len < 0)
+                printf(" ...");
+            printf("\n");
+            printf("Received %d -", len);
+            for (i = 0;  i < len;  i++)
+                printf(" %02X", msg[i]);
+            printf("\n");
+            exit(2);
+        }
+    }
     if (msg[1] == 0x13)
         next_step(s);
 }
@@ -232,6 +258,13 @@ static void faxtester_real_time_frame_handler(faxtester_state_t *s,
 static void faxtester_front_end_step_complete_handler(faxtester_state_t *s, void *user_data)
 {
     next_step(s);
+}
+/*- End of function --------------------------------------------------------*/
+
+static void faxtester_front_end_step_timeout_handler(faxtester_state_t *s, void *user_data)
+{
+    printf("FAX tester step timed out\n");
+    exit(2);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -409,6 +442,9 @@ static int next_step(faxtester_state_t *s)
     xmlChar *value;
     xmlChar *tag;
     xmlChar *bad_rows;
+    xmlChar *crc;
+    xmlChar *pattern;
+    xmlChar *timeout;
     uint8_t buf[1000];
     uint8_t mask[1000];
     int i;
@@ -417,6 +453,7 @@ static int next_step(faxtester_state_t *s)
     int min_row_bits;
     int compression;
     int compression_step;
+    int timer;
     int len;
     t4_state_t t4_state;
 
@@ -448,18 +485,28 @@ static int next_step(faxtester_state_t *s)
     value = xmlGetProp(s->cur, (const xmlChar *) "value");
     tag = xmlGetProp(s->cur, (const xmlChar *) "tag");
     bad_rows = xmlGetProp(s->cur, (const xmlChar *) "bad_rows");
+    crc = xmlGetProp(s->cur, (const xmlChar *) "crc");
+    pattern = xmlGetProp(s->cur, (const xmlChar *) "pattern");
+    timeout = xmlGetProp(s->cur, (const xmlChar *) "timeout");
 
     s->cur = s->cur->next;
 
-    printf("Dir - %s, type - %s, modem - %s, value - %s, tag - %s\n",
+    printf("Dir - %s, type - %s, modem - %s, value - %s, timeout - %s, tag - %s\n",
            (dir)  ?  (const char *) dir  :  "",
            (type)  ?  (const char *) type  :  "",
            (modem)  ?  (const char *) modem  :  "",
            (value)  ?  (const char *) value  :  "",
+           (timeout)  ?  (const char *) timeout  :  "",
            (tag)  ?  (const char *) tag  :  "");
     if (type == NULL)
         return 1;
     /*endif*/
+    if (timeout)
+        timer = atoi((const char *) timeout);
+    else
+        timer = -1;
+    faxtester_set_timeout(s, timer);
+
     if (dir  &&  strcasecmp((const char *) dir, "R") == 0)
     {
         if (strcasecmp((const char *) type, "HDLC") == 0)
@@ -467,7 +514,12 @@ static int next_step(faxtester_state_t *s)
             faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
             faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
             i = string_to_msg(buf, mask, (const char *) value);
-            bit_reverse(buf, buf, abs(i));
+            bit_reverse(awaited, buf, abs(i));
+            awaited_len = i;
+        }
+        else if (strcasecmp((const char *) type, "SILENCE") == 0)
+        {
+            faxtest_set_rx_silence(s);
         }
         else
         {
@@ -561,7 +613,10 @@ static int next_step(faxtester_state_t *s)
         {
             i = string_to_msg(buf, mask, (const char *) value);
             bit_reverse(buf, buf, abs(i));
-            faxtester_send_hdlc_msg(s, buf, abs(i));
+            if (crc  &&  strcasecmp((const char *) crc, "BAD") == 0)
+                faxtester_send_hdlc_msg(s, buf, abs(i), FALSE);
+            else
+                faxtester_send_hdlc_msg(s, buf, abs(i), TRUE);
         }
         else if (strcasecmp((const char *) type, "TCF") == 0)
         {
@@ -569,7 +624,15 @@ static int next_step(faxtester_state_t *s)
                 i = atoi((const char *) value);
             else
                 i = 450;
-            memset(image, 0, i);
+            if (pattern)
+            {
+                /* TODO: implement proper patterns */
+                memset(image, 0x55, i);
+            }
+            else
+            {
+                memset(image, 0, i);
+            }
             faxtester_set_image_buffer(s, image, i);
         }
         else if (strcasecmp((const char *) type, "MSG") == 0)
@@ -662,6 +725,7 @@ static void exchange(faxtester_state_t *s)
     faxtester_set_transmit_on_idle(&state, TRUE);
     faxtester_set_real_time_frame_handler(&state, faxtester_real_time_frame_handler, NULL);
     faxtester_set_front_end_step_complete_handler(&state, faxtester_front_end_step_complete_handler, NULL);
+    faxtester_set_front_end_step_timeout_handler(&state, faxtester_front_end_step_timeout_handler, NULL);
 
     fax_init(&fax, FALSE);
     t30 = fax_get_t30_state(&fax);

@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * test_sig_tone.c
+ * sig_tone_tests.c
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone_tests.c,v 1.20 2008/05/13 13:17:26 steveu Exp $
+ * $Id: sig_tone_tests.c,v 1.22 2008/07/29 14:15:21 steveu Exp $
  */
 
 /*! \file */
@@ -45,66 +45,63 @@
 #include <audiofile.h>
 
 #include "spandsp.h"
+#include "spandsp-sim.h"
 
-#define OUT_FILE_NAME   "sig_tone.wav"
+#define OUT_FILE_NAME               "sig_tone.wav"
+
+#define SAMPLES_PER_CHUNK           160
 
 static int sampleno = 0;
 static int tone_1_present = 0;
 static int tone_2_present = 0;
 static int ping = 0;
 
-void map_frequency_response(sig_tone_state_t *s);
+void map_frequency_response(sig_tone_rx_state_t *s);
 
-static int handler(void *user_data, int what)
+static int tx_handler(void *user_data, int what)
 {
     //printf("What - %d\n", what);
-    if ((what & SIG_TONE_1_CHANGE))
-    {
-        tone_1_present = what & SIG_TONE_1_PRESENT;
-        printf("Tone 1 is %s after %d samples\n", (tone_1_present)  ?  "on"  : "off", (what >> 16) & 0xFFFF);
-    }
-    /*endif*/
-    if ((what & SIG_TONE_2_CHANGE))
-    {
-        tone_2_present = what & SIG_TONE_2_PRESENT;
-        printf("Tone 2 is %s after %d samples\n", (tone_2_present)  ?  "on"  : "off", (what >> 16) & 0xFFFF);
-    }
-    /*endif*/
     if ((what & SIG_TONE_UPDATE_REQUEST))
     {
+        printf("Tx: update request\n");
         /* The signaling processor wants to know what to do next */
-        if (sampleno < 800)
+        if (sampleno < ms_to_samples(100))
         {
             /* 100ms off-hook */
             printf("100ms off-hook - %d samples\n", 800 - sampleno);
-            return 0x02 | ((800 - sampleno) << 16) | SIG_TONE_RX_PASSTHROUGH;
+            return 0x02 | ((ms_to_samples(100) - sampleno) << 16);
         }
-        /*endif*/
-        if (sampleno < 4800)
+        else if (sampleno < ms_to_samples(600))
         {
             /* 500ms idle */
-            printf("500ms idle - %d samples\n", 4800 - sampleno);
-            return 0x02 | SIG_TONE_1_PRESENT | ((4800 - sampleno) << 16) | SIG_TONE_RX_PASSTHROUGH;
+            printf("500ms idle - %d samples\n", ms_to_samples(600) - sampleno);
+            return 0x02 | SIG_TONE_1_PRESENT | ((ms_to_samples(600) - sampleno) << 16);
         }
-        /*endif*/
-        if (sampleno < 5600)
+        else if (sampleno < ms_to_samples(700))
         {
             /* 100ms seize */
-            printf("100ms seize - %d samples\n", 5600 - sampleno);
-            return 0x02 | ((5600 - sampleno) << 16) | SIG_TONE_RX_PASSTHROUGH;
+            printf("100ms seize - %d samples\n", ms_to_samples(700) - sampleno);
+            return 0x02 | ((ms_to_samples(700) - sampleno) << 16);
         }
-        /*endif*/
-        if (ping)
+        else if (sampleno < ms_to_samples(1700))
         {
-            printf("33ms break - 262 samples\n");
-            ping = !ping;
-            return 0x02 | (262 << 16) | SIG_TONE_RX_PASSTHROUGH;
+            if (ping)
+            {
+                printf("33ms break - %d samples\n", ms_to_samples(33));
+                ping = !ping;
+                return 0x02 | (ms_to_samples(33) << 16);
+            }
+            else
+            {
+                printf("67ms make - %d samples\n", ms_to_samples(67));
+                ping = !ping;
+                return 0x02 | SIG_TONE_1_PRESENT | (ms_to_samples(67) << 16);
+            }
+            /*endif*/
         }
         else
         {
-            printf("67ms make - 528 samples\n");
-            ping = !ping;
-            return 0x02 |  SIG_TONE_1_PRESENT | (528 << 16) | SIG_TONE_RX_PASSTHROUGH;
+            return 0x02 | SIG_TONE_1_PRESENT | ((ms_to_samples(700) - sampleno) << 16) | SIG_TONE_TX_PASSTHROUGH;
         }
         /*endif*/
     }
@@ -113,7 +110,26 @@ static int handler(void *user_data, int what)
 }
 /*- End of function --------------------------------------------------------*/
 
-void map_frequency_response(sig_tone_state_t *s)
+static int rx_handler(void *user_data, int what)
+{
+    //printf("What - %d\n", what);
+    if ((what & SIG_TONE_1_CHANGE))
+    {
+        tone_1_present = what & SIG_TONE_1_PRESENT;
+        printf("Rx: tone 1 is %s after %d samples\n", (tone_1_present)  ?  "on"  : "off", (what >> 16) & 0xFFFF);
+    }
+    /*endif*/
+    if ((what & SIG_TONE_2_CHANGE))
+    {
+        tone_2_present = what & SIG_TONE_2_PRESENT;
+        printf("Rx: tone 2 is %s after %d samples\n", (tone_2_present)  ?  "on"  : "off", (what >> 16) & 0xFFFF);
+    }
+    /*endif*/
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+void map_frequency_response(sig_tone_rx_state_t *s)
 {
     int16_t buf[8192];
     awgn_state_t noise_source;
@@ -149,19 +165,21 @@ void map_frequency_response(sig_tone_state_t *s)
 
 int main(int argc, char *argv[])
 {
-    int16_t amp[160];
-    int16_t out_amp[2*160];
+    int16_t amp[SAMPLES_PER_CHUNK];
+    int16_t out_amp[2*SAMPLES_PER_CHUNK];
     AFfilehandle outhandle;
     AFfilesetup filesetup;
     int outframes;
     int i;
+    int type;
     int rx_samples;
     int tx_samples;
-    sig_tone_state_t state;
+    sig_tone_tx_state_t tx_state;
+    sig_tone_rx_state_t rx_state;
     awgn_state_t noise_source;
-    
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
+    codec_munge_state_t *munge;
+
+    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
     {
         fprintf(stderr, "    Failed to create file setup\n");
         exit(2);
@@ -172,74 +190,76 @@ int main(int argc, char *argv[])
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
 
-    outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
     /*endif*/
 
-    awgn_init_dbm0(&noise_source, 1234567, -30.0f);
+    awgn_init_dbm0(&noise_source, 1234567, -10.0f);
 
-    printf("2400Hz/26000Hz tests.\n");
-    sig_tone_init(&state, SIG_TONE_2400HZ_2600HZ, handler, NULL);
-    state.current_tx_tone |= SIG_TONE_RX_PASSTHROUGH;
-    
-    map_frequency_response(&state);
-
-    for (sampleno = 0;  sampleno < 20000;  sampleno += 160)
+    for (type = 1;  type <= 3;  type++)
     {
-        tx_samples = 160;
-        for (i = 0;  i < tx_samples;  i++)
-            amp[i] = alaw_to_linear(linear_to_alaw(awgn(&noise_source)));
-        /*endfor*/
-        for (i = 0;  i < tx_samples;  i++)
-            out_amp[2*i] = amp[i];
-        /*endfor*/
-        rx_samples = sig_tone_rx(&state, amp, tx_samples);
-        for (i = 0;  i < rx_samples;  i++)
-            out_amp[2*i + 1] = amp[i];
-        /*endfor*/
-        outframes = afWriteFrames(outhandle,
-                                  AF_DEFAULT_TRACK,
-                                  out_amp,
-                                  rx_samples);
-        if (outframes != rx_samples)
+        sampleno = 0;
+        tone_1_present = 0;
+        tone_2_present = 0;
+        ping = 0;
+        munge = NULL;
+        switch (type)
         {
-            fprintf(stderr, "    Error writing wave file\n");
-            exit(2);
+        case 1:
+            printf("2280Hz tests.\n");
+            munge = codec_munge_init(MUNGE_CODEC_ALAW, 0);
+            sig_tone_tx_init(&tx_state, SIG_TONE_2280HZ, tx_handler, NULL);
+            sig_tone_rx_init(&rx_state, SIG_TONE_2280HZ, rx_handler, NULL);
+            rx_state.current_rx_tone |= SIG_TONE_RX_PASSTHROUGH;
+            break;
+        case 2:
+            printf("26000Hz tests.\n");
+            munge = codec_munge_init(MUNGE_CODEC_ULAW, 0);
+            sig_tone_tx_init(&tx_state, SIG_TONE_2600HZ, tx_handler, NULL);
+            sig_tone_rx_init(&rx_state, SIG_TONE_2600HZ, rx_handler, NULL);
+            rx_state.current_rx_tone |= SIG_TONE_RX_PASSTHROUGH;
+            break;
+        case 3:
+            printf("2400Hz/26000Hz tests.\n");
+            munge = codec_munge_init(MUNGE_CODEC_ULAW, 0);
+            sig_tone_tx_init(&tx_state, SIG_TONE_2400HZ_2600HZ, tx_handler, NULL);
+            sig_tone_rx_init(&rx_state, SIG_TONE_2400HZ_2600HZ, rx_handler, NULL);
+            rx_state.current_rx_tone |= SIG_TONE_RX_PASSTHROUGH;
+            break;
         }
-        /*endif*/
-    }
-
-    printf("2280Hz tests.\n");
-    sig_tone_init(&state, SIG_TONE_2280HZ, handler, NULL);
-    state.current_tx_tone |= SIG_TONE_RX_PASSTHROUGH;
+        /*endswitch*/
     
-    map_frequency_response(&state);
+        //map_frequency_response(&rx_state);
 
-    for (sampleno = 0;  sampleno < 20000;  sampleno += 160)
-    {
-        memset(amp, 0, sizeof(int16_t)*160);
-        tx_samples = sig_tone_tx(&state, amp, 160);
-        for (i = 0;  i < tx_samples;  i++)
-            out_amp[2*i] = amp[i];
-        /*endfor*/
-        rx_samples = sig_tone_rx(&state, amp, tx_samples);
-        for (i = 0;  i < rx_samples;  i++)
-            out_amp[2*i + 1] = amp[i];
-        /*endfor*/
-        outframes = afWriteFrames(outhandle,
-                                  AF_DEFAULT_TRACK,
-                                  out_amp,
-                                  rx_samples);
-        if (outframes != rx_samples)
+        for (sampleno = 0;  sampleno < 20000;  sampleno += SAMPLES_PER_CHUNK)
         {
-            fprintf(stderr, "    Error writing wave file\n");
-            exit(2);
+            for (i = 0;  i < SAMPLES_PER_CHUNK;  i++)
+                amp[i] = awgn(&noise_source);
+            /*endfor*/
+            tx_samples = sig_tone_tx(&tx_state, amp, SAMPLES_PER_CHUNK);
+            for (i = 0;  i < tx_samples;  i++)
+                out_amp[2*i] = amp[i];
+            /*endfor*/
+            codec_munge(munge, amp, tx_samples);
+            rx_samples = sig_tone_rx(&rx_state, amp, tx_samples);
+            for (i = 0;  i < rx_samples;  i++)
+                out_amp[2*i + 1] = amp[i];
+            /*endfor*/
+            outframes = afWriteFrames(outhandle,
+                                      AF_DEFAULT_TRACK,
+                                      out_amp,
+                                      rx_samples);
+            if (outframes != rx_samples)
+            {
+                fprintf(stderr, "    Error writing wave file\n");
+                exit(2);
+            }
+            /*endif*/
         }
-        /*endif*/
+        /*endfor*/
     }
     /*endfor*/
     if (afCloseFile(outhandle) != 0)

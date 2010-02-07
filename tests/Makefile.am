@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.99 2008/07/15 14:28:20 steveu Exp $
+## $Id: Makefile.am,v 1.100 2008/07/28 15:14:30 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -231,7 +231,7 @@ schedule_tests_SOURCES = schedule_tests.c
 schedule_tests_LDADD = $(LIBDIR) -lspandsp 
 
 sig_tone_tests_SOURCES = sig_tone_tests.c
-sig_tone_tests_LDADD = $(LIBDIR) -lspandsp 
+sig_tone_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp 
 
 super_tone_rx_tests_SOURCES = super_tone_rx_tests.c
 super_tone_rx_tests_LDADD = $(LIBDIR) -lspandsp
