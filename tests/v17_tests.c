@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17_tests.c,v 1.94 2008/10/13 14:46:29 steveu Exp $
+ * $Id: v17_tests.c,v 1.95 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \page v17_tests_page V.17 modem tests
@@ -64,13 +64,12 @@ display of modem status is maintained.
 #include <string.h>
 #include <audiofile.h>
 
+//#if defined(WITH_SPANDSP_INTERNALS)
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
+//#endif
+
 #include "spandsp.h"
 #include "spandsp-sim.h"
-
-#if defined(WITH_SPANDSP_INTERNALS)
-#include "spandsp/private/v17tx.h"
-#include "spandsp/private/v17rx.h"
-#endif
 
 #if defined(ENABLE_GUI)
 #include "modem_monitor.h"

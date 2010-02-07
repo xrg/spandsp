@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42_tests.c,v 1.26 2008/11/15 14:43:08 steveu Exp $
+ * $Id: v42_tests.c,v 1.28 2008/11/30 10:17:31 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -42,9 +42,11 @@ then exchanged between them.
 #include <string.h>
 #include <assert.h>
 
-#include "spandsp.h"
+//#if defined(WITH_SPANDSP_INTERNALS)
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
+//#endif
 
-#include "spandsp/private/v42.h"
+#include "spandsp.h"
 
 v42_state_t caller;
 v42_state_t answerer;

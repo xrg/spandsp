@@ -52,8 +52,8 @@ noinst_PROGRAMS = adsi_tests$(EXEEXT) async_tests$(EXEEXT) \
 	gsm0610_tests$(EXEEXT) hdlc_tests$(EXEEXT) \
 	ima_adpcm_tests$(EXEEXT) line_model_tests$(EXEEXT) \
 	logging_tests$(EXEEXT) lpc10_tests$(EXEEXT) \
-	make_g168_css$(EXEEXT) modem_echo_tests$(EXEEXT) \
-	modem_connect_tones_tests$(EXEEXT) noise_tests$(EXEEXT) \
+	modem_connect_tones_tests$(EXEEXT) modem_echo_tests$(EXEEXT) \
+	make_g168_css$(EXEEXT) noise_tests$(EXEEXT) \
 	oki_adpcm_tests$(EXEEXT) playout_tests$(EXEEXT) \
 	plc_tests$(EXEEXT) power_meter_tests$(EXEEXT) \
 	queue_tests$(EXEEXT) r2_mf_rx_tests$(EXEEXT) \

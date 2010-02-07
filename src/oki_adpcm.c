@@ -27,7 +27,7 @@
  * The actual OKI ADPCM encode and decode method is derived from freely
  * available code, whose exact origins seem uncertain.
  *
- * $Id: oki_adpcm.c,v 1.27 2008/05/13 13:17:23 steveu Exp $
+ * $Id: oki_adpcm.c,v 1.28 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \file */
@@ -42,6 +42,7 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/oki_adpcm.h"
+#include "spandsp/private/oki_adpcm.h"
 
 /* Routines to convert 12 bit linear samples to the Oki ADPCM coding format,
    widely used in CTI, because Dialogic use it. */

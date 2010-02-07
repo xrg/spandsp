@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: test_utils.c,v 1.9 2008/10/13 13:13:59 steveu Exp $
+ * $Id: test_utils.c,v 1.10 2008/11/30 10:17:30 steveu Exp $
  */
 
 /*! \file */
@@ -46,10 +46,9 @@
 #include <fcntl.h>
 #include <audiofile.h>
 
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
 #include "spandsp.h"
 #include "spandsp-sim.h"
-
-#include "spandsp/private/g726.h"
 
 #define MAX_FFT_LEN     8192
 

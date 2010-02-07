@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc_tests.c,v 1.47 2008/10/17 18:39:11 steveu Exp $
+ * $Id: hdlc_tests.c,v 1.48 2008/11/30 05:43:37 steveu Exp $
  */
 
 /*! \file */
@@ -43,6 +43,7 @@ using both 16 and 32 bit CRCs.
 #include <string.h>
 
 #include "spandsp.h"
+#include "spandsp/private/hdlc.h"
 
 int ref_len;
 uint8_t buf[1000];

@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.c,v 1.25 2008/09/19 14:02:05 steveu Exp $
+ * $Id: sig_tone.c,v 1.26 2008/11/30 13:08:42 steveu Exp $
  */
 
 /*! \file */
@@ -52,6 +52,8 @@
 #include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/sig_tone.h"
+
+#include "spandsp/private/sig_tone.h"
 
 #define PI 3.14159265358979323
 

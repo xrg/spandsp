@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.c,v 1.62 2008/10/17 18:39:11 steveu Exp $
+ * $Id: hdlc.c,v 1.63 2008/11/30 05:43:37 steveu Exp $
  */
 
 /*! \file */
@@ -41,6 +41,7 @@
 #include "spandsp/crc.h"
 #include "spandsp/bit_operations.h"
 #include "spandsp/hdlc.h"
+#include "spandsp/private/hdlc.h"
 
 static void rx_special_condition(hdlc_rx_state_t *s, int condition)
 {

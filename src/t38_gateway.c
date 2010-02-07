@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.145 2008/11/08 16:51:36 steveu Exp $
+ * $Id: t38_gateway.c,v 1.147 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -83,6 +83,7 @@
 #include "spandsp/t38_non_ecm_buffer.h"
 #include "spandsp/t38_gateway.h"
 
+#include "spandsp/private/logging.h"
 #include "spandsp/private/fsk.h"
 #include "spandsp/private/v17tx.h"
 #include "spandsp/private/v17rx.h"
@@ -91,9 +92,11 @@
 #include "spandsp/private/v29tx.h"
 #include "spandsp/private/v29rx.h"
 #include "spandsp/private/modem_connect_tones.h"
+#include "spandsp/private/hdlc.h"
 #include "spandsp/private/fax_modems.h"
 #include "spandsp/private/t4.h"
 #include "spandsp/private/t30.h"
+#include "spandsp/private/t38_core.h"
 #include "spandsp/private/t38_non_ecm_buffer.h"
 #include "spandsp/private/t38_gateway.h"
 

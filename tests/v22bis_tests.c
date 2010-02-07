@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tests.c,v 1.52 2008/09/07 12:45:17 steveu Exp $
+ * $Id: v22bis_tests.c,v 1.53 2008/11/30 05:43:37 steveu Exp $
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
@@ -52,6 +52,7 @@ display of modem status is maintained.
 #include <string.h>
 #include <audiofile.h>
 
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
 #include "spandsp.h"
 #include "spandsp-sim.h"
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: lpc10_tests.c,v 1.21 2008/08/29 09:28:13 steveu Exp $
+ * $Id: lpc10_tests.c,v 1.22 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \file */
@@ -47,6 +47,10 @@ will be compressed to LPC10 data, decompressed, and the resulting audio stored i
 #include <assert.h>
 #include <ctype.h>
 #include <audiofile.h>
+
+//#if defined(WITH_SPANDSP_INTERNALS)
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
+//#endif
 
 #include "spandsp.h"
 #include "spandsp-sim.h"

@@ -24,7 +24,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.114 2008/10/13 13:14:00 steveu Exp $
+ * $Id: t4.c,v 1.115 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*
@@ -87,6 +87,7 @@
 #include "spandsp/async.h"
 #include "spandsp/t4.h"
 
+#include "spandsp/private/logging.h"
 #include "spandsp/private/t4.h"
 
 #define CM_PER_INCH     2.54f

@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm.c,v 1.29 2008/09/19 14:02:05 steveu Exp $
+ * $Id: ima_adpcm.c,v 1.30 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \file */
@@ -46,6 +46,7 @@
 #include "spandsp/telephony.h"
 #include "spandsp/saturated.h"
 #include "spandsp/ima_adpcm.h"
+#include "spandsp/private/ima_adpcm.h"
 
 /*
  * Intel/DVI ADPCM coder/decoder.

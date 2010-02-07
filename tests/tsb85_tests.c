@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tsb85_tests.c,v 1.25 2008/10/13 13:14:02 steveu Exp $
+ * $Id: tsb85_tests.c,v 1.27 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \file */
@@ -59,20 +59,12 @@
 #include <libxml/xinclude.h>
 #endif
 
+//#if defined(WITH_SPANDSP_INTERNALS)
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
+//#endif
+
 #include "spandsp.h"
 #include "spandsp-sim.h"
-
-#include "spandsp/private/fsk.h"
-#include "spandsp/private/v17tx.h"
-#include "spandsp/private/v17rx.h"
-#include "spandsp/private/v27ter_tx.h"
-#include "spandsp/private/v27ter_rx.h"
-#include "spandsp/private/v29tx.h"
-#include "spandsp/private/v29rx.h"
-#include "spandsp/private/modem_connect_tones.h"
-#include "spandsp/private/fax_modems.h"
-#include "spandsp/private/t4.h"
-#include "spandsp/private/t30.h"
 
 #include "fax_tester.h"
 

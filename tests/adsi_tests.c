@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.47 2008/10/13 14:19:18 steveu Exp $
+ * $Id: adsi_tests.c,v 1.48 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \page adsi_tests_page ADSI tests
@@ -51,14 +51,12 @@ tests, these tests do not include line modelling.
 #include <assert.h>
 #include <audiofile.h>
 
+//#if defined(WITH_SPANDSP_INTERNALS)
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
+//#endif
+
 #include "spandsp.h"
 #include "spandsp-sim.h"
-
-#if defined(WITH_SPANDSP_INTERNALS)
-#include "spandsp/private/dtmf.h"
-#include "spandsp/private/fsk.h"
-#include "spandsp/private/adsi.h"
-#endif
 
 #define OUT_FILE_NAME   "adsi.wav"
 

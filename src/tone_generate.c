@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.c,v 1.46 2008/09/11 15:13:42 steveu Exp $
+ * $Id: tone_generate.c,v 1.47 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \file */
@@ -50,6 +50,8 @@
 #include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/tone_generate.h"
+
+#include "spandsp/private/tone_generate.h"
 
 #if !defined(M_PI)
 /* C99 systems may not define M_PI */

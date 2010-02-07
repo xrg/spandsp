@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.c,v 1.44 2008/11/15 14:43:08 steveu Exp $
+ * $Id: v42.c,v 1.46 2008/11/30 13:44:35 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -47,6 +47,9 @@
 #include "spandsp/queue.h"
 #include "spandsp/v42.h"
 
+#include "spandsp/private/logging.h"
+#include "spandsp/private/schedule.h"
+#include "spandsp/private/hdlc.h"
 #include "spandsp/private/v42.h"
 
 #if !defined(FALSE)

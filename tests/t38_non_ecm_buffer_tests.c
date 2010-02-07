@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_non_ecm_buffer_tests.c,v 1.3 2008/10/13 13:14:01 steveu Exp $
+ * $Id: t38_non_ecm_buffer_tests.c,v 1.4 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -55,9 +55,11 @@ module, used for T.38 gateways.
 #include <sys/time.h>
 #include <audiofile.h>
 
-#include "spandsp.h"
+//#if defined(WITH_SPANDSP_INTERNALS)
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
+//#endif
 
-#include "spandsp/private/t38_non_ecm_buffer.h"
+#include "spandsp.h"
 
 int main(int argc, char *argv[])
 {

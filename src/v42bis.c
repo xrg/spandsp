@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis.c,v 1.33 2008/11/15 14:43:08 steveu Exp $
+ * $Id: v42bis.c,v 1.34 2008/11/30 13:44:35 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. 
@@ -49,6 +49,7 @@
 #include "spandsp/bit_operations.h"
 #include "spandsp/v42bis.h"
 
+#include "spandsp/private/logging.h"
 #include "spandsp/private/v42bis.h"
 
 /* Fixed parameters from the spec. */

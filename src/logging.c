@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: logging.c,v 1.26 2008/05/13 13:17:22 steveu Exp $
+ * $Id: logging.c,v 1.27 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -45,6 +45,8 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
+
+#include "spandsp/private/logging.h"
 
 static void default_message_handler(int level, const char *text);
 

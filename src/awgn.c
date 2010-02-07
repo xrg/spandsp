@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn.c,v 1.17 2008/09/19 14:02:05 steveu Exp $
+ * $Id: awgn.c,v 1.18 2008/11/30 12:38:27 steveu Exp $
  */
 
 /*! \file */
@@ -59,6 +59,8 @@
 #include "spandsp/telephony.h"
 #include "spandsp/saturated.h"
 #include "spandsp/awgn.h"
+
+#include "spandsp/private/awgn.h"
 
 /* Gaussian noise generator constants */
 #define M1 259200

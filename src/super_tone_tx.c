@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.c,v 1.25 2008/07/02 14:48:26 steveu Exp $
+ * $Id: super_tone_tx.c,v 1.26 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \file */
@@ -51,6 +51,9 @@
 #include "spandsp/dds.h"
 #include "spandsp/tone_generate.h"
 #include "spandsp/super_tone_tx.h"
+
+#include "spandsp/private/tone_generate.h"
+#include "spandsp/private/super_tone_tx.h"
 
 /*
     The tone played to wake folk up when they have left the phone off hook is an

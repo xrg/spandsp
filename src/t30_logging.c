@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_logging.c,v 1.7 2008/10/13 13:14:00 steveu Exp $
+ * $Id: t30_logging.c,v 1.8 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -66,6 +66,7 @@
 #include "spandsp/t30.h"
 #include "spandsp/t30_logging.h"
 
+#include "spandsp/private/logging.h"
 #include "spandsp/private/t4.h"
 #include "spandsp/private/t30.h"
 

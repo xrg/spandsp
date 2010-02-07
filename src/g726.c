@@ -48,7 +48,7 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.c,v 1.23 2008/10/13 13:14:00 steveu Exp $
+ * $Id: g726.c,v 1.24 2008/11/30 12:45:09 steveu Exp $
  */
 
 /*! \file */
@@ -75,6 +75,7 @@
 #include "spandsp/g711.h"
 #include "spandsp/g726.h"
 
+#include "spandsp/private/bitstream.h"
 #include "spandsp/private/g726.h"
 
 /*

@@ -22,16 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.97 2008/10/13 13:14:01 steveu Exp $
+ * $Id: fax_tests.c,v 1.98 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
 \section fax_tests_page_sec_1 What does it do?
 \section fax_tests_page_sec_2 How does it work?
 */
-
-/* Enable the following definition to enable direct probing into the FAX structures */
-//#define WITH_SPANDSP_INTERNALS
 
 #if defined(HAVE_CONFIG_H)
 #include "config.h"
@@ -44,13 +41,12 @@
 #include <assert.h>
 #include <audiofile.h>
 
+//#if defined(WITH_SPANDSP_INTERNALS)
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
+//#endif
+
 #include "spandsp.h"
 #include "spandsp-sim.h"
-
-#if defined(WITH_SPANDSP_INTERNALS)
-#include "spandsp/private/t30.h"
-#include "spandsp/private/fax.h"
-#endif
 
 #define SAMPLES_PER_CHUNK       160
 

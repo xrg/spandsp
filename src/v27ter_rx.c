@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.108 2008/10/13 13:14:00 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.109 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -58,6 +58,8 @@
 
 #include "spandsp/v29rx.h"
 #include "spandsp/v27ter_rx.h"
+
+#include "spandsp/private/logging.h"
 #include "spandsp/private/v27ter_rx.h"
 
 #if defined(SPANDSP_USE_FIXED_POINT)

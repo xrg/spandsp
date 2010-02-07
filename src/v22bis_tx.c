@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.45 2008/10/13 13:14:00 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.47 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -56,6 +56,9 @@
 
 #include "spandsp/v29rx.h"
 #include "spandsp/v22bis.h"
+
+#include "spandsp/private/logging.h"
+#include "spandsp/private/v22bis.h"
 
 #if defined(SPANDSP_USE_FIXED_POINT)
 #include "v22bis_tx_fixed_rrc.h"

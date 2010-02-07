@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bitstream.h,v 1.11 2008/10/17 18:39:11 steveu Exp $
+ * $Id: bitstream.h,v 1.12 2008/11/30 12:45:09 steveu Exp $
  */
 
 /*! \file */
@@ -37,13 +37,7 @@
 */
 
 /*! Bitstream handler state */
-typedef struct
-{
-    /*! The bit stream. */
-    uint32_t bitstream;
-    /*! The residual bits in bitstream. */
-    int residue;
-} bitstream_state_t;
+typedef struct bitstream_state_s bitstream_state_t;
 
 
 #if defined(__cplusplus)

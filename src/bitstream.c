@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bitstream.c,v 1.14 2008/10/17 18:39:11 steveu Exp $
+ * $Id: bitstream.c,v 1.15 2008/11/30 12:45:09 steveu Exp $
  */
 
 /*! \file */
@@ -38,6 +38,8 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/bitstream.h"
+
+#include "spandsp/private/bitstream.h"
 
 void bitstream_put(bitstream_state_t *s, uint8_t **c, uint32_t value, int bits)
 {

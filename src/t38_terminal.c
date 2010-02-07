@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.104 2008/10/13 13:14:00 steveu Exp $
+ * $Id: t38_terminal.c,v 1.105 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -72,8 +72,10 @@
 #include "spandsp/t38_core.h"
 #include "spandsp/t38_terminal.h"
 
+#include "spandsp/private/logging.h"
 #include "spandsp/private/t4.h"
 #include "spandsp/private/t30.h"
+#include "spandsp/private/t38_core.h"
 #include "spandsp/private/t38_terminal.h"
 
 /* Settings suitable for paced transmission over a UDP transport */

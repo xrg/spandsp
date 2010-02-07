@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tester.c,v 1.18 2008/10/13 13:14:01 steveu Exp $
+ * $Id: fax_tester.c,v 1.20 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -57,17 +57,11 @@
 #include <libxml/xinclude.h>
 #endif
 
-#include "spandsp.h"
+//#if defined(WITH_SPANDSP_INTERNALS)
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
+//#endif
 
-#include "spandsp/private/fsk.h"
-#include "spandsp/private/v17tx.h"
-#include "spandsp/private/v17rx.h"
-#include "spandsp/private/v27ter_tx.h"
-#include "spandsp/private/v27ter_rx.h"
-#include "spandsp/private/v29tx.h"
-#include "spandsp/private/v29rx.h"
-#include "spandsp/private/modem_connect_tones.h"
-#include "spandsp/private/fax_modems.h"
+#include "spandsp.h"
 
 #include "fax_tester.h"
 

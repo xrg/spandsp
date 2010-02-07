@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk_tests.c,v 1.52 2008/10/13 14:19:18 steveu Exp $
+ * $Id: fsk_tests.c,v 1.53 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \page fsk_tests_page FSK modem tests
@@ -42,9 +42,6 @@ These tests allow either:
 \section fsk_tests_page_sec_2 How does it work?
 */
 
-/* Enable the following definition to enable direct probing into the FAX structures */
-//#define WITH_SPANDSP_INTERNALS
-
 #if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
@@ -56,12 +53,12 @@ These tests allow either:
 #include <assert.h>
 #include <audiofile.h>
 
+//#if defined(WITH_SPANDSP_INTERNALS)
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
+//#endif
+
 #include "spandsp.h"
 #include "spandsp-sim.h"
-
-#if defined(WITH_SPANDSP_INTERNALS)
-#include "spandsp/private/fsk.h"
-#endif
 
 #define BLOCK_LEN           160
 

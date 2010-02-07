@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.c,v 1.80 2008/10/13 13:14:00 steveu Exp $
+ * $Id: v29tx.c,v 1.81 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -53,6 +53,8 @@
 #include "spandsp/power_meter.h"
 
 #include "spandsp/v29tx.h"
+
+#include "spandsp/private/logging.h"
 #include "spandsp/private/v29tx.h"
 
 #include "v29tx_constellation_maps.h"

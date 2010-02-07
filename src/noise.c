@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: noise.c,v 1.25 2008/09/19 14:02:05 steveu Exp $
+ * $Id: noise.c,v 1.26 2008/11/30 12:38:27 steveu Exp $
  */
 
 /*! \file */
@@ -47,6 +47,8 @@
 #include "spandsp/telephony.h"
 #include "spandsp/saturated.h"
 #include "spandsp/noise.h"
+
+#include "spandsp/private/noise.h"
 
 int16_t noise(noise_state_t *s)
 {

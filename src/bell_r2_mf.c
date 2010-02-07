@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.c,v 1.30 2008/10/13 13:14:00 steveu Exp $
+ * $Id: bell_r2_mf.c,v 1.32 2008/11/30 13:08:42 steveu Exp $
  */
 
 /*! \file */
@@ -55,6 +55,8 @@
 #include "spandsp/dtmf.h"
 #include "spandsp/bell_r2_mf.h"
 
+#include "spandsp/private/queue.h"
+#include "spandsp/private/tone_generate.h"
 #include "spandsp/private/bell_r2_mf.h"
 
 #if !defined(M_PI)

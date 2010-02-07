@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.62 2008/10/13 14:19:18 steveu Exp $
+ * $Id: adsi.c,v 1.65 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -60,6 +60,10 @@
 #include "spandsp/dtmf.h"
 #include "spandsp/adsi.h"
 
+#include "spandsp/private/logging.h"
+#include "spandsp/private/queue.h"
+#include "spandsp/private/tone_generate.h"
+#include "spandsp/private/async.h"
 #include "spandsp/private/fsk.h"
 #include "spandsp/private/dtmf.h"
 #include "spandsp/private/adsi.h"

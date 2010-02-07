@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule.c,v 1.17 2008/05/13 13:17:23 steveu Exp $
+ * $Id: schedule.c,v 1.19 2008/11/30 13:44:35 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -37,6 +37,9 @@
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
 #include "spandsp/schedule.h"
+
+#include "spandsp/private/logging.h"
+#include "spandsp/private/schedule.h"
 
 int span_schedule_event(span_sched_state_t *s, int us, span_sched_callback_func_t function, void *user_data)
 {

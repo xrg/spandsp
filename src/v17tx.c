@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.c,v 1.65 2008/10/13 13:14:00 steveu Exp $
+ * $Id: v17tx.c,v 1.66 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -54,6 +54,7 @@
 
 #include "spandsp/v17tx.h"
 
+#include "spandsp/private/logging.h"
 #include "spandsp/private/v17tx.h"
 
 #if defined(SPANDSP_USE_FIXED_POINT)

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g711.c,v 1.11 2008/07/02 14:48:25 steveu Exp $
+ * $Id: g711.c,v 1.12 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \file */
@@ -46,6 +46,7 @@
 #include "spandsp/telephony.h"
 #include "spandsp/bit_operations.h"
 #include "spandsp/g711.h"
+#include "spandsp/private/g711.h"
 
 /* Copied from the CCITT G.711 specification */
 static const uint8_t ulaw_to_alaw_table[256] =

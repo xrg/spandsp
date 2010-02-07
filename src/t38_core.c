@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.c,v 1.45 2008/10/13 13:14:00 steveu Exp $
+ * $Id: t38_core.c,v 1.46 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -52,6 +52,9 @@
 #include "spandsp/logging.h"
 #include "spandsp/bit_operations.h"
 #include "spandsp/t38_core.h"
+
+#include "spandsp/private/logging.h"
+#include "spandsp/private/t38_core.h"
 
 #define ACCEPTABLE_SEQ_NO_OFFSET    2000
 

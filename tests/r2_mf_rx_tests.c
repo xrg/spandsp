@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: r2_mf_rx_tests.c,v 1.11 2008/10/13 13:14:01 steveu Exp $
+ * $Id: r2_mf_rx_tests.c,v 1.12 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \file */
@@ -53,11 +53,11 @@ a fair test of performance in a real PSTN channel.
 #include <time.h>
 #include <audiofile.h>
 
-#include "spandsp.h"
+//#if defined(WITH_SPANDSP_INTERNALS)
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
+//#endif
 
-#if 1 //defined(WITH_SPANDSP_INTERNALS)
-#include "spandsp/private/bell_r2_mf.h"
-#endif
+#include "spandsp.h"
 
 /* R2 tone generation specs.
  *  Power: -11.5dBm +- 1dB

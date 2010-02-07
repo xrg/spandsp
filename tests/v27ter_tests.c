@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tests.c,v 1.96 2008/10/13 14:22:21 steveu Exp $
+ * $Id: v27ter_tests.c,v 1.97 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \page v27ter_tests_page V.27ter modem tests
@@ -63,13 +63,12 @@ display of modem status is maintained.
 #include <string.h>
 #include <audiofile.h>
 
+//#if defined(WITH_SPANDSP_INTERNALS)
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
+//#endif
+
 #include "spandsp.h"
 #include "spandsp-sim.h"
-
-#if defined(WITH_SPANDSP_INTERNALS)
-#include "spandsp/private/v27ter_tx.h"
-#include "spandsp/private/v27ter_rx.h"
-#endif
 
 #if defined(ENABLE_GUI)
 #include "modem_monitor.h"

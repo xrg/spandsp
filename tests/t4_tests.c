@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.62 2008/10/17 18:39:11 steveu Exp $
+ * $Id: t4_tests.c,v 1.63 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -43,9 +43,11 @@ in ITU specifications T.4 and T.6.
 #include <unistd.h>
 #include <memory.h>
 
-#include "spandsp.h"
+//#if defined(WITH_SPANDSP_INTERNALS)
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
+//#endif
 
-#include "spandsp/private/t4.h"
+#include "spandsp.h"
 
 #define IN_FILE_NAME    "../test-data/itu/fax/itutests.tif"
 #define OUT_FILE_NAME   "t4_tests_receive.tif"

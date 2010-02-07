@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_decode.c,v 1.50 2008/10/17 18:39:11 steveu Exp $
+ * $Id: fax_decode.c,v 1.52 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \page fax_decode_page FAX decoder
@@ -43,9 +43,11 @@
 #include <assert.h>
 #include <audiofile.h>
 
+//#if defined(WITH_SPANDSP_INTERNALS)
+#define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
+//#endif
+
 #include "spandsp.h"
-#include "spandsp/private/t4.h"
-#include "spandsp/private/t30.h"
 
 #define SAMPLES_PER_CHUNK   160
 

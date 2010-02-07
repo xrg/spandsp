@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.c,v 1.30 2008/07/24 13:55:23 steveu Exp $
+ * $Id: at_interpreter.c,v 1.32 2008/11/30 13:44:35 steveu Exp $
  */
 
 /*! \file */
@@ -54,6 +54,9 @@
 #include "spandsp/fsk.h"
 
 #include "spandsp/at_interpreter.h"
+
+#include "spandsp/private/logging.h"
+#include "spandsp/private/at_interpreter.h"
 
 #define ms_to_samples(t)        (((t)*SAMPLE_RATE)/1000)
 
@@ -309,8 +312,8 @@ void at_call_event(at_state_t *s, int event)
 
 void at_reset_call_info(at_state_t *s)
 {
-    struct at_call_id *call_id;
-    struct at_call_id *next;
+    at_call_id_t *call_id;
+    at_call_id_t *next;
  
     for (call_id = s->call_id;  call_id;  call_id = next)
     {
@@ -325,11 +328,11 @@ void at_reset_call_info(at_state_t *s)
 
 void at_set_call_info(at_state_t *s, char const *id, char const *value)
 {
-    struct at_call_id *new_call_id;
-    struct at_call_id *call_id;
+    at_call_id_t *new_call_id;
+    at_call_id_t *call_id;
 
     /* TODO: We should really not merely ignore a failure to malloc */
-    if ((new_call_id = (struct at_call_id *) malloc(sizeof(*new_call_id))) == NULL)
+    if ((new_call_id = (at_call_id_t *) malloc(sizeof(*new_call_id))) == NULL)
         return;
     call_id = s->call_id;
     /* If these strdups fail its pretty harmless. We just appear to not
@@ -354,7 +357,7 @@ void at_set_call_info(at_state_t *s, char const *id, char const *value)
 void at_display_call_info(at_state_t *s)
 {
     char buf[132 + 1];
-    struct at_call_id *call_id = s->call_id;
+    at_call_id_t *call_id = s->call_id;
 
     while (call_id)
     {
