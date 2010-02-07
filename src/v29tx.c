@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.c,v 1.75 2008/07/10 13:39:42 steveu Exp $
+ * $Id: v29tx.c,v 1.76 2008/07/16 14:23:47 steveu Exp $
  */
 
 /*! \file */
@@ -87,10 +87,12 @@ static __inline__ int get_scrambled_bit(v29_tx_state_t *s)
     int bit;
     int out_bit;
 
-    if ((bit = s->current_get_bit(s->user_data)) == PUTBIT_END_OF_DATA)
+    if ((bit = s->current_get_bit(s->get_bit_user_data)) == PUTBIT_END_OF_DATA)
     {
         /* End of real data. Switch to the fake get_bit routine, until we
            have shut down completely. */
+        if (s->status_handler)
+            s->status_handler(s->status_user_data, MODEM_TX_STATUS_DATA_EXHAUSTED);
         s->current_get_bit = fake_get_bit;
         s->in_training = TRUE;
         bit = 1;
@@ -160,6 +162,11 @@ static __inline__ complexf_t getbaud(v29_tx_state_t *s)
                one, and we are up and running. */
             s->current_get_bit = s->get_bit;
             s->in_training = FALSE;
+        }
+        if (s->training_step == V29_TRAINING_SHUTDOWN_END)
+        {
+            if (s->status_handler)
+                s->status_handler(s->status_user_data, MODEM_TX_STATUS_SHUTDOWN_COMPLETE);
         }
     }
     /* 9600bps uses the full constellation.
@@ -296,7 +303,14 @@ void v29_tx_set_get_bit(v29_tx_state_t *s, get_bit_func_t get_bit, void *user_da
     if (s->get_bit == s->current_get_bit)
         s->current_get_bit = get_bit;
     s->get_bit = get_bit;
-    s->user_data = user_data;
+    s->get_bit_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+void v29_tx_set_modem_status_handler(v29_tx_state_t *s, modem_tx_status_func_t handler, void *user_data)
+{
+    s->status_handler = handler;
+    s->status_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -348,7 +362,7 @@ v29_tx_state_t *v29_tx_init(v29_tx_state_t *s, int bit_rate, int tep, get_bit_fu
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     span_log_set_protocol(&s->logging, "V.29 TX");
     s->get_bit = get_bit;
-    s->user_data = user_data;
+    s->get_bit_user_data = user_data;
     s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
     v29_tx_power(s, -14.0f);
     v29_tx_restart(s, bit_rate, tep);

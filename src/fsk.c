@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.42 2008/07/02 14:48:25 steveu Exp $
+ * $Id: fsk.c,v 1.44 2008/07/16 17:01:49 steveu Exp $
  */
 
 /*! \file */
@@ -131,7 +131,7 @@ fsk_tx_state_t *fsk_tx_init(fsk_tx_state_t *s,
 
     s->baud_rate = spec->baud_rate;
     s->get_bit = get_bit;
-    s->user_data = user_data;
+    s->get_bit_user_data = user_data;
 
     s->phase_rates[0] = dds_phase_rate((float) spec->freq_zero);
     s->phase_rates[1] = dds_phase_rate((float) spec->freq_one);
@@ -163,8 +163,12 @@ int fsk_tx(fsk_tx_state_t *s, int16_t *amp, int len)
         if ((s->baud_frac += s->baud_inc) >= SAMPLE_RATE*100)
         {
             s->baud_frac -= SAMPLE_RATE*100;
-            if ((bit = s->get_bit(s->user_data)) == PUTBIT_END_OF_DATA)
+            if ((bit = s->get_bit(s->get_bit_user_data)) == PUTBIT_END_OF_DATA)
             {
+                if (s->status_handler)
+                    s->status_handler(s->status_user_data, MODEM_TX_STATUS_DATA_EXHAUSTED);
+                if (s->status_handler)
+                    s->status_handler(s->status_user_data, MODEM_TX_STATUS_SHUTDOWN_COMPLETE);
                 s->shutdown = TRUE;
                 break;
             }
@@ -185,7 +189,14 @@ void fsk_tx_power(fsk_tx_state_t *s, float power)
 void fsk_tx_set_get_bit(fsk_tx_state_t *s, get_bit_func_t get_bit, void *user_data)
 {
     s->get_bit = get_bit;
-    s->user_data = user_data;
+    s->get_bit_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+void fsk_tx_set_modem_status_handler(fsk_tx_state_t *s, modem_tx_status_func_t handler, void *user_data)
+{
+    s->status_handler = handler;
+    s->status_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -206,7 +217,14 @@ float fsk_rx_signal_power(fsk_rx_state_t *s)
 void fsk_rx_set_put_bit(fsk_rx_state_t *s, put_bit_func_t put_bit, void *user_data)
 {
     s->put_bit = put_bit;
-    s->user_data = user_data;
+    s->put_bit_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+void fsk_rx_set_modem_status_handler(fsk_rx_state_t *s, modem_tx_status_func_t handler, void *user_data)
+{
+    s->status_handler = handler;
+    s->status_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -229,7 +247,7 @@ fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
     s->sync_mode = sync_mode;
     fsk_rx_signal_cutoff(s, (float) spec->min_level);
     s->put_bit = put_bit;
-    s->user_data = user_data;
+    s->put_bit_user_data = user_data;
 
     /* Detect by correlating against the tones we want, over a period
        of one baud. The correlation must be quadrature. */
@@ -269,6 +287,15 @@ fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
+static void report_status_change(fsk_rx_state_t *s, int status)
+{
+    if (s->status_handler)
+        s->status_handler(s->status_user_data, status);
+    else if (s->put_bit)
+        s->put_bit(s->put_bit_user_data, status);
+}
+/*- End of function --------------------------------------------------------*/
+
 int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
 {
     int buf_ptr;
@@ -302,7 +329,7 @@ int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
                 {
                     /* Count down a short delay, to ensure we push the last
                        few bits through the filters before stopping. */
-                    s->put_bit(s->user_data, PUTBIT_CARRIER_DOWN);
+                    report_status_change(s, PUTBIT_CARRIER_DOWN);
                     continue;
                 }
             }
@@ -313,7 +340,7 @@ int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
             if (power < s->carrier_on_power)
                 continue;
             s->signal_present = 1;
-            s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
+            report_status_change(s, PUTBIT_CARRIER_UP);
         }
         /* Non-coherent FSK demodulation by correlation with the target tones
            over a one baud interval. The slow V.xx specs. are too open ended
@@ -370,7 +397,7 @@ int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
             /* We should be in the middle of a baud now, so report the current
                state as the next bit */
             s->baud_pll -= (SAMPLE_RATE*100);
-            s->put_bit(s->user_data, baudstate);
+            s->put_bit(s->put_bit_user_data, baudstate);
         }
         if (++buf_ptr >= s->correlation_span)
             buf_ptr = 0;

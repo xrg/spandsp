@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.c,v 1.61 2008/07/02 14:48:26 steveu Exp $
+ * $Id: v17tx.c,v 1.62 2008/07/16 14:23:47 steveu Exp $
  */
 
 /*! \file */
@@ -219,15 +219,22 @@ static __inline__ complexf_t getbaud(v17_tx_state_t *s)
                 return complex_setf(0.0f, 0.0f);
 #endif
             }
+            if (s->training_step == V17_TRAINING_SHUTDOWN_END)
+            {
+                if (s->status_handler)
+                    s->status_handler(s->status_user_data, MODEM_TX_STATUS_SHUTDOWN_COMPLETE);
+            }
         }
     }
     bits = 0;
     for (i = 0;  i < s->bits_per_symbol;  i++)
     {
-        if ((bit = s->current_get_bit(s->user_data)) == PUTBIT_END_OF_DATA)
+        if ((bit = s->current_get_bit(s->get_bit_user_data)) == PUTBIT_END_OF_DATA)
         {
             /* End of real data. Switch to the fake get_bit routine, until we
                have shut down completely. */
+            if (s->status_handler)
+                s->status_handler(s->status_user_data, MODEM_TX_STATUS_DATA_EXHAUSTED);
             s->current_get_bit = fake_get_bit;
             s->in_training = TRUE;
             bit = 1;
@@ -314,7 +321,14 @@ void v17_tx_set_get_bit(v17_tx_state_t *s, get_bit_func_t get_bit, void *user_da
     if (s->get_bit == s->current_get_bit)
         s->current_get_bit = get_bit;
     s->get_bit = get_bit;
-    s->user_data = user_data;
+    s->get_bit_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+void v17_tx_set_modem_status_handler(v17_tx_state_t *s, modem_tx_status_func_t handler, void *user_data)
+{
+    s->status_handler = handler;
+    s->status_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -374,7 +388,7 @@ v17_tx_state_t *v17_tx_init(v17_tx_state_t *s, int bit_rate, int tep, get_bit_fu
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     span_log_set_protocol(&s->logging, "V.17 TX");
     s->get_bit = get_bit;
-    s->user_data = user_data;
+    s->get_bit_user_data = user_data;
     s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
     v17_tx_power(s, -14.0f);
     v17_tx_restart(s, bit_rate, tep, FALSE);

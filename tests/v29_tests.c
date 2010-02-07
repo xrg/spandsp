@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29_tests.c,v 1.97 2008/05/13 13:17:26 steveu Exp $
+ * $Id: v29_tests.c,v 1.99 2008/07/16 17:01:49 steveu Exp $
  */
 
 /*! \page v29_tests_page V.29 modem tests
@@ -129,49 +129,77 @@ static void reporter(void *user_data, int reason, bert_results_t *results)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void v29putbit(void *user_data, int bit)
+static int v29_rx_status(void *user_data, int status)
 {
     v29_rx_state_t *rx;
     int i;
     int len;
     complexf_t *coeffs;
-    
+
+    printf("V.29 rx status is %d\n", status);
     rx = (v29_rx_state_t *) user_data;
+    switch (status)
+    {
+    case PUTBIT_TRAINING_FAILED:
+        printf("Training failed\n");
+        break;
+    case PUTBIT_TRAINING_IN_PROGRESS:
+        printf("Training in progress\n");
+        break;
+    case PUTBIT_TRAINING_SUCCEEDED:
+        printf("Training succeeded\n");
+        len = v29_rx_equalizer_state(rx, &coeffs);
+        printf("Equalizer:\n");
+        for (i = 0;  i < len;  i++)
+            printf("%3d (%15.5f, %15.5f) -> %15.5f\n", i, coeffs[i].re, coeffs[i].im, powerf(&coeffs[i]));
+        break;
+    case PUTBIT_CARRIER_UP:
+        printf("Carrier up\n");
+        break;
+    case PUTBIT_CARRIER_DOWN:
+        printf("Carrier down\n");
+        break;
+    default:
+        printf("Eh! - %d\n", status);
+        break;
+    }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void v29putbit(void *user_data, int bit)
+{
+    v29_rx_state_t *rx;
+    
     if (bit < 0)
     {
-        /* Special conditions */
-        switch (bit)
-        {
-        case PUTBIT_TRAINING_FAILED:
-            printf("Training failed\n");
-            break;
-        case PUTBIT_TRAINING_IN_PROGRESS:
-            printf("Training in progress\n");
-            break;
-        case PUTBIT_TRAINING_SUCCEEDED:
-            printf("Training succeeded\n");
-            len = v29_rx_equalizer_state(rx, &coeffs);
-            printf("Equalizer:\n");
-            for (i = 0;  i < len;  i++)
-                printf("%3d (%15.5f, %15.5f) -> %15.5f\n", i, coeffs[i].re, coeffs[i].im, powerf(&coeffs[i]));
-            break;
-        case PUTBIT_CARRIER_UP:
-            printf("Carrier up\n");
-            break;
-        case PUTBIT_CARRIER_DOWN:
-            printf("Carrier down\n");
-            break;
-        default:
-            printf("Eh! - %d\n", bit);
-            break;
-        }
+        v29_rx_status(user_data, bit);
         return;
     }
 
+    rx = (v29_rx_state_t *) user_data;
     if (decode_test_file)
         printf("Rx bit %d - %d\n", rx_bits++, bit);
     else
         bert_put_bit(&bert, bit);
+}
+/*- End of function --------------------------------------------------------*/
+
+static int v29_tx_status(void *user_data, int status)
+{
+    switch (status)
+    {
+    case MODEM_TX_STATUS_DATA_EXHAUSTED:
+        printf("V.29 tx data exhausted\n");
+        break;
+    case MODEM_TX_STATUS_SHUTDOWN_COMPLETE:
+        printf("V.29 tx shutdown complete\n");
+        break;
+    default:
+        printf("V.29 tx status is %d\n", status);
+        break;
+    }
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -383,6 +411,7 @@ int main(int argc, char *argv[])
         /* We will generate V.29 audio, and add some noise to it. */
         v29_tx_init(&tx, test_bps, tep, v29getbit, NULL);
         v29_tx_power(&tx, signal_level);
+        v29_tx_set_modem_status_handler(&tx, v29_tx_status, (void *) &tx);
         /* Move the carrier off a bit */
         tx.carrier_phase_rate = dds_phase_ratef(1710.0f);
         tx.carrier_phase = 0;
@@ -399,6 +428,7 @@ int main(int argc, char *argv[])
 
     v29_rx_init(&rx, test_bps, v29putbit, &rx);
     v29_rx_signal_cutoff(&rx, -45.5f);
+    v29_rx_set_modem_status_handler(&rx, v29_rx_status, (void *) &rx);
     v29_rx_set_qam_report_handler(&rx, qam_report, (void *) &rx);
     /* Rotate the starting phase */
     rx.carrier_phase = 0x80000000;

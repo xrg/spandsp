@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tester.h,v 1.1 2008/07/15 14:28:20 steveu Exp $
+ * $Id: fax_tester.h,v 1.3 2008/07/17 14:27:11 steveu Exp $
  */
 
 /*! \file */
@@ -42,6 +42,23 @@ typedef struct faxtester_state_s faxtester_state_t;
 typedef void (faxtester_flush_handler_t)(faxtester_state_t *s, void *user_data, int which);
 
 /*!
+    FAX tester real time frame handler.
+    \brief FAX tester real time frame handler.
+    \param s The FAX tester context.
+    \param user_data An opaque pointer.
+    \param direction TRUE for incoming, FALSE for outgoing.
+    \param msg The HDLC message.
+    \param len The length of the message.
+*/
+typedef void (faxtester_real_time_frame_handler_t)(faxtester_state_t *s,
+                                                   void *user_data,
+                                                   int direction,
+                                                   const uint8_t *msg,
+                                                   int len);
+
+typedef void (faxtester_front_end_step_complete_handler_t)(faxtester_state_t *s, void *user_data);
+
+/*!
     FAX tester descriptor.
 */
 struct faxtester_state_s
@@ -55,6 +72,15 @@ struct faxtester_state_s
     faxtester_flush_handler_t *flush_handler;
     void *flush_user_data;
 
+    /*! \brief A pointer to a callback routine to be called when frames are
+        exchanged. */
+    faxtester_real_time_frame_handler_t *real_time_frame_handler;
+    /*! \brief An opaque pointer supplied in real time frame callbacks. */
+    void *real_time_frame_user_data;
+
+    faxtester_front_end_step_complete_handler_t *front_end_step_complete_handler;
+    void *front_end_step_complete_user_data;
+
     /*! The current receive signal handler */
     span_rx_handler_t *rx_handler;
     void *rx_user_data;
@@ -63,10 +89,12 @@ struct faxtester_state_s
     /*! The current transmit signal handler */
     span_tx_handler_t *tx_handler;
     void *tx_user_data;
-    /*! The transmit signal handler to be used when the current one has finished sending. */
-    span_tx_handler_t *next_tx_handler;
-    void *next_tx_user_data;
     
+    const uint8_t *image_buffer;
+    int image_len;
+    int image_ptr;
+    int image_bit_ptr;
+
     /*! If TRUE, transmission is in progress */
     int transmit;
 
@@ -120,10 +148,6 @@ struct faxtester_state_s
     /*! \brief The currently select transmitter type */
     int current_tx_type;
 
-    /*! \brief Audio logging file handle for received audio. */
-    int audio_rx_log;
-    /*! \brief Audio logging file handle for transmitted audio. */
-    int audio_tx_log;
     /*! \brief Error and flow logging control */
     logging_state_t logging;
 };
@@ -157,6 +181,10 @@ void faxtester_set_tx_type(void *user_data, int type, int short_train, int use_h
 
 void faxtester_set_rx_type(void *user_data, int type, int short_train, int use_hdlc);
 
+void faxtester_send_hdlc_flags(faxtester_state_t *s, int flags);
+
+void faxtester_send_hdlc_msg(faxtester_state_t *s, const uint8_t *msg, int len);
+
 void faxtester_set_flush_handler(faxtester_state_t *s, faxtester_flush_handler_t *handler, void *user_data);
 
 /*! Select whether silent audio will be sent when FAX transmit is idle.
@@ -174,6 +202,12 @@ void faxtester_set_transmit_on_idle(faxtester_state_t *s, int transmit_on_idle);
     \param use_tep TRUE if TEP should be sent.
 */
 void faxtester_set_tep_mode(faxtester_state_t *s, int use_tep);
+
+void faxtester_set_real_time_frame_handler(faxtester_state_t *s, faxtester_real_time_frame_handler_t *handler, void *user_data);
+
+void faxtester_set_front_end_step_complete_handler(faxtester_state_t *s, faxtester_front_end_step_complete_handler_t *handler, void *user_data);
+
+void faxtester_set_image_buffer(faxtester_state_t *s, const uint8_t *buf, int len);
 
 /*! Initialise a FAX context.
     \brief Initialise a FAX context.

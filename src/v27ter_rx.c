@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.94 2008/07/02 14:48:26 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.96 2008/07/16 17:01:49 steveu Exp $
  */
 
 /*! \file */
@@ -135,6 +135,15 @@ int v27ter_rx_equalizer_state(v27ter_rx_state_t *s, complexf_t **coeffs)
 {
     *coeffs = s->eq_coeff;
     return V27TER_EQUALIZER_PRE_LEN + 1 + V27TER_EQUALIZER_POST_LEN;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void report_status_change(v27ter_rx_state_t *s, int status)
+{
+    if (s->status_handler)
+        s->status_handler(s->status_user_data, status);
+    else if (s->put_bit)
+        s->put_bit(s->put_bit_user_data, status);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -274,7 +283,7 @@ static __inline__ void put_bit(v27ter_rx_state_t *s, int bit)
        go to the application. */
     if (s->training_stage == TRAINING_STAGE_NORMAL_OPERATION)
     {
-        s->put_bit(s->user_data, out_bit);
+        s->put_bit(s->put_bit_user_data, out_bit);
     }
     else
     {
@@ -489,7 +498,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
                span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (sequence failed)\n");
                /* Park this modem */
                s->training_stage = TRAINING_STAGE_PARKED;
-               s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
+               report_status_change(s, PUTBIT_TRAINING_FAILED);
                break;
             }
 
@@ -510,7 +519,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
             descramble(s, 1);
             s->training_count = 1;
             s->training_stage = TRAINING_STAGE_TRAIN_ON_ABAB;
-            s->put_bit(s->user_data, PUTBIT_TRAINING_IN_PROGRESS);
+            report_status_change(s, PUTBIT_TRAINING_IN_PROGRESS);
         }
         else if (++s->training_count > V27TER_TRAINING_SEG_3_LEN)
         {
@@ -519,7 +528,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
             span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (sequence failed)\n");
             /* Park this modem */
             s->training_stage = TRAINING_STAGE_PARKED;
-            s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
+            report_status_change(s, PUTBIT_TRAINING_FAILED);
         }
         break;
     case TRAINING_STAGE_TRAIN_ON_ABAB:
@@ -556,7 +565,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
             {
                 /* We are up and running */
                 span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded (constellation mismatch %f)\n", s->training_error);
-                s->put_bit(s->user_data, PUTBIT_TRAINING_SUCCEEDED);
+                report_status_change(s, PUTBIT_TRAINING_SUCCEEDED);
                 /* Apply some lag to the carrier off condition, to ensure the last few bits get pushed through
                    the processing. */
                 s->signal_present = (s->bit_rate == 4800)  ?  90  :  120;
@@ -571,7 +580,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
                 span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (constellation mismatch %f)\n", s->training_error);
                 /* Park this modem */
                 s->training_stage = TRAINING_STAGE_PARKED;
-                s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
+                report_status_change(s, PUTBIT_TRAINING_FAILED);
             }
         }
         break;
@@ -655,7 +664,7 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                         /* Count down a short delay, to ensure we push the last
                            few bits through the filters before stopping. */
                         v27ter_rx_restart(s, s->bit_rate, FALSE);
-                        s->put_bit(s->user_data, PUTBIT_CARRIER_DOWN);
+                        report_status_change(s, PUTBIT_CARRIER_DOWN);
                         continue;
                     }
 #if defined(IAXMODEM_STUFF)
@@ -674,7 +683,7 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
 #if defined(IAXMODEM_STUFF)
                 s->carrier_drop_pending = FALSE;
 #endif
-                s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
+                report_status_change(s, PUTBIT_CARRIER_UP);
             }
             /* Only spend effort processing this data if the modem is not
                parked, after training failure. */
@@ -780,7 +789,7 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                         /* Count down a short delay, to ensure we push the last
                            few bits through the filters before stopping. */
                         v27ter_rx_restart(s, s->bit_rate, FALSE);
-                        s->put_bit(s->user_data, PUTBIT_CARRIER_DOWN);
+                        report_status_change(s, PUTBIT_CARRIER_DOWN);
                         continue;
                     }
 #if defined(IAXMODEM_STUFF)
@@ -799,7 +808,7 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
 #if defined(IAXMODEM_STUFF)
                 s->carrier_drop_pending = FALSE;
 #endif
-                s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
+                report_status_change(s, PUTBIT_CARRIER_UP);
             }
             /* Only spend effort processing this data if the modem is not
                parked, after training failure. */
@@ -862,7 +871,14 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
 void v27ter_rx_set_put_bit(v27ter_rx_state_t *s, put_bit_func_t put_bit, void *user_data)
 {
     s->put_bit = put_bit;
-    s->user_data = user_data;
+    s->put_bit_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+void v27ter_rx_set_modem_status_handler(v27ter_rx_state_t *s, modem_tx_status_func_t handler, void *user_data)
+{
+    s->status_handler = handler;
+    s->status_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -936,7 +952,7 @@ v27ter_rx_state_t *v27ter_rx_init(v27ter_rx_state_t *s, int bit_rate, put_bit_fu
     span_log_set_protocol(&s->logging, "V.27ter RX");
     v27ter_rx_signal_cutoff(s, -45.5f);
     s->put_bit = put_bit;
-    s->user_data = user_data;
+    s->put_bit_user_data = user_data;
 
     v27ter_rx_restart(s, bit_rate, FALSE);
     return s;
@@ -950,7 +966,7 @@ int v27ter_rx_free(v27ter_rx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v27ter_rx_set_qam_report_handler(v27ter_rx_state_t *s, qam_report_handler_t *handler, void *user_data)
+void v27ter_rx_set_qam_report_handler(v27ter_rx_state_t *s, qam_report_handler_t handler, void *user_data)
 {
     s->qam_report = handler;
     s->qam_user_data = user_data;

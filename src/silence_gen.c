@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: silence_gen.c,v 1.11 2008/07/02 14:48:26 steveu Exp $
+ * $Id: silence_gen.c,v 1.13 2008/07/16 18:09:59 steveu Exp $
  */
 
 /*! \file */
@@ -48,14 +48,19 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
+#include "spandsp/async.h"
 #include "spandsp/silence_gen.h"
 
 int silence_gen(silence_gen_state_t *s, int16_t *amp, int max_len)
 {
     if (s->remaining_samples != INT_MAX)
     {
-        if (max_len > s->remaining_samples)
+        if (max_len >= s->remaining_samples)
+        {
             max_len = s->remaining_samples;
+            if (max_len  &&  s->status_handler)
+                s->status_handler(s->status_user_data, MODEM_TX_STATUS_SHUTDOWN_COMPLETE);
+        }
         s->remaining_samples -= max_len;
     }
     if (INT_MAX - s->total_samples >= max_len)
@@ -100,6 +105,13 @@ int silence_gen_remainder(silence_gen_state_t *s)
 int silence_gen_generated(silence_gen_state_t *s)
 {
     return s->total_samples;
+}
+/*- End of function --------------------------------------------------------*/
+
+void silence_gen_status_handler(silence_gen_state_t *s, modem_tx_status_func_t handler, void *user_data)
+{
+    s->status_handler = handler;
+    s->status_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 

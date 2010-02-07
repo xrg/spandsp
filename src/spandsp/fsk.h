@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.h,v 1.29 2008/04/17 14:27:00 steveu Exp $
+ * $Id: fsk.h,v 1.30 2008/07/16 14:23:48 steveu Exp $
  */
 
 /*! \file */
@@ -123,8 +123,15 @@ extern const fsk_spec_t preset_fsk_specs[];
 typedef struct
 {
     int baud_rate;
+    /*! \brief The callback function used to get the next bit to be transmitted. */
     get_bit_func_t get_bit;
-    void *user_data;
+    /*! \brief A user specified opaque pointer passed to the get_bit function. */
+    void *get_bit_user_data;
+
+    /*! \brief The callback function used to report modem status changes. */
+    modem_tx_status_func_t status_handler;
+    /*! \brief A user specified opaque pointer passed to the status function. */
+    void *status_user_data;
 
     int32_t phase_rates[2];
     int scaling;
@@ -146,8 +153,15 @@ typedef struct
 {
     int baud_rate;
     int sync_mode;
+    /*! \brief The callback function used to put each bit received. */
     put_bit_func_t put_bit;
-    void *user_data;
+    /*! \brief A user specified opaque pointer passed to the put_bit routine. */
+    void *put_bit_user_data;
+
+    /*! \brief The callback function used to report modem status changes. */
+    modem_tx_status_func_t status_handler;
+    /*! \brief A user specified opaque pointer passed to the status function. */
+    void *status_user_data;
 
     int32_t carrier_on_power;
     int32_t carrier_off_power;
@@ -197,6 +211,13 @@ void fsk_tx_power(fsk_tx_state_t *s, float power);
 
 void fsk_tx_set_get_bit(fsk_tx_state_t *s, get_bit_func_t get_bit, void *user_data);
 
+/*! Change the modem status report function associated with an FSK modem transmit context.
+    \brief Change the modem status report function associated with an FSK modem transmit context.
+    \param s The modem context.
+    \param handler The callback routine used to report modem status changes.
+    \param user_data An opaque pointer. */
+void fsk_tx_set_modem_status_handler(fsk_tx_state_t *s, modem_tx_status_func_t handler, void *user_data);
+
 /*! Generate a block of FSK modem audio samples.
     \brief Generate a block of FSK modem audio samples.
     \param s The modem context.
@@ -241,6 +262,13 @@ fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
 int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len);
 
 void fsk_rx_set_put_bit(fsk_rx_state_t *s, put_bit_func_t put_bit, void *user_data);
+
+/*! Change the modem status report function associated with an FSK modem receive context.
+    \brief Change the modem status report function associated with an FSK modem receive context.
+    \param s The modem context.
+    \param handler The callback routine used to report modem status changes.
+    \param user_data An opaque pointer. */
+void fsk_rx_set_modem_status_handler(fsk_rx_state_t *s, modem_rx_status_func_t handler, void *user_data);
 
 #if defined(__cplusplus)
 }

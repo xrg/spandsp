@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk_tests.c,v 1.43 2008/05/13 13:17:25 steveu Exp $
+ * $Id: fsk_tests.c,v 1.45 2008/07/16 17:01:49 steveu Exp $
  */
 
 /*! \page fsk_tests_page FSK modem tests
@@ -65,29 +65,54 @@ both_ways_line_model_state_t *model;
 int rx_bits = 0;
 int cutoff_test_carrier = FALSE;
 
+static int rx_status(void *user_data, int status)
+{
+    printf("FSK rx status is %d\n", status);
+    switch (status)
+    {
+    case PUTBIT_TRAINING_FAILED:
+        printf("Training failed\n");
+        break;
+    case PUTBIT_TRAINING_SUCCEEDED:
+        printf("Training succeeded\n");
+        break;
+    case PUTBIT_CARRIER_UP:
+        printf("Carrier up\n");
+        break;
+    case PUTBIT_CARRIER_DOWN:
+        printf("Carrier down\n");
+        break;
+    default:
+        printf("Eh! - %d\n", status);
+        break;
+    }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int tx_status(void *user_data, int status)
+{
+    switch (status)
+    {
+    case MODEM_TX_STATUS_DATA_EXHAUSTED:
+        printf("FSK tx data exhausted\n");
+        break;
+    case MODEM_TX_STATUS_SHUTDOWN_COMPLETE:
+        printf("FSK tx shutdown complete\n");
+        break;
+    default:
+        printf("FSK tx status is %d\n", status);
+        break;
+    }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
 static void put_bit(void *user_data, int bit)
 {
     if (bit < 0)
     {
-        /* Special conditions */
-        switch (bit)
-        {
-        case PUTBIT_TRAINING_FAILED:
-            printf("Training failed\n");
-            break;
-        case PUTBIT_TRAINING_SUCCEEDED:
-            printf("Training succeeded\n");
-            break;
-        case PUTBIT_CARRIER_UP:
-            printf("Carrier up\n");
-            break;
-        case PUTBIT_CARRIER_DOWN:
-            printf("Carrier down\n");
-            break;
-        default:
-            printf("Eh!\n");
-            break;
-        }
+        rx_status(user_data, bit);
         return;
     }
 
@@ -95,31 +120,38 @@ static void put_bit(void *user_data, int bit)
 }
 /*- End of function --------------------------------------------------------*/
 
+static int cutoff_test_rx_status(void *user_data, int status)
+{
+    printf("FSK rx status is %d\n", status);
+    switch (status)
+    {
+    case PUTBIT_TRAINING_FAILED:
+        printf("Training failed\n");
+        break;
+    case PUTBIT_TRAINING_SUCCEEDED:
+        printf("Training succeeded\n");
+        break;
+    case PUTBIT_CARRIER_UP:
+        //printf("Carrier up\n");
+        cutoff_test_carrier = TRUE;
+        break;
+    case PUTBIT_CARRIER_DOWN:
+        //printf("Carrier down\n");
+        cutoff_test_carrier = FALSE;
+        break;
+    default:
+        printf("Eh! - %d\n", status);
+        break;
+    }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
 static void cutoff_test_put_bit(void *user_data, int bit)
 {
     if (bit < 0)
     {
-        /* Special conditions */
-        switch (bit)
-        {
-        case PUTBIT_TRAINING_FAILED:
-            printf("Training failed\n");
-            break;
-        case PUTBIT_TRAINING_SUCCEEDED:
-            printf("Training succeeded\n");
-            break;
-        case PUTBIT_CARRIER_UP:
-            //printf("Carrier up\n");
-            cutoff_test_carrier = TRUE;
-            break;
-        case PUTBIT_CARRIER_DOWN:
-            //printf("Carrier down\n");
-            cutoff_test_carrier = FALSE;
-            break;
-        default:
-            printf("Eh!\n");
-            break;
-        }
+        cutoff_test_rx_status(user_data, bit);
         return;
     }
 }
@@ -302,6 +334,7 @@ int main(int argc, char *argv[])
             exit(2);
         }
         fsk_rx_init(&caller_rx, &preset_fsk_specs[modem_under_test_1], TRUE, put_bit, NULL);
+        fsk_rx_set_modem_status_handler(&caller_rx, rx_status, (void *) &caller_rx);
         test_bps = preset_fsk_specs[modem_under_test_1].baud_rate;
 
         for (;;)
@@ -328,6 +361,7 @@ int main(int argc, char *argv[])
         printf("Test cutoff level\n");
         fsk_rx_init(&caller_rx, &preset_fsk_specs[modem_under_test_1], TRUE, cutoff_test_put_bit, NULL);
         fsk_rx_signal_cutoff(&caller_rx, -30.0f);
+        fsk_rx_set_modem_status_handler(&caller_rx, cutoff_test_rx_status, (void *) &caller_rx);
         on_at = 0;
         for (i = -40;  i < -25;  i++)
         {
@@ -388,12 +422,16 @@ int main(int argc, char *argv[])
         if (modem_under_test_1 >= 0)
         {
             fsk_tx_init(&caller_tx, &preset_fsk_specs[modem_under_test_1], (get_bit_func_t) bert_get_bit, &caller_bert);
+            fsk_tx_set_modem_status_handler(&caller_tx, tx_status, (void *) &caller_tx);
             fsk_rx_init(&answerer_rx, &preset_fsk_specs[modem_under_test_1], TRUE, (put_bit_func_t) bert_put_bit, &answerer_bert);
+            fsk_rx_set_modem_status_handler(&answerer_rx, rx_status, (void *) &answerer_rx);
         }
         if (modem_under_test_2 >= 0)
         {
             fsk_tx_init(&answerer_tx, &preset_fsk_specs[modem_under_test_2], (get_bit_func_t) bert_get_bit, &answerer_bert);
+            fsk_tx_set_modem_status_handler(&answerer_tx, tx_status, (void *) &answerer_tx);
             fsk_rx_init(&caller_rx, &preset_fsk_specs[modem_under_test_2], TRUE, (put_bit_func_t) bert_put_bit, &caller_bert);
+            fsk_rx_set_modem_status_handler(&caller_rx, rx_status, (void *) &caller_rx);
         }
         test_bps = preset_fsk_specs[modem_under_test_1].baud_rate;
 
@@ -499,12 +537,16 @@ int main(int argc, char *argv[])
                 if (modem_under_test_1 >= 0)
                 {
                     fsk_tx_init(&caller_tx, &preset_fsk_specs[modem_under_test_1], (get_bit_func_t) bert_get_bit, &caller_bert);
+                    fsk_tx_set_modem_status_handler(&caller_tx, tx_status, (void *) &caller_tx);
                     fsk_rx_init(&answerer_rx, &preset_fsk_specs[modem_under_test_1], TRUE, (put_bit_func_t) bert_put_bit, &answerer_bert);
+                    fsk_rx_set_modem_status_handler(&answerer_rx, rx_status, (void *) &answerer_rx);
                 }
                 if (modem_under_test_2 >= 0)
                 {
                     fsk_tx_init(&answerer_tx, &preset_fsk_specs[modem_under_test_2], (get_bit_func_t) bert_get_bit, &answerer_bert);
+                    fsk_tx_set_modem_status_handler(&answerer_tx, tx_status, (void *) &answerer_tx);
                     fsk_rx_init(&caller_rx, &preset_fsk_specs[modem_under_test_2], TRUE, (put_bit_func_t) bert_put_bit, &caller_bert);
+                    fsk_rx_set_modem_status_handler(&caller_rx, rx_status, (void *) &caller_rx);
                 }
                 noise_level++;
                 if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, noise_level, channel_codec, 0)) == NULL)

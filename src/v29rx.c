@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.121 2008/07/10 13:34:01 steveu Exp $
+ * $Id: v29rx.c,v 1.124 2008/07/17 19:12:27 steveu Exp $
  */
 
 /*! \file */
@@ -153,6 +153,15 @@ int v29_rx_equalizer_state(v29_rx_state_t *s, complexf_t **coeffs)
 static void equalizer_save(v29_rx_state_t *s)
 {
     cvec_copyf(s->eq_coeff_save, s->eq_coeff, V29_EQUALIZER_PRE_LEN + 1 + V29_EQUALIZER_POST_LEN);
+}
+/*- End of function --------------------------------------------------------*/
+
+static void report_status_change(v29_rx_state_t *s, int status)
+{
+    if (s->status_handler)
+        s->status_handler(s->status_user_data, status);
+    else if (s->put_bit)
+        s->put_bit(s->put_bit_user_data, status);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -306,7 +315,7 @@ static __inline__ void put_bit(v29_rx_state_t *s, int bit)
        before we let data go to the application. */
     if (s->training_stage == TRAINING_STAGE_NORMAL_OPERATION)
     {
-        s->put_bit(s->user_data, out_bit);
+        s->put_bit(s->put_bit_user_data, out_bit);
     }
     else
     {
@@ -445,20 +454,17 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
     /* A little integration will now filter away much of the noise */
     s->baud_phase -= p;
 
-    i = 0;
-    if (s->baud_phase > 1000.0f)
-        i = 5;
-    else if (s->baud_phase < -1000.0f)
-        i = -5;
-    else if (s->baud_phase > 100.0f)
-        i = 1;
-    else if (s->baud_phase < -100.0f)
-        i = -1;
+    if (fabsf(s->baud_phase) > 30.0f)
+    {
+        if (s->baud_phase > 0.0f)
+            i = (s->baud_phase > 1000.0f)  ?  5  :  1;
+        else
+            i = (s->baud_phase < -1000.0f)  ?  -5  :  -1;
 
-    //printf("v = %10.5f %5d - %f %f %d %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
-
-    s->eq_put_step += i;
-    s->total_baud_timing_correction += i;
+        //printf("v = %10.5f %5d - %f %f %d %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
+        s->eq_put_step += i;
+        s->total_baud_timing_correction += i;
+    }
 
     z = equalizer_get(s);
 
@@ -521,7 +527,7 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
                span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (sequence failed)\n");
                /* Park this modem */
                s->training_stage = TRAINING_STAGE_PARKED;
-               s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
+               report_status_change(s, PUTBIT_TRAINING_FAILED);
                break;
             }
             /* Make a step shift in the phase, to pull it into line. We need to rotate the equalizer
@@ -535,7 +541,7 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
             bit = scrambled_training_bit(s);
             s->training_count = 1;
             s->training_stage = TRAINING_STAGE_TRAIN_ON_CDCD;
-            s->put_bit(s->user_data, PUTBIT_TRAINING_IN_PROGRESS);
+            report_status_change(s, PUTBIT_TRAINING_IN_PROGRESS);
             break;
         }
         if (++s->training_count > V29_TRAINING_SEG_2_LEN)
@@ -545,7 +551,7 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
             span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (sequence failed)\n");
             /* Park this modem */
             s->training_stage = TRAINING_STAGE_PARKED;
-            s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
+            report_status_change(s, PUTBIT_TRAINING_FAILED);
         }
         break;
     case TRAINING_STAGE_TRAIN_ON_CDCD:
@@ -590,7 +596,7 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
                 span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (convergence failed)\n");
                 /* Park this modem */
                 s->training_stage = TRAINING_STAGE_PARKED;
-                s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
+                report_status_change(s, PUTBIT_TRAINING_FAILED);
             }
         }
         break;
@@ -609,7 +615,7 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
             {
                 /* We are up and running */
                 span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded (constellation mismatch %f)\n", s->training_error);
-                s->put_bit(s->user_data, PUTBIT_TRAINING_SUCCEEDED);
+                report_status_change(s, PUTBIT_TRAINING_SUCCEEDED);
                 /* Apply some lag to the carrier off condition, to ensure the last few bits get pushed through
                    the processing. */
                 s->signal_present = 60;
@@ -623,7 +629,7 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
                 /* Training has failed */
                 span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (constellation mismatch %f)\n", s->training_error);
                 /* Park this modem */
-                s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
+                report_status_change(s, PUTBIT_TRAINING_FAILED);
                 s->training_stage = TRAINING_STAGE_PARKED;
             }
         }
@@ -703,7 +709,7 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
                     /* Count down a short delay, to ensure we push the last
                        few bits through the filters before stopping. */
                     v29_rx_restart(s, s->bit_rate, FALSE);
-                    s->put_bit(s->user_data, PUTBIT_CARRIER_DOWN);
+                    report_status_change(s, PUTBIT_CARRIER_DOWN);
                     continue;
                 }
 #if defined(IAXMODEM_STUFF)
@@ -722,7 +728,7 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
 #if defined(IAXMODEM_STUFF)
             s->carrier_drop_pending = FALSE;
 #endif
-            s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
+            report_status_change(s, PUTBIT_CARRIER_UP);
         }
         if (s->training_stage == TRAINING_STAGE_PARKED)
             continue;
@@ -801,7 +807,14 @@ int v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
 void v29_rx_set_put_bit(v29_rx_state_t *s, put_bit_func_t put_bit, void *user_data)
 {
     s->put_bit = put_bit;
-    s->user_data = user_data;
+    s->put_bit_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+void v29_rx_set_modem_status_handler(v29_rx_state_t *s, modem_tx_status_func_t handler, void *user_data)
+{
+    s->status_handler = handler;
+    s->status_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -893,7 +906,7 @@ v29_rx_state_t *v29_rx_init(v29_rx_state_t *s, int rate, put_bit_func_t put_bit,
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     span_log_set_protocol(&s->logging, "V.29 RX");
     s->put_bit = put_bit;
-    s->user_data = user_data;
+    s->put_bit_user_data = user_data;
     /* The V.29 spec says the thresholds should be -31dBm and -26dBm, but that makes little
        sense. V.17 uses -48dBm and -43dBm, and there seems no good reason to cut off at a
        higher level (though at 9600bps and 7200bps, TCM should put V.17 sensitivity several
@@ -913,7 +926,7 @@ int v29_rx_free(v29_rx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v29_rx_set_qam_report_handler(v29_rx_state_t *s, qam_report_handler_t *handler, void *user_data)
+void v29_rx_set_qam_report_handler(v29_rx_state_t *s, qam_report_handler_t handler, void *user_data)
 {
     s->qam_report = handler;
     s->qam_user_data = user_data;

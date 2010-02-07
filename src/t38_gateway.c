@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.126 2008/07/02 14:48:26 steveu Exp $
+ * $Id: t38_gateway.c,v 1.127 2008/07/16 14:23:47 steveu Exp $
  */
 
 /*! \file */
@@ -1979,7 +1979,7 @@ t38_gateway_state_t *t38_gateway_init(t38_gateway_state_t *s,
                   tx_packet_handler,
                   tx_packet_user_data);
     t38_gateway_set_supported_modems(s, T30_SUPPORT_V27TER | T30_SUPPORT_V29);
-    t38_gateway_set_nsx_suppression(s, "\x00\x00\x00", 3, "\x00\x00\x00", 3);
+    t38_gateway_set_nsx_suppression(s, (const uint8_t *) "\x00\x00\x00", 3, (const uint8_t *) "\x00\x00\x00", 3);
     s->t38.indicator_tx_count = INDICATOR_TX_COUNT;
     s->t38.data_tx_count = DATA_TX_COUNT;
     s->t38.data_end_tx_count = DATA_END_TX_COUNT;

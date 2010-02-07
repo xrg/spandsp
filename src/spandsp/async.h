@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: async.h,v 1.14 2008/04/17 14:26:59 steveu Exp $
+ * $Id: async.h,v 1.16 2008/07/17 14:27:11 steveu Exp $
  */
 
 /*! \file */
@@ -79,6 +79,14 @@ enum
     PUTBIT_OCTET_REPORT = -10
 };
 
+enum
+{
+    /*! \brief The data source for a transmitter is exhausted. */
+    MODEM_TX_STATUS_DATA_EXHAUSTED = -1,
+    /*! \brief The transmitter has completed its task, and shut down. */
+    MODEM_TX_STATUS_SHUTDOWN_COMPLETE = -2
+};
+
 /*! Message put function for data pumps */
 typedef void (*put_msg_func_t)(void *user_data, const uint8_t *msg, int len);
 
@@ -96,6 +104,12 @@ typedef void (*put_bit_func_t)(void *user_data, int bit);
 
 /*! Bit get function for data pumps */
 typedef int (*get_bit_func_t)(void *user_data);
+
+/*! Completion callback function for tx data pumps */
+typedef int (*modem_tx_status_func_t)(void *user_data, int status);
+
+/*! Completion callback function for rx data pumps */
+typedef int (*modem_rx_status_func_t)(void *user_data, int status);
 
 enum
 {

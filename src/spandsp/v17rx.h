@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.51 2008/06/16 13:35:48 steveu Exp $
+ * $Id: v17rx.h,v 1.52 2008/07/16 14:23:48 steveu Exp $
  */
 
 /*! \file */
@@ -237,10 +237,16 @@ typedef struct
     /*! \brief The callback function used to put each bit received. */
     put_bit_func_t put_bit;
     /*! \brief A user specified opaque pointer passed to the put_but routine. */
-    void *user_data;
+    void *put_bit_user_data;
+
+    /*! \brief The callback function used to report modem status changes. */
+    modem_rx_status_func_t status_handler;
+    /*! \brief A user specified opaque pointer passed to the status function. */
+    void *status_user_data;
+
     /*! \brief A callback function which may be enabled to report every symbol's
                constellation position. */
-    qam_report_handler_t *qam_report;
+    qam_report_handler_t qam_report;
     /*! \brief A user specified opaque pointer passed to the qam_report callback
                routine. */
     void *qam_user_data;
@@ -412,6 +418,13 @@ int v17_rx_free(v17_rx_state_t *s);
     \param user_data An opaque pointer. */
 void v17_rx_set_put_bit(v17_rx_state_t *s, put_bit_func_t put_bit, void *user_data);
 
+/*! Change the modem status report function associated with a V.17 modem receive context.
+    \brief Change the modem status report function associated with a V.17 modem receive context.
+    \param s The modem context.
+    \param handler The callback routine used to report modem status changes.
+    \param user_data An opaque pointer. */
+void v17_rx_set_modem_status_handler(v17_rx_state_t *s, modem_rx_status_func_t handler, void *user_data);
+
 /*! Process a block of received V.17 modem audio samples.
     \brief Process a block of received V.17 modem audio samples.
     \param s The modem context.
@@ -456,7 +469,7 @@ void v17_rx_signal_cutoff(v17_rx_state_t *s, float cutoff);
     \param s The modem context.
     \param handler The handler routine.
     \param user_data An opaque pointer passed to the handler routine. */
-void v17_rx_set_qam_report_handler(v17_rx_state_t *s, qam_report_handler_t *handler, void *user_data);
+void v17_rx_set_qam_report_handler(v17_rx_state_t *s, qam_report_handler_t handler, void *user_data);
 
 #if defined(__cplusplus)
 }

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.c,v 1.63 2008/07/02 14:48:26 steveu Exp $
+ * $Id: v27ter_tx.c,v 1.64 2008/07/16 14:23:47 steveu Exp $
  */
 
 /*! \file */
@@ -108,10 +108,12 @@ static __inline__ int get_scrambled_bit(v27ter_tx_state_t *s)
 {
     int bit;
     
-    if ((bit = s->current_get_bit(s->user_data)) == PUTBIT_END_OF_DATA)
+    if ((bit = s->current_get_bit(s->get_bit_user_data)) == PUTBIT_END_OF_DATA)
     {
         /* End of real data. Switch to the fake get_bit routine, until we
            have shut down completely. */
+        if (s->status_handler)
+            s->status_handler(s->status_user_data, MODEM_TX_STATUS_DATA_EXHAUSTED);
         s->current_get_bit = fake_get_bit;
         s->in_training = TRUE;
         bit = 1;
@@ -206,6 +208,11 @@ static complexf_t getbaud(v27ter_tx_state_t *s)
                one, and we are up and running. */
             s->current_get_bit = s->get_bit;
             s->in_training = FALSE;
+        }
+        if (s->training_step == V27TER_TRAINING_SHUTDOWN_END)
+        {
+            if (s->status_handler)
+                s->status_handler(s->status_user_data, MODEM_TX_STATUS_SHUTDOWN_COMPLETE);
         }
     }
     /* 4800bps uses 8 phases. 2400bps uses 4 phases. */
@@ -353,7 +360,14 @@ void v27ter_tx_set_get_bit(v27ter_tx_state_t *s, get_bit_func_t get_bit, void *u
     if (s->get_bit == s->current_get_bit)
         s->current_get_bit = get_bit;
     s->get_bit = get_bit;
-    s->user_data = user_data;
+    s->get_bit_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+void v27ter_tx_set_modem_status_handler(v27ter_tx_state_t *s, modem_tx_status_func_t handler, void *user_data)
+{
+    s->status_handler = handler;
+    s->status_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -391,7 +405,7 @@ v27ter_tx_state_t *v27ter_tx_init(v27ter_tx_state_t *s, int bit_rate, int tep, g
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     span_log_set_protocol(&s->logging, "V.27ter TX");
     s->get_bit = get_bit;
-    s->user_data = user_data;
+    s->get_bit_user_data = user_data;
     s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
     v27ter_tx_power(s, -14.0f);
     v27ter_tx_restart(s, bit_rate, tep);

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tsb85_tests.c,v 1.1 2008/07/15 14:28:20 steveu Exp $
+ * $Id: tsb85_tests.c,v 1.4 2008/07/17 14:27:11 steveu Exp $
  */
 
 /*! \file */
@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
@@ -64,15 +65,21 @@
 #define INPUT_TIFF_FILE_NAME    "../test-data/itu/fax/itutests.tif"
 #define OUTPUT_TIFF_FILE_NAME   "tsb85.tif"
 
-#define OUT_FILE_NAME           "tsb85.wav"
+#define OUTPUT_FILE_NAME_WAVE   "tsb85.wav"
 
 #define SAMPLES_PER_CHUNK       160
 
-AFfilehandle outhandle;
+AFfilehandle out_handle;
 AFfilesetup filesetup;
 
 int use_receiver_not_ready = FALSE;
 int test_local_interrupt = FALSE;
+
+faxtester_state_t state;
+
+uint8_t image[1000000];
+
+static int next_step(faxtester_state_t *s);
 
 static int phase_b_handler(t30_state_t *s, void *user_data, int result)
 {
@@ -184,18 +191,13 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void real_time_frame_handler(t30_state_t *s,
-                                    void *user_data,
-                                    int direction,
-                                    const uint8_t *msg,
-                                    int len)
+static void t30_real_time_frame_handler(t30_state_t *s,
+                                        void *user_data,
+                                        int direction,
+                                        const uint8_t *msg,
+                                        int len)
 {
-    int i;
-    
-    i = (intptr_t) user_data;
-    printf("%d: Real time frame handler on channel %d - %s, %s, length = %d\n",
-           i,
-           i,
+    printf("T.30: Real time frame handler - %s, %s, length = %d\n",
            (direction)  ?  "line->T.30"  : "T.30->line",
            t30_frametype(msg[2]),
            len);
@@ -212,13 +214,150 @@ static int document_handler(t30_state_t *s, void *user_data, int event)
 }
 /*- End of function --------------------------------------------------------*/
 
+static void faxtester_real_time_frame_handler(faxtester_state_t *s,
+                                              void *user_data,
+                                              int direction,
+                                              const uint8_t *msg,
+                                              int len)
+{
+    printf("Tester: Real time frame handler - %s, %s, length = %d\n",
+           (direction)  ?  "line->tester"  : "tester->line",
+           t30_frametype(msg[2]),
+           len);
+    if (msg[1] == 0x13)
+        next_step(s);
+}
+/*- End of function --------------------------------------------------------*/
+
+static void faxtester_front_end_step_complete_handler(faxtester_state_t *s, void *user_data)
+{
+    next_step(s);
+}
+/*- End of function --------------------------------------------------------*/
+
+static int string_to_msg(uint8_t msg[], uint8_t mask[], const char buf[])
+{
+    int i;
+    int x;
+    const char *t;
+
+    msg[0] = 0;
+    mask[0] = 0xFF;
+    i = 0;
+    t = (char *) buf;
+    while (*t)
+    {
+        /* Skip white space */
+        while (isspace(*t))
+            t++;
+        /* If we find ... we allow arbitrary addition info beyond this point in the message */
+        if (t[0] == '.'  &&  t[1] == '.'  &&  t[2] == '.')
+        {
+            return -i;
+        }
+        else if (isxdigit(*t))
+        {
+            for (  ;  isxdigit(*t);  t++)
+            {
+                x = *t;
+                if (x >= 'a')
+                    x -= 0x20;
+                if (x >= 'A')
+                    x -= ('A' - 10);
+                else
+                    x -= '0';
+                msg[i] = (msg[i] << 4) | x;
+            }
+            mask[i] = 0xFF;
+            if (*t == '/')
+            {
+                /* There is a mask following the byte */
+                mask[i] = 0;
+                for (t++;  isxdigit(*t);  t++)
+                {
+                    x = *t;
+                    if (x >= 'a')
+                        x -= 0x20;
+                    if (x >= 'A')
+                        x -= ('A' - 10);
+                    else
+                        x -= '0';
+                    mask[i] = (mask[i] << 4) | x;
+                }
+            }
+            if (*t  &&  !isspace(*t))
+            {
+                /* Bad string */
+                return 0;
+            }
+            i++;
+        }
+    }
+    return i;
+}
+/*- End of function --------------------------------------------------------*/
+
+#if 0
+static void string_test2(const uint8_t msg[], int len)
+{
+    int i;
+    
+    if (len > 0)
+    {
+        for (i = 0;  i < len - 1;  i++)
+            printf("%02X ", msg[i]);
+        printf("%02X", msg[i]);
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
+static void string_test3(const char buf[])
+{
+    uint8_t msg[1000];
+    uint8_t mask[1000];
+    int len;
+    int i;
+    
+    len = string_to_msg(msg, mask, buf);
+    printf("Len = %d: ", len);
+    string_test2(msg, abs(len));
+    printf("/");
+    string_test2(mask, abs(len));
+    printf("\n");
+}
+/*- End of function --------------------------------------------------------*/
+
+static int string_test(void)
+{
+    string_test3("FF C8 12 34 56 78");
+    string_test3("FF C8 12/55 34 56/aA 78 ");
+    string_test3("FF C8 12/55 34 56/aA 78 ...");
+    string_test3("FF C8 12/55 34 56/aA 78...");
+    string_test3("FF C8 12/55 34 56/aA 78 ... 99 88 77");
+    exit(0);
+}
+/*- End of function --------------------------------------------------------*/
+#endif
+
 static int next_step(faxtester_state_t *s)
 {
     int delay;
     int flags;
     xmlChar *dir;
     xmlChar *type;
+    xmlChar *modem;
     xmlChar *value;
+    xmlChar *tag;
+    uint8_t buf[1000];
+    uint8_t mask[1000];
+    int i;
+    int hdlc;
+    int short_train;
+    int min_row_bits;
+    int compression;
+    int compression_step;
+    int len;
+    t4_state_t t4_state;
 
     if (s->cur == NULL)
     {
@@ -235,20 +374,114 @@ static int next_step(faxtester_state_t *s)
 
     dir = xmlGetProp(s->cur, (const xmlChar *) "dir");
     type = xmlGetProp(s->cur, (const xmlChar *) "type");
+    modem = xmlGetProp(s->cur, (const xmlChar *) "modem");
     value = xmlGetProp(s->cur, (const xmlChar *) "value");
+    tag = xmlGetProp(s->cur, (const xmlChar *) "tag");
 
     s->cur = s->cur->next;
 
-    printf("Dir - %s, type - %s, value - %s\n", (dir)  ?  (const char *) dir  :  "", (type)  ?  (const char *) type  :  "", (value)  ?  (const char *) value  :  "");
+    printf("Dir - %s, type - %s, modem - %s, value - %s, tag - %s\n",
+           (dir)  ?  (const char *) dir  :  "",
+           (type)  ?  (const char *) type  :  "",
+           (modem)  ?  (const char *) modem  :  "",
+           (value)  ?  (const char *) value  :  "",
+           (tag)  ?  (const char *) tag  :  "");
     if (type == NULL)
         return 1;
     /*endif*/
     if (dir  &&  strcasecmp((const char *) dir, "R") == 0)
     {
-        return 0;
+        if (strcasecmp((const char *) type, "HDLC") == 0)
+        {
+            faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
+            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+            i = string_to_msg(buf, mask, (const char *) value);
+            bit_reverse(buf, buf, abs(i));
+        }
+        else if (strcasecmp((const char *) type, "DIS") == 0)
+        {
+            faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
+            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+        }
+        else if (strcasecmp((const char *) type, "CFR") == 0)
+        {
+            faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
+            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+        }
+        else if (strcasecmp((const char *) type, "FTT") == 0)
+        {
+            faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
+            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+        }
+        else if (strcasecmp((const char *) type, "MPS") == 0)
+        {
+            faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
+            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+        }
+        else if (strcasecmp((const char *) type, "EOM") == 0)
+        {
+            faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
+            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+        }
+        else if (strcasecmp((const char *) type, "EOP") == 0)
+        {
+            faxtester_set_rx_type(s, T30_MODEM_V21, FALSE, TRUE);
+            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+        }
+        else
+        {
+            return 0;
+        }
     }
     else
     {
+        if (modem)
+        {
+            hdlc = (strcasecmp((const char *) type, "PREAMBLE") == 0);
+            short_train = (strcasecmp((const char *) type, "TCF") == 0);
+            faxtester_set_rx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+            if (strcasecmp((const char *) modem, "V.21") == 0)
+            {
+                faxtester_set_tx_type(s, T30_MODEM_V21, FALSE, TRUE);
+            }
+            else if (strcasecmp((const char *) modem, "V.17/14400") == 0)
+            {
+                faxtester_set_tx_type(s, T30_MODEM_V17_14400, short_train, hdlc);
+            }
+            else if (strcasecmp((const char *) modem, "V.17/12000") == 0)
+            {
+                faxtester_set_tx_type(s, T30_MODEM_V17_12000, short_train, hdlc);
+            }
+            else if (strcasecmp((const char *) modem, "V.17/9600") == 0)
+            {
+                faxtester_set_tx_type(s, T30_MODEM_V17_9600, short_train, hdlc);
+            }
+            else if (strcasecmp((const char *) modem, "V.17/7200") == 0)
+            {
+                faxtester_set_tx_type(s, T30_MODEM_V17_7200, short_train, hdlc);
+            }
+            else if (strcasecmp((const char *) modem, "V.29/9600") == 0)
+            {
+                faxtester_set_tx_type(s, T30_MODEM_V29_9600, FALSE, hdlc);
+            }
+            else if (strcasecmp((const char *) modem, "V.29/7200") == 0)
+            {
+                faxtester_set_tx_type(s, T30_MODEM_V29_7200, FALSE, hdlc);
+            }
+            else if (strcasecmp((const char *) modem, "V.27ter/4800") == 0)
+            {
+                faxtester_set_tx_type(s, T30_MODEM_V27TER_4800, FALSE, hdlc);
+            }
+            else if (strcasecmp((const char *) modem, "V.27ter/2400") == 0)
+            {
+                faxtester_set_tx_type(s, T30_MODEM_V27TER_2400, FALSE, hdlc);
+            }
+            else
+            {
+                printf("Unrecognised modem\n");
+            }
+        }
+
         if (strcasecmp((const char *) type, "CALL") == 0)
         {
             return 0;
@@ -269,39 +502,67 @@ static int next_step(faxtester_state_t *s)
         }
         else if (strcasecmp((const char *) type, "WAIT") == 0)
         {
-            if (value)
-                delay = atoi(value);
-            else
-                delay = 1;
+            delay = (value)  ?  atoi((const char *) value)  :  1;
             faxtester_set_rx_type(s, T30_MODEM_NONE, FALSE, FALSE);
             faxtester_set_tx_type(s, T30_MODEM_PAUSE, delay, FALSE);
         }
-        else if (strcasecmp((const char *) type, "SLOW_PREAMBLE") == 0)
+        else if (strcasecmp((const char *) type, "PREAMBLE") == 0)
         {
-            if (value)
-                flags = atoi(value);
-            else
-                flags = 37;
-            faxtester_set_rx_type(s, T30_MODEM_NONE, FALSE, FALSE);
-            faxtester_set_tx_type(s, T30_MODEM_V21, FALSE, TRUE);
-            hdlc_tx_flags(&(s->hdlctx), flags);
+            flags = (value)  ?  atoi((const char *) value)  :  37;
+            faxtester_send_hdlc_flags(s, flags);
         }
-        else if (strcasecmp((const char *) type, "SLOW-POSTAMBLE") == 0)
+        else if (strcasecmp((const char *) type, "POSTAMBLE") == 0)
         {
-            if (value)
-                flags = atoi(value);
-            else
-                flags = 5;
-            hdlc_tx_flags(&(s->hdlctx), flags);
+            flags = (value)  ?  atoi((const char *) value)  :  5;
+            faxtester_send_hdlc_flags(s, flags);
         }
-        else if (strcasecmp((const char *) type, "MPS") == 0)
+        else if (strcasecmp((const char *) type, "HDLC") == 0)
         {
+            i = string_to_msg(buf, mask, (const char *) value);
+            bit_reverse(buf, buf, abs(i));
+            faxtester_send_hdlc_msg(s, buf, abs(i));
         }
-        else if (strcasecmp((const char *) type, "EOM") == 0)
+        else if (strcasecmp((const char *) type, "TCF") == 0)
         {
+            memset(image, 0, 900);
+            faxtester_set_image_buffer(s, image, 900);
         }
-        else if (strcasecmp((const char *) type, "EOP") == 0)
+        else if (strcasecmp((const char *) type, "MSG") == 0)
         {
+            min_row_bits = 0;
+            compression_step = 0;
+            if (t4_tx_init(&t4_state, (const char *) value, -1, -1) == NULL)
+            {
+                printf("Failed to init T.4 send\n");
+                exit(2);
+            }
+            t4_tx_set_min_row_bits(&t4_state, min_row_bits);
+            t4_tx_set_header_info(&t4_state, NULL);
+            switch (compression_step)
+            {
+            case 0:
+                compression = T4_COMPRESSION_ITU_T4_1D;
+                break;
+            case 1:
+                compression = T4_COMPRESSION_ITU_T4_2D;
+                break;
+            case 2:
+                compression = T4_COMPRESSION_ITU_T6;
+                break;
+            }
+            t4_tx_set_tx_encoding(&t4_state, compression);
+            if (t4_tx_start_page(&t4_state))
+            {
+                printf("Failed to start T.4 send\n");
+                exit(2);
+            }
+            len = t4_tx_get_chunk(&t4_state, image, sizeof(image));
+            t4_tx_end(&t4_state);
+            faxtester_set_image_buffer(s, image, len);
+        }
+        else
+        {
+            return 0;
         }
         /*endif*/
     }
@@ -313,16 +574,44 @@ static int next_step(faxtester_state_t *s)
 static void exchange(faxtester_state_t *s)
 {
     int16_t amp[SAMPLES_PER_CHUNK];
+    int16_t out_amp[2*SAMPLES_PER_CHUNK];
     int len;
+    int i;
     fax_state_t fax;
     int total_audio_time;
     const char *input_tiff_file_name;
     const char *output_tiff_file_name;
+    int log_audio;
 
+    log_audio = TRUE;
     input_tiff_file_name = INPUT_TIFF_FILE_NAME;
     output_tiff_file_name = OUTPUT_TIFF_FILE_NAME;
 
+    if (log_audio)
+    {
+        if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
+        {
+            fprintf(stderr, "    Failed to create file setup\n");
+            exit(2);
+        }
+        afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
+        afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
+        afInitFileFormat(filesetup, AF_FILE_WAVE);
+        afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
+
+        if ((out_handle = afOpenFile(OUTPUT_FILE_NAME_WAVE, "w", filesetup)) == AF_NULL_FILEHANDLE)
+        {
+            fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
+            exit(2);
+        }
+    }
+
     total_audio_time = 0;
+
+    faxtester_set_transmit_on_idle(&state, TRUE);
+    faxtester_set_real_time_frame_handler(&state, faxtester_real_time_frame_handler, NULL);
+    faxtester_set_front_end_step_complete_handler(&state, faxtester_front_end_step_complete_handler, NULL);
+
     fax_init(&fax, FALSE);
     fax_set_transmit_on_idle(&fax, TRUE);
     fax_set_tep_mode(&fax, TRUE);
@@ -363,7 +652,7 @@ static void exchange(faxtester_state_t *s)
     t30_set_phase_b_handler(&fax.t30_state, phase_b_handler, (void *) (intptr_t) 1);
     t30_set_phase_d_handler(&fax.t30_state, phase_d_handler, (void *) (intptr_t) 1);
     t30_set_phase_e_handler(&fax.t30_state, phase_e_handler, (void *) (intptr_t) 1);
-    t30_set_real_time_frame_handler(&fax.t30_state, real_time_frame_handler, (void *) (intptr_t) 1);
+    t30_set_real_time_frame_handler(&fax.t30_state, t30_real_time_frame_handler, (void *) (intptr_t) 1);
     t30_set_document_handler(&fax.t30_state, document_handler, (void *) (intptr_t) 1);
     t30_set_rx_file(&fax.t30_state, output_tiff_file_name, -1);
     //t30_set_tx_file(&fax.t30_state, input_tiff_file_name, -1, -1);
@@ -380,15 +669,37 @@ static void exchange(faxtester_state_t *s)
     for (;;)
     {
         len = fax_tx(&fax, amp, SAMPLES_PER_CHUNK);
+        faxtester_rx(s, amp, len);
+        if (log_audio)
+        {
+            for (i = 0;  i < len;  i++)
+                out_amp[2*i + 0] = amp[i];
+        }
+
         total_audio_time += SAMPLES_PER_CHUNK;
         span_log_bump_samples(&fax.t30_state.logging, len);
         span_log_bump_samples(&fax.v29_rx.logging, len);
         span_log_bump_samples(&fax.logging, len);
-        faxtester_rx(s, amp, len);
                 
         len = faxtester_tx(s, amp, 160);
         if (fax_rx(&fax, amp, len))
             break;
+        if (log_audio)
+        {
+            for (i = 0;  i < len;  i++)
+                out_amp[2*i + 1] = amp[i];
+            if (afWriteFrames(out_handle, AF_DEFAULT_TRACK, out_amp, SAMPLES_PER_CHUNK) != SAMPLES_PER_CHUNK)
+                break;
+        }
+    }
+    if (log_audio)
+    {
+        if (afCloseFile(out_handle))
+        {
+            fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
+            exit(2);
+        }
+        afFreeFileSetup(filesetup);
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -494,33 +805,16 @@ static int get_test_set(faxtester_state_t *s, const char *test_file, const char 
 
 int main(int argc, char *argv[])
 {
-    faxtester_state_t state;
+    const char *test_name;
 
-    if ((filesetup = afNewFileSetup ()) == AF_NULL_FILESETUP)
-    {
-    	fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
-    }
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, 8000.0);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
+    //string_test();
 
-    if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
-    {
-        fprintf(stderr, "    Cannot open audio file '%s'\n", OUT_FILE_NAME);
-        exit(2);
-    }
+    test_name = "MRGN01";
+    if (argc > 1)
+        test_name = argv[1];
+
     faxtester_init(&state, TRUE);
-#if defined(HAVE_LIBXML2)
-    get_test_set(&state, "../spandsp/tsb85.xml", "MRGN01");
-#endif
-    if (afCloseFile (outhandle) != 0)
-    {
-        fprintf(stderr, "    Cannot close audio file '%s'\n", OUT_FILE_NAME);
-        exit(2);
-    }
-    afFreeFileSetup(filesetup);
+    get_test_set(&state, "../spandsp/tsb85.xml", test_name);
     printf("Done\n");
     return 0;
 }

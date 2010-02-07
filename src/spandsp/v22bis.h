@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.28 2008/05/02 14:26:39 steveu Exp $
+ * $Id: v22bis.h,v 1.29 2008/07/16 14:23:48 steveu Exp $
  */
 
 /*! \file */
@@ -111,7 +111,7 @@ typedef struct
 
         /*! \brief A callback function which may be enabled to report every symbol's
                    constellation position. */
-        qam_report_handler_t *qam_report;
+        qam_report_handler_t qam_report;
         /*! \brief A user specified opaque pointer passed to the qam_report callback
                    routine. */
         void *qam_user_data;
