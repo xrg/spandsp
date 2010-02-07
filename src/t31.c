@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.118 2008/08/05 16:01:13 steveu Exp $
+ * $Id: t31.c,v 1.119 2008/08/09 05:09:56 steveu Exp $
  */
 
 /*! \file */
@@ -60,6 +60,7 @@
 #include "spandsp/queue.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/complex.h"
+#include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
 #include "spandsp/async.h"
 #include "spandsp/hdlc.h"
@@ -71,6 +72,8 @@
 #include "spandsp/v27ter_tx.h"
 #include "spandsp/v17rx.h"
 #include "spandsp/v17tx.h"
+#include "spandsp/super_tone_rx.h"
+#include "spandsp/modem_connect_tones.h"
 #include "spandsp/t4.h"
 #include "spandsp/t30.h"
 #include "spandsp/t30_logging.h"
@@ -818,6 +821,15 @@ static int non_ecm_get_bit(void *user_data)
 }
 /*- End of function --------------------------------------------------------*/
 
+static void tone_detected(void *user_data, int on, int level, int delay)
+{
+    t31_state_t *s;
+
+    s = (t31_state_t *) user_data;
+    span_log(&s->logging, SPAN_LOG_FLOW, "FAX tone declared %s (%ddBm0)\n", (on)  ?  "on"  :  "off", level);
+}
+/*- End of function --------------------------------------------------------*/
+
 static void hdlc_tx_underflow(void *user_data)
 {
     t31_state_t *s;
@@ -1033,9 +1045,10 @@ static void t31_v21_rx(t31_state_t *s)
 
 static int restart_modem(t31_state_t *s, int new_modem)
 {
-    tone_gen_descriptor_t tone_desc;
     int ind;
+    fax_modems_state_t *t;
 
+    t = &s->audio.modems;
     span_log(&s->logging, SPAN_LOG_FLOW, "Restart modem %d\n", new_modem);
     if (s->modem == new_modem)
         return 0;
@@ -1045,8 +1058,8 @@ static int restart_modem(t31_state_t *s, int new_modem)
     s->at_state.rx_signal_present = FALSE;
     s->at_state.rx_trained = FALSE;
     s->rx_frame_received = FALSE;
-    s->audio.modems.rx_handler = (span_rx_handler_t *) &span_dummy_rx;
-    s->audio.modems.rx_user_data = NULL;
+    t->rx_handler = (span_rx_handler_t *) &span_dummy_rx;
+    t->rx_user_data = NULL;
     switch (s->modem)
     {
     case T31_CNG_TONE:
@@ -1056,28 +1069,17 @@ static int restart_modem(t31_state_t *s, int new_modem)
         }
         else
         {
+            modem_connect_tones_tx_init(&t->connect_tx, MODEM_CONNECT_TONES_FAX_CNG);
             /* CNG is special, since we need to receive V.21 HDLC messages while sending the
                tone. Everything else in FAX processing sends only one way at a time. */
-            /* 0.5s of 1100Hz + 3.0s of silence repeating */
-            make_tone_gen_descriptor(&tone_desc,
-                                     1100,
-                                     -11,
-                                     0,
-                                     0,
-                                     500,
-                                     3000,
-                                     0,
-                                     0,
-                                     TRUE);
-            tone_gen_init(&(s->audio.modems.tone_gen), &tone_desc);
             /* Do V.21/HDLC receive in parallel. The other end may send its
                first message at any time. The CNG tone will continue until
                we get a valid preamble. */
-            s->audio.modems.rx_handler = (span_rx_handler_t *) &cng_rx;
-            s->audio.modems.rx_user_data = s;
+            t->rx_handler = (span_rx_handler_t *) &cng_rx;
+            t->rx_user_data = s;
             t31_v21_rx(s);
-            s->audio.modems.tx_handler = (span_tx_handler_t *) &tone_gen;
-            s->audio.modems.tx_user_data = &(s->audio.modems.tone_gen);
+            t->tx_handler = (span_tx_handler_t *) &modem_connect_tones_tx;
+            t->tx_user_data = &t->connect_tx;
             s->audio.next_tx_handler = NULL;
         }
         s->at_state.transmit = TRUE;
@@ -1088,12 +1090,12 @@ static int restart_modem(t31_state_t *s, int new_modem)
         }
         else
         {
-            s->audio.modems.rx_handler = (span_rx_handler_t *) &cng_rx;
-            s->audio.modems.rx_user_data = s;
+            t->rx_handler = (span_rx_handler_t *) &cng_rx;
+            t->rx_user_data = s;
             t31_v21_rx(s);
-            silence_gen_set(&(s->audio.modems.silence_gen), 0);
-            s->audio.modems.tx_handler = (span_tx_handler_t *) &silence_gen;
-            s->audio.modems.tx_user_data = &(s->audio.modems.silence_gen);
+            silence_gen_set(&t->silence_gen, 0);
+            t->tx_handler = (span_tx_handler_t *) &silence_gen;
+            t->tx_user_data = &t->silence_gen;
         }
         s->at_state.transmit = FALSE;
         break;
@@ -1104,22 +1106,10 @@ static int restart_modem(t31_state_t *s, int new_modem)
         }
         else
         {
-            silence_gen_alter(&(s->audio.modems.silence_gen), ms_to_samples(200));
-            make_tone_gen_descriptor(&tone_desc,
-                                     2100,
-                                     -11,
-                                     0,
-                                     0,
-                                     2600,
-                                     75,
-                                     0,
-                                     0,
-                                     FALSE);
-            tone_gen_init(&(s->audio.modems.tone_gen), &tone_desc);
-            s->audio.modems.tx_handler = (span_tx_handler_t *) &silence_gen;
-            s->audio.modems.tx_user_data = &(s->audio.modems.silence_gen);
-            s->audio.next_tx_handler = (span_tx_handler_t *) &tone_gen;
-            s->audio.next_tx_user_data = &(s->audio.modems.tone_gen);
+            modem_connect_tones_tx_init(&t->connect_tx, MODEM_CONNECT_TONES_FAX_CED);
+            t->tx_handler = (span_tx_handler_t *) &modem_connect_tones_tx;
+            t->tx_user_data = &t->connect_tx;
+            s->audio.next_tx_handler = NULL;
         }
         s->at_state.transmit = TRUE;
         break;
@@ -1130,12 +1120,12 @@ static int restart_modem(t31_state_t *s, int new_modem)
         }
         else
         {
-            hdlc_tx_init(&(s->audio.modems.hdlc_tx), FALSE, 2, FALSE, hdlc_tx_underflow, s);
+            hdlc_tx_init(&t->hdlc_tx, FALSE, 2, FALSE, hdlc_tx_underflow, s);
             /* The spec says 1s +-15% of preamble. So, the minimum is 32 octets. */
-            hdlc_tx_flags(&(s->audio.modems.hdlc_tx), 32);
-            fsk_tx_init(&(s->audio.modems.v21_tx), &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &(s->audio.modems.hdlc_tx));
-            s->audio.modems.tx_handler = (span_tx_handler_t *) &fsk_tx;
-            s->audio.modems.tx_user_data = &(s->audio.modems.v21_tx);
+            hdlc_tx_flags(&t->hdlc_tx, 32);
+            fsk_tx_init(&t->v21_tx, &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &t->hdlc_tx);
+            t->tx_handler = (span_tx_handler_t *) &fsk_tx;
+            t->tx_user_data = &t->v21_tx;
             s->audio.next_tx_handler = NULL;
         }
         s->hdlc_tx.final = FALSE;
@@ -1149,8 +1139,8 @@ static int restart_modem(t31_state_t *s, int new_modem)
         }
         else
         {
-            s->audio.modems.rx_handler = (span_rx_handler_t *) &fsk_rx;
-            s->audio.modems.rx_user_data = &(s->audio.modems.v21_rx);
+            t->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            t->rx_user_data = &t->v21_rx;
             t31_v21_rx(s);
         }
         break;
@@ -1177,9 +1167,9 @@ static int restart_modem(t31_state_t *s, int new_modem)
         }
         else
         {
-            v17_tx_restart(&(s->audio.modems.v17_tx), s->bit_rate, FALSE, s->short_train);
-            s->audio.modems.tx_handler = (span_tx_handler_t *) &v17_tx;
-            s->audio.modems.tx_user_data = &(s->audio.modems.v17_tx);
+            v17_tx_restart(&t->v17_tx, s->bit_rate, FALSE, s->short_train);
+            t->tx_handler = (span_tx_handler_t *) &v17_tx;
+            t->tx_user_data = &t->v17_tx;
             s->audio.next_tx_handler = NULL;
         }
         s->tx.out_bytes = 0;
@@ -1189,9 +1179,9 @@ static int restart_modem(t31_state_t *s, int new_modem)
     case T31_V17_RX:
         if (!s->t38_mode)
         {
-            s->audio.modems.rx_handler = (span_rx_handler_t *) &v17_v21_rx;
-            s->audio.modems.rx_user_data = s;
-            v17_rx_restart(&(s->audio.modems.v17_rx), s->bit_rate, s->short_train);
+            t->rx_handler = (span_rx_handler_t *) &v17_v21_rx;
+            t->rx_user_data = s;
+            v17_rx_restart(&t->v17_rx, s->bit_rate, s->short_train);
             /* Allow for +FCERROR/+FRH:3 */
             t31_v21_rx(s);
         }
@@ -1214,9 +1204,9 @@ static int restart_modem(t31_state_t *s, int new_modem)
         }
         else
         {
-            v27ter_tx_restart(&(s->audio.modems.v27ter_tx), s->bit_rate, FALSE);
-            s->audio.modems.tx_handler = (span_tx_handler_t *) &v27ter_tx;
-            s->audio.modems.tx_user_data = &(s->audio.modems.v27ter_tx);
+            v27ter_tx_restart(&t->v27ter_tx, s->bit_rate, FALSE);
+            t->tx_handler = (span_tx_handler_t *) &v27ter_tx;
+            t->tx_user_data = &t->v27ter_tx;
             s->audio.next_tx_handler = NULL;
         }
         s->tx.out_bytes = 0;
@@ -1226,9 +1216,9 @@ static int restart_modem(t31_state_t *s, int new_modem)
     case T31_V27TER_RX:
         if (!s->t38_mode)
         {
-            s->audio.modems.rx_handler = (span_rx_handler_t *) &v27ter_v21_rx;
-            s->audio.modems.rx_user_data = s;
-            v27ter_rx_restart(&(s->audio.modems.v27ter_rx), s->bit_rate, FALSE);
+            t->rx_handler = (span_rx_handler_t *) &v27ter_v21_rx;
+            t->rx_user_data = s;
+            v27ter_rx_restart(&t->v27ter_rx, s->bit_rate, FALSE);
             /* Allow for +FCERROR/+FRH:3 */
             t31_v21_rx(s);
         }
@@ -1251,9 +1241,9 @@ static int restart_modem(t31_state_t *s, int new_modem)
         }
         else
         {
-            v29_tx_restart(&(s->audio.modems.v29_tx), s->bit_rate, FALSE);
-            s->audio.modems.tx_handler = (span_tx_handler_t *) &v29_tx;
-            s->audio.modems.tx_user_data = &(s->audio.modems.v29_tx);
+            v29_tx_restart(&t->v29_tx, s->bit_rate, FALSE);
+            t->tx_handler = (span_tx_handler_t *) &v29_tx;
+            t->tx_user_data = &t->v29_tx;
             s->audio.next_tx_handler = NULL;
         }
         s->tx.out_bytes = 0;
@@ -1263,9 +1253,9 @@ static int restart_modem(t31_state_t *s, int new_modem)
     case T31_V29_RX:
         if (!s->t38_mode)
         {
-            s->audio.modems.rx_handler = (span_rx_handler_t *) &v29_v21_rx;
-            s->audio.modems.rx_user_data = s;
-            v29_rx_restart(&(s->audio.modems.v29_rx), s->bit_rate, FALSE);
+            t->rx_handler = (span_rx_handler_t *) &v29_v21_rx;
+            t->rx_user_data = s;
+            v29_rx_restart(&t->v29_rx, s->bit_rate, FALSE);
             /* Allow for +FCERROR/+FRH:3 */
             t31_v21_rx(s);
         }
@@ -1278,9 +1268,9 @@ static int restart_modem(t31_state_t *s, int new_modem)
         }
         else
         {
-            silence_gen_set(&(s->audio.modems.silence_gen), 0);
-            s->audio.modems.tx_handler = (span_tx_handler_t *) &silence_gen;
-            s->audio.modems.tx_user_data = &(s->audio.modems.silence_gen);
+            silence_gen_set(&t->silence_gen, 0);
+            t->tx_handler = (span_tx_handler_t *) &silence_gen;
+            t->tx_user_data = &t->silence_gen;
             s->audio.next_tx_handler = NULL;
         }
         s->at_state.transmit = FALSE;
@@ -1288,12 +1278,12 @@ static int restart_modem(t31_state_t *s, int new_modem)
     case T31_SILENCE_RX:
         if (!s->t38_mode)
         {
-            s->audio.modems.rx_handler = (span_rx_handler_t *) &silence_rx;
-            s->audio.modems.rx_user_data = s;
+            t->rx_handler = (span_rx_handler_t *) &silence_rx;
+            t->rx_user_data = s;
 
-            silence_gen_set(&(s->audio.modems.silence_gen), 0);
-            s->audio.modems.tx_handler = (span_tx_handler_t *) &silence_gen;
-            s->audio.modems.tx_user_data = &(s->audio.modems.silence_gen);
+            silence_gen_set(&t->silence_gen, 0);
+            t->tx_handler = (span_tx_handler_t *) &silence_gen;
+            t->tx_user_data = &t->silence_gen;
             s->audio.next_tx_handler = NULL;
         }
         s->at_state.transmit = FALSE;
@@ -1307,9 +1297,9 @@ static int restart_modem(t31_state_t *s, int new_modem)
         else
         {
             s->modem = T31_SILENCE_TX;
-            silence_gen_alter(&(s->audio.modems.silence_gen), ms_to_samples(200));
-            s->audio.modems.tx_handler = (span_tx_handler_t *) &silence_gen;
-            s->audio.modems.tx_user_data = &(s->audio.modems.silence_gen);
+            silence_gen_alter(&t->silence_gen, ms_to_samples(200));
+            t->tx_handler = (span_tx_handler_t *) &silence_gen;
+            t->tx_user_data = &t->silence_gen;
             s->audio.next_tx_handler = NULL;
             s->at_state.transmit = TRUE;
         }
@@ -1790,6 +1780,11 @@ static void t31_fax_modems_init(fax_modems_state_t *s, int use_tep, void *user_d
     v27ter_rx_init(&s->v27ter_rx, 4800, non_ecm_put_bit, user_data);
     v27ter_tx_init(&s->v27ter_tx, 4800, s->use_tep, non_ecm_get_bit, user_data);
     silence_gen_init(&s->silence_gen, 0);
+    modem_connect_tones_tx_init(&s->connect_tx, MODEM_CONNECT_TONES_FAX_CNG);
+    modem_connect_tones_rx_init(&s->connect_rx,
+                                MODEM_CONNECT_TONES_FAX_CNG,
+                                tone_detected,
+                                user_data);
     dc_restore_init(&s->dc_restore);
 
     s->rx_signal_present = FALSE;

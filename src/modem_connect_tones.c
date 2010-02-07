@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.c,v 1.24 2008/07/02 14:48:25 steveu Exp $
+ * $Id: modem_connect_tones.c,v 1.25 2008/08/09 05:09:56 steveu Exp $
  */
  
 /*! \file */
@@ -42,6 +42,7 @@
 #if defined(HAVE_MATH_H)
 #include <math.h>
 #endif
+#include <stdio.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
@@ -97,6 +98,7 @@ int modem_connect_tones_tx(modem_connect_tones_tx_state_t *s,
             len = s->duration_timer;
         if (s->duration_timer > ms_to_samples(2600))
         {
+            /* There is some initial silence to be generated. */
             if ((i = s->duration_timer - ms_to_samples(2600)) > len)
                 i = len;
             memset(amp, 0, sizeof(int16_t)*i);
@@ -170,10 +172,14 @@ int modem_connect_tones_tx(modem_connect_tones_tx_state_t *s,
 modem_connect_tones_tx_state_t *modem_connect_tones_tx_init(modem_connect_tones_tx_state_t *s,
                                                             int tone_type)
 {
+    int alloced;
+
+    alloced = FALSE;
     if (s == NULL)
     {
         if ((s = (modem_connect_tones_tx_state_t *) malloc(sizeof(*s))) == NULL)
             return NULL;
+        alloced = TRUE;
     }
     s->tone_type = tone_type;
     switch (s->tone_type)
@@ -183,7 +189,10 @@ modem_connect_tones_tx_state_t *modem_connect_tones_tx_init(modem_connect_tones_
         s->tone_phase_rate = dds_phase_rate(1100.0);
         s->level = dds_scaling_dbm0(-11);
         s->duration_timer = ms_to_samples(500 + 3000);
+        s->mod_phase_rate = 0;
         s->tone_phase = 0;
+        s->mod_phase = 0;
+        s->mod_level = 0;
         break;
     case MODEM_CONNECT_TONES_FAX_CED:
     case MODEM_CONNECT_TONES_ANS:
@@ -214,6 +223,10 @@ modem_connect_tones_tx_state_t *modem_connect_tones_tx_init(modem_connect_tones_
         else
             s->mod_level = 0;
         break;
+    default:
+        if (alloced)
+            free(s);
+        return NULL;
     }
     return s;
 }
@@ -408,7 +421,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                    EC disable tone. For a simple CNG tone, the tone should persist unbroken for longer. */
                 if (s->tone_type == MODEM_CONNECT_TONES_FAX_CED)
                 {
-                    if (s->tone_present != MODEM_CONNECT_TONES_FAX_CNG)
+                    if (s->tone_present != MODEM_CONNECT_TONES_FAX_CED)
                     {
                         if (++s->tone_cycle_duration >= ms_to_samples(500))
                             report_tone_state(s, MODEM_CONNECT_TONES_FAX_CED, lrintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));

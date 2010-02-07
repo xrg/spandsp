@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.133 2008/08/06 14:49:11 steveu Exp $
+ * $Id: t38_gateway.c,v 1.134 2008/08/09 05:09:56 steveu Exp $
  */
 
 /*! \file */
@@ -58,6 +58,7 @@
 #include "spandsp/bit_operations.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/complex.h"
+#include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
 #include "spandsp/async.h"
 #include "spandsp/crc.h"
@@ -70,6 +71,8 @@
 #include "spandsp/v27ter_tx.h"
 #include "spandsp/v17rx.h"
 #include "spandsp/v17tx.h"
+#include "spandsp/super_tone_rx.h"
+#include "spandsp/modem_connect_tones.h"
 #include "spandsp/t4.h"
 #include "spandsp/t30_fcf.h"
 #include "spandsp/t35.h"
@@ -140,6 +143,7 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
 static void hdlc_underflow_handler(void *user_data);
 static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit);
 static void non_ecm_put_bit(void *user_data, int bit);
+static void tone_detected(void *user_data, int on, int level, int delay);
 
 static void set_rx_handler(t38_gateway_state_t *s, span_rx_handler_t *handler, void *user_data)
 {
@@ -261,6 +265,11 @@ static void t38_fax_modems_init(fax_modems_state_t *s, int use_tep, void *user_d
     v27ter_rx_init(&s->v27ter_rx, 4800, non_ecm_put_bit, user_data);
     v27ter_tx_init(&s->v27ter_tx, 4800, s->use_tep, non_ecm_get_bit, user_data);
     silence_gen_init(&s->silence_gen, 0);
+    modem_connect_tones_tx_init(&s->connect_tx, MODEM_CONNECT_TONES_FAX_CNG);
+    modem_connect_tones_rx_init(&s->connect_rx,
+                                MODEM_CONNECT_TONES_FAX_CNG,
+                                tone_detected,
+                                user_data);
     dc_restore_init(&s->dc_restore);
 
     s->rx_signal_present = FALSE;
@@ -268,6 +277,15 @@ static void t38_fax_modems_init(fax_modems_state_t *s, int use_tep, void *user_d
     s->rx_user_data = NULL;
     s->tx_handler = (span_tx_handler_t *) &silence_gen;
     s->tx_user_data = &s->silence_gen;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void tone_detected(void *user_data, int on, int level, int delay)
+{
+    t38_gateway_state_t *s;
+
+    s = (t38_gateway_state_t *) user_data;
+    span_log(&s->logging, SPAN_LOG_FLOW, "FAX tone declared %s (%ddBm0)\n", (on)  ?  "on"  :  "off", level);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -314,7 +332,6 @@ static void hdlc_underflow_handler(void *user_data)
 
 static int set_next_tx_type(t38_gateway_state_t *s)
 {
-    tone_gen_descriptor_t tone_desc;
     get_bit_func_t get_bit_func;
     void *get_bit_user_data;
     int indicator;
@@ -374,43 +391,19 @@ static int set_next_tx_type(t38_gateway_state_t *s)
         set_rx_active(s, TRUE);
         break;
     case T38_IND_CNG:
-        /* 0.5s of 1100Hz + 3.0s of silence repeating */
-        make_tone_gen_descriptor(&tone_desc,
-                                 1100,
-                                 -11,
-                                 0,
-                                 0,
-                                 500,
-                                 3000,
-                                 0,
-                                 0,
-                                 TRUE);
-        tone_gen_init(&t->tone_gen, &tone_desc);
-        t->tx_handler = (span_tx_handler_t *) &(tone_gen);
-        t->tx_user_data = &t->tone_gen;
+        modem_connect_tones_tx_init(&t->connect_tx, MODEM_CONNECT_TONES_FAX_CNG);
+        t->tx_handler = (span_tx_handler_t *) &modem_connect_tones_tx;
+        t->tx_user_data = &t->connect_tx;
         silence_gen_set(&t->silence_gen, 0);
         t->next_tx_handler = (span_tx_handler_t *) &(silence_gen);
         t->next_tx_user_data = &t->silence_gen;
         set_rx_active(s, TRUE);
         break;
     case T38_IND_CED:
-        /* 0.2s of silence, then 2.6s to 4s of 2100Hz tone, then 75ms of silence. */
-        silence_gen_alter(&t->silence_gen, ms_to_samples(200));
-        make_tone_gen_descriptor(&tone_desc,
-                                 2100,
-                                 -11,
-                                 0,
-                                 0,
-                                 2600,
-                                 75,
-                                 0,
-                                 0,
-                                 FALSE);
-        tone_gen_init(&t->tone_gen, &tone_desc);
-        t->tx_handler = (span_tx_handler_t *) &(silence_gen);
-        t->tx_user_data = &t->silence_gen;
-        t->next_tx_handler = (span_tx_handler_t *) &(tone_gen);
-        t->next_tx_user_data = &t->tone_gen;
+        modem_connect_tones_tx_init(&t->connect_tx, MODEM_CONNECT_TONES_FAX_CED);
+        t->tx_handler = (span_tx_handler_t *) &modem_connect_tones_tx;
+        t->tx_user_data = &t->connect_tx;
+        t->next_tx_handler = NULL;
         set_rx_active(s, TRUE);
         break;
     case T38_IND_V21_PREAMBLE:

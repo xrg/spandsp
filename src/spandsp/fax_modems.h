@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_modems.h,v 1.3 2008/08/06 14:49:11 steveu Exp $
+ * $Id: fax_modems.h,v 1.4 2008/08/09 05:09:56 steveu Exp $
  */
 
 /*! \file */
@@ -72,11 +72,12 @@ typedef struct
     /*! \brief A V.27ter modem context used when receiving FAXes at 2400bps or
                4800bps */
     v27ter_rx_state_t v27ter_rx;
-    /*! \brief A tone generator context used to generate supervisory tones during
-               FAX handling. */
-    tone_gen_state_t tone_gen;
     /*! \brief Used to insert timed silences. */
     silence_gen_state_t silence_gen;
+    /*! \brief CED or CNG generator */
+    modem_connect_tones_tx_state_t connect_tx;
+    /*! \brief CED or CNG detector */
+    modem_connect_tones_rx_state_t connect_rx;
     /*! \brief */
     dc_restore_state_t dc_restore;
 

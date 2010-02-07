@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tsb85_tests.c,v 1.15 2008/08/05 16:01:13 steveu Exp $
+ * $Id: tsb85_tests.c,v 1.16 2008/08/09 05:09:56 steveu Exp $
  */
 
 /*! \file */
@@ -628,7 +628,18 @@ static int next_step(faxtester_state_t *s)
                 span_log(&s->logging, SPAN_LOG_FLOW, "Unrecognised modem\n");
             }
         }
-
+#if 0
+        if (strcasecmp((const char *) type, "CNG") == 0)
+        {
+            faxtester_set_rx_type(s, T30_MODEM_CNG, FALSE, FALSE);
+            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+        }
+        else if (strcasecmp((const char *) type, "CED") == 0)
+        {
+            faxtester_set_rx_type(s, T30_MODEM_CED, FALSE, FALSE);
+            faxtester_set_tx_type(s, T30_MODEM_NONE, FALSE, FALSE);
+        }
+#else
         if (strcasecmp((const char *) type, "CNG") == 0)
         {
             return 0;
@@ -637,6 +648,7 @@ static int next_step(faxtester_state_t *s)
         {
             return 0;
         }
+#endif
         else if (strcasecmp((const char *) type, "HDLC") == 0)
         {
             i = string_to_msg(buf, mask, (const char *) value);

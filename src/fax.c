@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.77 2008/08/06 14:49:10 steveu Exp $
+ * $Id: fax.c,v 1.78 2008/08/09 05:09:56 steveu Exp $
  */
 
 /*! \file */
@@ -57,6 +57,7 @@
 #include "spandsp/dc_restore.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/complex.h"
+#include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
 #include "spandsp/async.h"
 #include "spandsp/hdlc.h"
@@ -68,6 +69,8 @@
 #include "spandsp/v27ter_tx.h"
 #include "spandsp/v17rx.h"
 #include "spandsp/v17tx.h"
+#include "spandsp/super_tone_rx.h"
+#include "spandsp/modem_connect_tones.h"
 #include "spandsp/t4.h"
 
 #include "spandsp/t30_fcf.h"
@@ -88,6 +91,15 @@ static void fax_send_hdlc(void *user_data, const uint8_t *msg, int len)
     s = (fax_state_t *) user_data;
     
     hdlc_tx_frame(&(s->fe.modems.hdlc_tx), msg, len);
+}
+/*- End of function --------------------------------------------------------*/
+
+static void tone_detected(void *user_data, int on, int level, int delay)
+{
+    t30_state_t *s;
+
+    s = (t30_state_t *) user_data;
+    span_log(&s->logging, SPAN_LOG_FLOW, "FAX tone declared %s (%ddBm0)\n", (on)  ?  "on"  :  "off", level);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -213,6 +225,11 @@ static void fax_fax_modems_init(fax_modems_state_t *s, int use_tep, void *user_d
     v27ter_rx_init(&s->v27ter_rx, 4800, t30_non_ecm_put_bit, user_data);
     v27ter_tx_init(&s->v27ter_tx, 4800, s->use_tep, t30_non_ecm_get_bit, user_data);
     silence_gen_init(&s->silence_gen, 0);
+    modem_connect_tones_tx_init(&s->connect_tx, MODEM_CONNECT_TONES_FAX_CNG);
+    modem_connect_tones_rx_init(&s->connect_rx,
+                                MODEM_CONNECT_TONES_FAX_CNG,
+                                tone_detected,
+                                user_data);
     dc_restore_init(&s->dc_restore);
 
     s->rx_signal_present = FALSE;
@@ -405,7 +422,6 @@ static void fax_set_rx_type(void *user_data, int type, int short_train, int use_
 static void fax_set_tx_type(void *user_data, int type, int short_train, int use_hdlc)
 {
     fax_state_t *s;
-    tone_gen_descriptor_t tone_desc;
     get_bit_func_t get_bit_func;
     void *get_bit_user_data;
     fax_modems_state_t *t;
@@ -435,42 +451,17 @@ static void fax_set_tx_type(void *user_data, int type, int short_train, int use_
         s->fe.transmit = TRUE;
         break;
     case T30_MODEM_CNG:
-        /* 0.5s of 1100Hz+-38Hz + 3.0s of silence repeating. Timing +-15% */
-        make_tone_gen_descriptor(&tone_desc,
-                                 1100,
-                                 -11,
-                                 0,
-                                 0,
-                                 500,
-                                 3000,
-                                 0,
-                                 0,
-                                 TRUE);
-        tone_gen_init(&t->tone_gen, &tone_desc);
-        t->tx_handler = (span_tx_handler_t *) &tone_gen;
-        t->tx_user_data = &t->tone_gen;
+        modem_connect_tones_tx_init(&t->connect_tx, MODEM_CONNECT_TONES_FAX_CNG);
+        t->tx_handler = (span_tx_handler_t *) &modem_connect_tones_tx;
+        t->tx_user_data = &t->connect_tx;
         t->next_tx_handler = NULL;
         s->fe.transmit = TRUE;
         break;
     case T30_MODEM_CED:
-        /* 0.2s of silence, then 2.6s to 4s of 2100Hz+-15Hz tone, then 75ms of silence. The 75ms of silence
-           will be inserted by the pre V.21 pause we use for any switch to V.21. */
-        silence_gen_alter(&t->silence_gen, ms_to_samples(200));
-        make_tone_gen_descriptor(&tone_desc,
-                                 2100,
-                                 -11,
-                                 0,
-                                 0,
-                                 2600,
-                                 0,
-                                 0,
-                                 0,
-                                 FALSE);
-        tone_gen_init(&t->tone_gen, &tone_desc);
-        t->tx_handler = (span_tx_handler_t *) &silence_gen;
-        t->tx_user_data = &t->silence_gen;
-        t->next_tx_handler = (span_tx_handler_t *) &tone_gen;
-        t->next_tx_user_data = &t->tone_gen;
+        modem_connect_tones_tx_init(&t->connect_tx, MODEM_CONNECT_TONES_FAX_CED);
+        t->tx_handler = (span_tx_handler_t *) &modem_connect_tones_tx;
+        t->tx_user_data = &t->connect_tx;
+        t->next_tx_handler = NULL;
         s->fe.transmit = TRUE;
         break;
     case T30_MODEM_V21:
