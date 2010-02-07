@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t35.c,v 1.28 2009/01/05 13:48:31 steveu Exp $
+ * $Id: t35.c,v 1.29 2009/02/03 16:28:40 steveu Exp $
  */
 
 /*
@@ -738,7 +738,7 @@ static const nsf_data_t known_nsf[] =
 };
 
 #if 0
-void nsf_find_station_id(int reverse_order)
+SPAN_DECLARE(void) nsf_find_station_id(int reverse_order)
 {
     const char *id = NULL;
     int idSize = 0;
@@ -798,7 +798,7 @@ void nsf_find_station_id(int reverse_order)
 /*- End of function --------------------------------------------------------*/
 #endif
 
-int t35_decode(const uint8_t *msg, int len, const char **country, const char **vendor, const char **model)
+SPAN_DECLARE(int) t35_decode(const uint8_t *msg, int len, const char **country, const char **vendor, const char **model)
 {
     int vendor_decoded;
     const nsf_data_t *p;

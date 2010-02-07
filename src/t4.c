@@ -24,7 +24,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.120 2009/01/31 08:48:10 steveu Exp $
+ * $Id: t4.c,v 1.122 2009/02/04 13:18:53 steveu Exp $
  */
 
 /*
@@ -254,16 +254,6 @@ static int set_tiff_directory_info(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void update_row_bit_info(t4_state_t *s)
-{
-    if (s->row_bits > s->max_row_bits)
-        s->max_row_bits = s->row_bits;
-    if (s->row_bits < s->min_row_bits)
-        s->min_row_bits = s->row_bits;
-    s->row_bits = 0;
-}
-/*- End of function --------------------------------------------------------*/
-
 static int test_resolution(int res_unit, float actual, float expected)
 {
     if (res_unit == RESUNIT_INCH)
@@ -415,6 +405,16 @@ static int close_tiff_output_file(t4_state_t *s)
     }
     s->file = NULL;
     return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void update_row_bit_info(t4_state_t *s)
+{
+    if (s->row_bits > s->max_row_bits)
+        s->max_row_bits = s->row_bits;
+    if (s->row_bits < s->min_row_bits)
+        s->min_row_bits = s->row_bits;
+    s->row_bits = 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -743,7 +743,7 @@ static int put_decoded_row(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_rx_end_page(t4_state_t *s)
+SPAN_DECLARE(int) t4_rx_end_page(t4_state_t *s)
 {
     int row;
     int i;
@@ -1125,19 +1125,19 @@ static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_rx_put_bit(t4_state_t *s, int bit)
+SPAN_DECLARE(int) t4_rx_put_bit(t4_state_t *s, int bit)
 {
     return rx_put_bits(s, bit & 1, 1);
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_rx_put_byte(t4_state_t *s, uint8_t byte)
+SPAN_DECLARE(int) t4_rx_put_byte(t4_state_t *s, uint8_t byte)
 {
     return rx_put_bits(s, byte & 0xFF, 8);
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_rx_put_chunk(t4_state_t *s, const uint8_t buf[], int len)
+SPAN_DECLARE(int) t4_rx_put_chunk(t4_state_t *s, const uint8_t buf[], int len)
 {
     int i;
     uint8_t byte;
@@ -1152,7 +1152,7 @@ int t4_rx_put_chunk(t4_state_t *s, const uint8_t buf[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_rx_set_row_write_handler(t4_state_t *s, t4_row_write_handler_t handler, void *user_data)
+SPAN_DECLARE(int) t4_rx_set_row_write_handler(t4_state_t *s, t4_row_write_handler_t handler, void *user_data)
 {
     s->row_write_handler = handler;
     s->row_write_user_data = user_data;
@@ -1160,7 +1160,7 @@ int t4_rx_set_row_write_handler(t4_state_t *s, t4_row_write_handler_t handler, v
 }
 /*- End of function --------------------------------------------------------*/
 
-t4_state_t *t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
+SPAN_DECLARE(t4_state_t *) t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
 {
     memset(s, 0, sizeof(*s));
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
@@ -1213,7 +1213,7 @@ t4_state_t *t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_rx_start_page(t4_state_t *s)
+SPAN_DECLARE(int) t4_rx_start_page(t4_state_t *s)
 {
     int bytes_per_row;
     int run_space;
@@ -1286,7 +1286,7 @@ int t4_rx_start_page(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_rx_delete(t4_state_t *s)
+SPAN_DECLARE(int) t4_rx_delete(t4_state_t *s)
 {
     if (t4_rx_end(s))
         return -1;
@@ -1296,7 +1296,7 @@ int t4_rx_delete(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_rx_end(t4_state_t *s)
+SPAN_DECLARE(int) t4_rx_end(t4_state_t *s)
 {
     if (!s->rx)
         return -1;
@@ -1307,55 +1307,55 @@ int t4_rx_end(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_rx_set_rx_encoding(t4_state_t *s, int encoding)
+SPAN_DECLARE(void) t4_rx_set_rx_encoding(t4_state_t *s, int encoding)
 {
     s->line_encoding = encoding;
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_rx_set_image_width(t4_state_t *s, int width)
+SPAN_DECLARE(void) t4_rx_set_image_width(t4_state_t *s, int width)
 {
     s->image_width = width;
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_rx_set_y_resolution(t4_state_t *s, int resolution)
+SPAN_DECLARE(void) t4_rx_set_y_resolution(t4_state_t *s, int resolution)
 {
     s->y_resolution = resolution;
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_rx_set_x_resolution(t4_state_t *s, int resolution)
+SPAN_DECLARE(void) t4_rx_set_x_resolution(t4_state_t *s, int resolution)
 {
     s->x_resolution = resolution;
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_rx_set_dcs(t4_state_t *s, const char *dcs)
+SPAN_DECLARE(void) t4_rx_set_dcs(t4_state_t *s, const char *dcs)
 {
     s->dcs = (dcs  &&  dcs[0])  ?  dcs  :  NULL;
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_rx_set_sub_address(t4_state_t *s, const char *sub_address)
+SPAN_DECLARE(void) t4_rx_set_sub_address(t4_state_t *s, const char *sub_address)
 {
     s->sub_address = (sub_address  &&  sub_address[0])  ?  sub_address  :  NULL;
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_rx_set_far_ident(t4_state_t *s, const char *ident)
+SPAN_DECLARE(void) t4_rx_set_far_ident(t4_state_t *s, const char *ident)
 {
     s->far_ident = (ident  &&  ident[0])  ?  ident  :  NULL;
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_rx_set_vendor(t4_state_t *s, const char *vendor)
+SPAN_DECLARE(void) t4_rx_set_vendor(t4_state_t *s, const char *vendor)
 {
     s->vendor = vendor;
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_rx_set_model(t4_state_t *s, const char *model)
+SPAN_DECLARE(void) t4_rx_set_model(t4_state_t *s, const char *model)
 {
     s->model = model;
 }
@@ -1709,7 +1709,7 @@ static int encode_row(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_set_row_read_handler(t4_state_t *s, t4_row_read_handler_t handler, void *user_data)
+SPAN_DECLARE(int) t4_tx_set_row_read_handler(t4_state_t *s, t4_row_read_handler_t handler, void *user_data)
 {
     s->row_read_handler = handler;
     s->row_read_user_data = user_data;
@@ -1717,7 +1717,7 @@ int t4_tx_set_row_read_handler(t4_state_t *s, t4_row_read_handler_t handler, voi
 }
 /*- End of function --------------------------------------------------------*/
 
-t4_state_t *t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page)
+SPAN_DECLARE(t4_state_t *) t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page)
 {
     int run_space;
 
@@ -1806,16 +1806,17 @@ static void make_header(t4_state_t *s, char *header)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_start_page(t4_state_t *s)
+SPAN_DECLARE(int) t4_tx_start_page(t4_state_t *s)
 {
     int row;
     int i;
     int repeats;
     int pattern;
     int row_bufptr;
-    int parm;
     int run_space;
     int len;
+    int this_image_width;
+    int this_image_length;
     char *t;
     char header[132 + 1];
     uint8_t *bufptr8;
@@ -1826,8 +1827,15 @@ int t4_tx_start_page(t4_state_t *s)
         return -1;
     if (s->tiff_file == NULL)
         return -1;
-    if (!TIFFSetDirectory(s->tiff_file, (tdir_t) s->pages_transferred))
-        return -1;
+    this_image_width = 0;
+    this_image_length = 0;
+    if (s->row_read_handler == NULL)
+    {
+        if (!TIFFSetDirectory(s->tiff_file, (tdir_t) s->pages_transferred))
+            return -1;
+        TIFFGetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, &this_image_width);
+        TIFFGetField(s->tiff_file, TIFFTAG_IMAGELENGTH, &this_image_length);
+    }
     s->image_size = 0;
     s->tx_bitstream = 0;
     s->tx_bits = 0;
@@ -1835,12 +1843,10 @@ int t4_tx_start_page(t4_state_t *s)
     s->rows_to_next_1d_row = s->max_rows_to_next_1d_row - 1;
 
     /* Allow for pages being of different width */
-    parm = 0;
-    TIFFGetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, &parm);
-    run_space = (parm + 4)*sizeof(uint32_t);
-    if (parm != s->image_width)
+    run_space = (this_image_width + 4)*sizeof(uint32_t);
+    if (this_image_width != s->image_width)
     {
-        s->image_width = parm;
+        s->image_width = this_image_width;
         s->bytes_per_row = (s->image_width + 7)/8;
 
         if ((bufptr = (uint32_t *) realloc(s->cur_runs, run_space)) == NULL)
@@ -1928,8 +1934,7 @@ int t4_tx_start_page(t4_state_t *s)
     }
     else
     {
-        s->image_length = 0;
-        TIFFGetField(s->tiff_file, TIFFTAG_IMAGELENGTH, &s->image_length);
+        s->image_length = this_image_length;
         for (row = 0;  row < s->image_length;  row++)
         {
             if (TIFFReadScanline(s->tiff_file, s->row_buf, row, 0) <= 0)
@@ -1965,7 +1970,7 @@ int t4_tx_start_page(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_more_pages(t4_state_t *s)
+SPAN_DECLARE(int) t4_tx_more_pages(t4_state_t *s)
 {
     span_log(&s->logging, SPAN_LOG_FLOW, "Checking for the existance of page %d\n", s->pages_transferred + 1);
     if (s->pages_transferred >= s->stop_page)
@@ -1979,14 +1984,17 @@ int t4_tx_more_pages(t4_state_t *s)
     }
     else
     {
-        if (!TIFFSetDirectory(s->tiff_file, (tdir_t) s->pages_transferred + 1))
-            return -1;
+        if (s->row_read_handler == NULL)
+        {
+            if (!TIFFSetDirectory(s->tiff_file, (tdir_t) s->pages_transferred + 1))
+                return -1;
+        }
     }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_restart_page(t4_state_t *s)
+SPAN_DECLARE(int) t4_tx_restart_page(t4_state_t *s)
 {
     s->bit_pos = 7;
     s->bit_ptr = 0;
@@ -1994,14 +2002,14 @@ int t4_tx_restart_page(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_end_page(t4_state_t *s)
+SPAN_DECLARE(int) t4_tx_end_page(t4_state_t *s)
 {
     s->pages_transferred++;
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_get_bit(t4_state_t *s)
+SPAN_DECLARE(int) t4_tx_get_bit(t4_state_t *s)
 {
     int bit;
 
@@ -2017,7 +2025,7 @@ int t4_tx_get_bit(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_get_byte(t4_state_t *s)
+SPAN_DECLARE(int) t4_tx_get_byte(t4_state_t *s)
 {
     if (s->bit_ptr >= s->image_size)
         return 0x100;
@@ -2025,7 +2033,7 @@ int t4_tx_get_byte(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_get_chunk(t4_state_t *s, uint8_t buf[], int max_len)
+SPAN_DECLARE(int) t4_tx_get_chunk(t4_state_t *s, uint8_t buf[], int max_len)
 {
     if (s->bit_ptr >= s->image_size)
         return 0;
@@ -2037,7 +2045,7 @@ int t4_tx_get_chunk(t4_state_t *s, uint8_t buf[], int max_len)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_check_bit(t4_state_t *s)
+SPAN_DECLARE(int) t4_tx_check_bit(t4_state_t *s)
 {
     int bit;
 
@@ -2048,7 +2056,7 @@ int t4_tx_check_bit(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_delete(t4_state_t *s)
+SPAN_DECLARE(int) t4_tx_delete(t4_state_t *s)
 {
     if (t4_tx_end(s))
         return -1;
@@ -2058,7 +2066,7 @@ int t4_tx_delete(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_end(t4_state_t *s)
+SPAN_DECLARE(int) t4_tx_end(t4_state_t *s)
 {
     if (s->rx)
         return -1;
@@ -2069,7 +2077,7 @@ int t4_tx_end(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_tx_set_tx_encoding(t4_state_t *s, int encoding)
+SPAN_DECLARE(void) t4_tx_set_tx_encoding(t4_state_t *s, int encoding)
 {
     s->line_encoding = encoding;
     s->rows_to_next_1d_row = s->max_rows_to_next_1d_row - 1;
@@ -2077,43 +2085,43 @@ void t4_tx_set_tx_encoding(t4_state_t *s, int encoding)
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_tx_set_min_row_bits(t4_state_t *s, int bits)
+SPAN_DECLARE(void) t4_tx_set_min_row_bits(t4_state_t *s, int bits)
 {
     s->min_bits_per_row = bits;
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_tx_set_local_ident(t4_state_t *s, const char *ident)
+SPAN_DECLARE(void) t4_tx_set_local_ident(t4_state_t *s, const char *ident)
 {
     s->local_ident = (ident  &&  ident[0])  ?  ident  :  NULL;
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_tx_set_header_info(t4_state_t *s, const char *info)
+SPAN_DECLARE(void) t4_tx_set_header_info(t4_state_t *s, const char *info)
 {
     s->header_info = (info  &&  info[0])  ?  info  :  NULL;
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_get_y_resolution(t4_state_t *s)
+SPAN_DECLARE(int) t4_tx_get_y_resolution(t4_state_t *s)
 {
     return s->y_resolution;
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_get_x_resolution(t4_state_t *s)
+SPAN_DECLARE(int) t4_tx_get_x_resolution(t4_state_t *s)
 {
     return s->x_resolution;
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_get_image_width(t4_state_t *s)
+SPAN_DECLARE(int) t4_tx_get_image_width(t4_state_t *s)
 {
     return s->image_width;
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_get_pages_in_file(t4_state_t *s)
+SPAN_DECLARE(int) t4_tx_get_pages_in_file(t4_state_t *s)
 {
     int max;
 
@@ -2121,17 +2129,20 @@ int t4_tx_get_pages_in_file(t4_state_t *s)
        trusted? Some files say 0. Actually searching for the last page is
        more reliable. */
     max = 0;
-    while (TIFFSetDirectory(s->tiff_file, (tdir_t) max))
-        max++;
+    if (s->row_write_handler == NULL)
+    {
+        while (TIFFSetDirectory(s->tiff_file, (tdir_t) max))
+            max++;
+        /* Back to the previous page */
+        if (!TIFFSetDirectory(s->tiff_file, (tdir_t) s->pages_transferred))
+            return -1;
+    }
     s->pages_in_file = max;
-    /* Back to the previous page */
-    if (!TIFFSetDirectory(s->tiff_file, (tdir_t) s->pages_transferred))
-        return -1;
     return max;
 }
 /*- End of function --------------------------------------------------------*/
 
-void t4_get_transfer_statistics(t4_state_t *s, t4_stats_t *t)
+SPAN_DECLARE(void) t4_get_transfer_statistics(t4_state_t *s, t4_stats_t *t)
 {
     t->pages_transferred = s->pages_transferred - s->start_page;
     t->pages_in_file = s->pages_in_file;
@@ -2146,7 +2157,7 @@ void t4_get_transfer_statistics(t4_state_t *s, t4_stats_t *t)
 }
 /*- End of function --------------------------------------------------------*/
 
-const char *t4_encoding_to_str(int encoding)
+SPAN_DECLARE(const char *) t4_encoding_to_str(int encoding)
 {
     switch (encoding)
     {

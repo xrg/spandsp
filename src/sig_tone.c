@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.c,v 1.29 2009/01/30 07:19:25 steveu Exp $
+ * $Id: sig_tone.c,v 1.30 2009/02/03 16:28:40 steveu Exp $
  */
 
 /*! \file */
@@ -47,6 +47,7 @@
 
 #undef SPANDSP_USE_FIXED_POINT
 #include "spandsp/telephony.h"
+#include "spandsp/fast_convert.h"
 #include "spandsp/dc_restore.h"
 #include "spandsp/saturated.h"
 #include "spandsp/complex.h"
@@ -268,7 +269,7 @@ sig_tone_descriptor_t sig_tones[4] =
     }
 };
 
-int sig_tone_tx(sig_tone_tx_state_t *s, int16_t amp[], int len)
+SPAN_DECLARE(int) sig_tone_tx(sig_tone_tx_state_t *s, int16_t amp[], int len)
 {
     int i;
     int j;
@@ -347,7 +348,7 @@ int sig_tone_tx(sig_tone_tx_state_t *s, int16_t amp[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-void sig_tone_tx_set_mode(sig_tone_tx_state_t *s, int mode)
+SPAN_DECLARE(void) sig_tone_tx_set_mode(sig_tone_tx_state_t *s, int mode)
 {
     if ((mode & 0x03) == 0x03  &&  !(s->current_tx_tone & SIG_TONE_1_PRESENT))
         s->high_low_timer = s->desc->high_low_timeout;
@@ -357,7 +358,7 @@ void sig_tone_tx_set_mode(sig_tone_tx_state_t *s, int mode)
 }
 /*- End of function --------------------------------------------------------*/
 
-sig_tone_tx_state_t *sig_tone_tx_init(sig_tone_tx_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data)
+SPAN_DECLARE(sig_tone_tx_state_t *) sig_tone_tx_init(sig_tone_tx_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data)
 {
     int i;
 
@@ -389,7 +390,7 @@ sig_tone_tx_state_t *sig_tone_tx_init(sig_tone_tx_state_t *s, int tone_type, sig
 }
 /*- End of function --------------------------------------------------------*/
 
-int sig_tone_rx(sig_tone_rx_state_t *s, int16_t amp[], int len)
+SPAN_DECLARE(int) sig_tone_rx(sig_tone_rx_state_t *s, int16_t amp[], int len)
 {
 #if defined(SPANDSP_USE_FIXED_POINT)
     int32_t x;
@@ -648,7 +649,7 @@ int sig_tone_rx(sig_tone_rx_state_t *s, int16_t amp[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-sig_tone_rx_state_t *sig_tone_rx_init(sig_tone_rx_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data)
+SPAN_DECLARE(sig_tone_rx_state_t *) sig_tone_rx_init(sig_tone_rx_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data)
 {
     if (sig_update == NULL  ||  tone_type < 1  ||  tone_type > 3)
         return NULL;

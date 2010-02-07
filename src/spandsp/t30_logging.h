@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_logging.h,v 1.3 2009/01/31 08:48:11 steveu Exp $
+ * $Id: t30_logging.h,v 1.4 2009/02/03 16:28:41 steveu Exp $
  */
 
 /*! \file */
@@ -40,7 +40,7 @@ extern "C"
     \param x The frametype octet.
     \return A pointer to the text name for the frame type. If the frame type is
             not value, the string "???" is returned. */
-SPAN_DECLARE(const char) *t30_frametype(uint8_t x);
+SPAN_DECLARE(const char *) t30_frametype(uint8_t x);
 
 /*! Decode a DIS, DTC or DCS frame, and log the contents.
     \brief Decode a DIS, DTC or DCS frame, and log the contents.
@@ -53,7 +53,7 @@ SPAN_DECLARE(void) t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *dis, in
     \brief Convert a phase E completion code to a short text description.
     \param result The result code.
     \return A pointer to the description. */
-SPAN_DECLARE(const char) *t30_completion_code_to_str(int result);
+SPAN_DECLARE(const char *) t30_completion_code_to_str(int result);
 
 #if defined(__cplusplus)
 }

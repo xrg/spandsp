@@ -379,6 +379,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/dds.h \
                          spandsp/dtmf.h \
                          spandsp/echo.h \
+                         spandsp/fast_convert.h \
                          spandsp/fax.h \
                          spandsp/fax_modems.h \
                          spandsp/fir.h \

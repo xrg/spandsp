@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_non_ecm_buffer.h,v 1.4 2009/01/31 08:48:11 steveu Exp $
+ * $Id: t38_non_ecm_buffer.h,v 1.6 2009/02/04 13:18:53 steveu Exp $
  */
 
 /*! \file */
@@ -59,7 +59,7 @@ extern "C"
     \param mode TRUE for image data mode, or FALSE for TCF mode.
     \param bits The minimum number of bits per FAX image row.
     \return A pointer to the buffer context, or NULL if there was a problem. */
-SPAN_DECLARE(t38_non_ecm_buffer_state_t) *t38_non_ecm_buffer_init(t38_non_ecm_buffer_state_t *s, int mode, int min_row_bits);
+SPAN_DECLARE(t38_non_ecm_buffer_state_t *) t38_non_ecm_buffer_init(t38_non_ecm_buffer_state_t *s, int mode, int min_row_bits);
 
 /*! \brief Set the mode of a T.38 rate adapting non-ECM buffer context.
     \param s The buffer context.
@@ -93,7 +93,7 @@ SPAN_DECLARE(void) t38_non_ecm_buffer_report_output_status(t38_non_ecm_buffer_st
 /*! \brief Get the next bit of data from a T.38 rate adapting non-ECM buffer context.
     \param user_data The buffer context, cast to a void pointer.
     \return The next bit, or one of the values indicating a change of modem status. */
-SPAN_DECLARE(int) t38_non_ecm_buffer_get_bit(void *user_data);
+SPAN_DECLARE_NONSTD(int) t38_non_ecm_buffer_get_bit(void *user_data);
 
 #if defined(__cplusplus)
 }

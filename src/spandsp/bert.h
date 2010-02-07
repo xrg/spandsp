@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bert.h,v 1.21 2009/01/31 08:48:11 steveu Exp $
+ * $Id: bert.h,v 1.22 2009/02/03 16:28:41 steveu Exp $
  */
 
 #if !defined(_SPANDSP_BERT_H_)
@@ -116,7 +116,7 @@ extern "C"
 /*! Return a short description of a BERT event.
     \param event The event type.
     \return A pointer to a short text string describing the event. */
-SPAN_DECLARE(const char) *bert_event_to_str(int event);
+SPAN_DECLARE(const char *) bert_event_to_str(int event);
 
 /*! Initialise a BERT context.
     \param s The BERT context.
@@ -125,7 +125,7 @@ SPAN_DECLARE(const char) *bert_event_to_str(int event);
     \param resync_len ???
     \param resync_percent The percentage of bad bits which will cause a resync.
     \return The BERT context. */
-SPAN_DECLARE(bert_state_t) *bert_init(bert_state_t *s, int limit, int pattern, int resync_len, int resync_percent);
+SPAN_DECLARE(bert_state_t *) bert_init(bert_state_t *s, int limit, int pattern, int resync_len, int resync_percent);
 
 /*! Get the next bit of the BERT sequence from the generator.
     \param s The BERT context.

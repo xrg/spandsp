@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.50 2009/01/29 18:30:14 steveu Exp $
+ * $Id: fsk.c,v 1.51 2009/02/03 16:28:39 steveu Exp $
  */
 
 /*! \file */
@@ -120,10 +120,10 @@ const fsk_spec_t preset_fsk_specs[] =
     }
 };
 
-fsk_tx_state_t *fsk_tx_init(fsk_tx_state_t *s,
-                            const fsk_spec_t *spec,
-                            get_bit_func_t get_bit,
-                            void *user_data)
+SPAN_DECLARE(fsk_tx_state_t *) fsk_tx_init(fsk_tx_state_t *s,
+                                           const fsk_spec_t *spec,
+                                           get_bit_func_t get_bit,
+                                           void *user_data)
 {
     if (s == NULL)
     {
@@ -149,7 +149,7 @@ fsk_tx_state_t *fsk_tx_init(fsk_tx_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-int fsk_tx(fsk_tx_state_t *s, int16_t amp[], int len)
+SPAN_DECLARE(int) fsk_tx(fsk_tx_state_t *s, int16_t amp[], int len)
 {
     int sample;
     int bit;
@@ -182,27 +182,27 @@ int fsk_tx(fsk_tx_state_t *s, int16_t amp[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-void fsk_tx_power(fsk_tx_state_t *s, float power)
+SPAN_DECLARE(void) fsk_tx_power(fsk_tx_state_t *s, float power)
 {
     s->scaling = dds_scaling_dbm0(power);
 }
 /*- End of function --------------------------------------------------------*/
 
-void fsk_tx_set_get_bit(fsk_tx_state_t *s, get_bit_func_t get_bit, void *user_data)
+SPAN_DECLARE(void) fsk_tx_set_get_bit(fsk_tx_state_t *s, get_bit_func_t get_bit, void *user_data)
 {
     s->get_bit = get_bit;
     s->get_bit_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
-void fsk_tx_set_modem_status_handler(fsk_tx_state_t *s, modem_tx_status_func_t handler, void *user_data)
+SPAN_DECLARE(void) fsk_tx_set_modem_status_handler(fsk_tx_state_t *s, modem_tx_status_func_t handler, void *user_data)
 {
     s->status_handler = handler;
     s->status_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
-void fsk_rx_signal_cutoff(fsk_rx_state_t *s, float cutoff)
+SPAN_DECLARE(void) fsk_rx_signal_cutoff(fsk_rx_state_t *s, float cutoff)
 {
     /* The 6.04 allows for the gain of the DC blocker */
     s->carrier_on_power = (int32_t) (power_meter_level_dbm0(cutoff + 2.5f - 6.04f));
@@ -210,31 +210,31 @@ void fsk_rx_signal_cutoff(fsk_rx_state_t *s, float cutoff)
 }
 /*- End of function --------------------------------------------------------*/
 
-float fsk_rx_signal_power(fsk_rx_state_t *s)
+SPAN_DECLARE(float) fsk_rx_signal_power(fsk_rx_state_t *s)
 {
     return power_meter_current_dbm0(&s->power);
 }
 /*- End of function --------------------------------------------------------*/
 
-void fsk_rx_set_put_bit(fsk_rx_state_t *s, put_bit_func_t put_bit, void *user_data)
+SPAN_DECLARE(void) fsk_rx_set_put_bit(fsk_rx_state_t *s, put_bit_func_t put_bit, void *user_data)
 {
     s->put_bit = put_bit;
     s->put_bit_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
-void fsk_rx_set_modem_status_handler(fsk_rx_state_t *s, modem_tx_status_func_t handler, void *user_data)
+SPAN_DECLARE(void) fsk_rx_set_modem_status_handler(fsk_rx_state_t *s, modem_tx_status_func_t handler, void *user_data)
 {
     s->status_handler = handler;
     s->status_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
-fsk_rx_state_t *fsk_rx_init(fsk_rx_state_t *s,
-                            const fsk_spec_t *spec,
-                            int sync_mode,
-                            put_bit_func_t put_bit,
-                            void *user_data)
+SPAN_DECLARE(fsk_rx_state_t *) fsk_rx_init(fsk_rx_state_t *s,
+                                           const fsk_spec_t *spec,
+                                           int sync_mode,
+                                           put_bit_func_t put_bit,
+                                           void *user_data)
 {
     int chop;
 
@@ -298,7 +298,7 @@ static void report_status_change(fsk_rx_state_t *s, int status)
 }
 /*- End of function --------------------------------------------------------*/
 
-int fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
+SPAN_DECLARE(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
 {
     int buf_ptr;
     int baudstate;

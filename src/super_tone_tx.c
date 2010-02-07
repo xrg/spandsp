@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.c,v 1.27 2009/01/28 03:41:27 steveu Exp $
+ * $Id: super_tone_tx.c,v 1.28 2009/02/03 16:28:40 steveu Exp $
  */
 
 /*! \file */
@@ -47,6 +47,7 @@
 #include "floating_fudge.h"
 
 #include "spandsp/telephony.h"
+#include "spandsp/fast_convert.h"
 #include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/tone_generate.h"
@@ -69,13 +70,13 @@
     two iterations of 50 seconds each.
 */
 
-super_tone_tx_step_t *super_tone_tx_make_step(super_tone_tx_step_t *s,
-                                              float f1,
-                                              float l1,
-                                              float f2,
-                                              float l2,
-                                              int length,
-                                              int cycles)
+SPAN_DECLARE(super_tone_tx_step_t *) super_tone_tx_make_step(super_tone_tx_step_t *s,
+                                                             float f1,
+                                                             float l1,
+                                                             float f2,
+                                                             float l2,
+                                                             int length,
+                                                             int cycles)
 {
     if (s == NULL)
     {
@@ -111,7 +112,7 @@ super_tone_tx_step_t *super_tone_tx_make_step(super_tone_tx_step_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-void super_tone_tx_free(super_tone_tx_step_t *s)
+SPAN_DECLARE(void) super_tone_tx_free(super_tone_tx_step_t *s)
 {
     super_tone_tx_step_t *t;
 
@@ -127,7 +128,7 @@ void super_tone_tx_free(super_tone_tx_step_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-super_tone_tx_state_t *super_tone_tx_init(super_tone_tx_state_t *s, super_tone_tx_step_t *tree)
+SPAN_DECLARE(super_tone_tx_state_t *) super_tone_tx_init(super_tone_tx_state_t *s, super_tone_tx_step_t *tree)
 {
     if (tree == NULL)
         return NULL;
@@ -146,7 +147,7 @@ super_tone_tx_state_t *super_tone_tx_init(super_tone_tx_state_t *s, super_tone_t
 }
 /*- End of function --------------------------------------------------------*/
 
-int super_tone_tx(super_tone_tx_state_t *s, int16_t amp[], int max_samples)
+SPAN_DECLARE(int) super_tone_tx(super_tone_tx_state_t *s, int16_t amp[], int max_samples)
 {
     int samples;
     int limit;
@@ -193,7 +194,7 @@ int super_tone_tx(super_tone_tx_state_t *s, int16_t amp[], int max_samples)
                     /* There must be two, and only two tones */
                     xamp = dds_modf(&s->phase[0], -s->tone[0].phase_rate, s->tone[0].gain, 0)
                          *(1.0f + dds_modf(&s->phase[1], s->tone[1].phase_rate, s->tone[1].gain, 0));
-                    amp[samples] = (int16_t) lrintf(xamp);
+                    amp[samples] = (int16_t) lfastrintf(xamp);
                 }
             }
             else
@@ -207,7 +208,7 @@ int super_tone_tx(super_tone_tx_state_t *s, int16_t amp[], int max_samples)
                             break;
                         xamp += dds_modf(&s->phase[i], s->tone[i].phase_rate, s->tone[i].gain, 0);
                     }
-                    amp[samples] = (int16_t) lrintf(xamp);
+                    amp[samples] = (int16_t) lfastrintf(xamp);
                 }
             }
             if (s->current_position)

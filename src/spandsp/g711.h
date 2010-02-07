@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g711.h,v 1.16 2009/01/31 08:48:11 steveu Exp $
+ * $Id: g711.h,v 1.17 2009/02/03 16:28:41 steveu Exp $
  */
 
 /*! \file */
@@ -278,7 +278,7 @@ SPAN_DECLARE(int) g711_transcode(g711_state_t *s,
     \param s The G.711 context.
     \param mode The G.711 mode.
     \return A pointer to the G.711 context, or NULL for error. */
-SPAN_DECLARE(g711_state_t) *g711_init(g711_state_t *s, int mode);
+SPAN_DECLARE(g711_state_t *) g711_init(g711_state_t *s, int mode);
 
 /*! Free a G.711 encode or decode context.
     \param s The G.711 context.

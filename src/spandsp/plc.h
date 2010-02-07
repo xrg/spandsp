@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc.h,v 1.19 2009/01/31 08:48:11 steveu Exp $
+ * $Id: plc.h,v 1.20 2009/02/03 16:28:41 steveu Exp $
  */
 
 /*! \file */
@@ -153,7 +153,7 @@ SPAN_DECLARE(int) plc_fillin(plc_state_t *s, int16_t amp[], int len);
     \brief Initialise a PLC context.
     \param s The packet loss concealer context.
     \return A pointer to the the packet loss concealer context. */
-SPAN_DECLARE(plc_state_t) *plc_init(plc_state_t *s);
+SPAN_DECLARE(plc_state_t *) plc_init(plc_state_t *s);
 
 /*! Free a packet loss concealer context.
     \param s The packet loss concealer context.

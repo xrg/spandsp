@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.c,v 1.69 2009/01/28 03:41:27 steveu Exp $
+ * $Id: v17tx.c,v 1.70 2009/02/03 16:28:40 steveu Exp $
  */
 
 /*! \file */
@@ -44,6 +44,7 @@
 #include "floating_fudge.h"
 
 #include "spandsp/telephony.h"
+#include "spandsp/fast_convert.h"
 #include "spandsp/logging.h"
 #include "spandsp/complex.h"
 #include "spandsp/vector_float.h"
@@ -249,7 +250,7 @@ static __inline__ complexf_t getbaud(v17_tx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int v17_tx(v17_tx_state_t *s, int16_t amp[], int len)
+SPAN_DECLARE(int) v17_tx(v17_tx_state_t *s, int16_t amp[], int len)
 {
 #if defined(SPANDSP_USE_FIXED_POINT)
     complexi_t x;
@@ -301,14 +302,14 @@ int v17_tx(v17_tx_state_t *s, int16_t amp[], int len)
         /* Now create and modulate the carrier */
         z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
         /* Don't bother saturating. We should never clip. */
-        amp[sample] = (int16_t) lrintf((x.re*z.re - x.im*z.im)*s->gain);
+        amp[sample] = (int16_t) lfastrintf((x.re*z.re - x.im*z.im)*s->gain);
 #endif
     }
     return sample;
 }
 /*- End of function --------------------------------------------------------*/
 
-void v17_tx_power(v17_tx_state_t *s, float power)
+SPAN_DECLARE(void) v17_tx_power(v17_tx_state_t *s, float power)
 {
     /* The constellation design seems to keep the average power the same, regardless
        of which bit rate is in use. */
@@ -320,7 +321,7 @@ void v17_tx_power(v17_tx_state_t *s, float power)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v17_tx_set_get_bit(v17_tx_state_t *s, get_bit_func_t get_bit, void *user_data)
+SPAN_DECLARE(void) v17_tx_set_get_bit(v17_tx_state_t *s, get_bit_func_t get_bit, void *user_data)
 {
     if (s->get_bit == s->current_get_bit)
         s->current_get_bit = get_bit;
@@ -329,20 +330,20 @@ void v17_tx_set_get_bit(v17_tx_state_t *s, get_bit_func_t get_bit, void *user_da
 }
 /*- End of function --------------------------------------------------------*/
 
-void v17_tx_set_modem_status_handler(v17_tx_state_t *s, modem_tx_status_func_t handler, void *user_data)
+SPAN_DECLARE(void) v17_tx_set_modem_status_handler(v17_tx_state_t *s, modem_tx_status_func_t handler, void *user_data)
 {
     s->status_handler = handler;
     s->status_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
-logging_state_t *v17_tx_get_logging_state(v17_tx_state_t *s)
+SPAN_DECLARE(logging_state_t *) v17_tx_get_logging_state(v17_tx_state_t *s)
 {
     return &s->logging;
 }
 /*- End of function --------------------------------------------------------*/
 
-int v17_tx_restart(v17_tx_state_t *s, int bit_rate, int tep, int short_train)
+SPAN_DECLARE(int) v17_tx_restart(v17_tx_state_t *s, int bit_rate, int tep, int short_train)
 {
     switch (bit_rate)
     {
@@ -387,7 +388,7 @@ int v17_tx_restart(v17_tx_state_t *s, int bit_rate, int tep, int short_train)
 }
 /*- End of function --------------------------------------------------------*/
 
-v17_tx_state_t *v17_tx_init(v17_tx_state_t *s, int bit_rate, int tep, get_bit_func_t get_bit, void *user_data)
+SPAN_DECLARE(v17_tx_state_t *) v17_tx_init(v17_tx_state_t *s, int bit_rate, int tep, get_bit_func_t get_bit, void *user_data)
 {
     if (s == NULL)
     {
@@ -406,7 +407,7 @@ v17_tx_state_t *v17_tx_init(v17_tx_state_t *s, int bit_rate, int tep, get_bit_fu
 }
 /*- End of function --------------------------------------------------------*/
 
-int v17_tx_free(v17_tx_state_t *s)
+SPAN_DECLARE(int) v17_tx_free(v17_tx_state_t *s)
 {
     free(s);
     return 0;

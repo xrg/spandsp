@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm.h,v 1.22 2009/01/31 08:48:11 steveu Exp $
+ * $Id: oki_adpcm.h,v 1.23 2009/02/03 16:28:41 steveu Exp $
  */
 
 /*! \file */
@@ -61,8 +61,8 @@ extern "C"
     \param bit_rate The required bit rate for the ADPCM data.
            The valid rates are 24000 and 32000.
     \return A pointer to the Oki ADPCM context, or NULL for error. */
-SPAN_DECLARE(oki_adpcm_state_t) *oki_adpcm_init(oki_adpcm_state_t *s,
-                                                int bit_rate);
+SPAN_DECLARE(oki_adpcm_state_t *) oki_adpcm_init(oki_adpcm_state_t *s,
+                                                 int bit_rate);
 
 /*! Free an Oki ADPCM encode or decode context.
     \param s The Oki ADPCM context.

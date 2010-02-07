@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_filters.h,v 1.13 2009/01/31 08:48:11 steveu Exp $
+ * $Id: complex_filters.h,v 1.14 2009/02/03 16:28:41 steveu Exp $
  */
 
 #if !defined(_SPANDSP_COMPLEX_FILTERS_H_)
@@ -59,11 +59,11 @@ extern "C"
 {
 #endif
 
-SPAN_DECLARE(filter_t) *filter_create(fspec_t *fs);
+SPAN_DECLARE(filter_t *) filter_create(fspec_t *fs);
 SPAN_DECLARE(void) filter_delete(filter_t *fi);
 SPAN_DECLARE(float) filter_step(filter_t *fi, float x);
 
-SPAN_DECLARE(cfilter_t) *cfilter_create(fspec_t *fs);
+SPAN_DECLARE(cfilter_t *) cfilter_create(fspec_t *fs);
 SPAN_DECLARE(void) cfilter_delete(cfilter_t *cfi);
 SPAN_DECLARE(complexf_t) cfilter_step(cfilter_t *cfi, const complexf_t *z);
 

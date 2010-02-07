@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.h,v 1.34 2009/01/31 08:48:11 steveu Exp $
+ * $Id: adsi.h,v 1.35 2009/02/03 16:28:40 steveu Exp $
  */
 
 /*! \file */
@@ -392,7 +392,7 @@ extern "C"
     \param user_data An opaque pointer for the callback routine.
     \return A pointer to the initialised context, or NULL if there was a problem.
 */
-SPAN_DECLARE(adsi_rx_state_t) *adsi_rx_init(adsi_rx_state_t *s, int standard, put_msg_func_t put_msg, void *user_data);
+SPAN_DECLARE(adsi_rx_state_t *) adsi_rx_init(adsi_rx_state_t *s, int standard, put_msg_func_t put_msg, void *user_data);
 
 SPAN_DECLARE(int) adsi_rx_free(adsi_rx_state_t *s);
 
@@ -409,7 +409,7 @@ SPAN_DECLARE(int) adsi_rx(adsi_rx_state_t *s, const int16_t *amp, int len);
     \param standard The code for the ADSI standard to be used.
     \return A pointer to the initialised context, or NULL if there was a problem.
 */
-SPAN_DECLARE(adsi_tx_state_t) *adsi_tx_init(adsi_tx_state_t *s, int standard);
+SPAN_DECLARE(adsi_tx_state_t *) adsi_tx_init(adsi_tx_state_t *s, int standard);
 
 SPAN_DECLARE(int) adsi_tx_free(adsi_tx_state_t *s);
 
@@ -474,7 +474,7 @@ SPAN_DECLARE(int) adsi_add_field(adsi_tx_state_t *s, uint8_t *msg, int len, uint
     \param standard The code for the standard.
     \return A pointer to the name.
 */
-SPAN_DECLARE(const char) *adsi_standard_to_str(int standard);
+SPAN_DECLARE(const char *) adsi_standard_to_str(int standard);
 
 #if defined(__cplusplus)
 }

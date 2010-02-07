@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule.h,v 1.18 2009/01/31 08:48:11 steveu Exp $
+ * $Id: schedule.h,v 1.19 2009/02/03 16:28:41 steveu Exp $
  */
 
 /*! \file */
@@ -58,7 +58,7 @@ SPAN_DECLARE(int) span_schedule_event(span_sched_state_t *s, int us, span_sched_
 SPAN_DECLARE(void) span_schedule_update(span_sched_state_t *s, int us);
 SPAN_DECLARE(void) span_schedule_del(span_sched_state_t *s, int id);
 
-SPAN_DECLARE(span_sched_state_t) *span_schedule_init(span_sched_state_t *s);
+SPAN_DECLARE(span_sched_state_t *) span_schedule_init(span_sched_state_t *s);
 SPAN_DECLARE(int) span_schedule_release(span_sched_state_t *s);
 
 #if defined(__cplusplus)

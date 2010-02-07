@@ -48,7 +48,7 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.c,v 1.26 2009/01/28 03:41:26 steveu Exp $
+ * $Id: g726.c,v 1.27 2009/02/03 16:28:39 steveu Exp $
  */
 
 /*! \file */
@@ -997,7 +997,7 @@ static int16_t g726_40_decoder(g726_state_t *s, uint8_t code)
 }
 /*- End of function --------------------------------------------------------*/
 
-g726_state_t *g726_init(g726_state_t *s, int bit_rate, int ext_coding, int packing)
+SPAN_DECLARE(g726_state_t *) g726_init(g726_state_t *s, int bit_rate, int ext_coding, int packing)
 {
     int i;
 
@@ -1057,17 +1057,17 @@ g726_state_t *g726_init(g726_state_t *s, int bit_rate, int ext_coding, int packi
 }
 /*- End of function --------------------------------------------------------*/
 
-int g726_release(g726_state_t *s)
+SPAN_DECLARE(int) g726_release(g726_state_t *s)
 {
     free(s);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-int g726_decode(g726_state_t *s,
-                int16_t amp[],
-                const uint8_t g726_data[],
-                int g726_bytes)
+SPAN_DECLARE(int) g726_decode(g726_state_t *s,
+                              int16_t amp[],
+                              const uint8_t g726_data[],
+                              int g726_bytes)
 {
     int i;
     int samples;
@@ -1120,10 +1120,10 @@ int g726_decode(g726_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-int g726_encode(g726_state_t *s,
-                uint8_t g726_data[],
-                const int16_t amp[],
-                int len)
+SPAN_DECLARE(int) g726_encode(g726_state_t *s,
+                              uint8_t g726_data[],
+                              const int16_t amp[],
+                              int len)
 {
     int i;
     int g726_bytes;

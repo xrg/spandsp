@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: lpc10.h,v 1.19 2009/01/31 08:48:11 steveu Exp $
+ * $Id: lpc10.h,v 1.20 2009/02/03 16:28:41 steveu Exp $
  */
 
 #if !defined(_SPANDSP_LPC10_H_)
@@ -74,7 +74,7 @@ extern "C"
     \param s The LPC10e context
     \param error_correction ???
     \return A pointer to the LPC10e context, or NULL for error. */
-SPAN_DECLARE(lpc10_encode_state_t) *lpc10_encode_init(lpc10_encode_state_t *s, int error_correction);
+SPAN_DECLARE(lpc10_encode_state_t *) lpc10_encode_init(lpc10_encode_state_t *s, int error_correction);
 
 SPAN_DECLARE(int) lpc10_encode_release(lpc10_encode_state_t *s);
 
@@ -91,7 +91,7 @@ SPAN_DECLARE(int) lpc10_encode(lpc10_encode_state_t *s, uint8_t code[], const in
     \param s The LPC10e context
     \param error_correction ???
     \return A pointer to the LPC10e context, or NULL for error. */
-SPAN_DECLARE(lpc10_decode_state_t) *lpc10_decode_init(lpc10_decode_state_t *st, int error_correction);
+SPAN_DECLARE(lpc10_decode_state_t *) lpc10_decode_init(lpc10_decode_state_t *st, int error_correction);
 
 SPAN_DECLARE(int) lpc10_decode_release(lpc10_decode_state_t *s);
 

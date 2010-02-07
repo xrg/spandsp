@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: noise.h,v 1.15 2009/01/31 08:48:11 steveu Exp $
+ * $Id: noise.h,v 1.16 2009/02/03 16:28:41 steveu Exp $
  */
 
 /*! \file */
@@ -108,9 +108,9 @@ extern "C"
            generation to be adjusted.
     \return A pointer to the noise generator context.
 */
-SPAN_DECLARE(noise_state_t) *noise_init_dbm0(noise_state_t *s, int seed, float level, int class_of_noise, int quality);
+SPAN_DECLARE(noise_state_t *) noise_init_dbm0(noise_state_t *s, int seed, float level, int class_of_noise, int quality);
 
-SPAN_DECLARE(noise_state_t) *noise_init_dbov(noise_state_t *s, int seed, float level, int class_of_noise, int quality);
+SPAN_DECLARE(noise_state_t *) noise_init_dbov(noise_state_t *s, int seed, float level, int class_of_noise, int quality);
 
 SPAN_DECLARE(int) noise_free(noise_state_t *s);
 

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: silence_gen.c,v 1.17 2009/01/28 03:41:27 steveu Exp $
+ * $Id: silence_gen.c,v 1.19 2009/02/04 13:18:53 steveu Exp $
  */
 
 /*! \file */
@@ -51,7 +51,7 @@
 #include "spandsp/async.h"
 #include "spandsp/silence_gen.h"
 
-int silence_gen(silence_gen_state_t *s, int16_t *amp, int max_len)
+SPAN_DECLARE(int) silence_gen(silence_gen_state_t *s, int16_t *amp, int max_len)
 {
     if (s->remaining_samples != INT_MAX)
     {
@@ -70,20 +70,20 @@ int silence_gen(silence_gen_state_t *s, int16_t *amp, int max_len)
 }
 /*- End of function --------------------------------------------------------*/
 
-void silence_gen_always(silence_gen_state_t *s)
+SPAN_DECLARE(void) silence_gen_always(silence_gen_state_t *s)
 {
     s->remaining_samples = INT_MAX;
 }
 /*- End of function --------------------------------------------------------*/
 
-void silence_gen_set(silence_gen_state_t *s, int silent_samples)
+SPAN_DECLARE(void) silence_gen_set(silence_gen_state_t *s, int silent_samples)
 {
     s->remaining_samples = silent_samples;
     s->total_samples = 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-void silence_gen_alter(silence_gen_state_t *s, int silent_samples)
+SPAN_DECLARE(void) silence_gen_alter(silence_gen_state_t *s, int silent_samples)
 {
     /* Block negative silences */
     if (silent_samples < 0)
@@ -96,26 +96,26 @@ void silence_gen_alter(silence_gen_state_t *s, int silent_samples)
 }
 /*- End of function --------------------------------------------------------*/
 
-int silence_gen_remainder(silence_gen_state_t *s)
+SPAN_DECLARE(int) silence_gen_remainder(silence_gen_state_t *s)
 {
     return s->remaining_samples;
 }
 /*- End of function --------------------------------------------------------*/
 
-int silence_gen_generated(silence_gen_state_t *s)
+SPAN_DECLARE(int) silence_gen_generated(silence_gen_state_t *s)
 {
     return s->total_samples;
 }
 /*- End of function --------------------------------------------------------*/
 
-void silence_gen_status_handler(silence_gen_state_t *s, modem_tx_status_func_t handler, void *user_data)
+SPAN_DECLARE(void) silence_gen_status_handler(silence_gen_state_t *s, modem_tx_status_func_t handler, void *user_data)
 {
     s->status_handler = handler;
     s->status_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
-silence_gen_state_t *silence_gen_init(silence_gen_state_t *s, int silent_samples)
+SPAN_DECLARE(silence_gen_state_t *) silence_gen_init(silence_gen_state_t *s, int silent_samples)
 {
     if (s == NULL)
     {
@@ -131,13 +131,13 @@ silence_gen_state_t *silence_gen_init(silence_gen_state_t *s, int silent_samples
 /* The following dummy routines, to absorb data, don't really have a proper home,
    so they have been put here. */
 
-int span_dummy_rx(void *user_data, const int16_t amp[], int len)
+SPAN_DECLARE_NONSTD(int) span_dummy_rx(void *user_data, const int16_t amp[], int len)
 {
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-int span_dummy_mod(void *user_data, int16_t amp[], int len)
+SPAN_DECLARE(int) span_dummy_mod(void *user_data, int16_t amp[], int len)
 {
     return len;
 }

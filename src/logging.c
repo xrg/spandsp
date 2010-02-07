@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: logging.c,v 1.29 2009/01/20 04:24:45 steveu Exp $
+ * $Id: logging.c,v 1.30 2009/02/03 16:28:39 steveu Exp $
  */
 
 /*! \file */
@@ -75,7 +75,7 @@ static void default_message_handler(int level, const char *text)
 }
 /*- End of function --------------------------------------------------------*/
 
-int span_log_test(logging_state_t *s, int level)
+SPAN_DECLARE(int) span_log_test(logging_state_t *s, int level)
 {
     if (s  &&  (s->level & SPAN_LOG_SEVERITY_MASK) >= (level & SPAN_LOG_SEVERITY_MASK))
         return TRUE;
@@ -83,7 +83,7 @@ int span_log_test(logging_state_t *s, int level)
 }
 /*- End of function --------------------------------------------------------*/
 
-int span_log(logging_state_t *s, int level, const char *format, ...)
+SPAN_DECLARE(int) span_log(logging_state_t *s, int level, const char *format, ...)
 {
     char msg[1024 + 1];
     va_list arg_ptr;
@@ -157,7 +157,7 @@ int span_log(logging_state_t *s, int level, const char *format, ...)
 }
 /*- End of function --------------------------------------------------------*/
 
-int span_log_buf(logging_state_t *s, int level, const char *tag, const uint8_t *buf, int len)
+SPAN_DECLARE(int) span_log_buf(logging_state_t *s, int level, const char *tag, const uint8_t *buf, int len)
 {
     char msg[1024];
     int i;
@@ -177,7 +177,7 @@ int span_log_buf(logging_state_t *s, int level, const char *tag, const uint8_t *
 }
 /*- End of function --------------------------------------------------------*/
 
-int span_log_init(logging_state_t *s, int level, const char *tag)
+SPAN_DECLARE(int) span_log_init(logging_state_t *s, int level, const char *tag)
 {
     s->span_error = __span_error;
     s->span_message = __span_message;
@@ -191,7 +191,7 @@ int span_log_init(logging_state_t *s, int level, const char *tag)
 }
 /*- End of function --------------------------------------------------------*/
 
-int span_log_set_level(logging_state_t *s, int level)
+SPAN_DECLARE(int) span_log_set_level(logging_state_t *s, int level)
 {
     s->level = level;
 
@@ -199,7 +199,7 @@ int span_log_set_level(logging_state_t *s, int level)
 }
 /*- End of function --------------------------------------------------------*/
 
-int span_log_set_tag(logging_state_t *s, const char *tag)
+SPAN_DECLARE(int) span_log_set_tag(logging_state_t *s, const char *tag)
 {
     s->tag = tag;
 
@@ -207,7 +207,7 @@ int span_log_set_tag(logging_state_t *s, const char *tag)
 }
 /*- End of function --------------------------------------------------------*/
 
-int span_log_set_protocol(logging_state_t *s, const char *protocol)
+SPAN_DECLARE(int) span_log_set_protocol(logging_state_t *s, const char *protocol)
 {
     s->protocol = protocol;
 
@@ -215,7 +215,7 @@ int span_log_set_protocol(logging_state_t *s, const char *protocol)
 }
 /*- End of function --------------------------------------------------------*/
 
-int span_log_set_sample_rate(logging_state_t *s, int samples_per_second)
+SPAN_DECLARE(int) span_log_set_sample_rate(logging_state_t *s, int samples_per_second)
 {
     s->samples_per_second = samples_per_second;
 
@@ -223,7 +223,7 @@ int span_log_set_sample_rate(logging_state_t *s, int samples_per_second)
 }
 /*- End of function --------------------------------------------------------*/
 
-int span_log_bump_samples(logging_state_t *s, int samples)
+SPAN_DECLARE(int) span_log_bump_samples(logging_state_t *s, int samples)
 {
     s->elapsed_samples += samples;
 
@@ -231,25 +231,25 @@ int span_log_bump_samples(logging_state_t *s, int samples)
 }
 /*- End of function --------------------------------------------------------*/
 
-void span_log_set_message_handler(logging_state_t *s, message_handler_func_t func)
+SPAN_DECLARE(void) span_log_set_message_handler(logging_state_t *s, message_handler_func_t func)
 {
     s->span_message = func;
 }
 /*- End of function --------------------------------------------------------*/
 
-void span_log_set_error_handler(logging_state_t *s, error_handler_func_t func)
+SPAN_DECLARE(void) span_log_set_error_handler(logging_state_t *s, error_handler_func_t func)
 {
     s->span_error = func;
 }
 /*- End of function --------------------------------------------------------*/
 
-void span_set_message_handler(message_handler_func_t func)
+SPAN_DECLARE(void) span_set_message_handler(message_handler_func_t func)
 {
     __span_message = func;
 }
 /*- End of function --------------------------------------------------------*/
 
-void span_set_error_handler(error_handler_func_t func)
+SPAN_DECLARE(void) span_set_error_handler(error_handler_func_t func)
 {
     __span_error = func;
 }

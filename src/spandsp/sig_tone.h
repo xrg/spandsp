@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.h,v 1.16 2009/01/31 08:48:11 steveu Exp $
+ * $Id: sig_tone.h,v 1.17 2009/02/03 16:28:41 steveu Exp $
  */
 
 /*! \file */
@@ -113,7 +113,7 @@ SPAN_DECLARE(int) sig_tone_rx(sig_tone_rx_state_t *s, int16_t amp[], int len);
     \param sig_update Callback function to handle signaling updates.
     \param user_data An opaque pointer.
     \return A pointer to the signalling tone context, or NULL if there was a problem. */
-SPAN_DECLARE(sig_tone_rx_state_t) *sig_tone_rx_init(sig_tone_rx_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data);
+SPAN_DECLARE(sig_tone_rx_state_t *) sig_tone_rx_init(sig_tone_rx_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data);
 
 /*! Generate a block of signaling tone audio samples.
     \brief Generate a block of signaling tone audio samples.
@@ -136,7 +136,7 @@ SPAN_DECLARE(void) sig_tone_tx_set_mode(sig_tone_tx_state_t *s, int mode);
     \param sig_update Callback function to handle signaling updates.
     \param user_data An opaque pointer.
     \return A pointer to the signalling tone context, or NULL if there was a problem. */
-SPAN_DECLARE(sig_tone_tx_state_t) *sig_tone_tx_init(sig_tone_tx_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data);
+SPAN_DECLARE(sig_tone_tx_state_t *) sig_tone_tx_init(sig_tone_tx_state_t *s, int tone_type, sig_tone_func_t sig_update, void *user_data);
 
 #if defined(__cplusplus)
 }

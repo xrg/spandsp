@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm.c,v 1.33 2009/01/28 03:41:27 steveu Exp $
+ * $Id: ima_adpcm.c,v 1.34 2009/02/03 16:28:39 steveu Exp $
  */
 
 /*! \file */
@@ -44,6 +44,7 @@
 #include "floating_fudge.h"
 
 #include "spandsp/telephony.h"
+#include "spandsp/fast_convert.h"
 #include "spandsp/saturated.h"
 #include "spandsp/ima_adpcm.h"
 #include "spandsp/private/ima_adpcm.h"
@@ -276,7 +277,7 @@ static uint8_t encode(ima_adpcm_state_t *s, int16_t linear)
 }
 /*- End of function --------------------------------------------------------*/
 
-ima_adpcm_state_t *ima_adpcm_init(ima_adpcm_state_t *s, int variant, int chunk_size)
+SPAN_DECLARE(ima_adpcm_state_t *) ima_adpcm_init(ima_adpcm_state_t *s, int variant, int chunk_size)
 {
     if (s == NULL)
     {
@@ -291,17 +292,17 @@ ima_adpcm_state_t *ima_adpcm_init(ima_adpcm_state_t *s, int variant, int chunk_s
 }
 /*- End of function --------------------------------------------------------*/
 
-int ima_adpcm_release(ima_adpcm_state_t *s)
+SPAN_DECLARE(int) ima_adpcm_release(ima_adpcm_state_t *s)
 {
     free(s);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-int ima_adpcm_decode(ima_adpcm_state_t *s,
-                     int16_t amp[],
-                     const uint8_t ima_data[],
-                     int ima_bytes)
+SPAN_DECLARE(int) ima_adpcm_decode(ima_adpcm_state_t *s,
+                                   int16_t amp[],
+                                   const uint8_t ima_data[],
+                                   int ima_bytes)
 {
     int i;
     int j;
@@ -414,10 +415,10 @@ int ima_adpcm_decode(ima_adpcm_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-int ima_adpcm_encode(ima_adpcm_state_t *s,
-                     uint8_t ima_data[],
-                     const int16_t amp[],
-                     int len)
+SPAN_DECLARE(int) ima_adpcm_encode(ima_adpcm_state_t *s,
+                                   uint8_t ima_data[],
+                                   const int16_t amp[],
+                                   int len)
 {
     int i;
     int bytes;

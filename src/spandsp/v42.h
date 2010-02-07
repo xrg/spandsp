@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.h,v 1.27 2009/01/31 08:48:11 steveu Exp $
+ * $Id: v42.h,v 1.29 2009/02/04 13:18:53 steveu Exp $
  */
 
 /*! \page v42_page V.42 modem error correction
@@ -82,7 +82,7 @@ extern "C"
 {
 #endif
 
-SPAN_DECLARE(const char) *lapm_status_to_str(int status);
+SPAN_DECLARE(const char *) lapm_status_to_str(int status);
 
 /*! Dump LAP.M frames in a raw and/or decoded forms
     \param frame The frame itself
@@ -94,7 +94,7 @@ SPAN_DECLARE(void) lapm_dump(lapm_state_t *s, const uint8_t *frame, int len, int
 
 /*! Accept an HDLC packet
 */
-SPAN_DECLARE(void) lapm_receive(void *user_data, const uint8_t *buf, int len, int ok);
+SPAN_DECLARE_NONSTD(void) lapm_receive(void *user_data, const uint8_t *buf, int len, int ok);
 
 /*! Transmit a LAP.M frame
 */
@@ -135,7 +135,7 @@ SPAN_DECLARE(int) v42_tx_bit(void *user_data);
     \param user_data An opaque pointer passed to the frame handler routine.
     \return ???
 */
-SPAN_DECLARE(v42_state_t) *v42_init(v42_state_t *s, int caller, int detect, v42_frame_handler_t frame_handler, void *user_data);
+SPAN_DECLARE(v42_state_t *) v42_init(v42_state_t *s, int caller, int detect, v42_frame_handler_t frame_handler, void *user_data);
 
 /*! Restart a V.42 context.
     \param s The V.42 context.

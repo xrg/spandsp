@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.60 2009/01/31 08:48:11 steveu Exp $
+ * $Id: t38_gateway.h,v 1.61 2009/02/03 16:28:41 steveu Exp $
  */
 
 /*! \file */
@@ -82,9 +82,9 @@ extern "C"
     \param tx_packet_handler A callback routine to encapsulate and transmit T.38 packets.
     \param tx_packet_user_data An opaque pointer passed to the tx_packet_handler routine.
     \return A pointer to the termination mode T.38 context, or NULL if there was a problem. */
-SPAN_DECLARE(t38_gateway_state_t) *t38_gateway_init(t38_gateway_state_t *s,
-                                                    t38_tx_packet_handler_t *tx_packet_handler,
-                                                    void *tx_packet_user_data);
+SPAN_DECLARE(t38_gateway_state_t *) t38_gateway_init(t38_gateway_state_t *s,
+                                                     t38_tx_packet_handler_t *tx_packet_handler,
+                                                     void *tx_packet_user_data);
 
 /*! Free a gateway mode T.38 context.
     \brief Free a T.38 context.
@@ -177,14 +177,14 @@ SPAN_DECLARE(void) t38_gateway_get_transfer_statistics(t38_gateway_state_t *s, t
     \param s The T.38 context.
     \return A pointer to the T.38 core context, or NULL.
 */
-SPAN_DECLARE(t38_core_state_t) *t38_gateway_get_t38_core_state(t38_gateway_state_t *s);
+SPAN_DECLARE(t38_core_state_t *) t38_gateway_get_t38_core_state(t38_gateway_state_t *s);
 
 /*! Get a pointer to the logging context associated with a T.38 context.
     \brief Get a pointer to the logging context associated with a T.38 context.
     \param s The T.38 context.
     \return A pointer to the logging context, or NULL.
 */
-SPAN_DECLARE(logging_state_t) *t38_gateway_get_logging_state(t38_gateway_state_t *s);
+SPAN_DECLARE(logging_state_t *) t38_gateway_get_logging_state(t38_gateway_state_t *s);
 
 /*! Set a callback function for T.30 frame exchange monitoring. This is called from the heart
     of the signal processing, so don't take too long in the handler routine.

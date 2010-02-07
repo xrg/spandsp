@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.c,v 1.31 2009/01/28 03:41:27 steveu Exp $
+ * $Id: super_tone_rx.c,v 1.32 2009/02/03 16:28:40 steveu Exp $
  */
 
 /*! \file */
@@ -47,6 +47,7 @@
 #include "floating_fudge.h"
 
 #include "spandsp/telephony.h"
+#include "spandsp/fast_convert.h"
 #include "spandsp/complex.h"
 #include "spandsp/vector_float.h"
 #include "spandsp/complex_vector_float.h"
@@ -105,7 +106,7 @@ static int add_super_tone_freq(super_tone_rx_descriptor_t *desc, int freq)
 }
 /*- End of function --------------------------------------------------------*/
 
-int super_tone_rx_add_tone(super_tone_rx_descriptor_t *desc)
+SPAN_DECLARE(int) super_tone_rx_add_tone(super_tone_rx_descriptor_t *desc)
 {
     if (desc->tones%5 == 0)
     {
@@ -119,12 +120,12 @@ int super_tone_rx_add_tone(super_tone_rx_descriptor_t *desc)
 }
 /*- End of function --------------------------------------------------------*/
 
-int super_tone_rx_add_element(super_tone_rx_descriptor_t *desc,
-                              int tone,
-                              int f1,
-                              int f2,
-                              int min,
-                              int max)
+SPAN_DECLARE(int) super_tone_rx_add_element(super_tone_rx_descriptor_t *desc,
+                                            int tone,
+                                            int f1,
+                                            int f2,
+                                            int min,
+                                            int max)
 {
     int step;
 
@@ -197,7 +198,7 @@ static int test_cadence(super_tone_rx_segment_t *pattern,
 }
 /*- End of function --------------------------------------------------------*/
 
-super_tone_rx_descriptor_t *super_tone_rx_make_descriptor(super_tone_rx_descriptor_t *desc)
+SPAN_DECLARE(super_tone_rx_descriptor_t *) super_tone_rx_make_descriptor(super_tone_rx_descriptor_t *desc)
 {
     if (desc == NULL)
     {
@@ -215,7 +216,7 @@ super_tone_rx_descriptor_t *super_tone_rx_make_descriptor(super_tone_rx_descript
 }
 /*- End of function --------------------------------------------------------*/
 
-int super_tone_rx_free_descriptor(super_tone_rx_descriptor_t *desc)
+SPAN_DECLARE(int) super_tone_rx_free_descriptor(super_tone_rx_descriptor_t *desc)
 {
     if (desc)
         free(desc);
@@ -223,17 +224,17 @@ int super_tone_rx_free_descriptor(super_tone_rx_descriptor_t *desc)
 }
 /*- End of function --------------------------------------------------------*/
 
-void super_tone_rx_segment_callback(super_tone_rx_state_t *s,
-                                    void (*callback)(void *data, int f1, int f2, int duration))
+SPAN_DECLARE(void) super_tone_rx_segment_callback(super_tone_rx_state_t *s,
+                                                  void (*callback)(void *data, int f1, int f2, int duration))
 {
     s->segment_callback = callback;
 }
 /*- End of function --------------------------------------------------------*/
 
-super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *s,
-                                          super_tone_rx_descriptor_t *desc,
-                                          tone_report_func_t callback,
-                                          void *user_data)
+SPAN_DECLARE(super_tone_rx_state_t *) super_tone_rx_init(super_tone_rx_state_t *s,
+                                                         super_tone_rx_descriptor_t *desc,
+                                                         tone_report_func_t callback,
+                                                         void *user_data)
 {
     int i;
 
@@ -266,7 +267,7 @@ super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-int super_tone_rx_free(super_tone_rx_state_t *s)
+SPAN_DECLARE(int) super_tone_rx_free(super_tone_rx_state_t *s)
 {
     if (s)
         free(s);
@@ -410,7 +411,7 @@ static void super_tone_chunk(super_tone_rx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int super_tone_rx(super_tone_rx_state_t *s, const int16_t amp[], int samples)
+SPAN_DECLARE(int) super_tone_rx(super_tone_rx_state_t *s, const int16_t amp[], int samples)
 {
     int i;
     int x;

@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: noise.c,v 1.29 2009/01/31 08:48:10 steveu Exp $
+ * $Id: noise.c,v 1.30 2009/02/03 16:28:39 steveu Exp $
  */
 
 /*! \file */
@@ -45,12 +45,13 @@
 #include "floating_fudge.h"
 
 #include "spandsp/telephony.h"
+#include "spandsp/fast_convert.h"
 #include "spandsp/saturated.h"
 #include "spandsp/noise.h"
 
 #include "spandsp/private/noise.h"
 
-int16_t noise(noise_state_t *s)
+SPAN_DECLARE(int16_t) noise(noise_state_t *s)
 {
     int32_t val;
     int i;
@@ -79,13 +80,13 @@ int16_t noise(noise_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-noise_state_t *noise_init_dbm0(noise_state_t *s, int seed, float level, int class_of_noise, int quality)
+SPAN_DECLARE(noise_state_t *) noise_init_dbm0(noise_state_t *s, int seed, float level, int class_of_noise, int quality)
 {
     return noise_init_dbov(s, seed, (level - DBM0_MAX_POWER), class_of_noise, quality);
 }
 /*- End of function --------------------------------------------------------*/
 
-noise_state_t *noise_init_dbov(noise_state_t *s, int seed, float level, int class_of_noise, int quality)
+SPAN_DECLARE(noise_state_t *) noise_init_dbov(noise_state_t *s, int seed, float level, int class_of_noise, int quality)
 {
     float rms;
 
@@ -114,7 +115,7 @@ noise_state_t *noise_init_dbov(noise_state_t *s, int seed, float level, int clas
 }
 /*- End of function --------------------------------------------------------*/
 
-int noise_free(noise_state_t *s)
+SPAN_DECLARE(int) noise_free(noise_state_t *s)
 {
     free(s);
     return 0;

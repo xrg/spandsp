@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.49 2009/01/31 08:48:10 steveu Exp $
+ * $Id: dtmf.c,v 1.50 2009/02/03 16:28:39 steveu Exp $
  */
  
 /*! \file dtmf.h */
@@ -46,6 +46,7 @@
 #include <fcntl.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/fast_convert.h"
 #include "spandsp/queue.h"
 #include "spandsp/complex.h"
 #include "spandsp/dds.h"
@@ -99,7 +100,7 @@ static goertzel_descriptor_t dtmf_detect_col[4];
 static int dtmf_tx_inited = FALSE;
 static tone_gen_descriptor_t dtmf_digit_tones[16];
 
-int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
+SPAN_DECLARE(int) dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
 {
 #if defined(SPANDSP_USE_FIXED_POINT)
     int32_t row_energy[4];
@@ -251,7 +252,7 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
                     /* Avoid reporting multiple no digit conditions on flaky hits */
                     if (s->in_digit  ||  hit)
                     {
-                        i = (s->in_digit  &&  !hit)  ?  -99  :  lrintf(log10f(s->energy)*10.0f - DTMF_POWER_OFFSET + DBM0_MAX_POWER);
+                        i = (s->in_digit  &&  !hit)  ?  -99  :  lfastrintf(log10f(s->energy)*10.0f - DTMF_POWER_OFFSET + DBM0_MAX_POWER);
                         s->realtime_callback(s->realtime_callback_data, hit, i, 0);
                     }
                 }
@@ -296,7 +297,7 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
 }
 /*- End of function --------------------------------------------------------*/
 
-int dtmf_rx_status(dtmf_rx_state_t *s)
+SPAN_DECLARE(int) dtmf_rx_status(dtmf_rx_state_t *s)
 {
     if (s->in_digit)
         return s->in_digit;
@@ -306,7 +307,7 @@ int dtmf_rx_status(dtmf_rx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-size_t dtmf_rx_get(dtmf_rx_state_t *s, char *buf, int max)
+SPAN_DECLARE(size_t) dtmf_rx_get(dtmf_rx_state_t *s, char *buf, int max)
 {
     if (max > s->current_digits)
         max = s->current_digits;
@@ -321,20 +322,20 @@ size_t dtmf_rx_get(dtmf_rx_state_t *s, char *buf, int max)
 }
 /*- End of function --------------------------------------------------------*/
 
-void dtmf_rx_set_realtime_callback(dtmf_rx_state_t *s,
-                                   tone_report_func_t callback,
-                                   void *user_data)
+SPAN_DECLARE(void) dtmf_rx_set_realtime_callback(dtmf_rx_state_t *s,
+                                                 tone_report_func_t callback,
+                                                 void *user_data)
 {
     s->realtime_callback = callback;
     s->realtime_callback_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
-void dtmf_rx_parms(dtmf_rx_state_t *s,
-                   int filter_dialtone,
-                   int twist,
-                   int reverse_twist,
-                   int threshold)
+SPAN_DECLARE(void) dtmf_rx_parms(dtmf_rx_state_t *s,
+                                 int filter_dialtone,
+                                 int twist,
+                                 int reverse_twist,
+                                 int threshold)
 {
     float x;
 
@@ -358,9 +359,9 @@ void dtmf_rx_parms(dtmf_rx_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-dtmf_rx_state_t *dtmf_rx_init(dtmf_rx_state_t *s,
-                              digits_rx_callback_t callback,
-                              void *user_data)
+SPAN_DECLARE(dtmf_rx_state_t *) dtmf_rx_init(dtmf_rx_state_t *s,
+                                             digits_rx_callback_t callback,
+                                             void *user_data)
 {
     int i;
     static int initialised = FALSE;
@@ -409,7 +410,7 @@ dtmf_rx_state_t *dtmf_rx_init(dtmf_rx_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-int dtmf_rx_free(dtmf_rx_state_t *s)
+SPAN_DECLARE(int) dtmf_rx_free(dtmf_rx_state_t *s)
 {
     free(s);
     return 0;
@@ -443,7 +444,7 @@ static void dtmf_tx_initialise(void)
 }
 /*- End of function --------------------------------------------------------*/
 
-int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples)
+SPAN_DECLARE(int) dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples)
 {
     int len;
     const char *cp;
@@ -473,7 +474,7 @@ int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples)
 }
 /*- End of function --------------------------------------------------------*/
 
-int dtmf_tx_put(dtmf_tx_state_t *s, const char *digits, int len)
+SPAN_DECLARE(int) dtmf_tx_put(dtmf_tx_state_t *s, const char *digits, int len)
 {
     size_t space;
 
@@ -493,21 +494,21 @@ int dtmf_tx_put(dtmf_tx_state_t *s, const char *digits, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-void dtmf_tx_set_level(dtmf_tx_state_t *s, int level, int twist)
+SPAN_DECLARE(void) dtmf_tx_set_level(dtmf_tx_state_t *s, int level, int twist)
 {
     s->low_level = dds_scaling_dbm0f((float) level);
     s->high_level = dds_scaling_dbm0f((float) (level + twist));
 }
 /*- End of function --------------------------------------------------------*/
 
-void dtmf_tx_set_timing(dtmf_tx_state_t *s, int on_time, int off_time)
+SPAN_DECLARE(void) dtmf_tx_set_timing(dtmf_tx_state_t *s, int on_time, int off_time)
 {
     s->on_time = ((on_time >= 0)  ?  on_time  :  DEFAULT_DTMF_TX_ON_TIME)*SAMPLE_RATE/1000;
     s->off_time = ((off_time >= 0)  ?  off_time  :  DEFAULT_DTMF_TX_OFF_TIME)*SAMPLE_RATE/1000;
 }
 /*- End of function --------------------------------------------------------*/
 
-dtmf_tx_state_t *dtmf_tx_init(dtmf_tx_state_t *s)
+SPAN_DECLARE(dtmf_tx_state_t *) dtmf_tx_init(dtmf_tx_state_t *s)
 {
     if (s == NULL)
     {
@@ -525,7 +526,7 @@ dtmf_tx_state_t *dtmf_tx_init(dtmf_tx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int dtmf_tx_free(dtmf_tx_state_t *s)
+SPAN_DECLARE(int) dtmf_tx_free(dtmf_tx_state_t *s)
 {
     free(s);
     return 0;

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: silence_gen.h,v 1.13 2009/01/31 08:48:11 steveu Exp $
+ * $Id: silence_gen.h,v 1.15 2009/02/04 13:18:53 steveu Exp $
  */
 
 #if !defined(_SPANDSP_SILENCE_GEN_H_)
@@ -103,7 +103,7 @@ SPAN_DECLARE(void) silence_gen_status_handler(silence_gen_state_t *s, modem_tx_s
     \param silent_samples The initial number of samples to set the silence to.
     \return A pointer to the silence generator context.
 */
-SPAN_DECLARE(silence_gen_state_t) *silence_gen_init(silence_gen_state_t *s, int silent_samples);
+SPAN_DECLARE(silence_gen_state_t *) silence_gen_init(silence_gen_state_t *s, int silent_samples);
 
 /* The following dummy routines, to absorb data, don't really have a proper home,
    so they have been put here. */
@@ -117,7 +117,7 @@ SPAN_DECLARE(silence_gen_state_t) *silence_gen_init(silence_gen_state_t *s, int 
     \param len The length of the signal buffer
     \return 0.
 */
-SPAN_DECLARE(int) span_dummy_rx(void *user_data, const int16_t amp[], int len);
+SPAN_DECLARE_NONSTD(int) span_dummy_rx(void *user_data, const int16_t amp[], int len);
 
 /*! A dummy routine to use as a signal modifier callback, when we aren't
     really trying to process the signal. It just returns without affecting

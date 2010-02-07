@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.c,v 1.47 2009/01/05 13:48:32 steveu Exp $
+ * $Id: v42.c,v 1.49 2009/02/04 13:18:53 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -89,8 +89,8 @@
 static void t401_expired(span_sched_state_t *s, void *user_data);
 static void t403_expired(span_sched_state_t *s, void *user_data);
 
-void lapm_reset(lapm_state_t *s);
-void lapm_restart(lapm_state_t *s);
+SPAN_DECLARE(void) lapm_reset(lapm_state_t *s);
+SPAN_DECLARE(void) lapm_restart(lapm_state_t *s);
 
 static void lapm_link_down(lapm_state_t *s);
 
@@ -356,7 +356,7 @@ fprintf(stderr, "Setting T401 d [%p]\n", (void *) s);
 }
 /*- End of function --------------------------------------------------------*/
 
-const char *lapm_status_to_str(int status)
+SPAN_DECLARE(const char *) lapm_status_to_str(int status)
 {
     switch (status)
     {
@@ -382,34 +382,34 @@ const char *lapm_status_to_str(int status)
 }
 /*- End of function --------------------------------------------------------*/
 
-int lapm_tx(lapm_state_t *s, const void *buf, int len)
+SPAN_DECLARE(int) lapm_tx(lapm_state_t *s, const void *buf, int len)
 {
     return queue_write(s->tx_queue, buf, len);
 }
 /*- End of function --------------------------------------------------------*/
 
-int lapm_release(lapm_state_t *s)
+SPAN_DECLARE(int) lapm_release(lapm_state_t *s)
 {
     s->state = LAPM_RELEASE;
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-int lapm_loopback(lapm_state_t *s, int enable)
+SPAN_DECLARE(int) lapm_loopback(lapm_state_t *s, int enable)
 {
     s->state = LAPM_TEST;
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-int lapm_break(lapm_state_t *s, int enable)
+SPAN_DECLARE(int) lapm_break(lapm_state_t *s, int enable)
 {
     s->state = LAPM_SIGNAL;
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-int lapm_tx_iframe(lapm_state_t *s, const void *buf, int len, int cr)
+SPAN_DECLARE(int) lapm_tx_iframe(lapm_state_t *s, const void *buf, int len, int cr)
 {
     lapm_frame_queue_t *f;
 
@@ -480,7 +480,7 @@ fprintf(stderr, "Setting T403 f\n");
 }
 /*- End of function --------------------------------------------------------*/
 
-void lapm_dump(lapm_state_t *s, const uint8_t *frame, int len, int showraw, int txrx)
+SPAN_DECLARE(void) lapm_dump(lapm_state_t *s, const uint8_t *frame, int len, int showraw, int txrx)
 {
     const char *type;
     char direction_tag[2];
@@ -667,7 +667,7 @@ static void lapm_link_down(lapm_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-void lapm_reset(lapm_state_t *s)
+SPAN_DECLARE(void) lapm_reset(lapm_state_t *s)
 {
     lapm_frame_queue_t *f;
     lapm_frame_queue_t *p;
@@ -709,7 +709,7 @@ fprintf(stderr, "Deleting T403 e %d\n", s->t403_timer);
 }
 /*- End of function --------------------------------------------------------*/
 
-void lapm_receive(void *user_data, const uint8_t *frame, int len, int ok)
+SPAN_DECLARE_NONSTD(void) lapm_receive(void *user_data, const uint8_t *frame, int len, int ok)
 {
     lapm_state_t *s;
     lapm_frame_queue_t *f;
@@ -1068,7 +1068,7 @@ static void lapm_hdlc_underflow(void *user_data)
 }
 /*- End of function --------------------------------------------------------*/
 
-void lapm_restart(lapm_state_t *s)
+SPAN_DECLARE(void) lapm_restart(lapm_state_t *s)
 {
 #if 0
     if (s->state != LAPM_RELEASE)
@@ -1316,7 +1316,7 @@ fprintf(stderr, "Deleting T400 i %d\n", s->t400_timer);
 }
 /*- End of function --------------------------------------------------------*/
 
-void v42_rx_bit(void *user_data, int bit)
+SPAN_DECLARE(void) v42_rx_bit(void *user_data, int bit)
 {
     v42_state_t *s;
 
@@ -1329,7 +1329,7 @@ void v42_rx_bit(void *user_data, int bit)
 }
 /*- End of function --------------------------------------------------------*/
 
-int v42_tx_bit(void *user_data)
+SPAN_DECLARE(int) v42_tx_bit(void *user_data)
 {
     v42_state_t *s;
     int bit;
@@ -1344,14 +1344,14 @@ int v42_tx_bit(void *user_data)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v42_set_status_callback(v42_state_t *s, v42_status_func_t callback, void *user_data)
+SPAN_DECLARE(void) v42_set_status_callback(v42_state_t *s, v42_status_func_t callback, void *user_data)
 {
     s->lapm.status_callback = callback;
     s->lapm.status_callback_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
-void v42_restart(v42_state_t *s)
+SPAN_DECLARE(void) v42_restart(v42_state_t *s)
 {
     span_schedule_init(&s->lapm.sched);
 
@@ -1379,7 +1379,7 @@ fprintf(stderr, "Setting T400 i\n");
 }
 /*- End of function --------------------------------------------------------*/
 
-v42_state_t *v42_init(v42_state_t *s, int caller, int detect, v42_frame_handler_t frame_handler, void *user_data)
+SPAN_DECLARE(v42_state_t *) v42_init(v42_state_t *s, int caller, int detect, v42_frame_handler_t frame_handler, void *user_data)
 {
     int alloced;
     
@@ -1417,7 +1417,7 @@ v42_state_t *v42_init(v42_state_t *s, int caller, int detect, v42_frame_handler_
 }
 /*- End of function --------------------------------------------------------*/
 
-int v42_release(v42_state_t *s)
+SPAN_DECLARE(int) v42_release(v42_state_t *s)
 {
     free(s);
     return 0;

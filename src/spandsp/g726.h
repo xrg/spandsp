@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g726.h,v 1.23 2009/01/31 08:48:11 steveu Exp $
+ * $Id: g726.h,v 1.24 2009/02/03 16:28:41 steveu Exp $
  */
 
 /*! \file */
@@ -77,7 +77,7 @@ extern "C"
     \param ext_coding The coding used outside G.726.
     \param packing One of the G.726_PACKING_xxx options.
     \return A pointer to the G.726 context, or NULL for error. */
-SPAN_DECLARE(g726_state_t) *g726_init(g726_state_t *s, int bit_rate, int ext_coding, int packing);
+SPAN_DECLARE(g726_state_t *) g726_init(g726_state_t *s, int bit_rate, int ext_coding, int packing);
 
 /*! Free a G.726 encode or decode context.
     \param s The G.726 context.

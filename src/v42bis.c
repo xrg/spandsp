@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis.c,v 1.35 2009/01/05 13:48:32 steveu Exp $
+ * $Id: v42bis.c,v 1.36 2009/02/03 16:28:40 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. 
@@ -111,7 +111,7 @@ static __inline__ void push_compressed_octet(v42bis_compress_state_t *ss, int co
 }
 /*- End of function --------------------------------------------------------*/
 
-int v42bis_compress(v42bis_state_t *s, const uint8_t *buf, int len)
+SPAN_DECLARE(int) v42bis_compress(v42bis_state_t *s, const uint8_t *buf, int len)
 {
     int ptr;
     int i;
@@ -323,7 +323,7 @@ int v42bis_compress(v42bis_state_t *s, const uint8_t *buf, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-int v42bis_compress_flush(v42bis_state_t *s)
+SPAN_DECLARE(int) v42bis_compress_flush(v42bis_state_t *s)
 {
     v42bis_compress_state_t *ss;
 
@@ -353,7 +353,7 @@ int v42bis_compress_flush(v42bis_state_t *s)
 /*- End of function --------------------------------------------------------*/
 
 #if 0
-int v42bis_compress_dump(v42bis_state_t *s)
+SPAN_DECLARE(int) v42bis_compress_dump(v42bis_state_t *s)
 {
     int i;
     
@@ -369,7 +369,7 @@ int v42bis_compress_dump(v42bis_state_t *s)
 /*- End of function --------------------------------------------------------*/
 #endif
 
-int v42bis_decompress(v42bis_state_t *s, const uint8_t *buf, int len)
+SPAN_DECLARE(int) v42bis_decompress(v42bis_state_t *s, const uint8_t *buf, int len)
 {
     int ptr;
     int i;
@@ -567,7 +567,7 @@ if (code > 4095) {printf("Code is 0x%" PRIu32 "\n", code); exit(2);}
 }
 /*- End of function --------------------------------------------------------*/
 
-int v42bis_decompress_flush(v42bis_state_t *s)
+SPAN_DECLARE(int) v42bis_decompress_flush(v42bis_state_t *s)
 {
     v42bis_decompress_state_t *ss;
 
@@ -583,7 +583,7 @@ int v42bis_decompress_flush(v42bis_state_t *s)
 /*- End of function --------------------------------------------------------*/
 
 #if 0
-int v42bis_decompress_dump(v42bis_state_t *s)
+SPAN_DECLARE(int) v42bis_decompress_dump(v42bis_state_t *s)
 {
     int i;
     
@@ -599,7 +599,7 @@ int v42bis_decompress_dump(v42bis_state_t *s)
 /*- End of function --------------------------------------------------------*/
 #endif
 
-void v42bis_compression_control(v42bis_state_t *s, int mode)
+SPAN_DECLARE(void) v42bis_compression_control(v42bis_state_t *s, int mode)
 {
     s->compress.compression_mode = mode;
     switch (mode)
@@ -614,16 +614,16 @@ void v42bis_compression_control(v42bis_state_t *s, int mode)
 }
 /*- End of function --------------------------------------------------------*/
 
-v42bis_state_t *v42bis_init(v42bis_state_t *s,
-                            int negotiated_p0,
-                            int negotiated_p1,
-                            int negotiated_p2,
-                            v42bis_frame_handler_t frame_handler,
-                            void *frame_user_data,
-                            int max_frame_len,
-                            v42bis_data_handler_t data_handler,
-                            void *data_user_data,
-                            int max_data_len)
+SPAN_DECLARE(v42bis_state_t *) v42bis_init(v42bis_state_t *s,
+                                           int negotiated_p0,
+                                           int negotiated_p1,
+                                           int negotiated_p2,
+                                           v42bis_frame_handler_t frame_handler,
+                                           void *frame_user_data,
+                                           int max_frame_len,
+                                           v42bis_data_handler_t data_handler,
+                                           void *data_user_data,
+                                           int max_data_len)
 {
     int i;
 
@@ -687,7 +687,7 @@ v42bis_state_t *v42bis_init(v42bis_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-int v42bis_release(v42bis_state_t *s)
+SPAN_DECLARE(int) v42bis_release(v42bis_state_t *s)
 {
     free(s);
     return 0;

@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.c,v 1.32 2009/01/29 18:30:14 steveu Exp $
+ * $Id: modem_connect_tones.c,v 1.33 2009/02/03 16:28:39 steveu Exp $
  */
  
 /*! \file */
@@ -45,6 +45,7 @@
 #include <stdio.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/fast_convert.h"
 #include "spandsp/logging.h"
 #include "spandsp/complex.h"
 #include "spandsp/dds.h"
@@ -61,7 +62,7 @@
 
 #define HDLC_FRAMING_OK_THRESHOLD       5
 
-const char *modem_connect_tone_to_str(int tone)
+SPAN_DECLARE(const char *) modem_connect_tone_to_str(int tone)
 {
     switch (tone)
     {
@@ -86,9 +87,9 @@ const char *modem_connect_tone_to_str(int tone)
 }
 /*- End of function --------------------------------------------------------*/
 
-int modem_connect_tones_tx(modem_connect_tones_tx_state_t *s,
-                           int16_t amp[],
-                           int len)
+SPAN_DECLARE(int) modem_connect_tones_tx(modem_connect_tones_tx_state_t *s,
+                                         int16_t amp[],
+                                         int len)
 {
     int16_t mod;
     int i;
@@ -196,8 +197,8 @@ int modem_connect_tones_tx(modem_connect_tones_tx_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-modem_connect_tones_tx_state_t *modem_connect_tones_tx_init(modem_connect_tones_tx_state_t *s,
-                                                            int tone_type)
+SPAN_DECLARE(modem_connect_tones_tx_state_t *) modem_connect_tones_tx_init(modem_connect_tones_tx_state_t *s,
+                                                                           int tone_type)
 {
     int alloced;
 
@@ -252,7 +253,7 @@ modem_connect_tones_tx_state_t *modem_connect_tones_tx_init(modem_connect_tones_
 }
 /*- End of function --------------------------------------------------------*/
 
-int modem_connect_tones_tx_free(modem_connect_tones_tx_state_t *s)
+SPAN_DECLARE(int) modem_connect_tones_tx_free(modem_connect_tones_tx_state_t *s)
 {
     free(s);
     return 0;
@@ -326,7 +327,7 @@ static void v21_put_bit(void *user_data, int bit)
                     s->flags_seen = 0;
                 if (++s->flags_seen >= HDLC_FRAMING_OK_THRESHOLD  &&  !s->framing_ok_announced)
                 {
-                    report_tone_state(s, MODEM_CONNECT_TONES_FAX_PREAMBLE, lrintf(fsk_rx_signal_power(&(s->v21rx))));
+                    report_tone_state(s, MODEM_CONNECT_TONES_FAX_PREAMBLE, lfastrintf(fsk_rx_signal_power(&(s->v21rx))));
                     s->framing_ok_announced = TRUE;
                 }
             }
@@ -347,7 +348,7 @@ static void v21_put_bit(void *user_data, int bit)
 }
 /*- End of function --------------------------------------------------------*/
 
-int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[], int len)
+SPAN_DECLARE(int) modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[], int len)
 {
     int i;
     int16_t notched;
@@ -366,7 +367,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
             famp = v1 - 1.2994747954630f*s->z1 + s->z2;
             s->z2 = s->z1;
             s->z1 = v1;
-            notched = (int16_t) lrintf(famp);
+            notched = (int16_t) lfastrintf(famp);
 
             /* Estimate the overall energy in the channel, and the energy in
                the notch (i.e. overall channel energy - tone energy => noise).
@@ -379,7 +380,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                 if (s->tone_present != MODEM_CONNECT_TONES_FAX_CNG)
                 {
                     if (++s->tone_cycle_duration >= ms_to_samples(415))
-                        report_tone_state(s, MODEM_CONNECT_TONES_FAX_CNG, lrintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
+                        report_tone_state(s, MODEM_CONNECT_TONES_FAX_CNG, lfastrintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
                 }
             }
             else
@@ -409,7 +410,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
             famp = v1 + 0.1567596f*s->z1 + s->z2;
             s->z2 = s->z1;
             s->z1 = v1;
-            notched = (int16_t) lrintf(famp);
+            notched = (int16_t) lfastrintf(famp);
             /* Estimate the overall energy in the channel, and the energy in
                the notch (i.e. overall channel energy - tone energy => noise).
                Use abs instead of multiply for speed (is it really faster?).
@@ -442,7 +443,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                     if (s->tone_cycle_duration >= ms_to_samples(450 - 25))
                     {
                         if (++s->good_cycles == 3)
-                            report_tone_state(s, MODEM_CONNECT_TONES_ANS_PR, lrintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
+                            report_tone_state(s, MODEM_CONNECT_TONES_ANS_PR, lfastrintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
                     }
                     else
                     {
@@ -456,7 +457,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                     if (s->tone_cycle_duration >= ms_to_samples(550))
                     {
                         if (s->tone_present == MODEM_CONNECT_TONES_NONE)
-                            report_tone_state(s, MODEM_CONNECT_TONES_ANS, lrintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
+                            report_tone_state(s, MODEM_CONNECT_TONES_ANS, lfastrintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
                         s->good_cycles = 0;
                         s->tone_cycle_duration = ms_to_samples(550);
                     }
@@ -489,7 +490,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
 }
 /*- End of function --------------------------------------------------------*/
 
-int modem_connect_tones_rx_get(modem_connect_tones_rx_state_t *s)
+SPAN_DECLARE(int) modem_connect_tones_rx_get(modem_connect_tones_rx_state_t *s)
 {
     int x;
     
@@ -499,10 +500,10 @@ int modem_connect_tones_rx_get(modem_connect_tones_rx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-modem_connect_tones_rx_state_t *modem_connect_tones_rx_init(modem_connect_tones_rx_state_t *s,
-                                                            int tone_type,
-                                                            tone_report_func_t tone_callback,
-                                                            void *user_data)
+SPAN_DECLARE(modem_connect_tones_rx_state_t *) modem_connect_tones_rx_init(modem_connect_tones_rx_state_t *s,
+                                                                           int tone_type,
+                                                                           tone_report_func_t tone_callback,
+                                                                           void *user_data)
 {
     if (s == NULL)
     {
@@ -543,7 +544,7 @@ modem_connect_tones_rx_state_t *modem_connect_tones_rx_init(modem_connect_tones_
 }
 /*- End of function --------------------------------------------------------*/
 
-int modem_connect_tones_rx_free(modem_connect_tones_rx_state_t *s)
+SPAN_DECLARE(int) modem_connect_tones_rx_free(modem_connect_tones_rx_state_t *s)
 {
     free(s);
     return 0;

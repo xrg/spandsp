@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.h,v 1.26 2009/01/31 08:48:11 steveu Exp $
+ * $Id: v8.h,v 1.27 2009/02/03 16:28:41 steveu Exp $
  */
  
 /*! \file */
@@ -128,11 +128,11 @@ extern "C"
     \param result_handler The callback routine used to handle the results of negotiation.
     \param user_data An opaque pointer passed to the result_handler routine.
     \return A pointer to the V.8 context, or NULL if there was a problem. */
-SPAN_DECLARE(v8_state_t) *v8_init(v8_state_t *s,
-                                  int caller,
-                                  int available_modulations,
-                                  v8_result_handler_t *result_handler,
-                                  void *user_data);
+SPAN_DECLARE(v8_state_t *) v8_init(v8_state_t *s,
+                                   int caller,
+                                   int available_modulations,
+                                   v8_result_handler_t *result_handler,
+                                   void *user_data);
 
 /*! Release a V.8 context.
     \brief Release a V.8 context.
@@ -146,7 +146,7 @@ SPAN_DECLARE(int) v8_release(v8_state_t *s);
     \return 0 for OK. */
 SPAN_DECLARE(int) v8_free(v8_state_t *s);
 
-SPAN_DECLARE(logging_state_t) *v8_get_logging_state(v8_state_t *s);
+SPAN_DECLARE(logging_state_t *) v8_get_logging_state(v8_state_t *s);
 
 /*! Generate a block of V.8 audio samples.
     \brief Generate a block of V.8 audio samples.
@@ -171,11 +171,11 @@ SPAN_DECLARE(int) v8_rx(v8_state_t *s, const int16_t *amp, int len);
     \param modulation_schemes The list of supported modulations. */
 SPAN_DECLARE(void) v8_log_supported_modulations(v8_state_t *s, int modulation_schemes);
 
-SPAN_DECLARE(const char) *v8_call_function_to_str(int call_function);
-SPAN_DECLARE(const char) *v8_modulation_to_str(int modulation_scheme);
-SPAN_DECLARE(const char) *v8_protocol_to_str(int protocol);
-SPAN_DECLARE(const char) *v8_pstn_access_to_str(int pstn_access);
-SPAN_DECLARE(const char) *v8_pcm_modem_availability_to_str(int pcm_modem_availability);
+SPAN_DECLARE(const char *) v8_call_function_to_str(int call_function);
+SPAN_DECLARE(const char *) v8_modulation_to_str(int modulation_scheme);
+SPAN_DECLARE(const char *) v8_protocol_to_str(int protocol);
+SPAN_DECLARE(const char *) v8_pstn_access_to_str(int pstn_access);
+SPAN_DECLARE(const char *) v8_pcm_modem_availability_to_str(int pcm_modem_availability);
 
 #if defined(__cplusplus)
 }

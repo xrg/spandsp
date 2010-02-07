@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: gsm0610.h,v 1.19 2009/01/31 08:48:11 steveu Exp $
+ * $Id: gsm0610.h,v 1.20 2009/02/03 16:28:41 steveu Exp $
  */
 
 #if !defined(_SPANDSP_GSM0610_H_)
@@ -83,7 +83,7 @@ extern "C"
     \param s The GSM 06.10 context
     \param packing One of the GSM0610_PACKING_xxx options.
     \return A pointer to the GSM 06.10 context, or NULL for error. */
-SPAN_DECLARE(gsm0610_state_t) *gsm0610_init(gsm0610_state_t *s, int packing);
+SPAN_DECLARE(gsm0610_state_t *) gsm0610_init(gsm0610_state_t *s, int packing);
 
 /*! Release a GSM 06.10 encode or decode context.
     \param s The GSM 06.10 context

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc.c,v 1.25 2009/01/28 03:41:27 steveu Exp $
+ * $Id: plc.c,v 1.26 2009/02/03 16:28:39 steveu Exp $
  */
 
 /*! \file */
@@ -45,6 +45,7 @@
 #include <limits.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/fast_convert.h"
 #include "spandsp/saturated.h"
 #include "spandsp/plc.h"
 
@@ -115,7 +116,7 @@ static __inline__ int amdf_pitch(int min_pitch, int max_pitch, int16_t amp[], in
 }
 /*- End of function --------------------------------------------------------*/
 
-int plc_rx(plc_state_t *s, int16_t amp[], int len)
+SPAN_DECLARE(int) plc_rx(plc_state_t *s, int16_t amp[], int len)
 {
     int i;
     int pitch_overlap;
@@ -159,7 +160,7 @@ int plc_rx(plc_state_t *s, int16_t amp[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-int plc_fillin(plc_state_t *s, int16_t amp[], int len)
+SPAN_DECLARE(int) plc_fillin(plc_state_t *s, int16_t amp[], int len)
 {
     int i;
     int pitch_overlap;
@@ -235,7 +236,7 @@ int plc_fillin(plc_state_t *s, int16_t amp[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-plc_state_t *plc_init(plc_state_t *s)
+SPAN_DECLARE(plc_state_t *) plc_init(plc_state_t *s)
 {
     if (s == NULL)
     {
@@ -247,7 +248,7 @@ plc_state_t *plc_init(plc_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-int plc_free(plc_state_t *s)
+SPAN_DECLARE(int) plc_free(plc_state_t *s)
 {
     if (s)
         free(s);
