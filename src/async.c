@@ -22,12 +22,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: async.c,v 1.10 2008/04/17 14:26:55 steveu Exp $
+ * $Id: async.c,v 1.11 2008/05/13 13:17:21 steveu Exp $
  */
 
 /*! \file */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 

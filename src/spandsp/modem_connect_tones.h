@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.h,v 1.15 2008/04/17 14:27:00 steveu Exp $
+ * $Id: modem_connect_tones.h,v 1.17 2008/05/14 15:41:25 steveu Exp $
  */
  
 /*! \file */
@@ -51,16 +51,31 @@ unfiltered energy, then a large proportion of the energy must be at the notch
 frequency. This type of detector may seem less intuitive than using a narrow
 bandpass filter to isolate the energy at the notch freqency. However, a sharp
 bandpass implemented as an IIR filter rings badly. The reciprocal notch filter
-is very well behaved. 
+is very well behaved for our purpose. 
 */
 
 enum
 {
-    MODEM_CONNECT_TONES_FAX_CNG,
-    MODEM_CONNECT_TONES_FAX_CED,
-    MODEM_CONNECT_TONES_EC_DISABLE,
-    /*! \brief The version of EC disable with some 15Hz AM content, as in V.8 */
-    MODEM_CONNECT_TONES_EC_DISABLE_MOD,
+    MODEM_CONNECT_TONES_NONE = 0,
+    /*! \brief CNG tone is a pure 1100Hz tone, in 0.5s bursts, with 3s silences in between. The
+               bursts repeat for as long as is required. */
+    MODEM_CONNECT_TONES_FAX_CNG = 1,
+    /*! \brief CED tone is a pure continuous 2100Hz+-15Hz tone for 3.3s+-0.7s. We might see FAX preamble
+               instead of CED, of the FAX machine does not answer with CED. */
+    MODEM_CONNECT_TONES_FAX_CED = 2,
+    /*! \brief ANS tone is a pure continuous 2100Hz+-15Hz tone for 3.3s+-0.7s. Nothing else is searched for. */
+    MODEM_CONNECT_TONES_ANS = 3,
+    /*! \brief ANS with phase reversals tone is a 2100Hz+-15Hz tone for 3.3s+-0.7s, with a 180 degree phase
+               jump every 450ms+-25ms. */
+    MODEM_CONNECT_TONES_ANS_PR = 4,
+    /*! \brief The ANSam tone is a version of ANS with 20% of 15Hz+-0.1Hz AM modulation, as per V.8 */
+    MODEM_CONNECT_TONES_ANSAM = 5,
+    /*! \brief The ANSam with phase reversals tone is a version of ANS_PR with 20% of 15Hz+-0.1Hz AM modulation,
+               as per V.8 */
+    MODEM_CONNECT_TONES_ANSAM_PR = 6,
+    /*! \brief FAX preamble in a string of V.21 HDLC flag octets. This is only valid as a result of tone
+               detection. It should not be specified as a tone type to transmit or receive. */
+    MODEM_CONNECT_TONES_FAX_PREAMBLE = 7
 };
 
 /*!
@@ -70,13 +85,14 @@ enum
 typedef struct
 {
     int tone_type;
-    
-    tone_gen_state_t tone_tx;
-    uint32_t tone_phase;
+
     int32_t tone_phase_rate;
+    uint32_t tone_phase;
     int level;
     /*! \brief Countdown to the next phase hop */
     int hop_timer;
+    /*! \brief Maximum duration timer */
+    int duration_timer;
     uint32_t mod_phase;
     int32_t mod_phase_rate;
     int mod_level;
@@ -102,10 +118,13 @@ typedef struct
     int notch_level;
     /*! \brief The total channel power estimate */
     int channel_level;
+    /*! \brief Sample counter for the small chunks of samples, after which a test is conducted. */
+    int chunk_remainder;
     /*! \brief TRUE is the tone is currently confirmed present in the audio. */
     int tone_present;
+    /*! \brief */
     int tone_on;
-    /*! \brief A sample counter, to time the duration of tone sections. */
+    /*! \brief A millisecond counter, to time the duration of tone sections. */
     int tone_cycle_duration;
     /*! \brief A count of the number of good cycles of tone reversal seen. */
     int good_cycles;

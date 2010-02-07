@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_to_terminal_tests.c,v 1.56 2008/05/05 15:00:11 steveu Exp $
+ * $Id: t38_gateway_to_terminal_tests.c,v 1.57 2008/05/13 13:17:26 steveu Exp $
  */
 
 /*! \file */
@@ -34,7 +34,7 @@ These tests exercise the path
     FAX machine -> T.38 gateway -> T.38 termination
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 

@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo_tests.c,v 1.32 2008/04/26 13:39:16 steveu Exp $
+ * $Id: echo_tests.c,v 1.33 2008/05/13 13:17:25 steveu Exp $
  */
 
 /*! \page echo_can_tests_page Line echo cancellation for voice tests
@@ -40,7 +40,7 @@ all the tests in G.168 are fully implemented at this time.
 
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

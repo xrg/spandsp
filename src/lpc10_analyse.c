@@ -26,10 +26,10 @@
  * implementation of the LPC-10 2400 bps Voice Coder. They do not
  * exert copyright claims on their code, and it may be freely used.
  *
- * $Id: lpc10_analyse.c,v 1.17 2008/04/17 14:26:56 steveu Exp $
+ * $Id: lpc10_analyse.c,v 1.18 2008/05/13 13:17:22 steveu Exp $
  */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 

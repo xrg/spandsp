@@ -22,14 +22,14 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.41 2008/05/02 14:26:39 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.42 2008/05/13 13:17:24 steveu Exp $
  */
 
 /*! \file */
 
 /* THIS IS A WORK IN PROGRESS - NOT YET FUNCTIONAL! */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 

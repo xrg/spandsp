@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale_tests.c,v 1.20 2008/05/03 07:37:06 steveu Exp $
+ * $Id: time_scale_tests.c,v 1.21 2008/05/13 13:17:26 steveu Exp $
  */
 
 /*! \page time_scale_tests_page Time scaling tests
@@ -36,7 +36,7 @@ time scale of its contents, and write the resulting audio to post_time_scale.wav
 This file also contains 8000 sample/second 16 bits/sample linear audio.
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

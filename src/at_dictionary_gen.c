@@ -23,10 +23,10 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_dictionary_gen.c,v 1.12 2008/05/03 05:38:20 steveu Exp $
+ * $Id: at_dictionary_gen.c,v 1.13 2008/05/13 13:17:21 steveu Exp $
  */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

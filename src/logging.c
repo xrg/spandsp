@@ -22,12 +22,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: logging.c,v 1.25 2008/05/05 11:25:01 steveu Exp $
+ * $Id: logging.c,v 1.26 2008/05/13 13:17:22 steveu Exp $
  */
 
 /*! \file */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 

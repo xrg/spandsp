@@ -25,12 +25,12 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_preprocess.c,v 1.11 2008/04/17 14:26:56 steveu Exp $
+ * $Id: gsm0610_preprocess.c,v 1.12 2008/05/13 13:17:22 steveu Exp $
  */
 
 /*! \file */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 

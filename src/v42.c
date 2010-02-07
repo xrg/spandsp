@@ -22,14 +22,14 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.c,v 1.41 2008/04/27 10:34:54 steveu Exp $
+ * $Id: v42.c,v 1.42 2008/05/13 13:17:25 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
 
 /*! \file */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 

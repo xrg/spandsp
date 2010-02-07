@@ -48,12 +48,12 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.c,v 1.20 2008/04/17 14:26:56 steveu Exp $
+ * $Id: g726.c,v 1.21 2008/05/13 13:17:22 steveu Exp $
  */
 
 /*! \file */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 

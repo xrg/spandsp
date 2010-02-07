@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter_tests.c,v 1.14 2008/04/26 13:39:16 steveu Exp $
+ * $Id: at_interpreter_tests.c,v 1.15 2008/05/13 13:17:25 steveu Exp $
  */
 
 /*! \file */
@@ -32,7 +32,7 @@
 These tests exercise all the commands which should be understood by the AT interpreter.
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: lpc10_tests.c,v 1.17 2008/05/03 07:37:06 steveu Exp $
+ * $Id: lpc10_tests.c,v 1.18 2008/05/13 13:17:26 steveu Exp $
  */
 
 /*! \file */
@@ -35,7 +35,7 @@ To perform a general audio quality test, lpc10 should be run. The file ../test-d
 will be compressed to LPC10 data, decompressed, and the resulting audio stored in post_lpc10.wav.
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

@@ -22,12 +22,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.37 2008/04/27 11:58:07 steveu Exp $
+ * $Id: dtmf.c,v 1.38 2008/05/13 13:17:22 steveu Exp $
  */
  
 /*! \file dtmf.h */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

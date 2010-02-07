@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model_tests.c,v 1.23 2008/04/26 13:39:17 steveu Exp $
+ * $Id: line_model_tests.c,v 1.24 2008/05/13 13:17:26 steveu Exp $
  */
 
 /*! \page line_model_tests_page Telephony line model tests
@@ -33,7 +33,7 @@
 ???.
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

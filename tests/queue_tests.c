@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: queue_tests.c,v 1.9 2008/04/26 13:39:17 steveu Exp $
+ * $Id: queue_tests.c,v 1.10 2008/05/13 13:17:26 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -31,7 +31,7 @@
 \section queue_tests_page_sec_1 What does it do?
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 

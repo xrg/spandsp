@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_tx_tests.c,v 1.17 2008/04/27 11:58:07 steveu Exp $
+ * $Id: dtmf_tx_tests.c,v 1.18 2008/05/13 13:17:25 steveu Exp $
  */
 
 /*! \file */
@@ -35,7 +35,7 @@
 ???.
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

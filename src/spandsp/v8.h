@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.h,v 1.21 2008/04/17 14:27:01 steveu Exp $
+ * $Id: v8.h,v 1.22 2008/05/14 15:41:25 steveu Exp $
  */
  
 /*! \file */
@@ -112,8 +112,8 @@ typedef struct
     fsk_tx_state_t v21tx;
     fsk_rx_state_t v21rx;
     queue_state_t *tx_queue;
-    modem_connect_tones_tx_state_t ec_dis_tx;
-    modem_connect_tones_rx_state_t ec_dis_rx;
+    modem_connect_tones_tx_state_t ansam_tx;
+    modem_connect_tones_rx_state_t ansam_rx;
 
     v8_result_handler_t *result_handler;
     void *result_handler_user_data;

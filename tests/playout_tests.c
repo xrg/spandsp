@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: playout_tests.c,v 1.24 2008/04/26 13:39:17 steveu Exp $
+ * $Id: playout_tests.c,v 1.25 2008/05/13 13:17:26 steveu Exp $
  */
 
 /*! \page playout_tests_page Playout (jitter buffering) tests
@@ -31,7 +31,7 @@ These tests simulate timing jitter and packet loss in an audio stream, and see
 how well the playout module copes.
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.85 2008/05/03 07:37:06 steveu Exp $
+ * $Id: fax_tests.c,v 1.86 2008/05/13 13:17:25 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -30,7 +30,7 @@
 \section fax_tests_page_sec_2 How does it work?
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

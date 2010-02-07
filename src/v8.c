@@ -22,12 +22,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.c,v 1.27 2008/04/17 14:26:59 steveu Exp $
+ * $Id: v8.c,v 1.29 2008/05/14 15:41:25 steveu Exp $
  */
  
 /*! \file */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 
@@ -619,7 +619,7 @@ int v8_tx(v8_state_t *s, int16_t *amp, int max_len)
         break;
     case V8_CM_WAIT:
         /* Send the ANSam tone */
-        len = modem_connect_tones_tx(&s->ec_dis_tx, amp, max_len);
+        len = modem_connect_tones_tx(&s->ansam_tx, amp, max_len);
         break;
     }
     return len;
@@ -647,11 +647,11 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int len)
             break;
         s->state = V8_CI;
         s->ci_count = 0;
-        modem_connect_tones_rx_init(&s->ec_dis_rx, MODEM_CONNECT_TONES_EC_DISABLE, NULL, NULL);
+        modem_connect_tones_rx_init(&s->ansam_rx, MODEM_CONNECT_TONES_ANS_PR, NULL, NULL);
         fsk_tx_init(&s->v21tx, &preset_fsk_specs[FSK_V21CH1], get_bit, s);
         /* Fall through to the next state */
     case V8_CI:
-        residual_samples = modem_connect_tones_rx(&s->ec_dis_rx, amp, len);
+        residual_samples = modem_connect_tones_rx(&s->ansam_rx, amp, len);
         /* Send 4 CI packets in a burst (the spec says at least 3) */
         for (i = 0;  i < 4;  i++)
         {
@@ -662,7 +662,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int len)
         s->state = V8_CI_ON;
         break;
     case V8_CI_ON:
-        residual_samples = modem_connect_tones_rx(&s->ec_dis_rx, amp, len);
+        residual_samples = modem_connect_tones_rx(&s->ansam_rx, amp, len);
         if (queue_empty(s->tx_queue))
         {
             s->state = V8_CI_OFF;
@@ -670,9 +670,9 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int len)
         }
         break;
     case V8_CI_OFF:
-        residual_samples = modem_connect_tones_rx(&s->ec_dis_rx, amp, len);
+        residual_samples = modem_connect_tones_rx(&s->ansam_rx, amp, len);
         /* Check if an ANSam tone has been detected */
-        if (modem_connect_tones_rx_get(&s->ec_dis_rx))
+        if (modem_connect_tones_rx_get(&s->ansam_rx))
         {
             /* Set the Te interval. The spec. says 500ms is the minimum,
                but gives reasons why 1 second is a better value. */
@@ -765,7 +765,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int len)
         if ((s->negotiation_timer -= len) <= 0)
         {
             /* Send the ANSam tone */
-            modem_connect_tones_tx_init(&s->ec_dis_tx, MODEM_CONNECT_TONES_EC_DISABLE_MOD);
+            modem_connect_tones_tx_init(&s->ansam_tx, MODEM_CONNECT_TONES_ANSAM_PR);
                 
             v8_decode_init(s);
             s->state = V8_CM_WAIT;

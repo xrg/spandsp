@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g726_tests.c,v 1.23 2008/05/03 07:37:06 steveu Exp $
+ * $Id: g726_tests.c,v 1.24 2008/05/13 13:17:25 steveu Exp $
  */
 
 /*! \file */
@@ -60,7 +60,7 @@ The test file ../test-data/local/short_nb_voice.wav will be compressed to the sp
 decompressed, and the resulting audio stored in post_g726.wav.
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 

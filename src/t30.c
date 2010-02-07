@@ -22,12 +22,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.242 2008/05/06 15:05:15 steveu Exp $
+ * $Id: t30.c,v 1.244 2008/05/13 13:17:23 steveu Exp $
  */
 
 /*! \file */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 
@@ -301,7 +301,22 @@ static int send_cfr_sequence(t30_state_t *s, int start);
 #define set_ctrl_bits(s,val,bit) (s)[3 + ((bit - 1)/8)] |= ((val) << ((bit - 1)%8))
 #define clr_ctrl_bit(s,bit) (s)[3 + ((bit - 1)/8)] &= ~(1 << ((bit - 1)%8))
 
-static void rx_start_page(t30_state_t *s)
+static int tx_start_page(t30_state_t *s)
+{
+    if (t4_tx_start_page(&(s->t4)))
+    {
+        t4_tx_end(&(s->t4));
+        s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
+        return -1;
+    }
+    s->ecm_page++;
+    s->ecm_block = 0;
+    span_log(&s->logging, SPAN_LOG_FLOW, "Starting page %d of transfer\n", s->ecm_page + 1);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int rx_start_page(t30_state_t *s)
 {
     int i;
 
@@ -316,7 +331,8 @@ static void rx_start_page(t30_state_t *s)
     t4_rx_set_x_resolution(&(s->t4), s->x_resolution);
     t4_rx_set_y_resolution(&(s->t4), s->y_resolution);
 
-    t4_rx_start_page(&(s->t4));
+    if (t4_rx_start_page(&(s->t4)))
+        return -1;
     /* Clear the buffer */
     for (i = 0;  i < 256;  i++)
         s->ecm_len[i] = -1;
@@ -324,6 +340,7 @@ static void rx_start_page(t30_state_t *s)
     s->ecm_block = 0;
     s->ecm_frames = -1;
     s->ecm_frames_this_tx_burst = 0;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1686,15 +1703,10 @@ static int start_sending_document(t30_state_t *s)
     span_log(&s->logging, SPAN_LOG_FLOW, "Minimum bits per row will be %d\n", min_row_bits);
     t4_tx_set_min_row_bits(&(s->t4), min_row_bits);
 
-    if (t4_tx_start_page(&(s->t4)))
-    {
-        t4_tx_end(&(s->t4));
-        s->operation_in_progress = OPERATION_IN_PROGRESS_NONE;
+    s->ecm_page = -1;
+    if (tx_start_page(s))
         return -1;
-    }
     s->image_width = t4_tx_get_image_width(&(s->t4));
-    s->ecm_page = 0;
-    s->ecm_block = 0;
     if (s->error_correcting_mode)
     {
         if (get_partial_ecm_page(s) == 0)
@@ -3171,7 +3183,7 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
             t4_tx_end_page(&(s->t4));
             if (s->phase_d_handler)
                 s->phase_d_handler(s, s->phase_d_user_data, T30_MCF);
-            if (t4_tx_start_page(&(s->t4)))
+            if (tx_start_page(s))
             {
                 /* TODO: recover */
                 break;
@@ -3459,13 +3471,11 @@ static void process_state_iv_pps_null(t30_state_t *s, const uint8_t *msg, int le
                 t4_tx_end_page(&(s->t4));
                 if (s->phase_d_handler)
                     s->phase_d_handler(s, s->phase_d_user_data, T30_MCF);
-                if (t4_tx_start_page(&(s->t4)))
+                if (tx_start_page(s))
                 {
                     /* TODO: recover */
                     break;
                 }
-                s->ecm_page++;
-                s->ecm_block = 0;
                 if (get_partial_ecm_page(s) > 0)
                 {
                     set_state(s, T30_STATE_IV);
@@ -3566,13 +3576,11 @@ static void process_state_iv_pps_q(t30_state_t *s, const uint8_t *msg, int len)
                 t4_tx_end_page(&(s->t4));
                 if (s->phase_d_handler)
                     s->phase_d_handler(s, s->phase_d_user_data, T30_MCF);
-                if (t4_tx_start_page(&(s->t4)))
+                if (tx_start_page(s))
                 {
                     /* TODO: recover */
                     break;
                 }
-                s->ecm_page++;
-                s->ecm_block = 0;
                 if (get_partial_ecm_page(s) > 0)
                 {
                     set_state(s, T30_STATE_IV);
@@ -3688,13 +3696,11 @@ static void process_state_iv_pps_rnr(t30_state_t *s, const uint8_t *msg, int len
                 t4_tx_end_page(&(s->t4));
                 if (s->phase_d_handler)
                     s->phase_d_handler(s, s->phase_d_user_data, T30_MCF);
-                if (t4_tx_start_page(&(s->t4)))
+                if (tx_start_page(s))
                 {
                     /* TODO: recover */
                     break;
                 }
-                s->ecm_page++;
-                s->ecm_block = 0;
                 if (get_partial_ecm_page(s) > 0)
                 {
                     set_state(s, T30_STATE_IV);

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis_tests.c,v 1.22 2008/04/26 13:39:18 steveu Exp $
+ * $Id: v42bis_tests.c,v 1.23 2008/05/13 13:17:27 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -35,7 +35,7 @@ compressed file, decompress, and write the results to v42bis_tests.out. The cont
 of this file should exactly match the original file.
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 

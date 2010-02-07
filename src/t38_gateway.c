@@ -23,12 +23,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.117 2008/05/02 14:26:38 steveu Exp $
+ * $Id: t38_gateway.c,v 1.121 2008/05/16 12:31:22 steveu Exp $
  */
 
 /*! \file */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 
@@ -77,12 +77,14 @@
 #include "spandsp/t38_core.h"
 #include "spandsp/t38_gateway.h"
 
-#define MS_PER_TX_CHUNK             30
+/* This is the target time per transmission chunk. The actual
+   packet timing will sync to the data octets. */
+#define MS_PER_TX_CHUNK                 30
+#define HDLC_START_BUFFER_LEVEL         8
 
-#define INDICATOR_TX_COUNT          3
-#define DATA_TX_COUNT               1
-#define DATA_END_TX_COUNT           1
-#define HDLC_START_BUFFER_LEVEL     8
+#define INDICATOR_TX_COUNT              3
+#define DATA_TX_COUNT                   1
+#define DATA_END_TX_COUNT               3
 
 enum
 {
@@ -755,8 +757,42 @@ static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int l
         if (from_modem)
             s->tcf_mode_predictable_modem_start = 2;
         break;
+    case T30_PPS:
+    case T30_PPS | 1:
+        switch (buf[3] & 0xFE)
+        {
+        case T30_EOP:
+        case T30_EOM:
+        case T30_MPS:
+        case T30_PRI_EOP:
+        case T30_PRI_EOM:
+        case T30_PRI_MPS:
+            s->count_page_on_mcf = TRUE;
+            break;
+        }
+        break;
+    case T30_EOP:
+    case T30_EOM:
+    case T30_MPS:
+    case T30_PRI_EOP:
+    case T30_PRI_EOM:
+    case T30_PRI_MPS:
+    case T30_EOP | 1:
+    case T30_EOM | 1:
+    case T30_MPS | 1:
+    case T30_PRI_EOP | 1:
+    case T30_PRI_EOM | 1:
+    case T30_PRI_MPS | 1:
+        s->count_page_on_mcf = TRUE;
+        break;
     case T30_MCF:
-        s->pages_confirmed++;
+    case T30_MCF | 1:
+        if (s->count_page_on_mcf)
+        {
+            s->pages_confirmed++;
+            span_log(&s->logging, SPAN_LOG_FLOW, "Pages confirmed = %d\n", s->pages_confirmed);
+            s->count_page_on_mcf = FALSE;
+        }
         break;
     default:
         break;
@@ -1162,11 +1198,24 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
 
 static void set_octets_per_data_packet(t38_gateway_state_t *s, int bit_rate)
 {
-    s->octets_per_data_packet = MS_PER_TX_CHUNK*bit_rate/(8*1000);
+    int octets;
+    
+    octets = MS_PER_TX_CHUNK*bit_rate/(8*1000);
+    if (octets < 1)
+        octets = 1;
+    s->octets_per_data_packet = octets;
 }
 /*- End of function --------------------------------------------------------*/
 
-static int set_packetisation(t38_gateway_state_t *s)
+static int set_slow_packetisation(t38_gateway_state_t *s)
+{
+    set_octets_per_data_packet(s, 300);
+    s->current_tx_data_type = T38_DATA_V21;
+    return T38_IND_V21_PREAMBLE;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int set_fast_packetisation(t38_gateway_state_t *s)
 {
     int ind;
 
@@ -1238,10 +1287,7 @@ static int set_packetisation(t38_gateway_state_t *s)
 
 static void announce_training(t38_gateway_state_t *s)
 {
-    int ind;
-
-    ind = set_packetisation(s);
-    t38_core_send_indicator(&s->t38, ind, INDICATOR_TX_COUNT);
+    t38_core_send_indicator(&s->t38, set_fast_packetisation(s), s->t38.indicator_tx_count);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1288,8 +1334,8 @@ static void non_ecm_put_bit(void *user_data, int bit)
             case T38_DATA_V27TER_4800:
             case T38_DATA_V29_7200:
             case T38_DATA_V29_9600:
-                t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_T4_NON_ECM_SIG_END, NULL, 0, DATA_END_TX_COUNT);
-                t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, INDICATOR_TX_COUNT);
+                t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_T4_NON_ECM_SIG_END, NULL, 0, s->t38.data_end_tx_count);
+                t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, s->t38.indicator_tx_count);
                 restart_rx_modem(s);
                 break;
             }
@@ -1318,7 +1364,7 @@ static void non_ecm_put_bit(void *user_data, int bit)
         s->rx_data[s->rx_data_ptr++] = (uint8_t) s->non_ecm_rx_bit_stream & 0xFF;
         if (s->rx_data_ptr >= s->octets_per_data_packet)
         {
-            t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_T4_NON_ECM_DATA, s->rx_data, s->rx_data_ptr, DATA_TX_COUNT);
+            t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_T4_NON_ECM_DATA, s->rx_data, s->rx_data_ptr, s->t38.data_tx_count);
             /* Since we delay transmission by 2 octets, we should now have sent the last of the data octets when
                we have just received the last of the CRC octets. */
             s->rx_data_ptr = 0;
@@ -1483,8 +1529,8 @@ static void hdlc_rx_special_condition(hdlc_rx_state_t *t, int condition)
         span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier down\n");
         if (t->framing_ok_announced)
         {
-            t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_SIG_END, NULL, 0, DATA_END_TX_COUNT);
-            t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, INDICATOR_TX_COUNT);
+            t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_SIG_END, NULL, 0, s->t38.data_end_tx_count);
+            t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, s->t38.indicator_tx_count);
             t->framing_ok_announced = FALSE;
         }
         restart_rx_modem(s);
@@ -1532,9 +1578,27 @@ static void rx_flag_or_abort(hdlc_rx_state_t *t)
                     if (s->rx_data_ptr)
                     {
                         bit_reverse(s->rx_data, t->buffer + t->len - 2 - s->rx_data_ptr, s->rx_data_ptr);
-                        t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_DATA, s->rx_data, s->rx_data_ptr, DATA_TX_COUNT);
+                        t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_DATA, s->rx_data, s->rx_data_ptr, s->t38.data_tx_count);
                     }
-                    if (t->num_bits == 7  &&  (s->crc & 0xFFFF) == 0xF0B8)
+                    if (t->num_bits != 7)
+                    {
+                        t->rx_crc_errors++;
+                        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC frame type %s, misaligned terminating flag at %d\n", t30_frametype(t->buffer[2]), t->len);
+                        /* It seems some boxes may not like us sending a _SIG_END here, and then another
+                           when the carrier actually drops. Lets just send T38_FIELD_HDLC_FCS_OK here. */
+                        if (t->len > 2)
+                            t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_FCS_BAD, NULL, 0, s->t38.data_tx_count);
+                    }
+                    else if ((s->crc & 0xFFFF) != 0xF0B8)
+                    {
+                        t->rx_crc_errors++;
+                        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC frame type %s, bad CRC at %d\n", t30_frametype(t->buffer[2]), t->len);
+                        /* It seems some boxes may not like us sending a _SIG_END here, and then another
+                           when the carrier actually drops. Lets just send T38_FIELD_HDLC_FCS_OK here. */
+                        if (t->len > 2)
+                            t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_FCS_BAD, NULL, 0, s->t38.data_tx_count);
+                    }
+                    else
                     {
                         t->rx_frames++;
                         t->rx_bytes += t->len - 2;
@@ -1552,15 +1616,7 @@ static void rx_flag_or_abort(hdlc_rx_state_t *t)
                         }            
                         /* It seems some boxes may not like us sending a _SIG_END here, and then another
                            when the carrier actually drops. Lets just send T38_FIELD_HDLC_FCS_OK here. */
-                        t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_FCS_OK, NULL, 0, DATA_TX_COUNT);
-                    }
-                    else
-                    {
-                        t->rx_crc_errors++;
-                        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC frame type %s, bad CRC\n", t30_frametype(t->buffer[2]));
-                        /* It seems some boxes may not like us sending a _SIG_END here, and then another
-                           when the carrier actually drops. Lets just send T38_FIELD_HDLC_FCS_OK here. */
-                        t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_FCS_BAD, NULL, 0, DATA_TX_COUNT);
+                        t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_FCS_OK, NULL, 0, s->t38.data_tx_count);
                     }
                 }
                 else
@@ -1581,7 +1637,7 @@ static void rx_flag_or_abort(hdlc_rx_state_t *t)
             {
                 if (s->current_tx_data_type == T38_DATA_V21)
                 {
-                    t38_core_send_indicator(&s->t38, T38_IND_V21_PREAMBLE, INDICATOR_TX_COUNT);
+                    t38_core_send_indicator(&s->t38, set_slow_packetisation(s), s->t38.indicator_tx_count);
                     s->rx_signal_present = TRUE;
                 }
                 if (s->in_progress_rx_indicator == T38_IND_CNG)
@@ -1650,7 +1706,7 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
     if (++s->rx_data_ptr >= s->octets_per_data_packet)
     {
         bit_reverse(s->rx_data, t->buffer + t->len - 2 - s->rx_data_ptr, s->rx_data_ptr);
-        t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_DATA, s->rx_data, s->rx_data_ptr, DATA_TX_COUNT);
+        t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_DATA, s->rx_data, s->rx_data_ptr, s->t38.data_tx_count);
         /* Since we delay transmission by 2 octets, we should now have sent the last of the data octets when
            we have just received the last of the CRC octets. */
         s->rx_data_ptr = 0;
@@ -1867,6 +1923,10 @@ t38_gateway_state_t *t38_gateway_init(t38_gateway_state_t *s,
                   tx_packet_user_data);
     t38_gateway_set_supported_modems(s, T30_SUPPORT_V27TER | T30_SUPPORT_V29);
     t38_gateway_set_nsx_suppression(s, TRUE);
+    s->t38.indicator_tx_count = INDICATOR_TX_COUNT;
+    s->t38.data_tx_count = DATA_TX_COUNT;
+    s->t38.data_end_tx_count = DATA_END_TX_COUNT;
+
     s->ecm_allowed = FALSE;
     restart_rx_modem(s);
 #if defined(LOG_FAX_AUDIO)

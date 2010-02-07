@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.h,v 1.25 2008/04/17 14:27:00 steveu Exp $
+ * $Id: t38_core.h,v 1.26 2008/05/16 12:31:23 steveu Exp $
  */
 
 /*! \file */
@@ -241,10 +241,24 @@ struct t38_core_state_s
     /*! This is the version number of ITU-T Rec. T.38. New versions shall be
         compatible with previous versions. */
     int t38_version;
-    
+
     /*! The fastest data rate supported by the T.38 channel. */
     int fastest_image_data_rate;
-    
+
+    /*! \brief The number of times an indicator packet will be sent. Numbers greater than one
+               will increase reliability for UDP transmission. Zero is valid, to suppress all
+               indicator packets for TCP transmission. */
+    int indicator_tx_count;
+
+    /*! \brief The number of times a data packet which does not end transmission will be sent.
+               Numbers greater than one will increase reliability for UDP transmission. Zero
+               is not valid. */
+    int data_tx_count;
+
+    /*! \brief The number of times a data packet which ends transmission will be sent. Numbers
+               greater than one will increase reliability for UDP transmission. Zero is not valid. */
+    int data_end_tx_count;
+
     /*! TRUE if IFP packet sequence numbers are relevant. For some transports, like TPKT
         over TCP they are not relevent. */
     int check_sequence_numbers;

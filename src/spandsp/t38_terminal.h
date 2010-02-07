@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.29 2008/04/17 14:27:00 steveu Exp $
+ * $Id: t38_terminal.h,v 1.30 2008/05/16 12:31:23 steveu Exp $
  */
 
 /*! \file */
@@ -91,24 +91,21 @@ typedef struct
                rate and the current specified packet interval. */
     int octets_per_data_packet;
     
-    /*! \brief The time between T.38 transmissions, in ms. */
+    /*! \brief Required time between T.38 transmissions, in ms. */
     int ms_per_tx_chunk;
     /*! \brief TRUE if multiple data fields should be merged into a single T.38 IFP packet. */
     int merge_tx_fields;
 
-    /*! \brief The number of times an indicator packet will be sent. Numbers greater than one
-               will increase reliability for UDP transmission. Zero is valid, to suppress all
-               indicator packets for TCP transmission. */
-    int indicator_tx_count;
-
-    /*! \brief The number of times a data packet which ends transmission will be sent. Numbers
-               greater than one will increase reliability for UDP transmission. Zero is not valid. */
-    int data_end_tx_count;
-
+    /*! \brief Current actual samples between T.38 transmissions, allowing for the minimum needed for a
+               single octet, etc. */
+    int samples_per_tx_chunk;
+    /*! \brief Current actual samples during for an FCS at the end of an HDLC frame. */
+    int samples_per_fcs;
     /*! \brief A "sample" count, used to time events. */
     int32_t samples;
     /*! \brief The value for samples at the next transmission point. */
     int32_t next_tx_samples;
+    /*! \brief The current receive timeout. */
     int32_t timeout_rx_samples;
 
     /*! \brief Internet Aware FAX mode bit mask. */

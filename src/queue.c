@@ -22,12 +22,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: queue.c,v 1.20 2008/04/17 14:26:57 steveu Exp $
+ * $Id: queue.c,v 1.22 2008/05/15 14:26:30 steveu Exp $
  */
 
 /*! \file */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 
@@ -38,8 +38,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <sys/types.h>
-
-#include <tiffio.h>
 
 #include "spandsp/queue.h"
 

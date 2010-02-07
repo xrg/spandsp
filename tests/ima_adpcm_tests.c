@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm_tests.c,v 1.30 2008/05/03 07:37:06 steveu Exp $
+ * $Id: ima_adpcm_tests.c,v 1.31 2008/05/13 13:17:25 steveu Exp $
  */
 
 /*! \file */
@@ -39,7 +39,7 @@ of the degradation in quality caused by the compression.
 \section ima_adpcm_tests_page_sec_2 How is it used?
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

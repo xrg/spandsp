@@ -22,14 +22,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn_tests.c,v 1.16 2008/04/26 13:39:16 steveu Exp $
+ * $Id: awgn_tests.c,v 1.17 2008/05/13 13:17:25 steveu Exp $
  */
 
 /*! \page awgn_tests_page AWGN tests
 \section awgn_tests_page_sec_1 What does it do?
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

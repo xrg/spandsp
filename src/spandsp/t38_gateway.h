@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.44 2008/05/07 12:41:40 steveu Exp $
+ * $Id: t38_gateway.h,v 1.45 2008/05/08 12:21:09 steveu Exp $
  */
 
 /*! \file */
@@ -70,6 +70,8 @@ typedef struct
                silent audio. */
     int transmit_on_idle;
 
+    /*! \brief TRUE if we should count the next MCF as a page end, else FALSE */
+    int count_page_on_mcf;
     /*! \brief The number of pages for which a confirm (MCF) message was returned. */
     int pages_confirmed;
     /*! \brief HDLC message buffers. */

@@ -25,12 +25,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.107 2008/05/03 15:41:01 steveu Exp $
+ * $Id: t31.c,v 1.108 2008/05/13 13:17:23 steveu Exp $
  */
 
 /*! \file */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_rx_tests.c,v 1.37 2008/05/03 07:37:06 steveu Exp $
+ * $Id: dtmf_rx_tests.c,v 1.38 2008/05/13 13:17:25 steveu Exp $
  */
 
 /*
@@ -84,7 +84,7 @@ and it is their right to do as they wish with it. Currently I see no indication
 they wish to give it away for free. 
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 
@@ -114,6 +114,8 @@ they wish to give it away for free.
 #define DEFAULT_DTMF_TX_LEVEL       -10
 #define DEFAULT_DTMF_TX_ON_TIME     50
 #define DEFAULT_DTMF_TX_OFF_TIME    50
+
+#define SAMPLES_PER_CHUNK           160
 
 #define ALL_POSSIBLE_DIGITS         "123A456B789C*0#D"
 
@@ -786,7 +788,7 @@ static void callback_function_tests(void)
         len = 0;
         for (j = 0;  j < i;  j++)
             len += my_dtmf_generate(amp + len, ALL_POSSIBLE_DIGITS);
-        for (sample = 0, j = 160;  sample < len;  sample += 160, j = ((len - sample) >= 160)  ?  160  :  (len - sample))
+        for (sample = 0, j = SAMPLES_PER_CHUNK;  sample < len;  sample += SAMPLES_PER_CHUNK, j = ((len - sample) >= SAMPLES_PER_CHUNK)  ?  SAMPLES_PER_CHUNK  :  (len - sample))
         {
             dtmf_rx(&dtmf_state, &amp[sample], j);
             if (!callback_ok)
@@ -806,7 +808,7 @@ static void callback_function_tests(void)
 
 static void decode_test(const char *test_file)
 {
-    int16_t amp[160];
+    int16_t amp[SAMPLES_PER_CHUNK];
     AFfilehandle inhandle;
     dtmf_rx_state_t dtmf_state;
     char buf[128 + 1];
@@ -827,7 +829,7 @@ static void decode_test(const char *test_file)
     }
     
     total = 0;
-    while ((samples = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, 160)) > 0)
+    while ((samples = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, SAMPLES_PER_CHUNK)) > 0)
     {
         codec_munge(munge, amp, samples);
         dtmf_rx(&dtmf_state, amp, samples);

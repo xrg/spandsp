@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g722_tests.c,v 1.25 2008/05/03 07:37:06 steveu Exp $
+ * $Id: g722_tests.c,v 1.26 2008/05/13 13:17:25 steveu Exp $
  */
 
 /*! \file */
@@ -56,7 +56,7 @@ The file ../test-data/local/short_wb_voice.wav will be compressed to the specifi
 and the resulting audio stored in post_g722.wav.
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 

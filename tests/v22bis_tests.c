@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tests.c,v 1.49 2008/05/02 14:26:39 steveu Exp $
+ * $Id: v22bis_tests.c,v 1.50 2008/05/13 13:17:26 steveu Exp $
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
@@ -37,7 +37,7 @@ display of modem status is maintained.
 \section v22bis_tests_page_sec_2 How is it used?
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 

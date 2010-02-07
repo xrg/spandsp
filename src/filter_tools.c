@@ -25,10 +25,10 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: filter_tools.c,v 1.4 2008/04/17 14:26:56 steveu Exp $
+ * $Id: filter_tools.c,v 1.5 2008/05/13 13:17:22 steveu Exp $
  */
  
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 
