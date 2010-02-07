@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo.c,v 1.22 2008/07/02 14:48:25 steveu Exp $
+ * $Id: modem_echo.c,v 1.23 2009/01/05 13:48:31 steveu Exp $
  */
 
 /*! \file */
@@ -33,7 +33,7 @@
  */
 
 #if defined(HAVE_CONFIG_H)
-#include <config.h>
+#include "config.h"
 #endif
 
 #include <stdlib.h>

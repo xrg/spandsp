@@ -27,7 +27,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo.c,v 1.28 2008/09/19 14:02:05 steveu Exp $
+ * $Id: echo.c,v 1.29 2009/01/05 13:48:31 steveu Exp $
  */
 
 /*! \file */
@@ -79,7 +79,7 @@
    reasonable way. */
 
 #if defined(HAVE_CONFIG_H)
-#include <config.h>
+#include "config.h"
 #endif
 
 #include <inttypes.h>

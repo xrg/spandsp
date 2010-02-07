@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.64 2008/12/31 13:57:13 steveu Exp $
+ * $Id: t4_tests.c,v 1.65 2009/01/05 13:48:32 steveu Exp $
  */
 
 /*! \file */
@@ -326,7 +326,7 @@ int main(int argc, char *argv[])
                         break;
                 }
             }
-            else if (strlen(buf) > 62  &&  sscanf(buf + 62, "Rx %d: IFP %x %x", &pkt_no, (unsigned int *) &bit, (unsigned int *) &bit) == 3)
+            else if (strlen(buf) > 62  &&  sscanf(buf + 57, "Rx %d: IFP %x %x", &pkt_no, (unsigned int *) &bit, (unsigned int *) &bit) == 3)
             {
                 /* Useful for breaking up T.38 non-ECM logs */
                 if (pkt_no != last_pkt_no + 1)
@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
                 last_pkt_no = pkt_no;
                 for (i = 0;  i < 256;  i++)
                 {
-                    if (sscanf(&buf[62 + 29 + 3*i], "%x", (unsigned int *) &bit) != 1)
+                    if (sscanf(&buf[57 + 29 + 3*i], "%x", (unsigned int *) &bit) != 1)
                         break;
                     bit = bit_reverse8(bit);
                     if ((end_of_page = t4_rx_put_byte(&receive_state, bit)))

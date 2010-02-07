@@ -22,13 +22,13 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.274 2009/01/03 14:44:15 steveu Exp $
+ * $Id: t30.c,v 1.275 2009/01/05 13:48:31 steveu Exp $
  */
 
 /*! \file */
 
 #if defined(HAVE_CONFIG_H)
-#include <config.h>
+#include "config.h"
 #endif
 
 #include <stdlib.h>
@@ -3668,7 +3668,7 @@ static void process_state_iv_pps_null(t30_state_t *s, const uint8_t *msg, int le
         span_log(&s->logging, SPAN_LOG_FLOW, "Is there more to send? - %d %d\n", s->ecm_frames, s->ecm_len[255]);
         if (!s->ecm_at_page_end  &&  get_partial_ecm_page(s) > 0)
         {
-            span_log(&s->logging, SPAN_LOG_WARNING, "Additional image data to send\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Additional image data to send\n");
             s->ecm_block++;
             set_state(s, T30_STATE_IV);
             queue_phase(s, T30_PHASE_C_ECM_TX);
@@ -3770,7 +3770,7 @@ static void process_state_iv_pps_q(t30_state_t *s, const uint8_t *msg, int len)
         span_log(&s->logging, SPAN_LOG_FLOW, "Is there more to send? - %d %d\n", s->ecm_frames, s->ecm_len[255]);
         if (!s->ecm_at_page_end  &&  get_partial_ecm_page(s) > 0)
         {
-            span_log(&s->logging, SPAN_LOG_WARNING, "Additional image data to send\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Additional image data to send\n");
             s->ecm_block++;
             set_state(s, T30_STATE_IV);
             queue_phase(s, T30_PHASE_C_ECM_TX);
@@ -3888,7 +3888,7 @@ static void process_state_iv_pps_rnr(t30_state_t *s, const uint8_t *msg, int len
         span_log(&s->logging, SPAN_LOG_FLOW, "Is there more to send? - %d %d\n", s->ecm_frames, s->ecm_len[255]);
         if (!s->ecm_at_page_end  &&  get_partial_ecm_page(s) > 0)
         {
-            span_log(&s->logging, SPAN_LOG_WARNING, "Additional image data to send\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Additional image data to send\n");
             s->ecm_block++;
             set_state(s, T30_STATE_IV);
             queue_phase(s, T30_PHASE_C_ECM_TX);
