@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.38 2007/08/14 14:57:37 steveu Exp $
+ * $Id: t4_tests.c,v 1.40 2007/09/16 15:06:13 steveu Exp $
  */
 
 /*! \file */
@@ -33,7 +33,7 @@ These tests exercise the image compression and decompression methods defined
 in ITU specifications T.4 and T.6.
 */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 
@@ -54,6 +54,8 @@ in ITU specifications T.4 and T.6.
 
 #include "spandsp.h"
 
+//#define DUMP_AS_XXX
+
 #define IN_FILE_NAME    "../itutests/fax/itutests.tif"
 #define OUT_FILE_NAME   "t4_tests_receive.tif"
 
@@ -61,6 +63,31 @@ in ITU specifications T.4 and T.6.
 
 t4_state_t send_state;
 t4_state_t receive_state;
+
+#if defined(DUMP_AS_XXX)
+static void dump_image_as_xxx(t4_state_t *state)
+{
+    uint8_t *s;
+    int i;
+    int j;
+    int k;
+
+    /* Dump the entire image as text 'X's and spaces */
+    printf("Image (%d x %d):\n", receive_state.image_width, receive_state.image_length);
+    s = state->image_buffer;
+    for (i = 0;  i < state->image_length;  i++)
+    {
+        for (j = 0;  j < state->bytes_per_row;  j++)
+        {
+            for (k = 0;  k < 8;  k++)
+            {
+                printf((state->image_buffer[i*state->bytes_per_row + j] & (0x80 >> k))  ?  "X"  :  " ");
+            }
+        }
+        printf("\n");
+    }
+}
+#endif
 
 int main(int argc, char* argv[])
 {
@@ -76,11 +103,12 @@ int main(int argc, char* argv[])
     int min_row_bits;
     int restart_pages;
     int block_size;
-    char buf[512];
+    char buf[1024];
     uint8_t block[1024];
     t4_stats_t stats;
     const char *in_file_name;
     int opt;
+    int i;
 
     decode_test = FALSE;
     compression = -1;
@@ -151,9 +179,19 @@ int main(int argc, char* argv[])
 
         page_no = 1;
         t4_rx_start_page(&receive_state);
-        while (fgets(buf, 511, stdin))
+        while (fgets(buf, 1024, stdin))
         {
-            if (sscanf(buf, "Rx bit %*d - %d", &bit) == 1)
+            if (sscanf(buf, "HDLC:  FCD: 06 %x", &bit) == 1)
+            {
+                for (i = 0;  i < 256;  i++)
+                {
+                    if (sscanf(&buf[18 + 3*i], "%x", &bit) != 1)
+                        break;
+                    if ((end_of_page = t4_rx_put_byte(&receive_state, bit)))
+                        break;
+                }
+            }
+            else if (sscanf(buf, "Rx bit %*d - %d", &bit) == 1)
             {
                 if ((end_of_page = t4_rx_put_bit(&receive_state, bit)))
                 {
@@ -162,20 +200,8 @@ int main(int argc, char* argv[])
                 }
             }
         }
-#if 0
-        /* Dump the entire image as text 'X's and spaces */
-        s = receive_state.image_buffer;
-        for (i = 0;  i < receive_state.rows;  i++)
-        {
-            for (j = 0;  j < receive_state.bytes_per_row;  j++)
-            {
-                for (k = 0;  k < 8;  k++)
-                {
-                    printf((receive_state.image_buffer[i*receive_state.bytes_per_row + j] & (0x80 >> k))  ?  "X"  :  " ");
-                }
-            }
-            printf("\n");
-        }
+#if defined(DUMP_AS_XXX)
+        dump_image_as_xxx(&receive_state);
 #endif
         t4_rx_end_page(&receive_state);
         t4_get_transfer_statistics(&receive_state, &stats);
@@ -196,7 +222,7 @@ int main(int argc, char* argv[])
         }
 
         /* Receive end puts TIFF to a new file. */
-        if (t4_rx_init(&receive_state, OUT_FILE_NAME, T4_COMPRESSION_ITU_T4_2D))
+        if (t4_rx_init(&receive_state, OUT_FILE_NAME, T4_COMPRESSION_ITU_T6)) //T4_COMPRESSION_ITU_T4_2D))
         {
             printf("Failed to init\n");
             exit(2);
@@ -325,6 +351,9 @@ int main(int argc, char* argv[])
                 }
                 while (!end_of_page);
             }
+#if defined(DUMP_AS_XXX)
+            dump_image_as_xxx(&receive_state);
+#endif
             t4_get_transfer_statistics(&receive_state, &stats);
             printf("Pages = %d\n", stats.pages_transferred);
             printf("Image size = %d x %d\n", stats.width, stats.length);

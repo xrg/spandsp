@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.192 2007/09/02 12:47:07 steveu Exp $
+ * $Id: t30.c,v 1.193 2007/09/15 12:21:39 steveu Exp $
  */
 
 /*! \file */
@@ -1795,9 +1795,9 @@ static int process_rx_dcs(t30_state_t *s, const uint8_t *msg, int len)
 {
     static const int widths[3][4] =
     {
-        { 864, 1024, 1216, -1}, /* R4 resolution - no longer used in recent versions of T.30 */
-        {1728, 2048, 2432, -1}, /* R8 resolution */
-        {3456, 4096, 4864, -1}  /* R16 resolution */
+        { T30_WIDTH_R4_A4,  T30_WIDTH_R4_B4,  T30_WIDTH_R4_A3, -1}, /* R4 resolution - no longer used in recent versions of T.30 */
+        { T30_WIDTH_R8_A4,  T30_WIDTH_R8_B4,  T30_WIDTH_R8_A3, -1}, /* R8 resolution */
+        {T30_WIDTH_R16_A4, T30_WIDTH_R16_B4, T30_WIDTH_R16_A3, -1}  /* R16 resolution */
     };
     uint8_t dcs_frame[T30_MAX_DIS_DTC_DCS_LEN];
     int i;

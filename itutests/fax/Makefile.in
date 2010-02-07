@@ -200,7 +200,7 @@ AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 PBM2G3 = pbmtog3
 FAX2TIFF = fax2tiff
 EXTRA_DIST = itu1.pbm itu2.pbm itu3.pbm itu4.pbm itu5.pbm itu6.pbm itu7.pbm itu8.pbm \
-               test1.pbm test2.pbm test3.pbm test4.pbm
+             test1.pbm test2.pbm test3.pbm test4.pbm
 
 nobase_data_DATA = itutests.tif \
                     itu1.tif \

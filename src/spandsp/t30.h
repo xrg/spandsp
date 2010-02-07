@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.79 2007/08/11 13:36:16 steveu Exp $
+ * $Id: t30.h,v 1.80 2007/09/15 12:21:39 steveu Exp $
  */
 
 /*! \file */
@@ -392,7 +392,13 @@ typedef enum
     T30_WIDTH_R8_A3 = 2432,
     T30_WIDTH_R16_A4 = 3456,
     T30_WIDTH_R16_B4 = 4096,
-    T30_WIDTH_R16_A3 = 4864
+    T30_WIDTH_R16_A3 = 4864,
+    T30_WIDTH_600_A4 = 5184,
+    T30_WIDTH_600_B4 = 6144,
+    T30_WIDTH_600_A3 = 7296,
+    T30_WIDTH_1200_A4 = 10368,
+    T30_WIDTH_1200_B4 = 12288,
+    T30_WIDTH_1200_A3 = 14592
 } t30_image_width_t;
 
 /*!

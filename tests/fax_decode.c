@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_decode.c,v 1.33 2007/07/20 15:30:50 steveu Exp $
+ * $Id: fax_decode.c,v 1.35 2007/09/15 12:21:39 steveu Exp $
  */
 
 /*! \page fax_decode_page FAX decoder
@@ -205,7 +205,7 @@ static int check_rx_dcs(const uint8_t *msg, int len)
         line_encoding = T4_COMPRESSION_ITU_T4_2D;
     else
         line_encoding = T4_COMPRESSION_ITU_T4_1D;
-    printf("Selected compression %d\n", line_encoding);
+    fprintf(stderr, "Selected compression %d\n", line_encoding);
 
     if ((current_fallback = find_fallback_entry(dcs_frame[4] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3))) < 0)
         printf("Remote asked for a modem standard we do not support\n");
@@ -302,9 +302,24 @@ static void t4_end(void)
 {
     t4_stats_t stats;
     int i;
+    int j;
+    int k;
 
     if (!t4_up)
         return;
+    if (error_correcting_mode)
+    {
+        for (i = 0;  i < 256;  i++)
+        {
+            for (j = 0;  j < ecm_len[i];  j++)
+            {
+                for (k = 0;  k < 8;  k++)
+                    t4_rx_put_bit(&t4_state, (ecm_data[i][j] >> k) & 1);
+            }
+            fprintf(stderr, "%d", (ecm_len[i] < 0)  ?  0  :  1);
+        }
+        fprintf(stderr, "\n");
+    }
     t4_rx_end_page(&t4_state);
     t4_get_transfer_statistics(&t4_state, &stats);
     fprintf(stderr, "Pages = %d\n", stats.pages_transferred);
@@ -312,9 +327,6 @@ static void t4_end(void)
     fprintf(stderr, "Image resolution = %dx%d\n", stats.x_resolution, stats.y_resolution);
     fprintf(stderr, "Bad rows = %d\n", stats.bad_rows);
     fprintf(stderr, "Longest bad row run = %d\n", stats.longest_bad_row_run);
-    for (i = 0;  i < 256;  i++)
-        printf("%d", (ecm_len[i] < 0)  ?  0  :  1);
-    printf("\n");
     t4_up = FALSE;
 }
 /*- End of function --------------------------------------------------------*/
@@ -428,7 +440,6 @@ static void v29_put_bit(void *user_data, int bit)
         }
         return;
     }
-
     if (error_correcting_mode)
     {
         hdlc_rx_put_bit(&hdlcrx, bit);
@@ -474,7 +485,6 @@ static void v27ter_put_bit(void *user_data, int bit)
         }
         return;
     }
-
     if (error_correcting_mode)
     {
         hdlc_rx_put_bit(&hdlcrx, bit);

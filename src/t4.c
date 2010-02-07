@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.77 2007/08/17 15:12:55 steveu Exp $
+ * $Id: t4.c,v 1.82 2007/09/16 15:06:12 steveu Exp $
  */
 
 /*
@@ -58,7 +58,7 @@
 
 /*! \file */
 
-#ifdef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
 
@@ -87,27 +87,30 @@
 #include "spandsp/async.h"
 #include "spandsp/t4.h"
 
+//#define T4_STATE_DEBUGGING
+
 /* Finite state machine state codes */
-#define S_Null                  0
-#define S_Pass                  1
-#define S_Horiz                 2
-#define S_V0                    3
-#define S_VR                    4
-#define S_VL                    5
-#define S_Ext                   6
-#define S_TermW                 7
-#define S_TermB                 8
-#define S_MakeUpW               9
-#define S_MakeUpB               10
-#define S_MakeUp                11
-#define S_EOL                   12
+enum
+{
+    S_Null      = 0,
+    S_Pass      = 1,
+    S_Horiz     = 2,
+    S_V0        = 3,
+    S_VR        = 4,
+    S_VL        = 5,
+    S_Ext       = 6,
+    S_TermW     = 7,
+    S_TermB     = 8,
+    S_MakeUpW   = 9,
+    S_MakeUpB   = 10,
+    S_MakeUp    = 11,
+    S_EOL       = 12
+};
 
 #include "faxfont.h"
 
-#if 1
-#define STATE_TRACE(...) /**/
-#else
-void STATE_TRACE(char *format, ...)
+#if defined(T4_STATE_DEBUGGING)
+static void STATE_TRACE(const char *format, ...)
 {
     va_list arg_ptr;
 
@@ -116,6 +119,8 @@ void STATE_TRACE(char *format, ...)
     va_end(arg_ptr);
 }
 /*- End of function --------------------------------------------------------*/
+#else
+#define STATE_TRACE(...) /**/
 #endif
 
 /* Finite state machine state table entry */
@@ -454,7 +459,6 @@ static __inline__ void put_run(t4_state_t *s, int black)
     int i;
 
     s->row_len += s->run_length;
-    /* Ignore anything before the first EOL */
     /* Don't allow rows to grow too long, and overflow the buffers */
     if (s->row_len <= s->image_width)
     {
@@ -474,12 +478,35 @@ static __inline__ void put_eol(t4_state_t *s)
 {
     uint32_t *x;
     uint8_t *t;
-    
+
     if (s->run_length)
         put_run(s, 0);
+#if defined(T4_STATE_DEBUGGING)
+    /* Dump the runs of black and white for analysis */
+    {
+        int total;
+
+        printf("Ref ");
+        total = 0;
+        for (x = s->ref_runs;  x < s->pb;  x++)
+        {
+            total += *x;
+            printf("%d ", *x);
+        }
+        printf(" total = %d\n", total);
+        printf("Cur ");
+        total = 0;
+        for (x = s->cur_runs;  x < s->pa;  x++)
+        {
+            total += *x;
+            printf("%d ", *x);
+        }
+        printf(" total = %d\n", total);
+    }
+#endif
     if (s->row_len != s->image_width)
     {
-        STATE_TRACE("%d Bad row - %d %d\n", s->row, s->row_len, s->row_is_2d);
+        STATE_TRACE("%d Bad row - %d %d\n", s->image_length, s->row_len, s->row_is_2d);
         /* Clean up the bad runs */
         while (s->a0 > s->image_width  &&  s->pa > s->cur_runs)
             s->a0 -= *--s->pa;
@@ -526,33 +553,9 @@ static __inline__ void put_eol(t4_state_t *s)
                 s->longest_bad_row_run = s->curr_bad_row_run;
             s->curr_bad_row_run = 0;
         }
-        STATE_TRACE("%d Good row - %d %d\n", s->row, s->row_len, s->row_is_2d);
+        STATE_TRACE("%d Good row - %d %d\n", s->image_length, s->row_len, s->row_is_2d);
     }
     
-#if 0
-    /* Dump the runs of black and white for analysis */
-    {
-        int total;
-
-        span_log(&s->logging, SPAN_LOG_DEBUG_2, "Ref ");
-        total = 0;
-        for (x = s->ref_runs;  x < s->pb;  x++)
-        {
-            total += *x;
-            span_log(&s->logging, SPAN_LOG_DEBUG_2, "%d ", *x);
-        }
-        span_log(&s->logging, SPAN_LOG_DEBUG_2, " total = %d\n", total);
-        span_log(&s->logging, SPAN_LOG_DEBUG_2, "Cur ");
-        total = 0;
-        for (x = s->cur_runs;  x < s->pa;  x++)
-        {
-            total += *x;
-            span_log(&s->logging, SPAN_LOG_DEBUG_2, "%d ", *x);
-        }
-        span_log(&s->logging, SPAN_LOG_DEBUG_2, "total = %d\n", total);
-    }
-#endif
-
     /* Prepare the buffers for the next row. */
     s->image_length++;
     s->last_row_starts_at = s->row_starts_at;
@@ -644,7 +647,7 @@ int t4_rx_end_page(t4_state_t *s)
     if (gethostname(buf, sizeof(buf)) == 0)
         TIFFSetField(s->tiff_file, TIFFTAG_HOSTCOMPUTER, buf);
 
-#ifdef TIFFTAG_FAXDCS
+#if defined(TIFFTAG_FAXDCS)
     if (s->dcs)
         TIFFSetField(s->tiff_file, TIFFTAG_FAXDCS, s->dcs);
 #endif
@@ -749,41 +752,51 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
             {
             case S_EOL:
                 STATE_TRACE("EOL\n");
-                put_eol(s);
+                if (s->row_len == 0)
+                {
+                    if (++s->consecutive_eols >= 5)
+                        return TRUE;
+                }
+                else
+                {
+                    s->consecutive_eols = 0;
+                    put_eol(s);
+                }
                 s->row_is_2d = !(s->bits_to_date & 0x1000);
                 i = T4_black_table[s->bits_to_date & 0x1FFF].width + 1;
                 s->bits -= i;
                 s->bits_to_date >>= i;
                 s->its_black = FALSE;
+                s->black_white = 0;
+                s->run_length = 0;
                 s->row_len = 0;
                 break;
             default:
                 bits = s->bits_to_date & 0x7F;
-                STATE_TRACE("State %d, %d\n",
+                STATE_TRACE("State %d, %d - ",
                             T4_common_table[bits].state,
                             T4_common_table[bits].width);
                 switch (T4_common_table[bits].state)
                 {
                 case S_Pass:
-                    STATE_TRACE("Pass\n");
-                    if (s->row_len < s->image_width)
+                    STATE_TRACE("Pass %d %d %d %d %d\n", s->a0, s->b1, s->image_width, s->pb[0], s->pb[1]);
+                    if (s->row_len >= s->image_width)
+                        break;
+                    if (s->pa != s->cur_runs)
                     {
-                        if (s->pa != s->cur_runs)
+                        while (s->b1 <= s->a0  &&  s->b1 < s->image_width)
                         {
-                            while (s->b1 <= s->a0  &&  s->b1 < s->image_width)
-                            {
-                                s->b1 += s->pb[0] + s->pb[1];
-                                s->pb += 2;
-                            }
+                            s->b1 += s->pb[0] + s->pb[1];
+                            s->pb += 2;
                         }
-                        s->b1 += *s->pb++;
-                        s->run_length += (s->b1 - s->a0);
-                        s->a0 = s->b1;
-                        s->b1 += *s->pb++;
                     }
+                    s->b1 += *s->pb++;
+                    s->run_length += (s->b1 - s->a0);
+                    s->a0 = s->b1;
+                    s->b1 += *s->pb++;
                     break;
                 case S_Horiz:
-                    STATE_TRACE("Horiz\n");
+                    STATE_TRACE("Horiz %d %d\n", s->pa, s->cur_runs);
                     s->its_black = ((int) (s->pa - s->cur_runs)) & 1;
                     s->black_white = 2;
                     break;
@@ -791,80 +804,80 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
                     STATE_TRACE("V0 %d %d %d %d\n",
                                 s->a0,
                                 s->b1,
-                                s->image_width,
-                                s->run_length);
-                    if (s->row_len < s->image_width)
+                                s->run_length,
+                                s->image_width);
+                    if (s->row_len >= s->image_width)
+                        break;
+                    if (s->pa != s->cur_runs)
                     {
-                        if (s->pa != s->cur_runs)
+                        while (s->b1 <= s->a0  &&  s->b1 < s->image_width)
                         {
-                            while (s->b1 <= s->a0  &&  s->b1 < s->image_width)
-                            {
-                                s->b1 += s->pb[0] + s->pb[1];
-                                s->pb += 2;
-                            }
+                            s->b1 += s->pb[0] + s->pb[1];
+                            s->pb += 2;
                         }
-                        s->run_length += (s->b1 - s->a0);
-                        s->a0 = s->b1;
-                        put_run(s, ((int) (s->pa - s->cur_runs)) & 1);
-                        s->b1 += *s->pb++;
                     }
+                    s->run_length += (s->b1 - s->a0);
+                    s->a0 = s->b1;
+                    put_run(s, ((int) (s->pa - s->cur_runs)) & 1);
+                    s->b1 += *s->pb++;
                     break;
                 case S_VR:
                     STATE_TRACE("VR[%d] %d %d %d %d\n",
                                 T4_common_table[bits].param,
                                 s->a0,
                                 s->b1,
-                                s->image_width,
-                                s->run_length);
-                    if (s->row_len < s->image_width)
+                                s->run_length,
+                                s->image_width);
+                    if (s->row_len >= s->image_width)
+                        break;
+                    if (s->pa != s->cur_runs)
                     {
-                        if (s->pa != s->cur_runs)
+                        while (s->b1 <= s->a0  &&  s->b1 < s->image_width)
                         {
-                            while (s->b1 <= s->a0  &&  s->b1 < s->image_width)
-                            {
-                                s->b1 += s->pb[0] + s->pb[1];
-                                s->pb += 2;
-                            }
+                            s->b1 += s->pb[0] + s->pb[1];
+                            s->pb += 2;
                         }
-                        s->run_length += (s->b1 + T4_common_table[bits].param - s->a0);
-                        s->a0 = s->b1 + T4_common_table[bits].param;
-                        put_run(s, ((int) (s->pa - s->cur_runs)) & 1);
-                        s->b1 += *s->pb++;
                     }
+                    s->run_length += (s->b1 + T4_common_table[bits].param - s->a0);
+                    s->a0 = s->b1 + T4_common_table[bits].param;
+                    put_run(s, ((int) (s->pa - s->cur_runs)) & 1);
+                    s->b1 += *s->pb++;
                     break;
                 case S_VL:
                     STATE_TRACE("VL[%d] %d %d %d %d\n",
                                 T4_common_table[bits].param,
                                 s->a0,
                                 s->b1,
-                                s->image_width,
-                                s->run_length);
-                    if (s->row_len < s->image_width)
+                                s->run_length,
+                                s->image_width);
+                    if (s->row_len >= s->image_width)
+                        break;
+                    if (s->pa != s->cur_runs)
                     {
-                        if (s->pa != s->cur_runs)
+                        while (s->b1 <= s->a0  &&  s->b1 < s->image_width)
                         {
-                            while (s->b1 <= s->a0  &&  s->b1 < s->image_width)
-                            {
-                                s->b1 += s->pb[0] + s->pb[1];
-                                s->pb += 2;
-                            }
+                            s->b1 += s->pb[0] + s->pb[1];
+                            s->pb += 2;
                         }
-                        s->run_length += (s->b1 - T4_common_table[bits].param - s->a0);
-                        s->a0 = s->b1 - T4_common_table[bits].param;
-                        put_run(s, ((int) (s->pa - s->cur_runs)) & 1);
-                        s->b1 -= *--s->pb;
                     }
+                    s->run_length += (s->b1 - T4_common_table[bits].param - s->a0);
+                    s->a0 = s->b1 - T4_common_table[bits].param;
+                    put_run(s, ((int) (s->pa - s->cur_runs)) & 1);
+                    s->b1 -= *--s->pb;
                     break;
                 case S_Ext:
                     STATE_TRACE("Ext %d 0x%x\n",
                                 ((s->bits_to_date >> T4_common_table[bits].width) & 0x7),
                                 s->bits_to_date);
-                    if (s->row_len < s->image_width)
-                        *s->pa++ = s->image_width - s->a0;
+                    if (s->row_len >= s->image_width)
+                        break;
+                    *s->pa++ = s->image_width - s->a0;
                     break;
                 case S_Null:
+                    STATE_TRACE("Null\n");
                     break;
                 default:
+                    STATE_TRACE("Unexpected T.4 state\n");
                     span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected T.4 state %d\n", T4_common_table[bits].state);
                     break;
                 }
@@ -879,40 +892,42 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
             if (s->its_black)
             {
                 bits = s->bits_to_date & 0x1FFF;
-                STATE_TRACE("Black state %d %d\n", T4_black_table[bits].state, T4_black_table[bits].param);
+                STATE_TRACE("Black state %d %d %d\n", T4_black_table[bits].state, T4_black_table[bits].width, T4_black_table[bits].param);
                 switch (T4_black_table[bits].state)
                 {
                 case S_MakeUpB:
                 case S_MakeUp:
-                    if (s->row_len < s->image_width)
-                    {
-                        s->run_length += T4_black_table[bits].param;
-                        s->a0 += T4_black_table[bits].param;
-                    }
+                    if (s->row_len >= s->image_width)
+                        break;
+                    s->run_length += T4_black_table[bits].param;
+                    s->a0 += T4_black_table[bits].param;
                     break;
                 case S_TermB:
-                    if (s->row_len < s->image_width)
+                    s->its_black = FALSE;
+                    if (s->row_len >= s->image_width)
                     {
-                        s->run_length += T4_black_table[bits].param;
-                        s->a0 += T4_black_table[bits].param;
-                        put_run(s, 1);
                         if (s->black_white)
+                            s->black_white--;
+                        break;
+                    }
+                    s->run_length += T4_black_table[bits].param;
+                    s->a0 += T4_black_table[bits].param;
+                    put_run(s, 1);
+                    if (s->black_white)
+                    {
+                        if (s->black_white == 1)
                         {
-                            if (s->black_white == 1)
+                            if (s->pa != s->cur_runs)
                             {
-                                if (s->pa != s->cur_runs)
+                                while (s->b1 <= s->a0  &&  s->b1 < s->image_width)
                                 {
-                                    while (s->b1 <= s->a0  &&  s->b1 < s->image_width)
-                                    {
-                                        s->b1 += s->pb[0] + s->pb[1];
-                                        s->pb += 2;
-                                    }
+                                    s->b1 += s->pb[0] + s->pb[1];
+                                    s->pb += 2;
                                 }
                             }
-                            s->black_white--;
                         }
+                        s->black_white--;
                     }
-                    s->its_black = FALSE;
                     break;
                 case S_EOL:
                     STATE_TRACE("EOL\n");
@@ -933,6 +948,8 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
                         s->bits_to_date >>= 1;
                     }
                     s->its_black = FALSE;
+                    s->black_white = 0;
+                    s->run_length = 0;
                     s->row_len = 0;
                     break;
                 default:
@@ -946,40 +963,42 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
             else
             {
                 bits = s->bits_to_date & 0xFFF;
-                STATE_TRACE("White state %d %d\n", T4_white_table[bits].state, T4_white_table[bits].param);
+                STATE_TRACE("White state %d %d %d\n", T4_white_table[bits].state, T4_white_table[bits].width, T4_white_table[bits].param);
                 switch (T4_white_table[bits].state)
                 {
                 case S_MakeUpW:
                 case S_MakeUp:
-                    if (s->row_len < s->image_width)
-                    {
-                        s->run_length += T4_white_table[bits].param;
-                        s->a0 += T4_white_table[bits].param;
-                    }
+                    if (s->row_len >= s->image_width)
+                        break;
+                    s->run_length += T4_white_table[bits].param;
+                    s->a0 += T4_white_table[bits].param;
                     break;
                 case S_TermW:
-                    if (s->row_len < s->image_width)
+                    s->its_black = TRUE;
+                    if (s->row_len >= s->image_width)
                     {
-                        s->run_length += T4_white_table[bits].param;
-                        s->a0 += T4_white_table[bits].param;
-                        put_run(s, 0);
                         if (s->black_white)
+                            s->black_white--;
+                        break;
+                    }
+                    s->run_length += T4_white_table[bits].param;
+                    s->a0 += T4_white_table[bits].param;
+                    put_run(s, 0);
+                    if (s->black_white)
+                    {
+                        if (s->black_white == 1)
                         {
-                            if (s->black_white == 1)
+                            if (s->pa != s->cur_runs)
                             {
-                                if (s->pa != s->cur_runs)
+                                while (s->b1 <= s->a0  &&  s->b1 < s->image_width)
                                 {
-                                    while (s->b1 <= s->a0  &&  s->b1 < s->image_width)
-                                    {
-                                        s->b1 += s->pb[0] + s->pb[1];
-                                        s->pb += 2;
-                                    }
+                                    s->b1 += s->pb[0] + s->pb[1];
+                                    s->pb += 2;
                                 }
                             }
-                            s->black_white--;
                         }
+                        s->black_white--;
                     }
-                    s->its_black = TRUE;
                     break;
                 case S_EOL:
                     STATE_TRACE("EOL\n");
@@ -1000,6 +1019,8 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
                         s->bits_to_date >>= 1;
                     }
                     s->its_black = FALSE;
+                    s->black_white = 0;
+                    s->run_length = 0;
                     s->row_len = 0;
                     break;
                 default:
@@ -1012,13 +1033,21 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
             }
         }
 
-        if (s->line_encoding == T4_COMPRESSION_ITU_T6  &&  s->row_len >= s->image_width)
+        if (s->line_encoding == T4_COMPRESSION_ITU_T6)
         {
             /* T.6 has no EOL markers. We sense the end of a line by its length alone. */
-            STATE_TRACE("EOL T.6\n");
-            put_eol(s);
-            s->its_black = FALSE;
-            s->row_len = 0;
+            /* The last test here is a backstop protection, so a corrupt image cannot
+               cause us to do bad things. Bad encoders have actually been seen, which
+               demand such protection. */
+            if (s->black_white == 0  &&  s->row_len >= s->image_width)
+            {
+                STATE_TRACE("EOL T.6\n");
+                put_eol(s);
+                s->its_black = FALSE;
+                s->black_white = 0;
+                s->run_length = 0;
+                s->row_len = 0;
+            }
         }
     }
     return FALSE;
@@ -1339,12 +1368,14 @@ static __inline__ void put_span(t4_state_t *s, int32_t span, const T4_table_entr
 }
 /*- End of function --------------------------------------------------------*/
 
+#define pixel_is_black(x,bit) (((x)[(bit) >> 3] << ((bit) & 7)) & 0x80)
+
 /*
  * Find a span of ones or zeros using the supplied
  * table.  The 'base' of the bit string is supplied
  * along with the start and end bit indices.
  */
-static __inline__ int find0span(uint8_t *bp, int bs, int be)
+static __inline__ int white_span(const uint8_t bp[], int bs, int be)
 {
     int bits;
     int n;
@@ -1409,7 +1440,7 @@ static __inline__ int find0span(uint8_t *bp, int bs, int be)
 }
 /*- End of function --------------------------------------------------------*/
 
-static __inline__ int find1span(uint8_t *bp, int bs, int be)
+static __inline__ int black_span(const uint8_t bp[], int bs, int be)
 {
     int bits;
     int n;
@@ -1504,14 +1535,8 @@ static void t4_encode_eol(t4_state_t *s)
 /*
  * 2D-encode a row of pixels.  Consult ITU specification T.4 for the algorithm.
  */
-static void t4_encode_2d_row(t4_state_t *s, uint8_t *bp)
+static void t4_encode_2d_row(t4_state_t *s, const uint8_t bp[])
 {
-    int a0;
-    int a1;
-    int b1;
-    int a2;
-    int b2;
-    int d;
     static const T4_table_entry codes[] =
     {
         { 7, 0x03, 0 },         /* VR3          0000 011 */
@@ -1524,28 +1549,99 @@ static void t4_encode_2d_row(t4_state_t *s, uint8_t *bp)
         { 3, 0x01, 0 },         /* horizontal   001 */
         { 4, 0x01, 0 }          /* pass         0001 */
     };
-    
+
+    /* The reference or starting changing element on the coding line. At the start of the coding
+       line, a0 is set on an imaginary white changing element situated just before the first element
+       on the line. During the coding of the coding line, the position of a0 is defined by the
+       previous coding mode. (See T.4/4.2.1.3.2.) */
+    int a0;
+    /* The next changing element to the right of a0 on the coding line. */
+    int a1;
+    /* The next changing element to the right of a1 on the coding line. */
+    int a2;
+    /* The first changing element on the reference line to the right of a0 and of opposite colour to a0. */
+    int b1;
+    /* The next changing element to the right of b1 on the reference line. */
+    int b2;
+    int d;
+
+    /*
+                                                    b1          b2 
+            XX  XX  XX  XX  XX  --  --  --  --  --  XX  XX  XX  --  --  --  --  --
+            XX  XX  XX  --  --  --  --  --  XX  XX  XX  XX  XX  XX  --  --  --  --
+                        a0                  a1                      a2
+
+
+        a)	Pass mode
+	        This mode is identified when the position of b2 lies to the left of a1. When this mode
+            has been coded, a0 is set on the element of the coding line below b2 in preparation for
+            the next coding (i.e. on a0').
+            
+                                    b1          b2 
+            XX  XX  XX  XX  --  --  XX  XX  XX  --  --  --  --  --
+            XX  XX  --  --  --  --  --  --  --  --  --  --  XX  XX 
+                    a0                          a0'         a1
+                                Pass mode
+                                
+
+            However, the state where b2 occurs just above a1, as shown in the figure below, is not
+            considered as a pass mode.
+
+                                    b1          b2 
+            XX  XX  XX  XX  --  --  XX  XX  XX  --  --  --  --  --
+            XX  XX  --  --  --  --  --  --  --  XX  XX  XX  XX  XX
+                    a0                          a1
+                                Not pass mode
+
+
+        b)	Vertical mode
+	        When this mode is identified, the position of a1 is coded relative to the position of b1.
+            The relative distance a1b1 can take on one of seven values V(0), VR(1), VR(2), VR(3),
+            VL(1), VL(2) and VL(3), each of which is represented by a separate code word. The
+            subscripts R and L indicate that a1 is to the right or left respectively of b1, and the
+            number in brackets indicates the value of the distance a1b1. After vertical mode coding
+            has occurred, the position of a0 is set on a1 (see figure below).
+
+        c)	Horizontal mode
+	        When this mode is identified, both the run-lengths a0a1 and a1a2 are coded using the code
+            words H + M(a0a1) + M(a1a2). H is the flag code word 001 taken from the two-dimensional
+            code table (Table 4). M(a0a1) and M(a1a2) are code words which represent the length and
+            "colour" of the runs a0a1 and a1a2 respectively and are taken from the appropriate white
+            or black one-dimensional code tables (Tables 3a and 3b). After a horizontal mode coding,
+            the position of a0 is set on a2 (see figure below).
+
+                                                            Vertical
+                                                            <a1 b1>
+                                                                    b1              b2 
+            --  XX  XX  XX  XX  XX  --  --  --  --  --  --  --  --  XX  XX  XX  XX  --  --  --
+            --  --  --  --  --  --  --  --  --  --  --  --  XX  XX  XX  XX  XX  XX  XX  --  --
+                                    a0                      a1                          a2
+                                   <------ a0   a1 -------><----- a1   a2 ------------>
+                                                    Horizontal mode
+                          Vertical and horizontal modes
+     */
+    /* The following implements the 2-D encoding section of the flow chart in Figure7/T.4 */
     a0 = 0;
-    a1 = (bp[0] & 0x80)  ?  0  :  find0span(bp, 0, s->image_width);
-    b1 = (s->ref_row_buf[0] & 0x80)  ?  0  :  find0span(s->ref_row_buf, 0, s->image_width);
+    a1 = white_span(bp, 0, s->image_width);
+    b1 = white_span(s->ref_row_buf, 0, s->image_width);
     for (;;)
     {
-        b2 = (b1 < s->image_width)  ?  (b1 + (((s->ref_row_buf[b1 >> 3] << (b1 & 7)) & 0x80)  ?  find1span(s->ref_row_buf, b1, s->image_width)  :  find0span(s->ref_row_buf, b1, s->image_width)))  :  s->image_width;
+        b2 = (b1 < s->image_width)  ?  (b1 + ((pixel_is_black(s->ref_row_buf, b1))  ?  black_span(s->ref_row_buf, b1, s->image_width)  :  white_span(s->ref_row_buf, b1, s->image_width)))  :  s->image_width;
         if (b2 >= a1)
         {
             d = b1 - a1;
-            if (-3 <= d  &&  d <= 3)
+            if (abs(d) <= 3)
             {
-                /* Vertical mode */
+                /* Vertical mode coding */
                 put_bits(s, codes[d + 3].code, codes[d + 3].length);
                 a0 = a1;
             }
             else
             {
-                /* Horizontal mode */
-                a2 = (a1 < s->image_width)  ?  (a1 + (((bp[a1 >> 3] << (a1 & 7)) & 0x80)  ?  find1span(bp, a1, s->image_width)  :  find0span(bp, a1, s->image_width)))  :  s->image_width;
+                /* Horizontal mode coding */
+                a2 = (a1 < s->image_width)  ?  (a1 + ((pixel_is_black(bp, a1))  ?  black_span(bp, a1, s->image_width)  :  white_span(bp, a1, s->image_width)))  :  s->image_width;
                 put_bits(s, codes[7].code, codes[7].length);
-                if (a0 + a1 == 0  ||  ((bp[a0 >> 3] << (a0 & 7)) & 0x80) == 0)
+                if (a0 + a1 == 0  ||  pixel_is_black(bp, a0) == 0)
                 {
                     put_span(s, a1 - a0, t4_white_codes);
                     put_span(s, a2 - a1, t4_black_codes);
@@ -1560,15 +1656,24 @@ static void t4_encode_2d_row(t4_state_t *s, uint8_t *bp)
         }
         else
         {
-            /* Pass mode */
+            /* Pass mode coding */
             put_bits(s, codes[8].code, codes[8].length);
             a0 = b2;
         }
         if (a0 >= s->image_width)
             break;
-        a1 = a0 + (((bp[a0 >> 3] << (a0 & 7)) & 0x80)  ?  find1span(bp, a0, s->image_width)  :  find0span(bp, a0, s->image_width));
-        b1 = a0 + (((bp[a0 >> 3] << (a0 & 7)) & 0x80)  ?  find0span(s->ref_row_buf, a0, s->image_width)  :  find1span(s->ref_row_buf, a0, s->image_width));
-        b1 = b1 + (((bp[a0 >> 3] << (a0 & 7)) & 0x80)  ?  find1span(s->ref_row_buf, b1, s->image_width)  :  find0span(s->ref_row_buf, b1, s->image_width));
+        if (pixel_is_black(bp, a0))
+        {
+            a1 = a0 + black_span(bp, a0, s->image_width);
+            b1 = a0 + white_span(s->ref_row_buf, a0, s->image_width);
+            b1 = b1 + black_span(s->ref_row_buf, b1, s->image_width);
+        }
+        else
+        {
+            a1 = a0 + white_span(bp, a0, s->image_width);
+            b1 = a0 + black_span(s->ref_row_buf, a0, s->image_width);
+            b1 = b1 + white_span(s->ref_row_buf, b1, s->image_width);
+        }
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -1586,12 +1691,12 @@ static void t4_encode_1d_row(t4_state_t *s, uint8_t *bp)
     bs = 0;
     for (;;)
     {
-        span = find0span(bp, bs, s->image_width);                /* white span */
+        span = white_span(bp, bs, s->image_width);                /* white span */
         put_span(s, span, t4_white_codes);
         bs += span;
         if (bs >= s->image_width)
             break;
-        span = find1span(bp, bs, s->image_width);                /* black span */
+        span = black_span(bp, bs, s->image_width);                /* black span */
         put_span(s, span, t4_black_codes);
         bs += span;
         if (bs >= s->image_width)

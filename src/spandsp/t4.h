@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.35 2007/08/11 13:36:16 steveu Exp $
+ * $Id: t4.h,v 1.36 2007/09/15 06:10:20 steveu Exp $
  */
 
 /*! \file */
@@ -70,118 +70,125 @@ typedef struct
 {
     /* "Background" information about the FAX, which can be stored in a TIFF file. */
     /*! \brief The vendor of the machine which produced the TIFF file. */ 
-    const char      *vendor;
+    const char *vendor;
     /*! \brief The model of machine which produced the TIFF file. */ 
-    const char      *model;
+    const char *model;
     /*! \brief The local ident string. */ 
-    const char      *local_ident;
+    const char *local_ident;
     /*! \brief The remote end's ident string. */ 
-    const char      *far_ident;
+    const char *far_ident;
     /*! \brief The FAX sub-address. */ 
-    const char      *sub_address;
+    const char *sub_address;
     /*! \brief The FAX DCS information, as an ASCII string. */ 
-    const char      *dcs;
+    const char *dcs;
     /*! \brief The text which will be used in FAX page header. No text results
                in no header line. */
-    const char      *header_info;
+    const char *header_info;
 
     /*! \brief The type of compression used between the FAX machines. */
-    int             line_encoding;
+    int line_encoding;
     /*! \brief The minimum number of bits per scan row. This is a timing thing
                for hardware FAX machines. */
-    int             min_scan_line_bits;
+    int min_scan_line_bits;
     
-    int             output_compression;
-    int             output_t4_options;
+    int output_compression;
+    int output_t4_options;
 
-    time_t          page_start_time;
+    time_t page_start_time;
 
-    int             bytes_per_row;
-    int             image_size;
-    int             image_buffer_size;
-    uint8_t         *image_buffer;
+    int bytes_per_row;
+    int image_size;
+    int image_buffer_size;
+    uint8_t *image_buffer;
 
-    TIFF            *tiff_file;
-    const char      *file;
-    int             start_page;
-    int             stop_page;
+    TIFF *tiff_file;
+    const char *file;
+    int start_page;
+    int stop_page;
 
-    int             pages_transferred;
-    int             pages_in_file;
+    int pages_transferred;
+    int pages_in_file;
     /*! Column-to-column (X) resolution in pixels per metre. */
-    int             x_resolution;
+    int x_resolution;
     /*! Row-to-row (Y) resolution in pixels per metre. */
-    int             y_resolution;
+    int y_resolution;
     /*! Width of the current page, in pixels. */
-    int             image_width;
+    int image_width;
     /*! Current pixel row number. */
-    int             row;
+    int row;
     /*! Total pixel rows in the current page. */
-    int             image_length;
+    int image_length;
     /*! The current number of consecutive bad rows. */
-    int             curr_bad_row_run;
+    int curr_bad_row_run;
     /*! The longest run of consecutive bad rows seen in the current page. */
-    int             longest_bad_row_run;
+    int longest_bad_row_run;
     /*! The total number of bad rows in the current page. */
-    int             bad_rows;
+    int bad_rows;
 
     /* Decode state */
-    uint32_t        bits_to_date;
-    int             bits;
+    uint32_t bits_to_date;
+    int bits;
 
     /*! \brief This variable is set if we are treating the current row as a 2D encoded
                one. */
-    int             row_is_2d;
-    int             its_black;
-    int             row_len;
+    int row_is_2d;
+    int its_black;
+    int row_len;
     /*! \brief This variable is used to record the fact we have seen at least one EOL
                since we started decoding. We will not try to interpret the received
                data as an image until we have seen the first EOL. */
-    int             first_eol_seen;
+    int first_eol_seen;
     /*! \brief This variable is used to count the consecutive EOLS we have seen. If it
                reaches six, this is the end of the image. */
-    int             consecutive_eols;
+    int consecutive_eols;
 
     /*! \brief B&W runs for reference line */
-    uint32_t        *ref_runs;
+    uint32_t *ref_runs;
     /*! \brief B&W runs for current line */
-    uint32_t        *cur_runs;
+    uint32_t *cur_runs;
 
-    uint32_t        *pa;
-    uint32_t        *pb;
-    int             a0;
-    int             b1;
+    uint32_t *pa;
+    uint32_t *pb;
+    /*! \brief The reference or starting changing element on the coding line. At the
+               start of the coding line, a0 is set on an imaginary white changing element
+               situated just before the first element on the line. During the coding of
+               the coding line, the position of a0 is defined by the previous coding mode.
+               (See 4.2.1.3.2.) */
+    int a0;
+    /*! \brief The first changing element on the reference line to the right of a0 and of
+               opposite colour to a0. */
+    int b1;
     /*! \brief The length of the current run of black or white. */
-    int             run_length;
-    int             black_white;
+    int run_length;
+    int black_white;
 
-    uint32_t        data;
-    int             bit;
+    uint32_t data;
+    int bit;
 
     /*! \brief A point into the image buffer indicating where the last row begins */
-    int             last_row_starts_at;
+    int last_row_starts_at;
     /*! \brief A point into the image buffer indicating where the current row begins */
-    int             row_starts_at;
+    int row_starts_at;
     
     /* Encode state */
 
     /*! Pointer to the buffer for the current pixel row. */
-    uint8_t         *row_buf;
+    uint8_t *row_buf;
     
-    int             bit_pos;
-    int             bit_ptr;
+    int bit_pos;
+    int bit_ptr;
 
     /*! \brief The reference pixel row for 2D encoding. */
-    uint8_t         *ref_row_buf;
+    uint8_t *ref_row_buf;
     /*! \brief The maximum contiguous rows that will be 2D encoded. */
-    int             max_rows_to_next_1d_row;
+    int max_rows_to_next_1d_row;
     /*! \brief Number of rows left that can be 2D encoded, before a 1D encoded row
                must be used. */
-    int             rows_to_next_1d_row;
+    int rows_to_next_1d_row;
     /*! \brief The minimum number of encoded bits per row. */
-    int             min_row_bits;
+    int min_row_bits;
     /*! \brief The current number of bits in the current encoded row. */
-    int             row_bits;
+    int row_bits;
 
     /*! \brief Error and flow logging control */
     logging_state_t logging;

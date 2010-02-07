@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.9 2007/02/10 11:54:57 steveu Exp $
+## $Id: Makefile.am,v 1.10 2007/09/14 01:16:45 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -24,7 +24,7 @@ PBM2G3 = pbmtog3
 FAX2TIFF = fax2tiff
 
 EXTRA_DIST = itu1.pbm itu2.pbm itu3.pbm itu4.pbm itu5.pbm itu6.pbm itu7.pbm itu8.pbm \
-               test1.pbm test2.pbm test3.pbm test4.pbm
+             test1.pbm test2.pbm test3.pbm test4.pbm
 
 nobase_data_DATA =  itutests.tif \
                     itu1.tif \

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t35.c,v 1.22 2007/06/22 12:40:35 steveu Exp $
+ * $Id: t35.c,v 1.23 2007/09/14 01:16:29 steveu Exp $
  */
 
 /*
@@ -283,6 +283,65 @@ const char *t35_country_codes[256] =
     "Zaire",
     "Zambia",
     "Zimbabwe"
+    "Slovakia",
+    "Slovenia",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",                                  /* 0xD0 */
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",                                  /* 0xE0 */
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",                                  /* 0xF0 */
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "(available)",
+    "Lithuania",
+    "Latvia",
+    "Estonia",
+    "US Virgin Islands",
+    "(available)",
+    "(available)",
+    "(Universal)",
+    "Taiwan",
+    "(extension)"
 };
 
 static const model_data_t Canon[] =
