@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.118 2009/03/13 12:59:26 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.119 2009/03/19 13:06:11 steveu Exp $
  */
 
 /*! \file */
@@ -1028,6 +1028,7 @@ SPAN_DECLARE(int) v27ter_rx_fillin(v27ter_rx_state_t *s, int len)
         dds_advancef(&s->carrier_phase, s->carrier_phase_rate);
 #endif
     }
+    /* TODO: Advance the symbol phase the appropriate amount */
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

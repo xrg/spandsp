@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.53 2009/03/13 12:59:26 steveu Exp $
+ * $Id: fsk.c,v 1.54 2009/03/19 13:06:11 steveu Exp $
  */
 
 /*! \file */
@@ -440,6 +440,7 @@ SPAN_DECLARE(int) fsk_rx_fillin(fsk_rx_state_t *s, int len)
     /* The valid choice here is probably to do nothing. We don't change state
       (i.e carrier on<->carrier off), and we'll just output less bits than we
       should. */
+    /* TODO: Advance the symbol phase the appropriate amount */
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

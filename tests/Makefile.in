@@ -572,6 +572,7 @@ INCLUDES = -I$(top_builddir)/src -I$(top_builddir)/spandsp-sim -DDATADIR="\"$(pk
 LIBDIR = -L$(top_builddir)/src
 noinst_HEADERS = echo_monitor.h \
                     fax_tester.h \
+                    fax_utils.h \
                     line_model_monitor.h \
                     media_monitor.h \
                     modem_monitor.h

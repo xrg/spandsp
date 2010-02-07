@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29_tests.c,v 1.116 2009/03/13 12:59:26 steveu Exp $
+ * $Id: v29_tests.c,v 1.117 2009/03/15 09:09:21 steveu Exp $
  */
 
 /*! \page v29_tests_page V.29 modem tests
@@ -201,7 +201,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
             qam_monitor_update_symbol_tracking(qam_monitor, v29_rx_symbol_timing_correction(rx));
         }
 #endif
-        printf("%8d [%8.4f, %8.4f] [%8.4f, %8.4f] %2x %8.4f %8.4f %9.4f %7.3f %7.2f\n",
+        printf("%8d [%8.4f, %8.4f] [%8.4f, %8.4f] %2x %8.4f %8.4f %9.4f %7.3f %7.4f\n",
                symbol_no,
                constel->re,
                constel->im,

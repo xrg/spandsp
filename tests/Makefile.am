@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.110 2009/02/20 12:34:20 steveu Exp $
+## $Id: Makefile.am,v 1.111 2009/03/19 13:06:11 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -107,6 +107,7 @@ noinst_PROGRAMS =   adsi_tests \
 
 noinst_HEADERS =    echo_monitor.h \
                     fax_tester.h \
+                    fax_utils.h \
                     line_model_monitor.h \
                     media_monitor.h \
                     modem_monitor.h

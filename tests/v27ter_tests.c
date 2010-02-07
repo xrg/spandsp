@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tests.c,v 1.102 2009/03/13 12:59:26 steveu Exp $
+ * $Id: v27ter_tests.c,v 1.103 2009/03/15 09:09:21 steveu Exp $
  */
 
 /*! \page v27ter_tests_page V.27ter modem tests
@@ -171,7 +171,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
 #endif
         error = constel->im*target->re - constel->re*target->im;
         printf("Tracking error %f %f %f %f %f %f\n", error, v27ter_rx_carrier_frequency(rx), constel->re, constel->im, target->re, target->im);
-        printf("%8d [%8.4f, %8.4f] [%8.4f, %8.4f] %2x %8.4f %8.4f %9.4f %7.3f %7.2f\n",
+        printf("%8d [%8.4f, %8.4f] [%8.4f, %8.4f] %2x %8.4f %8.4f %9.4f %7.3f %7.4f\n",
                symbol_no,
                constel->re,
                constel->im,

@@ -249,7 +249,7 @@ EXTRA_DIST = autogen.sh \
              debian/compat \
              debian/control \
              debian/copyright \
-             debian/libspandsp5.install \
+             debian/libspandsp6.install \
              debian/libspandsp-dev.install \
              debian/libspandsp-doc.install \
              debian/rules \

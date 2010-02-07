@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.48 2009/03/13 12:59:26 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.49 2009/03/19 13:06:11 steveu Exp $
  */
 
 /*! \file */
@@ -696,6 +696,7 @@ SPAN_DECLARE(int) v22bis_rx_fillin(v22bis_state_t *s, int len)
         dds_advancef(&s->rx.carrier_phase, s->rx.carrier_phase_rate);
 #endif
     }
+    /* TODO: Advance the symbol phase the appropriate amount */
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
