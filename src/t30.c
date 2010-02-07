@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.216 2007/12/07 13:36:31 steveu Exp $
+ * $Id: t30.c,v 1.219 2007/12/08 15:39:36 steveu Exp $
  */
 
 /*! \file */
@@ -982,13 +982,13 @@ static int send_ident_frame(t30_state_t *s, uint8_t cmd)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int send_pw_frame(t30_state_t *s)
+static int send_pwd_frame(t30_state_t *s)
 {
     /* Only send if there is a password to send. */
-    if (s->local_password[0])
+    if (s->password_required  &&  s->far_password[0])
     {
-        span_log(&s->logging, SPAN_LOG_FLOW, "Sending password '%s'\n", s->local_password);
-        send_20digit_msg_frame(s, T30_PWD, s->local_password);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Sending password '%s'\n", s->far_password);
+        send_20digit_msg_frame(s, T30_PWD, s->far_password);
         return TRUE;
     }
     return FALSE;
@@ -1152,6 +1152,10 @@ static int build_dis_or_dtc(t30_state_t *s)
         set_dis_dtc_bit(s, 43);
     /* Metric */ 
     set_dis_dtc_bit(s, 45);
+    if (s->local_password[0])
+        set_dis_dtc_bit(s, 50);
+    if (s->tx_file[0])
+        set_dis_dtc_bit(s, 51);
     /* Superfine minimum scan line time pattern follows fine */
     /* No selective polling */
     /* No sub-addressing */
@@ -1594,7 +1598,7 @@ static void send_dcs_sequence(t30_state_t *s)
     /* Schedule training after the messages */
     prune_dcs(s);
     set_state(s, T30_STATE_D);
-    if (send_pw_frame(s))
+    if (send_pwd_frame(s))
     {
         s->step = 0;
         return;
@@ -1827,11 +1831,11 @@ static int process_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
     /* 256 octets per ECM frame */
     s->octets_per_ecm_frame = 256;
     /* Select the compression to use. */
-    if (s->error_correcting_mode  &&  (s->supported_compressions & T30_SUPPORT_T6_COMPRESSION)  &&  (dis_dtc_frame[6] & DISBIT7))
+    if (s->error_correcting_mode  &&  (s->supported_compressions & T30_SUPPORT_T6_COMPRESSION)  &&  test_bit(dis_dtc_frame, 31))
     {
         s->line_encoding = T4_COMPRESSION_ITU_T6;
     }
-    else if ((s->supported_compressions & T30_SUPPORT_T4_2D_COMPRESSION)  &&  (dis_dtc_frame[4] & DISBIT8))
+    else if ((s->supported_compressions & T30_SUPPORT_T4_2D_COMPRESSION)  &&  test_bit(dis_dtc_frame, 16))
     {
         s->line_encoding = T4_COMPRESSION_ITU_T4_2D;
     }
@@ -1888,7 +1892,7 @@ static int process_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
     if (s->tx_file[0])
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Trying to send file '%s'\n", s->tx_file);
-        if ((msg[4] & DISBIT2) == 0)
+        if (!test_bit(dis_dtc_frame, 10))
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "%s far end cannot receive\n", t30_frametype(msg[2]));
             s->current_status = T30_ERR_RX_INCAPABLE;
@@ -1914,13 +1918,15 @@ static int process_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
     if (s->rx_file[0])
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Trying to receive file '%s'\n", s->rx_file);
-        if ((msg[4] & DISBIT1) == 0)
+        if (!test_bit(dis_dtc_frame, 9))
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "%s far end cannot transmit\n", t30_frametype(msg[2]));
             s->current_status = T30_ERR_TX_INCAPABLE;
             send_dcn(s);
             return -1;
         }
+        if (test_bit(dis_dtc_frame, 50))
+            s->password_required = TRUE;
         if (start_receiving_document(s))
         {
             send_dcn(s);
@@ -3876,8 +3882,6 @@ static void process_state_call_finished(t30_state_t *s, const uint8_t *msg, int 
 
 static void hdlc_accept_control_msg(t30_state_t *s, const uint8_t *msg, int len, int ok)
 {
-    char far_password[T30_MAX_IDENT_LEN];
-    
     if ((msg[1] & 0x10) == 0)
     {
         /* This is not a final frame */
@@ -3903,7 +3907,7 @@ static void hdlc_accept_control_msg(t30_state_t *s, const uint8_t *msg, int len,
             }
             else
             {
-                /* CIG - Calling subscriber identification */
+                /* Calling subscriber identification */
                 /* OK in (NSC) (CIG) DTC */
                 /* OK in (PWD) (SEP) (CIG) DTC */
                 decode_20digit_msg(s, s->far_ident, &msg[2], len - 2);
@@ -3934,9 +3938,7 @@ static void hdlc_accept_control_msg(t30_state_t *s, const uint8_t *msg, int len,
                 /* Password */
                 /* OK in (PWD) (SUB) (TSI) DCS */
                 /* OK in (PWD) (SEP) (CIG) DTC */
-                decode_20digit_msg(s, far_password, &msg[2], len - 2);
-                if (strcmp(s->far_password, far_password) == 0)
-                    s->far_password_ok = TRUE;  
+                decode_20digit_msg(s, s->received_password, &msg[2], len - 2);
             }
             else
             {
@@ -4967,7 +4969,7 @@ static void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, in
     while (p > 1)
         msg[k++] = pkt[--p];
     msg[k] = '\0';
-    span_log(&s->logging, SPAN_LOG_FLOW, "Remote fax gave %s as: \"%s\"\n", t30_frametype(pkt[0]), msg);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Remote gave %s as: \"%s\"\n", t30_frametype(pkt[0]), msg);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -5698,6 +5700,8 @@ int t30_restart(t30_state_t *s)
         set_state(s, T30_STATE_ANSWERING);
         set_phase(s, T30_PHASE_A_CED);
     }
+    s->received_password[0] = '\0';
+    s->password_required = FALSE;
     s->far_end_detected = FALSE;
     s->timer_t0_t1 = ms_to_samples(DEFAULT_TIMER_T0);
     return 0;
@@ -5804,7 +5808,7 @@ int t30_set_header_info(t30_state_t *s, const char *info)
         s->header_info[0] = '\0';
         return 0;
     }
-    if (strlen(info) > 50)
+    if (strlen(info) >= T30_MAX_PAGE_HEADER_INFO)
         return -1;
     strcpy(s->header_info, info);
     t4_tx_set_header_info(&(s->t4), s->header_info);
@@ -5851,11 +5855,31 @@ int t30_set_local_sub_address(t30_state_t *s, const char *sub_address)
 }
 /*- End of function --------------------------------------------------------*/
 
-size_t t30_get_sub_address(t30_state_t *s, char *sub_address)
+int t30_set_local_password(t30_state_t *s, const char *password)
 {
-    if (sub_address)
-        strcpy(sub_address, s->far_sub_address);
-    return strlen(s->far_sub_address);
+    if (password == NULL)
+    {
+        s->local_password[0] = '\0';
+        return 0;
+    }
+    if (strlen(password) > 20)
+        return -1;
+    strcpy(s->local_password, password);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t30_set_far_password(t30_state_t *s, const char *password)
+{
+    if (password == NULL)
+    {
+        s->far_password[0] = '\0';
+        return 0;
+    }
+    if (strlen(password) > 20)
+        return -1;
+    strcpy(s->far_password, password);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -5864,6 +5888,46 @@ size_t t30_get_header_info(t30_state_t *s, char *info)
     if (info)
         strcpy(info, s->header_info);
     return strlen(s->header_info);
+}
+/*- End of function --------------------------------------------------------*/
+
+size_t t30_get_local_sub_address(t30_state_t *s, char *sub_address)
+{
+    if (sub_address)
+        strcpy(sub_address, s->local_sub_address);
+    return strlen(s->local_sub_address);
+}
+/*- End of function --------------------------------------------------------*/
+
+size_t t30_get_far_sub_address(t30_state_t *s, char *sub_address)
+{
+    if (sub_address)
+        strcpy(sub_address, s->far_sub_address);
+    return strlen(s->far_sub_address);
+}
+/*- End of function --------------------------------------------------------*/
+
+size_t t30_get_local_password(t30_state_t *s, char *password)
+{
+    if (password)
+        strcpy(password, s->local_password);
+    return strlen(s->local_password);
+}
+/*- End of function --------------------------------------------------------*/
+
+size_t t30_get_far_password(t30_state_t *s, char *password)
+{
+    if (password)
+        strcpy(password, s->far_password);
+    return strlen(s->far_password);
+}
+/*- End of function --------------------------------------------------------*/
+
+size_t t30_get_received_password(t30_state_t *s, char *password)
+{
+    if (password)
+        strcpy(password, s->received_password);
+    return strlen(s->received_password);
 }
 /*- End of function --------------------------------------------------------*/
 

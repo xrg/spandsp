@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.73 2007/11/10 11:14:58 steveu Exp $
+ * $Id: fax_tests.c,v 1.74 2007/12/08 15:25:29 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -309,6 +309,9 @@ int main(int argc, char *argv[])
         fax_set_transmit_on_idle(&mc->fax, use_transmit_on_idle);
         fax_set_tep_mode(&mc->fax, use_tep);
         t30_set_local_ident(&mc->fax.t30_state, buf);
+        t30_set_local_sub_address(&mc->fax.t30_state, "1234");
+        t30_set_local_password(&mc->fax.t30_state, "12345678");
+        t30_set_far_password(&mc->fax.t30_state, "12345678");
         t30_set_header_info(&mc->fax.t30_state, page_header_info);
         t30_set_local_nsf(&mc->fax.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
         t30_set_ecm_capability(&mc->fax.t30_state, use_ecm);

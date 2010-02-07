@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.85 2007/11/30 12:20:35 steveu Exp $
+ * $Id: t30.h,v 1.87 2007/12/08 15:25:29 steveu Exp $
  */
 
 /*! \file */
@@ -130,6 +130,7 @@ There are many other commonly encountered variations between machines, including
 #define T30_MAX_DIS_DTC_DCS_LEN     22
 #define T30_MAX_IDENT_LEN           21
 #define T30_MAX_LOCAL_NSF_LEN       100
+#define T30_MAX_PAGE_HEADER_INFO    51
 
 typedef struct t30_state_s t30_state_t;
 
@@ -402,7 +403,7 @@ struct t30_state_s
     char far_password[T30_MAX_IDENT_LEN];
     /*! \brief The text which will be used in FAX page header. No text results
                in no header line. */
-    char header_info[50 + 1];
+    char header_info[T30_MAX_PAGE_HEADER_INFO];
     /*! \brief The country of origin of the remote machine, if known, else NULL. */
     const char *country;
     /*! \brief The vendor of the remote machine, if known, else NULL. */
@@ -453,8 +454,6 @@ struct t30_state_s
     int dis_dtc_len;
     /*! \brief TRUE if a valid DIS has been received from the far end. */
     int dis_received;
-    /*! \brief TRUE if a valid passwrod has been received from the far end. */
-    int far_password_ok;
 
     /*! \brief A flag to indicate a message is in progress. */
     int in_message;
@@ -551,6 +550,10 @@ struct t30_state_s
     
     int last_pps_fcf2;
     int ecm_first_bad_frame;
+
+    /*! \brief A password received from the far end. */
+    char received_password[T30_MAX_IDENT_LEN];
+    int password_required;
 
     /*! \brief Error and flow logging control */
     logging_state_t logging;
@@ -655,6 +658,13 @@ const char *t30_completion_code_to_str(int result);
     \param iaf TRUE for IAF, or FALSE for non-IAF. */
 void t30_set_iaf_mode(t30_state_t *s, int iaf);
 
+/*! Set the header information associated with a T.30 context.
+    \brief Set the header information associated with a T.30 context.
+    \param s The T.30 context.
+    \param info A pointer to the information string.
+    \return 0 for OK, else -1. */
+int t30_set_header_info(t30_state_t *s, const char *info);
+
 /*! Set the sub-address associated with a T.30 context.
     \brief Set the sub-address associated with a T.30 context.
     \param s The T.30 context.
@@ -662,12 +672,21 @@ void t30_set_iaf_mode(t30_state_t *s, int iaf);
     \return 0 for OK, else -1. */
 int t30_set_local_sub_address(t30_state_t *s, const char *sub_address);
 
-/*! Set the header information associated with a T.30 context.
-    \brief Set the header information associated with a T.30 context.
+/*! Set the local password (i.e. the one we expect to be given by the far
+    end) associated with a T.30 context.
+    \brief Set the local password associated with a T.30 context.
     \param s The T.30 context.
-    \param info A pointer to the information string.
+    \param password A pointer to the password.
     \return 0 for OK, else -1. */
-int t30_set_header_info(t30_state_t *s, const char *info);
+int t30_set_local_password(t30_state_t *s, const char *password);
+
+/*! Set the far password (i.e. the one we will send to the far
+    end) associated with a T.30 context.
+    \brief Set the far password associated with a T.30 context.
+    \param s The T.30 context.
+    \param password A pointer to the password.
+    \return 0 for OK, else -1. */
+int t30_set_far_password(t30_state_t *s, const char *password);
 
 /*! Set the local identifier associated with a T.30 context.
     \brief Set the local identifier associated with a T.30 context.
@@ -676,23 +695,61 @@ int t30_set_header_info(t30_state_t *s, const char *info);
     \return 0 for OK, else -1. */
 int t30_set_local_ident(t30_state_t *s, const char *id);
 
-int t30_set_local_nsf(t30_state_t *s, const uint8_t *nsf, int len);
-
-/*! Get the sub-address associated with a T.30 context.
-    \brief Get the sub-address associated with a T.30 context.
+/*! Set an NSF frame to be associated with a T.30 context.
+    \brief Set an NSF frame to be associated with a T.30 context.
     \param s The T.30 context.
-    \param sub_address A pointer to a buffer for the sub-address.  The buffer
-           should be at least 21 bytes long.
-    \return the length of the string. */
-size_t t30_get_sub_address(t30_state_t *s, char *sub_address);
+    \param nsf A pointer to the frame.
+    \param len The length of the frame.
+    \return 0 for OK, else -1. */
+int t30_set_local_nsf(t30_state_t *s, const uint8_t *nsf, int len);
 
 /*! Get the header information associated with a T.30 context.
     \brief Get the header information associated with a T.30 context.
     \param s The T.30 context.
-    \param sub_address A pointer to a buffer for the header information.  The buffer
+    \param info A pointer to a buffer for the header information.  The buffer
            should be at least 51 bytes long.
     \return the length of the string. */
 size_t t30_get_header_info(t30_state_t *s, char *info);
+
+/*! Get the local sub-address associated with a T.30 context.
+    \brief Get the local sub-address associated with a T.30 context.
+    \param s The T.30 context.
+    \param sub_address A pointer to a buffer for the sub-address.  The buffer
+           should be at least 21 bytes long.
+    \return the length of the string. */
+size_t t30_get_local_sub_address(t30_state_t *s, char *sub_address);
+
+/*! Get the far sub-address associated with a T.30 context.
+    \brief Get the far sub-address associated with a T.30 context.
+    \param s The T.30 context.
+    \param sub_address A pointer to a buffer for the sub-address.  The buffer
+           should be at least 21 bytes long.
+    \return the length of the string. */
+size_t t30_get_far_sub_address(t30_state_t *s, char *sub_address);
+
+/*! Get the local password associated with a T.30 context.
+    \brief Get the local password associated with a T.30 context.
+    \param s The T.30 context.
+    \param password A pointer to a buffer for the password.  The buffer
+           should be at least 21 bytes long.
+    \return the length of the string. */
+size_t t30_get_local_password(t30_state_t *s, char *password);
+
+/*! Get the far password associated with a T.30 context.
+    \brief Get the far password associated with a T.30 context.
+    \param s The T.30 context.
+    \param password A pointer to a buffer for the password.  The buffer
+           should be at least 21 bytes long.
+    \return the length of the string. */
+size_t t30_get_far_password(t30_state_t *s, char *password);
+
+/*! Get the received password associated with a T.30 context.
+    \brief Get the received password associated with a T.30 context.
+    \param s The T.30 context.
+    \param password A pointer to a buffer for the password.  The buffer
+           should be at least 21 bytes long.
+    \return the length of the string. */
+size_t t30_get_received_password(t30_state_t *s, char *password);
 
 /*! Get the local FAX machine identifier associated with a T.30 context.
     \brief Get the local identifier associated with a T.30 context.
@@ -701,6 +758,14 @@ size_t t30_get_header_info(t30_state_t *s, char *info);
            be at least 21 bytes long.
     \return the length of the string. */
 size_t t30_get_local_ident(t30_state_t *s, char *id);
+
+/*! Get the local FAX machine identifier associated with a T.30 context.
+    \brief Get the local identifier associated with a T.30 context.
+    \param s The T.30 context.
+    \param id A pointer to a buffer for the identifier. The buffer should
+           be at least 21 bytes long.
+    \return the length of the string. */
+size_t t30_get_local_sub_address(t30_state_t *s, char *sub_address);
 
 /*! Get the remote FAX machine identifier associated with a T.30 context.
     \brief Get the remote identifier associated with a T.30 context.
