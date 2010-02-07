@@ -50,6 +50,7 @@ am__aclocal_m4_deps = $(top_srcdir)/config/ax_compiler_vendor.m4 \
 	$(top_srcdir)/config/ax_fixed_point_machine.m4 \
 	$(top_srcdir)/config/ax_misaligned_access_fails.m4 \
 	$(top_srcdir)/config/ax_c99_features.m4 \
+	$(top_srcdir)/config/ax_check_export_capability.m4 \
 	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -206,6 +207,7 @@ SPANDSP_LT_AGE = @SPANDSP_LT_AGE@
 SPANDSP_LT_CURRENT = @SPANDSP_LT_CURRENT@
 SPANDSP_LT_REVISION = @SPANDSP_LT_REVISION@
 SPANDSP_MISALIGNED_ACCESS_FAILS = @SPANDSP_MISALIGNED_ACCESS_FAILS@
+SPANDSP_USE_EXPORT_CAPABILITY = @SPANDSP_USE_EXPORT_CAPABILITY@
 SPANDSP_USE_FIXED_POINT = @SPANDSP_USE_FIXED_POINT@
 STRIP = @STRIP@
 TESTLIBS = @TESTLIBS@
@@ -270,8 +272,8 @@ EXTRA_DIST = floating_fudge.h \
              msvc/inttypes.h \
              msvc/tgmath.h \
              msvc/unistd.h \
+             msvc/spandsp.h \
              msvc/sys/time.h \
-             msvc/spandsp.def \
              msvc/msvcproj.head \
              msvc/msvcproj.foot \
              msvc/vc8proj.head \
@@ -1091,6 +1093,15 @@ $(VCPROJ): msvc/vc8proj.head msvc/vc8proj.foot Makefile.am
 		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT); \
 	done; \
 	cat $(srcdir)/msvc/vc8proj.foot $(VCPROJOUT) )
+
+$(srcdir)/msvc/spandsp.h: spandsp.h.in
+	echo "creating $(srcdir)/msvc/spandsp.h"
+	@cp $(srcdir)/spandsp.h.in $(srcdir)/msvc/spandsp.h
+	@sed -i -e "s/\@SPANDSP_USE_FIXED_POINT\@/#undef SPANDSP_USE_FIXED_POINT/" $(srcdir)/msvc/spandsp.h
+	@sed -i -e "s/\@SPANDSP_MISALIGNED_ACCESS_FAILS\@/#undef SPANDSP_MISALIGNED_ACCESS_FAILS/" $(srcdir)/msvc/spandsp.h
+	@sed -i -e "s/\@SPANDSP_USE_EXPORT_CAPABILITY\@/#define SPANDSP_USE_EXPORT_CAPABILITY 1/" $(srcdir)/msvc/spandsp.h
+	@sed -i -e "s/\@INSERT_INTTYPES_HEADER\@/#include <inttypes.h>/" $(srcdir)/msvc/spandsp.h
+	@sed -i -e "s/\@INSERT_MATH_HEADER\@/#include <math.h>/" $(srcdir)/msvc/spandsp.h
 
 spandsp/version.h:
 	NOWDATE=`date --utc +"%Y%m%d"` ; \

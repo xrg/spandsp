@@ -30,17 +30,17 @@
 #if !defined(_SPANDSP_H_)
 #define _SPANDSP_H_
 
-@SPANDSP_USE_FIXED_POINT@
-@SPANDSP_MISALIGNED_ACCESS_FAILS@
+#undef SPANDSP_USE_FIXED_POINT
+#undef SPANDSP_MISALIGNED_ACCESS_FAILS
 
-@SPANDSP_USE_EXPORT_CAPABILITY@
+#define SPANDSP_USE_EXPORT_CAPABILITY 1
 
 #include <stdlib.h>
-@INSERT_INTTYPES_HEADER@
+#include <inttypes.h>
 #include <string.h>
 #include <limits.h>
 #include <time.h>
-@INSERT_MATH_HEADER@
+#include <math.h>
 #include <tiffio.h>
 
 #include <spandsp/telephony.h>
