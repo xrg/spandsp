@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.129 2009/10/09 14:53:57 steveu Exp $
+ * $Id: t38_terminal.c,v 1.133 2009/12/01 14:28:12 steveu Exp $
  */
 
 /*! \file */
@@ -231,8 +231,6 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
         front_end_status(s, T30_FRONT_END_CED_PRESENT);
         break;
     case T38_IND_V21_PREAMBLE:
-        /* Some T.38 implementations insert these preamble indicators between HDLC frames, so
-           we need to be tolerant of that. */
         fe->timeout_rx_samples = fe->samples + ms_to_samples(MID_RX_TIMEOUT);
         front_end_status(s, T30_FRONT_END_SIGNAL_PRESENT);
         break;
@@ -270,6 +268,16 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
     fe->hdlc_rx.len = 0;
     fe->rx_data_missing = FALSE;
     return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int fake_rx_indicator(t38_core_state_t *t, t38_terminal_state_t *s, int indicator)
+{
+    int ret;
+
+    ret = process_rx_indicator(t, s, indicator);
+    t->current_rx_indicator = indicator;
+    return ret;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -351,8 +359,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             /* HDLC can just start without any signal indicator on some platforms, even when
                there is zero packet lost. Nasty, but true. Its a good idea to be tolerant of
                loss, though, so accepting a sudden start of HDLC data is the right thing to do. */
-            fe->timeout_rx_samples = fe->samples + ms_to_samples(MID_RX_TIMEOUT);
-            front_end_status(s, T30_FRONT_END_SIGNAL_PRESENT);
+            fake_rx_indicator(t, s, T38_IND_V21_PREAMBLE);
             /* All real HDLC messages in the FAX world start with 0xFF. If this one is not starting
                with 0xFF it would appear some octets must have been missed before this one. */
             if (len <= 0  ||  buf[0] != 0xFF)
@@ -421,7 +428,8 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         }
         fe->hdlc_rx.len = 0;
         fe->rx_data_missing = FALSE;
-        fe->timeout_rx_samples = 0;
+        /* Treat this like a no signal indicator has occurred, so if the no signal indicator is missing, we are still OK */
+        fake_rx_indicator(t, s, T38_IND_NO_SIGNAL);
         break;
     case T38_FIELD_HDLC_FCS_BAD_SIG_END:
         if (len > 0)
@@ -441,7 +449,8 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         }
         fe->hdlc_rx.len = 0;
         fe->rx_data_missing = FALSE;
-        fe->timeout_rx_samples = 0;
+        /* Treat this like a no signal indicator has occurred, so if the no signal indicator is missing, we are still OK */
+        fake_rx_indicator(t, s, T38_IND_NO_SIGNAL);
         break;
     case T38_FIELD_HDLC_SIG_END:
         if (len > 0)
@@ -463,9 +472,10 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
                The other is because the HDLC signal drops unexpectedly - i.e. not just after a final frame. */
             fe->hdlc_rx.len = 0;
             fe->rx_data_missing = FALSE;
-            fe->timeout_rx_samples = 0;
             front_end_status(s, T30_FRONT_END_RECEIVE_COMPLETE);
         }
+        /* Treat this like a no signal indicator has occurred, so if the no signal indicator is missing, we are still OK */
+        fake_rx_indicator(t, s, T38_IND_NO_SIGNAL);
         break;
     case T38_FIELD_T4_NON_ECM_DATA:
         if (!fe->rx_signal_present)
@@ -503,7 +513,8 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
             front_end_status(s, T30_FRONT_END_RECEIVE_COMPLETE);
         }
         fe->rx_signal_present = FALSE;
-        fe->timeout_rx_samples = 0;
+        /* Treat this like a no signal indicator has occurred, so if the no signal indicator is missing, we are still OK */
+        fake_rx_indicator(t, s, T38_IND_NO_SIGNAL);
         break;
     default:
         break;
