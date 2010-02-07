@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.c,v 1.32 2008/11/30 13:08:42 steveu Exp $
+ * $Id: bell_r2_mf.c,v 1.33 2009/01/28 03:41:26 steveu Exp $
  */
 
 /*! \file */
@@ -36,13 +36,13 @@
 #include <string.h>
 #include <time.h>
 #include <fcntl.h>
-#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
 #if defined(HAVE_MATH_H)
 #include <math.h>
 #endif
+#include "floating_fudge.h"
 
 #include "spandsp/telephony.h"
 #include "spandsp/queue.h"

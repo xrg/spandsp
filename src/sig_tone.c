@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.c,v 1.27 2009/01/05 13:48:31 steveu Exp $
+ * $Id: sig_tone.c,v 1.28 2009/01/28 03:41:27 steveu Exp $
  */
 
 /*! \file */
@@ -35,13 +35,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
-#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
 #if defined(HAVE_MATH_H)
 #include <math.h>
 #endif
+#include "floating_fudge.h"
 #include <memory.h>
 #include <string.h>
 

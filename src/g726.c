@@ -48,7 +48,7 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.c,v 1.25 2009/01/05 13:48:31 steveu Exp $
+ * $Id: g726.c,v 1.26 2009/01/28 03:41:26 steveu Exp $
  */
 
 /*! \file */
@@ -60,13 +60,13 @@
 #include <inttypes.h>
 #include <memory.h>
 #include <stdlib.h>
-#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
 #if defined(HAVE_MATH_H)
 #include <math.h>
 #endif
+#include "floating_fudge.h"
 
 #include "spandsp/telephony.h"
 #include "spandsp/dc_restore.h"

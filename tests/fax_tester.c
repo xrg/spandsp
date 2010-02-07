@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tester.c,v 1.20 2008/11/30 13:44:35 steveu Exp $
+ * $Id: fax_tester.c,v 1.21 2009/01/28 03:41:27 steveu Exp $
  */
 
 /*! \file */
@@ -35,13 +35,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
 #if defined(HAVE_MATH_H)
 #include <math.h>
 #endif
+#include "floating_fudge.h"
 #include <assert.h>
 #include <fcntl.h>
 #include <time.h>

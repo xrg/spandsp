@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tsb85_tests.c,v 1.27 2008/11/30 10:17:31 steveu Exp $
+ * $Id: tsb85_tests.c,v 1.28 2009/01/28 03:41:27 steveu Exp $
  */
 
 /*! \file */
@@ -36,13 +36,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
 #if defined(HAVE_MATH_H)
 #include <math.h>
 #endif
+#include "floating_fudge.h"
 #include <assert.h>
 #include <fcntl.h>
 #include <time.h>

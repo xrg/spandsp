@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector_int.c,v 1.22 2009/01/16 18:01:57 steveu Exp $
+ * $Id: vector_int.c,v 1.23 2009/01/28 03:41:27 steveu Exp $
  */
 
 /*! \file */
@@ -35,13 +35,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
 #if defined(HAVE_MATH_H)
 #include <math.h>
 #endif
+#include "floating_fudge.h"
 #include <assert.h>
 
 #if defined(SPANDSP_USE_MMX)

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g711.c,v 1.13 2009/01/05 13:48:31 steveu Exp $
+ * $Id: g711.c,v 1.14 2009/01/28 03:41:26 steveu Exp $
  */
 
 /*! \file */
@@ -34,13 +34,6 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
-#include "floating_fudge.h"
-#if defined(HAVE_TGMATH_H)
-#include <tgmath.h>
-#endif
-#if defined(HAVE_MATH_H)
-#include <math.h>
-#endif
 #include <assert.h>
 
 #include "spandsp/telephony.h"

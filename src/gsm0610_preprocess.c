@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_preprocess.c,v 1.15 2009/01/05 13:48:31 steveu Exp $
+ * $Id: gsm0610_preprocess.c,v 1.16 2009/01/28 03:41:27 steveu Exp $
  */
 
 /*! \file */
@@ -36,13 +36,13 @@
 
 #include <assert.h>
 #include <inttypes.h>
-#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
 #if defined(HAVE_MATH_H)
 #include <math.h>
 #endif
+#include "floating_fudge.h"
 #include <stdlib.h>
 
 #include "spandsp/telephony.h"

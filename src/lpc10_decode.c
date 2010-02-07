@@ -26,7 +26,7 @@
  * implementation of the LPC-10 2400 bps Voice Coder. They do not
  * exert copyright claims on their code, and it may be freely used.
  *
- * $Id: lpc10_decode.c,v 1.24 2009/01/05 13:48:31 steveu Exp $
+ * $Id: lpc10_decode.c,v 1.25 2009/01/28 03:41:27 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -36,13 +36,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
-#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
 #if defined(HAVE_MATH_H)
 #include <math.h>
 #endif
+#include "floating_fudge.h"
 #include <memory.h>
 
 #include "spandsp/telephony.h"

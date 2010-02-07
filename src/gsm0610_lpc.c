@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_lpc.c,v 1.26 2009/01/16 18:11:41 steveu Exp $
+ * $Id: gsm0610_lpc.c,v 1.27 2009/01/28 03:41:26 steveu Exp $
  */
 
 /*! \file */
@@ -36,13 +36,13 @@
 
 #include <assert.h>
 #include <inttypes.h>
-#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
 #if defined(HAVE_MATH_H)
 #include <math.h>
 #endif
+#include "floating_fudge.h"
 #include <stdlib.h>
 #include <memory.h>
 

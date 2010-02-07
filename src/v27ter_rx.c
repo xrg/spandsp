@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.112 2009/01/05 13:48:32 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.113 2009/01/28 03:41:27 steveu Exp $
  */
 
 /*! \file */
@@ -35,13 +35,13 @@
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
-#include "floating_fudge.h"
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif
 #if defined(HAVE_MATH_H)
 #include <math.h>
 #endif
+#include "floating_fudge.h"
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
