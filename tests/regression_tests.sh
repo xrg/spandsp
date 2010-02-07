@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: regression_tests.sh,v 1.46 2007/09/28 13:00:10 steveu Exp $
+# $Id: regression_tests.sh,v 1.47 2007/12/22 12:37:22 steveu Exp $
 #
 
 ITUTESTS_TIF=../itutests/fax/itutests.tif
@@ -197,6 +197,15 @@ then
 fi
 echo fsk_tests completed OK
 
+#./g1050_tests >$STDOUT_DEST 2>$STDERR_DEST
+#RETVAL=$?
+#if [ $RETVAL != 0 ]
+#then
+#    echo g1050_tests failed!
+#    exit $RETVAL
+#fi
+#echo g1050_tests completed OK
+
 ./g711_tests >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
 if [ $RETVAL != 0 ]
@@ -360,6 +369,15 @@ then
     exit $RETVAL
 fi
 echo r2_mf_tx_tests completed OK
+
+#./rfc2198_sim_tests >$STDOUT_DEST 2>$STDERR_DEST
+#RETVAL=$?
+#if [ $RETVAL != 0 ]
+#then
+#    echo rfc2198_sim_tests failed!
+#    exit $RETVAL
+#fi
+#echo rfc2198_sim_tests completed OK
 
 ./schedule_tests >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?

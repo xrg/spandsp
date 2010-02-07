@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.92 2007/11/28 12:26:52 steveu Exp $
+## $Id: Makefile.am,v 1.93 2007/12/21 18:40:11 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -71,6 +71,7 @@ noinst_PROGRAMS =   adsi_tests \
                     queue_tests \
                     r2_mf_rx_tests \
                     r2_mf_tx_tests \
+                    rfc2198_sim_tests \
                     schedule_tests \
                     sig_tone_tests \
                     super_tone_rx_tests \
@@ -218,6 +219,9 @@ r2_mf_rx_tests_LDADD = $(LIBDIR) -lspandsp
 
 r2_mf_tx_tests_SOURCES = r2_mf_tx_tests.c
 r2_mf_tx_tests_LDADD = $(LIBDIR) -lspandsp
+
+rfc2198_sim_tests_SOURCES = rfc2198_sim_tests.c media_monitor.cpp
+rfc2198_sim_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
 schedule_tests_SOURCES = schedule_tests.c
 schedule_tests_LDADD = $(LIBDIR) -lspandsp 

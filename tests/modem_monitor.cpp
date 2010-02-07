@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * constel.cpp - Display QAM constellations, using the FLTK toolkit.
+ * modem_monitor.cpp - Display QAM constellations, using the FLTK toolkit.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_monitor.cpp,v 1.13 2007/11/20 17:26:53 steveu Exp $
+ * $Id: modem_monitor.cpp,v 1.14 2007/12/20 10:56:11 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.h,v 1.14 2007/05/15 13:22:43 steveu Exp $
+ * $Id: at_interpreter.h,v 1.15 2007/12/20 11:11:16 steveu Exp $
  */
 
 /*! \file */
@@ -246,11 +246,25 @@ void at_interpreter(at_state_t *s, const char *cmd, int len);
 
 void at_set_class1_handler(at_state_t *s, at_class1_handler_t handler, void *user_data);
 
+/*! Initialise an AT interpreter context.
+    \brief Initialise an AT interpreter context.
+    \param s The AT context.
+    \param at_tx_handler x.
+    \param at_tx_user_data x.
+    \param modem_control_handler x.
+    \param modem_control_user_data x.
+    \return A pointer to the AT context, or NULL if there was a problem. */
 at_state_t *at_init(at_state_t *s,
                     at_tx_handler_t *at_tx_handler,
                     void *at_tx_user_data,
                     at_modem_control_handler_t *modem_control_handler,
                     void *modem_control_user_data);
+
+/*! Free an AT interpreter context.
+    \brief Free an AT interpreter context.
+    \param s The AT context.
+    \return 0 for OK */
+int at_free(at_state_t *s);
 
 #if defined(__cplusplus)
 }

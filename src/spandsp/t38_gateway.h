@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.37 2007/12/13 11:31:33 steveu Exp $
+ * $Id: t38_gateway.h,v 1.40 2007/12/30 04:45:33 steveu Exp $
  */
 
 /*! \file */
@@ -131,8 +131,10 @@ typedef struct
     int fast_bit_rate;
     /*! \brief The current fast modem type. */
     int fast_modem;
-    /*! \brief TRUE if between DCS and TCF */
-    int tcf_in_progress;
+    /*! \brief TRUE if between DCS and TCF, and we want the fast image modem to
+               start in the T.38 data at a predictable time from the end of the
+               V.21 signal. */
+    int tcf_mode_predictable_modem_start;
     /*! \brief TRUE if a carrier is present. Otherwise FALSE. */
     int rx_signal_present;
     /*! \brief TRUE if a modem has trained correctly. */
@@ -149,24 +151,24 @@ typedef struct
 
     /*! \brief A V.21 FSK modem context used when transmitting HDLC over V.21
                messages. */
-    fsk_tx_state_t v21tx;
+    fsk_tx_state_t v21_tx;
     /*! \brief A V.21 FSK modem context used when receiving HDLC over V.21
                messages. */
-    fsk_rx_state_t v21rx;
+    fsk_rx_state_t v21_rx;
 
     /*! \brief A V.17 modem context used when sending FAXes at 7200bps, 9600bps
                12000bps or 14400bps*/
-    v17_tx_state_t v17tx;
+    v17_tx_state_t v17_tx;
     /*! \brief A V.29 modem context used when receiving FAXes at 7200bps, 9600bps
                12000bps or 14400bps*/
-    v17_rx_state_t v17rx;
+    v17_rx_state_t v17_rx;
 
     /*! \brief A V.29 modem context used when sending FAXes at 7200bps or
                9600bps */
-    v29_tx_state_t v29tx;
+    v29_tx_state_t v29_tx;
     /*! \brief A V.29 modem context used when receiving FAXes at 7200bps or
                9600bps */
-    v29_rx_state_t v29rx;
+    v29_rx_state_t v29_rx;
 
     /*! \brief A V.27ter modem context used when sending FAXes at 2400bps or
                4800bps */
@@ -181,15 +183,21 @@ typedef struct
     /*! \brief Used to insert timed silences. */
     silence_gen_state_t silence_gen;
 
+    /*! \brief The immediately active receive signal handler, which may hop between
+               rx_handler and dummy_rx(). */
+    span_rx_handler_t *immediate_rx_handler;
     /*! \brief The current receive signal handler */
     span_rx_handler_t *rx_handler;
+    /*! \brief An opaque pointer, passed to rx_handler. */
     void *rx_user_data;
 
     /*! \brief The current transmit signal handler */
     span_tx_handler_t *tx_handler;
+    /*! \brief An opaque pointer, passed to tx_handler. */
     void *tx_user_data;
     /*! \brief The transmit signal handler to be used when the current one has finished sending. */
     span_tx_handler_t *next_tx_handler;
+    /*! \brief An opaque pointer, passed to next_tx_handler. */
     void *next_tx_user_data;
 
     /*! \brief The number of octets to send in each image packet (non-ECM or ECM) at the current

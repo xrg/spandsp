@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.c,v 1.21 2007/12/13 11:31:31 steveu Exp $
+ * $Id: at_interpreter.c,v 1.22 2007/12/20 11:11:16 steveu Exp $
  */
 
 /*! \file */
@@ -307,12 +307,10 @@ void at_call_event(at_state_t *s, int event)
 
 void at_reset_call_info(at_state_t *s)
 {
-    struct at_call_id *call_id = s->call_id;
-    while (call_id)
-    {
+    struct at_call_id *call_id;
+
+    for (call_id = s->call_id;  call_id;  call_id = call_id->next)
         free(call_id);
-        call_id = call_id->next;
-    }
     s->call_id = NULL;
     s->rings_indicated = 0;
     s->call_info_displayed = FALSE;
@@ -5282,6 +5280,13 @@ at_state_t *at_init(at_state_t *s,
     at_set_at_rx_mode(s, AT_MODE_ONHOOK_COMMAND);
     s->p = profiles[0];
     return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+int at_free(at_state_t *s)
+{
+    free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

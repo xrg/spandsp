@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.99 2007/12/14 13:41:17 steveu Exp $
+ * $Id: t31.c,v 1.102 2007/12/29 05:35:32 steveu Exp $
  */
 
 /*! \file */
@@ -190,57 +190,18 @@ static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indica
         /* TODO: report signal present */
         break;
     case T38_IND_V27TER_2400_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        /* TODO: report signal present */
-        break;
     case T38_IND_V27TER_4800_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        /* TODO: report signal present */
-        break;
     case T38_IND_V29_7200_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        /* TODO: report signal present */
-        break;
     case T38_IND_V29_9600_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        /* TODO: report signal present */
-        break;
     case T38_IND_V17_7200_SHORT_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        /* TODO: report signal present */
-        break;
     case T38_IND_V17_7200_LONG_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        /* TODO: report signal present */
-        break;
     case T38_IND_V17_9600_SHORT_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        /* TODO: report signal present */
-        break;
     case T38_IND_V17_9600_LONG_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        /* TODO: report signal present */
-        break;
     case T38_IND_V17_12000_SHORT_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        /* TODO: report signal present */
-        break;
     case T38_IND_V17_12000_LONG_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        /* TODO: report signal present */
-        break;
     case T38_IND_V17_14400_SHORT_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        /* TODO: report signal present */
-        break;
     case T38_IND_V17_14400_LONG_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        /* TODO: report signal present */
-        break;
     case T38_IND_V33_12000_TRAINING:
-        s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
-        /* TODO: report signal present */
-        break;
     case T38_IND_V33_14400_TRAINING:
         s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
         /* TODO: report signal present */
@@ -1008,8 +969,8 @@ static void t31_v21_rx(t31_state_t *s)
     s->hdlc_final = FALSE;
     s->hdlc_tx_len = 0;
     s->dled = FALSE;
-    fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &(s->hdlcrx));
-    fsk_rx_signal_cutoff(&(s->v21rx), -39.09);
+    fsk_rx_init(&(s->v21_rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &(s->hdlcrx));
+    fsk_rx_signal_cutoff(&(s->v21_rx), -39.09);
     s->at_state.transmit = TRUE;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1116,9 +1077,9 @@ static int restart_modem(t31_state_t *s, int new_modem)
             hdlc_tx_init(&(s->hdlctx), FALSE, 2, FALSE, hdlc_tx_underflow, s);
             /* The spec says 1s +-15% of preamble. So, the minimum is 32 octets. */
             hdlc_tx_flags(&(s->hdlctx), 32);
-            fsk_tx_init(&(s->v21tx), &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &(s->hdlctx));
+            fsk_tx_init(&(s->v21_tx), &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &(s->hdlctx));
             s->tx_handler = (span_tx_handler_t *) &fsk_tx;
-            s->tx_user_data = &(s->v21tx);
+            s->tx_user_data = &(s->v21_tx);
             s->next_tx_handler = NULL;
         }
         s->hdlc_final = FALSE;
@@ -1133,7 +1094,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
         else
         {
             s->rx_handler = (span_rx_handler_t *) &fsk_rx;
-            s->rx_user_data = &(s->v21rx);
+            s->rx_user_data = &(s->v21_rx);
             t31_v21_rx(s);
         }
         break;
@@ -1160,9 +1121,9 @@ static int restart_modem(t31_state_t *s, int new_modem)
         }
         else
         {
-            v17_tx_restart(&(s->v17tx), s->bit_rate, FALSE, s->short_train);
+            v17_tx_restart(&(s->v17_tx), s->bit_rate, FALSE, s->short_train);
             s->tx_handler = (span_tx_handler_t *) &v17_tx;
-            s->tx_user_data = &(s->v17tx);
+            s->tx_user_data = &(s->v17_tx);
             s->next_tx_handler = NULL;
         }
         s->tx_out_bytes = 0;
@@ -1174,7 +1135,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
         {
             s->rx_handler = (span_rx_handler_t *) &early_v17_rx;
             s->rx_user_data = s;
-            v17_rx_restart(&(s->v17rx), s->bit_rate, s->short_train);
+            v17_rx_restart(&(s->v17_rx), s->bit_rate, s->short_train);
             /* Allow for +FCERROR/+FRH:3 */
             t31_v21_rx(s);
         }
@@ -1234,9 +1195,9 @@ static int restart_modem(t31_state_t *s, int new_modem)
         }
         else
         {
-            v29_tx_restart(&(s->v29tx), s->bit_rate, FALSE);
+            v29_tx_restart(&(s->v29_tx), s->bit_rate, FALSE);
             s->tx_handler = (span_tx_handler_t *) &v29_tx;
-            s->tx_user_data = &(s->v29tx);
+            s->tx_user_data = &(s->v29_tx);
             s->next_tx_handler = NULL;
         }
         s->tx_out_bytes = 0;
@@ -1248,7 +1209,7 @@ static int restart_modem(t31_state_t *s, int new_modem)
         {
             s->rx_handler = (span_rx_handler_t *) &early_v29_rx;
             s->rx_user_data = s;
-            v29_rx_restart(&(s->v29rx), s->bit_rate, FALSE);
+            v29_rx_restart(&(s->v29_rx), s->bit_rate, FALSE);
             /* Allow for +FCERROR/+FRH:3 */
             t31_v21_rx(s);
         }
@@ -1599,6 +1560,7 @@ int t31_at_rx(t31_state_t *s, const char *t, int len)
             s->at_state.rx_data_bytes = 0;
             s->at_state.transmit = FALSE;
             s->modem = T31_SILENCE_TX;
+            s->rx_handler = dummy_rx;
             t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
             at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
         }
@@ -1659,7 +1621,7 @@ static int cng_rx(void *user_data, const int16_t amp[], int len)
     }
     else
     {
-        fsk_rx(&(s->v21rx), amp, len);
+        fsk_rx(&(s->v21_rx), amp, len);
     }
     return 0;
 }
@@ -1670,25 +1632,25 @@ static int early_v17_rx(void *user_data, const int16_t amp[], int len)
     t31_state_t *s;
 
     s = (t31_state_t *) user_data;
-    v17_rx(&(s->v17rx), amp, len);
+    v17_rx(&(s->v17_rx), amp, len);
     if (s->at_state.rx_trained)
     {
         /* The fast modem has trained, so we no longer need to run the slow
            one in parallel. */
-        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&(s->v17rx)));
+        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&(s->v17_rx)));
         s->rx_handler = (span_rx_handler_t *) &v17_rx;
-        s->rx_user_data = &(s->v17rx);
+        s->rx_user_data = &(s->v17_rx);
     }
     else
     {
-        fsk_rx(&(s->v21rx), amp, len);
+        fsk_rx(&(s->v21_rx), amp, len);
         if (s->rx_message_received)
         {
             /* We have received something, and the fast modem has not trained. We must
                be receiving valid V.21 */
             span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.21\n");
             s->rx_handler = (span_rx_handler_t *) &fsk_rx;
-            s->rx_user_data = &(s->v21rx);
+            s->rx_user_data = &(s->v21_rx);
         }
     }
     return len;
@@ -1711,14 +1673,14 @@ static int early_v27ter_rx(void *user_data, const int16_t amp[], int len)
     }
     else
     {
-        fsk_rx(&(s->v21rx), amp, len);
+        fsk_rx(&(s->v21_rx), amp, len);
         if (s->rx_message_received)
         {
             /* We have received something, and the fast modem has not trained. We must
                be receiving valid V.21 */
             span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.21\n");
             s->rx_handler = (span_rx_handler_t *) &fsk_rx;
-            s->rx_user_data = &(s->v21rx);
+            s->rx_user_data = &(s->v21_rx);
         }
     }
     return len;
@@ -1730,25 +1692,25 @@ static int early_v29_rx(void *user_data, const int16_t amp[], int len)
     t31_state_t *s;
 
     s = (t31_state_t *) user_data;
-    v29_rx(&(s->v29rx), amp, len);
+    v29_rx(&(s->v29_rx), amp, len);
     if (s->at_state.rx_trained)
     {
         /* The fast modem has trained, so we no longer need to run the slow
            one in parallel. */
-        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&(s->v29rx)));
+        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&(s->v29_rx)));
         s->rx_handler = (span_rx_handler_t *) &v29_rx;
-        s->rx_user_data = &(s->v29rx);
+        s->rx_user_data = &(s->v29_rx);
     }
     else
     {
-        fsk_rx(&(s->v21rx), amp, len);
+        fsk_rx(&(s->v21_rx), amp, len);
         if (s->rx_message_received)
         {
             /* We have received something, and the fast modem has not trained. We must
                be receiving valid V.21 */
             span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.21\n");
             s->rx_handler = (span_rx_handler_t *) &fsk_rx;
-            s->rx_user_data = &(s->v21rx);
+            s->rx_user_data = &(s->v21_rx);
         }
     }
     return len;
@@ -1934,11 +1896,11 @@ t31_state_t *t31_init(t31_state_t *s,
 
     s->modem_control_handler = modem_control_handler;
     s->modem_control_user_data = modem_control_user_data;
-    v17_rx_init(&(s->v17rx), 14400, non_ecm_put_bit, s);
-    v17_tx_init(&(s->v17tx), 14400, FALSE, non_ecm_get_bit, s);
-    v29_rx_init(&(s->v29rx), 9600, non_ecm_put_bit, s);
-    v29_rx_signal_cutoff(&(s->v29rx), -45.5);
-    v29_tx_init(&(s->v29tx), 9600, FALSE, non_ecm_get_bit, s);
+    v17_rx_init(&(s->v17_rx), 14400, non_ecm_put_bit, s);
+    v17_tx_init(&(s->v17_tx), 14400, FALSE, non_ecm_get_bit, s);
+    v29_rx_init(&(s->v29_rx), 9600, non_ecm_put_bit, s);
+    v29_rx_signal_cutoff(&(s->v29_rx), -45.5);
+    v29_tx_init(&(s->v29_tx), 9600, FALSE, non_ecm_get_bit, s);
     v27ter_rx_init(&(s->v27ter_rx), 4800, non_ecm_put_bit, s);
     v27ter_tx_init(&(s->v27ter_tx), 4800, FALSE, non_ecm_get_bit, s);
     silence_gen_init(&(s->silence_gen), 0);

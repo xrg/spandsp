@@ -1,7 +1,9 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * g1050_tests.c - Tests for the G.1050/TIA-921 model.
+ * rfc2198_sim_tests.c - Tests for the G.1050/TIA-921 model
+ *                       with redundant transmission in the
+ *                       style of UDPTL or RFC2198..
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -22,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g1050_tests.c,v 1.12 2007/12/20 11:11:16 steveu Exp $
+ * $Id: rfc2198_sim_tests.c,v 1.1 2007/12/21 18:40:11 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -60,7 +62,7 @@
 
 int main(int argc, char *argv[])
 {
-    g1050_state_t *s;
+    rfc2198_sim_state_t *s;
     double *packet_arrival_times;
     int packets_per_sec;
     int num_packets;
@@ -130,9 +132,9 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if ((out_file = fopen("g1050_tests.txt", "w")) == NULL)
+    if ((out_file = fopen("rfc2198_sim_tests.txt", "w")) == NULL)
     {
-        fprintf(stderr, "Can't open %s\n", "g1050_tests.txt");
+        fprintf(stderr, "Can't open %s\n", "rfc2198_sim_tests.txt");
         return 2;
     }
     packets_per_sec = 1000/PACKET_INTERVAL;
@@ -150,12 +152,12 @@ int main(int argc, char *argv[])
     /* Use a fixed seed to produce identical results in successive runs of the simulation, for debug purposes. */
     srand48(0x1234567);
 
-    if ((s = g1050_init(model_no, speed_pattern_no, PACKET_SIZE, packets_per_sec)) == NULL)
+    if ((s = rfc2198_sim_init(model_no, speed_pattern_no, PACKET_SIZE, packets_per_sec, 3)) == NULL)
     {
         fprintf(stderr, "Failed to start the G.1050 model\n");
         exit(2);
     }
-    g1050_dump_parms(model_no, speed_pattern_no);
+    //rfc2198_sim_dump_parms(model_no, speed_pattern_no);
 
 #if defined(ENABLE_GUI)
     if (use_gui)
@@ -176,16 +178,18 @@ int main(int argc, char *argv[])
     highest_seq_no_got = -1;
     for (i = 0;  i < num_packets;  i++)
     {
-        if ((len = g1050_put(s, put_pkt, put_pkt_len, i, (double) i*0.001*PACKET_INTERVAL)) > 0)
+        if ((len = rfc2198_sim_put(s, put_pkt, put_pkt_len, i, (double) i*0.001*PACKET_INTERVAL)) > 0)
             packets_really_put++;
         packets_put++;
+#if 0        
         if (i == 5)
-            g1050_queue_dump(s);
+            rfc2198_sim_queue_dump(s);
+#endif
         if (i >= 5)
         {
             do
             {
-                get_pkt_len = g1050_get(s, get_pkt, 256, (double) i*0.001*PACKET_INTERVAL, &get_seq_no, &get_departure_time, &get_arrival_time);
+                get_pkt_len = rfc2198_sim_get(s, get_pkt, 256, (double) i*0.001*PACKET_INTERVAL, &get_seq_no, &get_departure_time, &get_arrival_time);
                 if (get_pkt_len >= 0)
                 {
 #if defined(ENABLE_GUI)
@@ -212,7 +216,7 @@ int main(int argc, char *argv[])
     /* Clear out anything remaining in the queue, by jumping forwards in time */
     do
     {
-        get_pkt_len = g1050_get(s, get_pkt, 256, (double) i*0.001*PACKET_INTERVAL + 5.0, &get_seq_no, &get_departure_time, &get_arrival_time);
+        get_pkt_len = rfc2198_sim_get(s, get_pkt, 256, (double) i*0.001*PACKET_INTERVAL + 5.0, &get_seq_no, &get_departure_time, &get_arrival_time);
         if (get_pkt_len >= 0)
         {
             packets_got++;
@@ -225,12 +229,9 @@ int main(int argc, char *argv[])
 
     printf("Put %d packets. Really put %d packets. Got %d packets.\n", packets_put, packets_really_put, packets_got);
     printf("%d OOS packets, %d missing packets\n", oos_packets_got, missing_packets_got - oos_packets_got);
-    if (packets_really_put != packets_got)
-    {
-        printf("%d packets queued, but only %d received\n", packets_really_put, packets_got);
-        exit(2);
-    }
-    printf("%.3f%% of packets lost\n", 100.0*(packets_put - packets_really_put)/packets_put);
+    printf("%d packets queued, %d received\n", packets_really_put, packets_got);
+    printf("%.3f%% of packets lost before redundancy\n", 100.0*(packets_put - packets_really_put)/packets_put);
+    printf("%.3f%% of packets lost after redundancy\n", 100.0*(packets_put - packets_got)/packets_put);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

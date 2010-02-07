@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.c,v 1.19 2007/11/26 13:35:21 steveu Exp $
+ * $Id: super_tone_tx.c,v 1.20 2007/12/20 11:11:16 steveu Exp $
  */
 
 /*! \file */
@@ -50,6 +50,20 @@
 #include "spandsp/dds.h"
 #include "spandsp/tone_generate.h"
 #include "spandsp/super_tone_tx.h"
+
+/*
+    The tone played to wake folk up when they have left the phone off hook is an
+    oddity amongst supervisory tones. It is designed to sound loud and nasty. Most
+    tones are one or two pure sine pitches, or one AM moduluated pitch. This alert
+    tone varies between countries, but AT&T are a typical example.
+    
+    AT&T Receiver Off-Hook Tone is 1400 Hz, 2060 Hz, 2450 Hz and 2600 Hz at 0dBm0/frequency
+    on and off every .1 second. On some older space division switching systems
+    Receiver Off-Hook was 1400 Hz, 2060 Hz, 2450 Hz and 2600 Hz at +5 VU on and
+    off every .1 second. On a No. 5 ESS this continues for 30 seconds. On a No.
+    2/2B ESS this continues for 40 seconds. On some other AT&T switches there are
+    two iterations of 50 seconds each.
+*/
 
 super_tone_tx_step_t *super_tone_tx_make_step(super_tone_tx_step_t *s,
                                               float f1,

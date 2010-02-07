@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.62 2007/12/13 11:31:31 steveu Exp $
+ * $Id: fax.c,v 1.63 2007/12/29 05:35:32 steveu Exp $
  */
 
 /*! \file */
@@ -105,15 +105,15 @@ static int early_v17_rx(void *user_data, const int16_t amp[], int len)
     fax_state_t *s;
 
     s = (fax_state_t *) user_data;
-    v17_rx(&(s->v17rx), amp, len);
-    fsk_rx(&(s->v21rx), amp, len);
+    v17_rx(&(s->v17_rx), amp, len);
+    fsk_rx(&(s->v21_rx), amp, len);
     if (s->t30_state.rx_trained)
     {
         /* The fast modem has trained, so we no longer need to run the slow
            one in parallel. */
-        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&(s->v17rx)));
+        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&(s->v17_rx)));
         s->rx_handler = (span_rx_handler_t *) &v17_rx;
-        s->rx_user_data = &(s->v17rx);
+        s->rx_user_data = &(s->v17_rx);
     }
     return 0;
 }
@@ -125,7 +125,7 @@ static int early_v27ter_rx(void *user_data, const int16_t amp[], int len)
 
     s = (fax_state_t *) user_data;
     v27ter_rx(&(s->v27ter_rx), amp, len);
-    fsk_rx(&(s->v21rx), amp, len);
+    fsk_rx(&(s->v21_rx), amp, len);
     if (s->t30_state.rx_trained)
     {
         /* The fast modem has trained, so we no longer need to run the slow
@@ -143,15 +143,15 @@ static int early_v29_rx(void *user_data, const int16_t amp[], int len)
     fax_state_t *s;
 
     s = (fax_state_t *) user_data;
-    v29_rx(&(s->v29rx), amp, len);
-    fsk_rx(&(s->v21rx), amp, len);
+    v29_rx(&(s->v29_rx), amp, len);
+    fsk_rx(&(s->v21_rx), amp, len);
     if (s->t30_state.rx_trained)
     {
         /* The fast modem has trained, so we no longer need to run the slow
            one in parallel. */
-        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&(s->v29rx)));
+        span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&(s->v29_rx)));
         s->rx_handler = (span_rx_handler_t *) &v29_rx;
-        s->rx_user_data = &(s->v29rx);
+        s->rx_user_data = &(s->v29_rx);
     }
     return 0;
 }
@@ -268,10 +268,10 @@ static void fax_set_rx_type(void *user_data, int type, int short_train, int use_
     case T30_MODEM_V21:
         if (s->flush_handler)
             s->flush_handler(s, s->flush_user_data, 3);
-        fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, put_bit_user_data);
-        fsk_rx_signal_cutoff(&(s->v21rx), -45.5);
+        fsk_rx_init(&(s->v21_rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, put_bit_user_data);
+        fsk_rx_signal_cutoff(&(s->v21_rx), -45.5);
         s->rx_handler = (span_rx_handler_t *) &fsk_rx;
-        s->rx_user_data = &(s->v21rx);
+        s->rx_user_data = &(s->v21_rx);
         break;
     case T30_MODEM_V27TER_2400:
         v27ter_rx_restart(&(s->v27ter_rx), 2400, FALSE);
@@ -286,38 +286,38 @@ static void fax_set_rx_type(void *user_data, int type, int short_train, int use_
         s->rx_user_data = s;
         break;
     case T30_MODEM_V29_7200:
-        v29_rx_restart(&(s->v29rx), 7200, FALSE);
-        v29_rx_set_put_bit(&(s->v29rx), put_bit_func, put_bit_user_data);
+        v29_rx_restart(&(s->v29_rx), 7200, FALSE);
+        v29_rx_set_put_bit(&(s->v29_rx), put_bit_func, put_bit_user_data);
         s->rx_handler = (span_rx_handler_t *) &early_v29_rx;
         s->rx_user_data = s;
         break;
     case T30_MODEM_V29_9600:
-        v29_rx_restart(&(s->v29rx), 9600, FALSE);
-        v29_rx_set_put_bit(&(s->v29rx), put_bit_func, put_bit_user_data);
+        v29_rx_restart(&(s->v29_rx), 9600, FALSE);
+        v29_rx_set_put_bit(&(s->v29_rx), put_bit_func, put_bit_user_data);
         s->rx_handler = (span_rx_handler_t *) &early_v29_rx;
         s->rx_user_data = s;
         break;
     case T30_MODEM_V17_7200:
-        v17_rx_restart(&(s->v17rx), 7200, short_train);
-        v17_rx_set_put_bit(&(s->v17rx), put_bit_func, put_bit_user_data);
+        v17_rx_restart(&(s->v17_rx), 7200, short_train);
+        v17_rx_set_put_bit(&(s->v17_rx), put_bit_func, put_bit_user_data);
         s->rx_handler = (span_rx_handler_t *) &early_v17_rx;
         s->rx_user_data = s;
         break;
     case T30_MODEM_V17_9600:
-        v17_rx_restart(&(s->v17rx), 9600, short_train);
-        v17_rx_set_put_bit(&(s->v17rx), put_bit_func, put_bit_user_data);
+        v17_rx_restart(&(s->v17_rx), 9600, short_train);
+        v17_rx_set_put_bit(&(s->v17_rx), put_bit_func, put_bit_user_data);
         s->rx_handler = (span_rx_handler_t *) &early_v17_rx;
         s->rx_user_data = s;
         break;
     case T30_MODEM_V17_12000:
-        v17_rx_restart(&(s->v17rx), 12000, short_train);
-        v17_rx_set_put_bit(&(s->v17rx), put_bit_func, put_bit_user_data);
+        v17_rx_restart(&(s->v17_rx), 12000, short_train);
+        v17_rx_set_put_bit(&(s->v17_rx), put_bit_func, put_bit_user_data);
         s->rx_handler = (span_rx_handler_t *) &early_v17_rx;
         s->rx_user_data = s;
         break;
     case T30_MODEM_V17_14400:
-        v17_rx_restart(&(s->v17rx), 14400, short_train);
-        v17_rx_set_put_bit(&(s->v17rx), put_bit_func, put_bit_user_data);
+        v17_rx_restart(&(s->v17_rx), 14400, short_train);
+        v17_rx_set_put_bit(&(s->v17_rx), put_bit_func, put_bit_user_data);
         s->rx_handler = (span_rx_handler_t *) &early_v17_rx;
         s->rx_user_data = s;
         break;
@@ -401,7 +401,7 @@ static void fax_set_tx_type(void *user_data, int type, int short_train, int use_
         s->transmit = TRUE;
         break;
     case T30_MODEM_V21:
-        fsk_tx_init(&(s->v21tx), &preset_fsk_specs[FSK_V21CH2], get_bit_func, get_bit_user_data);
+        fsk_tx_init(&(s->v21_tx), &preset_fsk_specs[FSK_V21CH2], get_bit_func, get_bit_user_data);
         /* The spec says 1s +-15% of preamble. So, the minimum is 32 octets. */
         hdlc_tx_flags(&(s->hdlctx), 32);
         /* Pause before switching from phase C, as per T.30 5.3.2.2. If we omit this, the receiver
@@ -412,7 +412,7 @@ static void fax_set_tx_type(void *user_data, int type, int short_train, int use_
         s->tx_handler = (span_tx_handler_t *) &silence_gen;
         s->tx_user_data = &(s->silence_gen);
         s->next_tx_handler = (span_tx_handler_t *) &fsk_tx;
-        s->next_tx_user_data = &(s->v21tx);
+        s->next_tx_user_data = &(s->v21_tx);
         s->transmit = TRUE;
         break;
     case T30_MODEM_V27TER_2400:
@@ -439,67 +439,67 @@ static void fax_set_tx_type(void *user_data, int type, int short_train, int use_
         break;
     case T30_MODEM_V29_7200:
         silence_gen_alter(&(s->silence_gen), ms_to_samples(75));
-        v29_tx_restart(&(s->v29tx), 7200, s->use_tep);
-        v29_tx_set_get_bit(&(s->v29tx), get_bit_func, get_bit_user_data);
+        v29_tx_restart(&(s->v29_tx), 7200, s->use_tep);
+        v29_tx_set_get_bit(&(s->v29_tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &silence_gen;
         s->tx_user_data = &(s->silence_gen);
         s->next_tx_handler = (span_tx_handler_t *) &v29_tx;
-        s->next_tx_user_data = &(s->v29tx);
+        s->next_tx_user_data = &(s->v29_tx);
         hdlc_tx_flags(&(s->hdlctx), 180);
         s->transmit = TRUE;
         break;
     case T30_MODEM_V29_9600:
         silence_gen_alter(&(s->silence_gen), ms_to_samples(75));
-        v29_tx_restart(&(s->v29tx), 9600, s->use_tep);
-        v29_tx_set_get_bit(&(s->v29tx), get_bit_func, get_bit_user_data);
+        v29_tx_restart(&(s->v29_tx), 9600, s->use_tep);
+        v29_tx_set_get_bit(&(s->v29_tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &silence_gen;
         s->tx_user_data = &(s->silence_gen);
         s->next_tx_handler = (span_tx_handler_t *) &v29_tx;
-        s->next_tx_user_data = &(s->v29tx);
+        s->next_tx_user_data = &(s->v29_tx);
         hdlc_tx_flags(&(s->hdlctx), 240);
         s->transmit = TRUE;
         break;
     case T30_MODEM_V17_7200:
         silence_gen_alter(&(s->silence_gen), ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 7200, s->use_tep, short_train);
-        v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
+        v17_tx_restart(&(s->v17_tx), 7200, s->use_tep, short_train);
+        v17_tx_set_get_bit(&(s->v17_tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &silence_gen;
         s->tx_user_data = &(s->silence_gen);
         s->next_tx_handler = (span_tx_handler_t *) &v17_tx;
-        s->next_tx_user_data = &(s->v17tx);
+        s->next_tx_user_data = &(s->v17_tx);
         hdlc_tx_flags(&(s->hdlctx), 180);
         s->transmit = TRUE;
         break;
     case T30_MODEM_V17_9600:
         silence_gen_alter(&(s->silence_gen), ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 9600, s->use_tep, short_train);
-        v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
+        v17_tx_restart(&(s->v17_tx), 9600, s->use_tep, short_train);
+        v17_tx_set_get_bit(&(s->v17_tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &silence_gen;
         s->tx_user_data = &(s->silence_gen);
         s->next_tx_handler = (span_tx_handler_t *) &v17_tx;
-        s->next_tx_user_data = &(s->v17tx);
+        s->next_tx_user_data = &(s->v17_tx);
         hdlc_tx_flags(&(s->hdlctx), 240);
         s->transmit = TRUE;
         break;
     case T30_MODEM_V17_12000:
         silence_gen_alter(&(s->silence_gen), ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 12000, s->use_tep, short_train);
-        v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
+        v17_tx_restart(&(s->v17_tx), 12000, s->use_tep, short_train);
+        v17_tx_set_get_bit(&(s->v17_tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &silence_gen;
         s->tx_user_data = &(s->silence_gen);
         s->next_tx_handler = (span_tx_handler_t *) &v17_tx;
-        s->next_tx_user_data = &(s->v17tx);
+        s->next_tx_user_data = &(s->v17_tx);
         hdlc_tx_flags(&(s->hdlctx), 300);
         s->transmit = TRUE;
         break;
     case T30_MODEM_V17_14400:
         silence_gen_alter(&(s->silence_gen), ms_to_samples(75));
-        v17_tx_restart(&(s->v17tx), 14400, s->use_tep, short_train);
-        v17_tx_set_get_bit(&(s->v17tx), get_bit_func, get_bit_user_data);
+        v17_tx_restart(&(s->v17_tx), 14400, s->use_tep, short_train);
+        v17_tx_set_get_bit(&(s->v17_tx), get_bit_func, get_bit_user_data);
         s->tx_handler = (span_tx_handler_t *) &silence_gen;
         s->tx_user_data = &(s->silence_gen);
         s->next_tx_handler = (span_tx_handler_t *) &v17_tx;
-        s->next_tx_user_data = &(s->v17tx);
+        s->next_tx_user_data = &(s->v17_tx);
         hdlc_tx_flags(&(s->hdlctx), 360);
         s->transmit = TRUE;
         break;
@@ -552,15 +552,15 @@ fax_state_t *fax_init(fax_state_t *s, int calling_party)
     t30_set_supported_modems(&(s->t30_state),
                              T30_SUPPORT_V27TER | T30_SUPPORT_V29);
     hdlc_rx_init(&(s->hdlcrx), FALSE, FALSE, 5, t30_hdlc_accept, &(s->t30_state));
-    fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &(s->hdlcrx));
-    fsk_rx_signal_cutoff(&(s->v21rx), -45.5);
+    fsk_rx_init(&(s->v21_rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &(s->hdlcrx));
+    fsk_rx_signal_cutoff(&(s->v21_rx), -45.5);
     hdlc_tx_init(&(s->hdlctx), FALSE, 2, FALSE, hdlc_underflow_handler, &(s->t30_state));
-    fsk_tx_init(&(s->v21tx), &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &(s->hdlctx));
-    v17_rx_init(&(s->v17rx), 14400, t30_non_ecm_put_bit, &(s->t30_state));
-    v17_tx_init(&(s->v17tx), 14400, s->use_tep, t30_non_ecm_get_bit, &(s->t30_state));
-    v29_rx_init(&(s->v29rx), 9600, t30_non_ecm_put_bit, &(s->t30_state));
-    v29_rx_signal_cutoff(&(s->v29rx), -45.5);
-    v29_tx_init(&(s->v29tx), 9600, s->use_tep, t30_non_ecm_get_bit, &(s->t30_state));
+    fsk_tx_init(&(s->v21_tx), &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &(s->hdlctx));
+    v17_rx_init(&(s->v17_rx), 14400, t30_non_ecm_put_bit, &(s->t30_state));
+    v17_tx_init(&(s->v17_tx), 14400, s->use_tep, t30_non_ecm_get_bit, &(s->t30_state));
+    v29_rx_init(&(s->v29_rx), 9600, t30_non_ecm_put_bit, &(s->t30_state));
+    v29_rx_signal_cutoff(&(s->v29_rx), -45.5);
+    v29_tx_init(&(s->v29_tx), 9600, s->use_tep, t30_non_ecm_get_bit, &(s->t30_state));
     v27ter_rx_init(&(s->v27ter_rx), 4800, t30_non_ecm_put_bit, &(s->t30_state));
     v27ter_tx_init(&(s->v27ter_tx), 4800, s->use_tep, t30_non_ecm_get_bit, &(s->t30_state));
     silence_gen_init(&(s->silence_gen), 0);

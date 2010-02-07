@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.h,v 1.27 2007/12/13 11:31:32 steveu Exp $
+ * $Id: fax.h,v 1.28 2007/12/29 05:35:32 steveu Exp $
  */
 
 /*! \file */
@@ -86,16 +86,16 @@ struct fax_state_s
     hdlc_tx_state_t hdlctx;
     /*! \brief A V.21 FSK modem context used when transmitting HDLC over V.21
                messages. */
-    fsk_tx_state_t v21tx;
+    fsk_tx_state_t v21_tx;
     /*! \brief A V.21 FSK modem context used when receiving HDLC over V.21
                messages. */
-    fsk_rx_state_t v21rx;
+    fsk_rx_state_t v21_rx;
     /*! \brief A V.17 modem context used when sending FAXes at 7200bps, 9600bps
                12000bps or 14400bps*/
-    v17_tx_state_t v17tx;
+    v17_tx_state_t v17_tx;
     /*! \brief A V.29 modem context used when receiving FAXes at 7200bps, 9600bps
                12000bps or 14400bps*/
-    v17_rx_state_t v17rx;
+    v17_rx_state_t v17_rx;
     /*! \brief A V.27ter modem context used when sending FAXes at 2400bps or
                4800bps */
     v27ter_tx_state_t v27ter_tx;
@@ -104,10 +104,10 @@ struct fax_state_s
     v27ter_rx_state_t v27ter_rx;
     /*! \brief A V.29 modem context used when sending FAXes at 7200bps or
                9600bps */
-    v29_tx_state_t v29tx;
+    v29_tx_state_t v29_tx;
     /*! \brief A V.29 modem context used when receiving FAXes at 7200bps or
                9600bps */
-    v29_rx_state_t v29rx;
+    v29_rx_state_t v29_rx;
     /*! \brief Used to insert timed silences. */
     silence_gen_state_t silence_gen;
     /*! \brief */

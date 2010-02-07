@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * g1050.h - IP network modelling, as per G.1050/TIA-921.
+ * g1050.h - IP network modeling, as per G.1050/TIA-921.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g1050.h,v 1.1 2007/04/03 12:59:32 steveu Exp $
+ * $Id: g1050.h,v 1.4 2007/12/21 18:40:11 steveu Exp $
  */
 
 /*! \file */
@@ -93,26 +93,28 @@ typedef struct
     double percentage_occupancy;
     /*! MTU of the media */
     int mtu;
+    /*! Maximum jitter in the segment. */
+    double max_jitter;
 } g1050_segment_model_t;
 
 /*! The model definition for the core network (backbone) segment */
 typedef struct
 {
-    /*! Basic delay of the backbone */
+    /*! Basic delay of the backbone. */
     double base_delay;
-    /*! Percentage packet loss of the backbone */
+    /*! Percentage packet loss of the backbone. */
     double percentage_packet_loss;
-    /*! Maximum jitter of the backbone */
+    /*! Maximum jitter in the backbone. */
     double max_jitter;
-    /*! Interval between the backbone route flapping between two paths, in seconds */
+    /*! Interval between the backbone route flapping between two paths, in seconds. */
     double route_flap_interval;
-    /*! The difference in backbone delay between the two routes we flap between, in seconds */
+    /*! The difference in backbone delay between the two routes we flap between, in seconds. */
     double route_flap_delay;
-    /*! The interval between link failures */
+    /*! The interval between link failures. */
     double link_failure_interval;
-    /*! The duration of link failures */
+    /*! The duration of link failures. */
     double link_failure_duration;
-    /*! Probability of packet loss in the backbone */
+    /*! Probability of packet loss in the backbone. */
     double prob_packet_loss;
     /*! Probability of a packet going out of sequence in the backbone. */
     double prob_oos;
@@ -164,12 +166,14 @@ typedef struct
     /*! The impulse decay coefficient. */
     double impulse_coeff;
 
+    /*! The basic serial delay due to the link. */
+    double serial_delay;
+    /*! Peak jitter in the segment. */
+    double max_jitter;
     /*! The probability of packet loss. */
     double prob_packet_loss;
     /*! The probability of packet loss due to collision. */
     double prob_packet_collision_loss;
-    /*! The basic serial delay due to the link. */
-    double serial_delay;
     /*! The maximum addition delay due to congestion. */
     double congestion_delay;
 
@@ -208,7 +212,7 @@ typedef struct
     /*! Basic backbone delay */
     double base_delay;
     /*! Peak jitter in the backbone delay */
-    double jitter;
+    double max_jitter;
     /*! Probability of packet loss in the backbone, in percent */
     double prob_packet_loss;
     /*! Probability of a packet going out of sequence in the backbone. */

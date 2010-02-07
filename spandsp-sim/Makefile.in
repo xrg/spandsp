@@ -59,7 +59,8 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)"
 libLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libspandsp_sim_la_LIBADD =
-am_libspandsp_sim_la_OBJECTS = g1050.lo line_model.lo test_utils.lo
+am_libspandsp_sim_la_OBJECTS = g1050.lo line_model.lo rfc2198_sim.lo \
+	test_utils.lo
 nodist_libspandsp_sim_la_OBJECTS = line_models.lo
 libspandsp_sim_la_OBJECTS = $(am_libspandsp_sim_la_OBJECTS) \
 	$(nodist_libspandsp_sim_la_OBJECTS)
@@ -212,6 +213,7 @@ INCLUDES = -I$(top_builddir) -I$(top_builddir)/src -DDATADIR="\"$(pkgdatadir)\""
 lib_LTLIBRARIES = libspandsp-sim.la
 libspandsp_sim_la_SOURCES = g1050.c \
                             line_model.c \
+                            rfc2198_sim.c \
                             test_utils.c
 
 nodist_libspandsp_sim_la_SOURCES = line_models.c
@@ -219,6 +221,7 @@ libspandsp_sim_la_LDFLAGS = -version-info @SPANDSP_LT_CURRENT@:@SPANDSP_LT_REVIS
 nobase_include_HEADERS = spandsp/g1050.h \
                          spandsp/line_model.h \
                          spandsp/line_models.h \
+                         spandsp/rfc2198_sim.h \
                          spandsp/test_utils.h \
                          spandsp-sim.h
 
@@ -313,6 +316,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/line_model.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/line_models.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/make_line_models.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rfc2198_sim.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_utils.Plo@am__quote@
 
 .c.o:

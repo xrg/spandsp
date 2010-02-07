@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.31 2007/12/13 11:31:31 steveu Exp $
+ * $Id: dtmf.c,v 1.32 2007/12/20 11:11:16 steveu Exp $
  */
  
 /*! \file dtmf.h */
@@ -614,6 +614,12 @@ size_t dtmf_tx_put(dtmf_tx_state_t *s, const char *digits, ssize_t len)
     if (queue_write(&s->queue, (const uint8_t *) digits, len) >= 0)
         return 0;
     return -1;
+}
+/*- End of function --------------------------------------------------------*/
+
+void dtmf_tx_set_level(dtmf_tx_state_t *s, int level, int twist)
+{
+    /* TODO: */
 }
 /*- End of function --------------------------------------------------------*/
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.34 2007/12/13 11:31:31 steveu Exp $
+ * $Id: fsk.c,v 1.35 2007/12/20 12:08:35 steveu Exp $
  */
 
 /*! \file */
@@ -191,13 +191,8 @@ void fsk_tx_set_get_bit(fsk_tx_state_t *s, get_bit_func_t get_bit, void *user_da
 void fsk_rx_signal_cutoff(fsk_rx_state_t *s, float cutoff)
 {
     /* The 6.04 allows for the gain of the DC blocker */
-#if defined(IAXMODEM_STUFF)
-    s->carrier_on_power = (int32_t) (power_meter_level_dbm0(cutoff + 0.27f - 6.04f));
-    s->carrier_off_power = (int32_t) (power_meter_level_dbm0(cutoff - 0.27f - 6.04f));
-#else
     s->carrier_on_power = (int32_t) (power_meter_level_dbm0(cutoff + 2.5f - 6.04f));
     s->carrier_off_power = (int32_t) (power_meter_level_dbm0(cutoff - 2.5f - 6.04f));
-#endif
 }
 /*- End of function --------------------------------------------------------*/
 

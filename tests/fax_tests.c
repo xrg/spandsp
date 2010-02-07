@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.75 2007/12/14 13:40:34 steveu Exp $
+ * $Id: fax_tests.c,v 1.76 2007/12/29 05:35:32 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -379,8 +379,8 @@ int main(int argc, char *argv[])
         sprintf(mc->tag, "FAX-%d", j + 1);
         span_log_set_level(&mc->fax.t30_state.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
         span_log_set_tag(&mc->fax.t30_state.logging, mc->tag);
-        span_log_set_level(&mc->fax.v29rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
-        span_log_set_tag(&mc->fax.v29rx.logging, mc->tag);
+        span_log_set_level(&mc->fax.v29_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+        span_log_set_tag(&mc->fax.v29_rx.logging, mc->tag);
         span_log_set_level(&mc->fax.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
         span_log_set_tag(&mc->fax.logging, mc->tag);
         memset(mc->amp, 0, sizeof(mc->amp));
@@ -418,7 +418,7 @@ int main(int argc, char *argv[])
                 }
             }
             span_log_bump_samples(&mc->fax.t30_state.logging, mc->len);
-            span_log_bump_samples(&mc->fax.v29rx.logging, mc->len);
+            span_log_bump_samples(&mc->fax.v29_rx.logging, mc->len);
             span_log_bump_samples(&mc->fax.logging, mc->len);
 
             if (log_audio)

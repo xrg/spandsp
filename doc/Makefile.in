@@ -166,7 +166,13 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 MAINTAINERCLEANFILES = Makefile.in
-EXTRA_DIST = css.css
+EXTRA_DIST = css.css \
+             t38-gateway.dia \
+             t38-terminal.dia \
+             t38_manual.xml \
+             wrapper.xsl \
+             t38_manual/css.css
+
 all: all-am
 
 .SUFFIXES:
@@ -217,6 +223,7 @@ CTAGS:
 
 
 distdir: $(DISTFILES)
+	$(mkdir_p) $(distdir)/t38_manual
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

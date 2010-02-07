@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31_tests.c,v 1.48 2007/11/28 12:26:52 steveu Exp $
+ * $Id: t31_tests.c,v 1.49 2007/12/20 10:56:11 steveu Exp $
  */
 
 /*! \file */
@@ -695,7 +695,12 @@ int main(int argc, char *argv[])
             decode_test_file = optarg;
             break;
         case 'g':
+#if defined(ENABLE_GUI)
             use_gui = TRUE;
+#else
+            fprintf(stderr, "Graphical monitoring not available\n");
+            exit(2);
+#endif
             break;
         case 'l':
             log_audio = TRUE;

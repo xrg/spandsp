@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17_tests.c,v 1.75 2007/11/10 11:14:59 steveu Exp $
+ * $Id: v17_tests.c,v 1.77 2007/12/29 04:16:29 steveu Exp $
  */
 
 /*! \page v17_tests_page V.17 modem tests
@@ -207,7 +207,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
         fpower = (constel->re - target->re)*(constel->re - target->re)
                + (constel->im - target->im)*(constel->im - target->im);
         smooth_power = 0.95f*smooth_power + 0.05f*fpower;
-        printf("%8d [%8.4f, %8.4f] [%8.4f, %8.4f] %2x %8.4f %8.4f %9.4f %7.3f\n",
+        printf("%8d [%8.4f, %8.4f] [%8.4f, %8.4f] %2x %8.4f %8.4f %9.4f %7.3f %7.2f\n",
                symbol_no,
                constel->re,
                constel->im,
@@ -217,7 +217,8 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
                fpower,
                smooth_power,
                v17_rx_carrier_frequency(rx),
-               v17_rx_signal_power(rx));
+               v17_rx_signal_power(rx),
+               v17_rx_symbol_timing_correction(rx));
         printf("Carrier %d %f %f\n", symbol_no, v17_rx_carrier_frequency(rx), v17_rx_symbol_timing_correction(rx));
         symbol_no++;
         if (--update_interval <= 0)
@@ -285,7 +286,12 @@ int main(int argc, char *argv[])
             decode_test_file = optarg;
             break;
         case 'g':
+#if defined(ENABLE_GUI)
             use_gui = TRUE;
+#else
+            fprintf(stderr, "Graphical monitoring not available\n");
+            exit(2);
+#endif
             break;
         case 'l':
             log_audio = TRUE;

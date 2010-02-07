@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.h,v 1.17 2007/12/13 11:31:32 steveu Exp $
+ * $Id: dtmf.h,v 1.18 2007/12/20 11:11:16 steveu Exp $
  */
 
 #if !defined(_SPANDSP_DTMF_H_)
@@ -155,6 +155,12 @@ int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples);
     \return The number of digits actually added. This may be less than the
             length of the digit string, if the buffer fills up. */
 size_t dtmf_tx_put(dtmf_tx_state_t *s, const char *digits, ssize_t len);
+
+/*! \brief Change the transmit level for a DTMF tone generator context.
+    \param s The DTMF generator context.
+    \param level The level of the low tone, in dBm0.
+    \param twist The twist, in dB. */
+void dtmf_tx_set_level(dtmf_tx_state_t *s, int level, int twist);
 
 /*! \brief Initialise a DTMF tone generator context.
     \param s The DTMF generator context.

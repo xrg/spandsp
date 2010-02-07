@@ -55,10 +55,10 @@ noinst_PROGRAMS = adsi_tests$(EXEEXT) async_tests$(EXEEXT) \
 	oki_adpcm_tests$(EXEEXT) playout_tests$(EXEEXT) \
 	plc_tests$(EXEEXT) power_meter_tests$(EXEEXT) \
 	queue_tests$(EXEEXT) r2_mf_rx_tests$(EXEEXT) \
-	r2_mf_tx_tests$(EXEEXT) schedule_tests$(EXEEXT) \
-	sig_tone_tests$(EXEEXT) super_tone_rx_tests$(EXEEXT) \
-	super_tone_tx_tests$(EXEEXT) t4_tests$(EXEEXT) \
-	t31_tests$(EXEEXT) t38_core_tests$(EXEEXT) \
+	r2_mf_tx_tests$(EXEEXT) rfc2198_sim_tests$(EXEEXT) \
+	schedule_tests$(EXEEXT) sig_tone_tests$(EXEEXT) \
+	super_tone_rx_tests$(EXEEXT) super_tone_tx_tests$(EXEEXT) \
+	t4_tests$(EXEEXT) t31_tests$(EXEEXT) t38_core_tests$(EXEEXT) \
 	t38_gateway_tests$(EXEEXT) \
 	t38_gateway_to_terminal_tests$(EXEEXT) \
 	t38_terminal_tests$(EXEEXT) \
@@ -201,6 +201,10 @@ r2_mf_rx_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_r2_mf_tx_tests_OBJECTS = r2_mf_tx_tests.$(OBJEXT)
 r2_mf_tx_tests_OBJECTS = $(am_r2_mf_tx_tests_OBJECTS)
 r2_mf_tx_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_rfc2198_sim_tests_OBJECTS = rfc2198_sim_tests.$(OBJEXT) \
+	media_monitor.$(OBJEXT)
+rfc2198_sim_tests_OBJECTS = $(am_rfc2198_sim_tests_OBJECTS)
+rfc2198_sim_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_schedule_tests_OBJECTS = schedule_tests.$(OBJEXT)
 schedule_tests_OBJECTS = $(am_schedule_tests_OBJECTS)
 schedule_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -326,10 +330,11 @@ SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(oki_adpcm_tests_SOURCES) $(playout_tests_SOURCES) \
 	$(plc_tests_SOURCES) $(power_meter_tests_SOURCES) \
 	$(queue_tests_SOURCES) $(r2_mf_rx_tests_SOURCES) \
-	$(r2_mf_tx_tests_SOURCES) $(schedule_tests_SOURCES) \
-	$(sig_tone_tests_SOURCES) $(super_tone_rx_tests_SOURCES) \
-	$(super_tone_tx_tests_SOURCES) $(t31_tests_SOURCES) \
-	$(t38_core_tests_SOURCES) $(t38_gateway_tests_SOURCES) \
+	$(r2_mf_tx_tests_SOURCES) $(rfc2198_sim_tests_SOURCES) \
+	$(schedule_tests_SOURCES) $(sig_tone_tests_SOURCES) \
+	$(super_tone_rx_tests_SOURCES) $(super_tone_tx_tests_SOURCES) \
+	$(t31_tests_SOURCES) $(t38_core_tests_SOURCES) \
+	$(t38_gateway_tests_SOURCES) \
 	$(t38_gateway_to_terminal_tests_SOURCES) \
 	$(t38_terminal_tests_SOURCES) \
 	$(t38_terminal_to_gateway_tests_SOURCES) $(t4_tests_SOURCES) \
@@ -359,10 +364,11 @@ DIST_SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(oki_adpcm_tests_SOURCES) $(playout_tests_SOURCES) \
 	$(plc_tests_SOURCES) $(power_meter_tests_SOURCES) \
 	$(queue_tests_SOURCES) $(r2_mf_rx_tests_SOURCES) \
-	$(r2_mf_tx_tests_SOURCES) $(schedule_tests_SOURCES) \
-	$(sig_tone_tests_SOURCES) $(super_tone_rx_tests_SOURCES) \
-	$(super_tone_tx_tests_SOURCES) $(t31_tests_SOURCES) \
-	$(t38_core_tests_SOURCES) $(t38_gateway_tests_SOURCES) \
+	$(r2_mf_tx_tests_SOURCES) $(rfc2198_sim_tests_SOURCES) \
+	$(schedule_tests_SOURCES) $(sig_tone_tests_SOURCES) \
+	$(super_tone_rx_tests_SOURCES) $(super_tone_tx_tests_SOURCES) \
+	$(t31_tests_SOURCES) $(t38_core_tests_SOURCES) \
+	$(t38_gateway_tests_SOURCES) \
 	$(t38_gateway_to_terminal_tests_SOURCES) \
 	$(t38_terminal_tests_SOURCES) \
 	$(t38_terminal_to_gateway_tests_SOURCES) $(t4_tests_SOURCES) \
@@ -585,6 +591,8 @@ r2_mf_rx_tests_SOURCES = r2_mf_rx_tests.c
 r2_mf_rx_tests_LDADD = $(LIBDIR) -lspandsp
 r2_mf_tx_tests_SOURCES = r2_mf_tx_tests.c
 r2_mf_tx_tests_LDADD = $(LIBDIR) -lspandsp
+rfc2198_sim_tests_SOURCES = rfc2198_sim_tests.c media_monitor.cpp
+rfc2198_sim_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 schedule_tests_SOURCES = schedule_tests.c
 schedule_tests_LDADD = $(LIBDIR) -lspandsp 
 sig_tone_tests_SOURCES = sig_tone_tests.c
@@ -792,6 +800,9 @@ r2_mf_rx_tests$(EXEEXT): $(r2_mf_rx_tests_OBJECTS) $(r2_mf_rx_tests_DEPENDENCIES
 r2_mf_tx_tests$(EXEEXT): $(r2_mf_tx_tests_OBJECTS) $(r2_mf_tx_tests_DEPENDENCIES) 
 	@rm -f r2_mf_tx_tests$(EXEEXT)
 	$(LINK) $(r2_mf_tx_tests_LDFLAGS) $(r2_mf_tx_tests_OBJECTS) $(r2_mf_tx_tests_LDADD) $(LIBS)
+rfc2198_sim_tests$(EXEEXT): $(rfc2198_sim_tests_OBJECTS) $(rfc2198_sim_tests_DEPENDENCIES) 
+	@rm -f rfc2198_sim_tests$(EXEEXT)
+	$(CXXLINK) $(rfc2198_sim_tests_LDFLAGS) $(rfc2198_sim_tests_OBJECTS) $(rfc2198_sim_tests_LDADD) $(LIBS)
 schedule_tests$(EXEEXT): $(schedule_tests_OBJECTS) $(schedule_tests_DEPENDENCIES) 
 	@rm -f schedule_tests$(EXEEXT)
 	$(LINK) $(schedule_tests_LDFLAGS) $(schedule_tests_OBJECTS) $(schedule_tests_LDADD) $(LIBS)
@@ -917,6 +928,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/queue_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/r2_mf_rx_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/r2_mf_tx_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rfc2198_sim_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/schedule_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sig_tone_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/super_tone_rx_tests.Po@am__quote@

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect_tests.c,v 1.3 2007/11/10 11:14:59 steveu Exp $
+ * $Id: tone_detect_tests.c,v 1.4 2007/12/20 11:11:16 steveu Exp $
  */
 
 /*! \page tone_detect_tests_page Tone detection tests
@@ -42,15 +42,17 @@
 
 #include "spandsp.h"
 
-#define SAMPLE_RATE 8000
-#define BLOCK_LEN   56
-#define PG_WINDOW   56
-#define FREQ        480.0f
+#define DEC_SAMPLE_RATE     800
+#define BLOCK_LEN           56
+#define PG_WINDOW           56
+#define FREQ1               440.0f
+#define FREQ2               480.0f
 
-int main(int argc, char *argv[])
+static int periodogram_tests(void)
 {
     int i;
     int j;
+    int k;
     int len;
     complexf_t coeffs[PG_WINDOW/2];
     complexf_t camp[BLOCK_LEN];
@@ -58,48 +60,78 @@ int main(int argc, char *argv[])
     complexf_t result;
     complexf_t phase_offset;
     float freq_error;
-    float scale;
     float pg_scale;
     float level;
-    int32_t phase_rate;
-    uint32_t phase_acc;
+    float scale1;
+    float scale2;
+    int32_t phase_rate1;
+    int32_t phase_rate2;
+    uint32_t phase_acc1;
+    uint32_t phase_acc2;
+    awgn_state_t noise_source_re;
+    awgn_state_t noise_source_im;
 
-    phase_rate = dds_phase_ratef(FREQ - 5.0f);
-    phase_acc = 0;
-    len = periodogram_generate_coeffs(coeffs, FREQ, SAMPLE_RATE, PG_WINDOW);
+    phase_rate1 = dds_phase_ratef(FREQ1 - 5.0f);
+    phase_rate2 = dds_phase_ratef(FREQ2);
+    phase_acc1 = 0;
+    phase_acc2 = 0;
+    len = periodogram_generate_coeffs(coeffs, FREQ1, DEC_SAMPLE_RATE, PG_WINDOW);
     if (len != PG_WINDOW/2)
     {
         printf("Test failed\n");
-        exit(2);
+        return -1;
     }
-    pg_scale = periodogram_generate_phase_offset(&phase_offset, FREQ, SAMPLE_RATE, PG_WINDOW);
-    scale = 10000.0f;
-    last_result = complex_setf(0.0f, 0.0f);
-    for (i = 0;  i < 100;  i++)
-    {
-        for (j = 0;  j < PG_WINDOW;  j++)
-        {
-            result = dds_complexf(&phase_acc, phase_rate);
-            camp[j].re = result.re*scale;
-            camp[j].im = result.im*scale;
-        }
-        result = periodogram(coeffs, camp, PG_WINDOW);
-        level = sqrtf(result.re*result.re + result.im*result.im);
-        freq_error = periodogram_freq_error(&phase_offset, pg_scale, &last_result, &result);
+    pg_scale = periodogram_generate_phase_offset(&phase_offset, FREQ1, DEC_SAMPLE_RATE, PG_WINDOW);
+    scale1 = dds_scaling_dbm0f(-6.0f);
+    scale2 = dds_scaling_dbm0f(-6.0f);
 
-        printf("Signal level = %.5f, freq error = %.5f\n", level, freq_error);
-        if (level < scale - 20.0f  ||  level > scale + 20.0f)
+    for (k = -50;  k < 0;  k++)
+    {
+        printf("Setting noise to %ddBm0\n", k);
+        awgn_init_dbm0(&noise_source_re, 1234567, (float) k);
+        awgn_init_dbm0(&noise_source_im, 7654321, (float) k);
+        last_result = complex_setf(0.0f, 0.0f);
+        for (i = 0;  i < 100;  i++)
         {
-            printf("Test failed\n");
-            exit(2);
+            for (j = 0;  j < PG_WINDOW;  j++)
+            {
+                result = dds_complexf(&phase_acc1, phase_rate1);
+                camp[j].re = result.re*scale1;
+                camp[j].im = result.im*scale1;
+                result = dds_complexf(&phase_acc2, phase_rate2);
+                camp[j].re += result.re*scale2;
+                camp[j].im += result.im*scale2;
+                camp[j].re += awgn(&noise_source_re);
+                camp[j].im += awgn(&noise_source_im);
+            }
+            result = periodogram(coeffs, camp, PG_WINDOW);
+            level = sqrtf(result.re*result.re + result.im*result.im);
+            freq_error = periodogram_freq_error(&phase_offset, pg_scale, &last_result, &result);
+            last_result = result;
+            if (i == 0)
+                continue;
+
+            printf("Signal level = %.5f, freq error = %.5f\n", level, freq_error);
+            if (level < scale1 - 20.0f  ||  level > scale1 + 20.0f)
+            {
+                printf("Test failed - %ddBm0 of noise, signal is %f\n", k, level);
+                //return -1;
+            }
+            if (freq_error < -10.0f  ||  freq_error > 0.0f)
+            {
+                printf("Test failed - %ddBm0 of noise, %fHz error\n", k, freq_error);
+                //return -1;
+            }
         }
-        if (freq_error < -5.5f  ||  freq_error > 5.5f)
-        {
-            printf("Test failed\n");
-            exit(2);
-        }
-        last_result = result;
     }
+    return  0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int main(int argc, char *argv[])
+{
+    if (periodogram_tests())
+        exit(2);
     printf("Tests passed\n");
     return  0;
 }

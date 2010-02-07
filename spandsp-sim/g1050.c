@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * g1050.c - IP network modelling, as per G.1050/TIA-921.
+ * g1050.c - IP network modeling, as per G.1050/TIA-921.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g1050.c,v 1.1 2007/04/03 12:59:32 steveu Exp $
+ * $Id: g1050.c,v 1.4 2007/12/21 18:40:11 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -61,12 +61,12 @@ g1050_constants_t g1050_constants[1] =
         {
             {   /* Side A LAN */
                 {
-                    0.004,
-                    0.1
+                    0.004,          /*! Probability of loss rate change low->high */
+                    0.1             /*! Probability of loss rate change high->low */
                 },
                 {
                     {
-                        0.0,
+                        0.0,        /*! Probability of an impulse */
                         0.0,
                     },
                     {
@@ -74,19 +74,19 @@ g1050_constants_t g1050_constants[1] =
                         0.0
                     }
                 },
-                1.0,
-                0.0,
-                0.001,
-                0.15
+                1.0,                /*! Impulse height, based on MTU and bit rate */
+                0.0,                /*! Impulse decay coefficient */
+                0.001,              /*! Probability of packet loss due to occupancy. */
+                0.15                /*! Probability of packet loss due to a multiple access collision. */
             },
             {   /* Side A access link */
                 {
-                    0.0002,
-                    0.2
+                    0.0002,         /*! Probability of loss rate change low->high */
+                    0.2             /*! Probability of loss rate change high->low */
                 },
                 {
                     {
-                        0.001,
+                        0.001,      /*! Probability of an impulse */
                         0.0,
                     },
                     {
@@ -94,19 +94,19 @@ g1050_constants_t g1050_constants[1] =
                         0.4
                     }
                 },
-                40.0,
-                0.75,
-                0.0005,
-                0.0
+                40.0,               /*! Impulse height, based on MTU and bit rate */
+                0.75,               /*! Impulse decay coefficient */
+                0.0005,             /*! Probability of packet loss due to occupancy. */
+                0.0                 /*! Probability of packet loss due to a multiple access collision. */
             },
             {   /* Side B access link */
                 {
-                    0.0002,
-                    0.2
+                    0.0002,         /*! Probability of loss rate change low->high */
+                    0.2             /*! Probability of loss rate change high->low */
                 },
                 {
                     {
-                        0.001,
+                        0.001,      /*! Probability of an impulse */
                         0.0,
                     },
                     {
@@ -114,19 +114,19 @@ g1050_constants_t g1050_constants[1] =
                         0.4
                     }
                 },
-                40.0,
-                0.75,
-                0.0005,
-                0.0
+                40.0,               /*! Impulse height, based on MTU and bit rate */
+                0.75,               /*! Impulse decay coefficient */
+                0.0005,             /*! Probability of packet loss due to occupancy. */
+                0.0                 /*! Probability of packet loss due to a multiple access collision. */
             },
             {   /* Side B LAN */
                 {
-                    0.004,
-                    0.1
+                    0.004,          /*! Probability of loss rate change low->high */
+                    0.1             /*! Probability of loss rate change high->low */
                 },
                 {
                     {
-                        0.0,
+                        0.0,        /*! Probability of an impulse */
                         0.0,
                     },
                     {
@@ -134,10 +134,10 @@ g1050_constants_t g1050_constants[1] =
                         0.0
                     }
                 },
-                1.0,
-                0.0,
-                0.001,
-                0.15
+                1.0,                /*! Impulse height, based on MTU and bit rate */
+                0.0,                /*! Impulse decay coefficient */
+                0.001,              /*! Probability of packet loss due to occupancy. */
+                0.15                /*! Probability of packet loss due to a multiple access collision. */
             }
         }
     }
@@ -284,17 +284,19 @@ g1050_model_t g1050_standard_models[9] =
 {
     {   /* Severity 0 - no impairment */
         {
-            0,
-            0,
-            0,
+            0,          /*! Percentage likelihood of occurance in scenario A */
+            0,          /*! Percentage likelihood of occurance in scenario B */
+            0,          /*! Percentage likelihood of occurance in scenario C */
         },
         {
             0.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             0.0,        /*! Percentage occupancy */
-            512         /*! MTU */
+            512,        /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             0.0,        /*! Basic delay of the backbone, in seconds */
@@ -309,26 +311,30 @@ g1050_model_t g1050_standard_models[9] =
         },
         {
             0.0,        /*! Percentage occupancy */
-            512         /*! MTU */
+            512,        /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             0.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         }
     },
     {   /* Severity A */
         {
-            50,
-            5,
-            5,
+            50,         /*! Percentage likelihood of occurance in scenario A */
+            5,          /*! Percentage likelihood of occurance in scenario B */
+            5,          /*! Percentage likelihood of occurance in scenario C */
         },
         {
             1.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         },
         {
             0.0,        /*! Percentage occupancy */
-            512         /*! MTU */
+            512,        /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             0.004,      /*! Basic delay of the backbone, in seconds */
@@ -343,26 +349,30 @@ g1050_model_t g1050_standard_models[9] =
         },
         {
             0.0,        /*! Percentage occupancy */
-            512         /*! MTU */
+            512,        /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             1.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         }
     },
     {   /* Severity B */
         {
-            30,
-            25,
-            5,
+            30,         /*! Percentage likelihood of occurance in scenario A */
+            25,         /*! Percentage likelihood of occurance in scenario B */
+            5,          /*! Percentage likelihood of occurance in scenario C */
         },
         {
             2.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         },
         {
             1.0,        /*! Percentage occupancy */
-            512         /*! MTU */
+            512,        /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             0.008,      /*! Basic delay of the backbone, in seconds */
@@ -377,26 +387,30 @@ g1050_model_t g1050_standard_models[9] =
         },
         {
             1.0,        /*! Percentage occupancy */
-            512         /*! MTU */
+            512,        /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             2.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         }
     },
     {   /* Severity C */
         {
-            15,
-            30,
-            10,
+            15,         /*! Percentage likelihood of occurance in scenario A */
+            30,         /*! Percentage likelihood of occurance in scenario B */
+            10,         /*! Percentage likelihood of occurance in scenario C */
         },
         {
             3.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         },
         {
             2.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             0.016,      /*! Basic delay of the backbone, in seconds */
@@ -411,26 +425,30 @@ g1050_model_t g1050_standard_models[9] =
         },
         {
             2.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             3.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         }
     },
     {   /* Severity D */
         {
-            5,
-            25,
-            15,
+            5,          /*! Percentage likelihood of occurance in scenario A */
+            25,         /*! Percentage likelihood of occurance in scenario B */
+            15,         /*! Percentage likelihood of occurance in scenario C */
         },
         {
             5.0,         /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         },
         {
             4.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             0.032,      /*! Basic delay of the backbone, in seconds */
@@ -445,26 +463,30 @@ g1050_model_t g1050_standard_models[9] =
         },
         {
             4.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             5.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         }
     },
     {   /* Severity E */
         {
-            0,
-            10,
-            20,
+            0,          /*! Percentage likelihood of occurance in scenario A */
+            10,         /*! Percentage likelihood of occurance in scenario B */
+            20,         /*! Percentage likelihood of occurance in scenario C */
         },
         {
             8.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         },
         {
             8.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             0.064,      /*! Basic delay of the backbone, in seconds */
@@ -479,26 +501,30 @@ g1050_model_t g1050_standard_models[9] =
         },
         {
             8.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             8.0,        /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         }
     },
     {   /* Severity F */
         {
-            0,
-            0,
-            25,
+            0,          /*! Percentage likelihood of occurance in scenario A */
+            0,          /*! Percentage likelihood of occurance in scenario B */
+            25,         /*! Percentage likelihood of occurance in scenario C */
         },
         {
             12.0,       /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         },
         {
             15.0,       /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             0.128,      /*! Basic delay of the backbone, in seconds */
@@ -513,26 +539,30 @@ g1050_model_t g1050_standard_models[9] =
         },
         {
             15.0,       /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             12.0,       /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         }
     },
     {   /* Severity G */
         {
-            0,
-            0,
-            15,
+            0,          /*! Percentage likelihood of occurance in scenario A */
+            0,          /*! Percentage likelihood of occurance in scenario B */
+            15,         /*! Percentage likelihood of occurance in scenario C */
         },
         {
             16.0,       /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         },
         {
             30.0,       /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             0.256,      /*! Basic delay of the backbone, in seconds */
@@ -547,26 +577,30 @@ g1050_model_t g1050_standard_models[9] =
         },
         {
             30.0,       /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             16.0,       /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         }
     },
     {   /* Severity H */
         {
-            0,
-            0,
-            5,
+            0,          /*! Percentage likelihood of occurance in scenario A */
+            0,          /*! Percentage likelihood of occurance in scenario B */
+            5,          /*! Percentage likelihood of occurance in scenario C */
         },
         {
             20.0,       /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         },
         {
             50.0,       /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             0.512,      /*! Basic delay of the backbone, in seconds */
@@ -581,11 +615,13 @@ g1050_model_t g1050_standard_models[9] =
         },
         {
             50.0,       /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0         /*! Peak jitter */
         },
         {
             20.0,       /*! Percentage occupancy */
-            1508        /*! MTU */
+            1508,       /*! MTU */
+            0.0015      /*! Peak jitter */
         }
     }
 };
@@ -623,14 +659,14 @@ static void g1050_segment_init(g1050_segment_state_t *s,
     s->link_type = link_type;
     s->prob_loss_rate_change[0] = scale_probability(constants->prob_loss_rate_change[0]*parms->percentage_occupancy, 1.0/packet_interval);
 
-    s->serial_delay = packet_size*8.0/(bit_rate*1000.0);
+    s->serial_delay = packet_size*8.0/bit_rate;
     if (link_type == G1050_LAN_LINK)
     {
         s->prob_loss_rate_change[1] = scale_probability(constants->prob_loss_rate_change[1], 1.0/packet_interval);
         s->prob_impulse[0] = constants->prob_impulse[0][0];
         s->prob_impulse[1] = constants->prob_impulse[1][0];
         s->impulse_coeff = constants->impulse_coeff;
-        s->impulse_height = parms->mtu*(8.0/(bit_rate*1000.0))*(1.0 + parms->percentage_occupancy/constants->impulse_height);
+        s->impulse_height = parms->mtu*(8.0/bit_rate)*(1.0 + parms->percentage_occupancy/constants->impulse_height);
     }
     else if (link_type == G1050_ACCESS_LINK)
     {
@@ -639,7 +675,7 @@ static void g1050_segment_init(g1050_segment_state_t *s,
         s->prob_impulse[1] = scale_probability(constants->prob_impulse[1][0] + (constants->prob_impulse[1][1]*parms->percentage_occupancy/100.0), 1.0/packet_interval);
         s->impulse_coeff = 1.0 - scale_probability(1.0 - constants->impulse_coeff, 1.0/packet_interval);
         x = (1.0 - constants->impulse_coeff)/(1.0 - s->impulse_coeff);
-        s->impulse_height = x*parms->mtu*(8.0/(bit_rate*1000.0))*(1.0 + parms->percentage_occupancy/constants->impulse_height);
+        s->impulse_height = x*parms->mtu*(8.0/bit_rate)*(1.0 + parms->percentage_occupancy/constants->impulse_height);
     }
 
     /* The following are calculated the same way for LAN and access links */
@@ -647,6 +683,7 @@ static void g1050_segment_init(g1050_segment_state_t *s,
     s->qos_enabled = qos_enabled;
     s->multiple_access = multiple_access;
     s->prob_packet_collision_loss = constants->prob_packet_collision_loss;
+    s->max_jitter = parms->max_jitter;
 
     /* The following is common state information to all links. */
     s->high_loss = FALSE;
@@ -685,7 +722,7 @@ static void g1050_core_init(g1050_core_state_t *s, g1050_core_model_t *parms, in
     s->link_recovery_counter = s->link_failure_duration_ticks;
     
     s->base_delay = parms->base_delay;
-    s->jitter = parms->max_jitter;
+    s->max_jitter = parms->max_jitter;
     s->prob_packet_loss = parms->prob_packet_loss/100.0;
     s->prob_oos = parms->prob_oos/100.0;
     s->last_arrival_time = 0.0;
@@ -709,11 +746,8 @@ static void g1050_segment_model(g1050_segment_state_t *s, double delays[], int l
     for (i = 0;  i < len;  i++)
     {
         lose = FALSE;
-        /* Initialize delay to serial delay. */
-        slice_delay = s->serial_delay;
-        /* Add a fixed jitter to all LAN links. */
-        if (s->link_type == G1050_LAN_LINK)
-            slice_delay += 0.0000015*q1050_rand();
+        /* Initialize delay to the serial delay plus some jitter. */
+        slice_delay = s->serial_delay + s->max_jitter*q1050_rand();
         /* If no QoS, do congestion delay and packet loss analysis. */
         if (!s->qos_enabled)
         {
@@ -741,7 +775,6 @@ static void g1050_segment_model(g1050_segment_state_t *s, double delays[], int l
         if (s->multiple_access  &&  (q1050_rand() < s->prob_packet_collision_loss))
             lose = TRUE;
         /* Put computed delay into time slice array. */
-        /* time_slice_delays are in microseconds!    */
         if (lose)
         {
             delays[i] = PACKET_LOSS_TIME;
@@ -749,7 +782,7 @@ static void g1050_segment_model(g1050_segment_state_t *s, double delays[], int l
         }
         else
         {
-            delays[i] = slice_delay*1000.0;
+            delays[i] = slice_delay;
         }
     }
 }
@@ -764,7 +797,7 @@ static void g1050_core_model(g1050_core_state_t *s, double delays[], int len)
     for (i = 0;  i < len;  i++)
     {
         lose = FALSE;
-        jitter_delay = s->base_delay + s->jitter*q1050_rand();
+        jitter_delay = s->base_delay + s->max_jitter*q1050_rand();
         /* Route flapping */
         if (--s->route_flap_counter <= 0)
         {
@@ -800,7 +833,11 @@ static void g1050_core_model(g1050_core_state_t *s, double delays[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int g1050_segment_delay(g1050_segment_state_t *s, double base_time, double arrival_times[], double delays[], int num_packets)
+static int g1050_segment_delay(g1050_segment_state_t *s,
+                               double base_time,
+                               double arrival_times[],
+                               double delays[],
+                               int num_packets)
 {
     int i;
     int32_t departure_time;
@@ -810,7 +847,8 @@ static int g1050_segment_delay(g1050_segment_state_t *s, double base_time, doubl
     lost_packets = 0;
     for (i = 0;  i < num_packets;  i++)
     {
-        departure_time = (arrival_times[i] + 0.0005 - base_time)*1000;
+        /* Apply half a millisecond of rounding, as we working in millisecond steps. */
+        departure_time = (arrival_times[i] + 0.0005 - base_time)*G1050_TICKS_PER_SEC;
         if (arrival_times[i] == PACKET_LOSS_TIME)
         {
             /* Lost already */
@@ -833,7 +871,12 @@ static int g1050_segment_delay(g1050_segment_state_t *s, double base_time, doubl
 }
 /*- End of function --------------------------------------------------------*/
 
-static int g1050_segment_delay_preserve_order(g1050_segment_state_t *s, double base_time, double arrival_times_a[], double arrival_times_b[], double delays[], int num_packets)
+static int g1050_segment_delay_preserve_order(g1050_segment_state_t *s,
+                                              double base_time,
+                                              double arrival_times_a[],
+                                              double arrival_times_b[],
+                                              double delays[],
+                                              int num_packets)
 {
     int i;
     int j;
@@ -850,7 +893,8 @@ static int g1050_segment_delay_preserve_order(g1050_segment_state_t *s, double b
     {
         /* We need to preserve the order that came out of the core, so we
            use an alternate array for the results.  */
-        departure_time = (arrival_times_a[i] + 0.0005 - base_time)*1000;
+        /* Apply half a millisecond of rounding, as we working in millisecond steps. */
+        departure_time = (arrival_times_a[i] + 0.0005 - base_time)*G1050_TICKS_PER_SEC;
         if (arrival_times_a[i] == PACKET_LOSS_TIME)
         {
             /* Lost already */
@@ -899,7 +943,11 @@ static int g1050_segment_delay_preserve_order(g1050_segment_state_t *s, double b
 }
 /*- End of function --------------------------------------------------------*/
 
-static int g1050_core_delay(g1050_core_state_t *s, double base_time, double arrival_times[], double delays[], int num_packets)
+static int g1050_core_delay(g1050_core_state_t *s,
+                            double base_time,
+                            double arrival_times[],
+                            double delays[],
+                            int num_packets)
 {
     int i;
     int departure_time;
@@ -909,7 +957,8 @@ static int g1050_core_delay(g1050_core_state_t *s, double base_time, double arri
     lost_packets = 0;
     for (i = 0;  i < num_packets;  i++)
     {
-        departure_time = (arrival_times[i] + 0.0005 - base_time)*1000.0;
+        /* Apply half a millisecond of rounding, as we working in millisecond steps. */
+        departure_time = (arrival_times[i] + 0.0005 - base_time)*G1050_TICKS_PER_SEC;
         if (arrival_times[i] == PACKET_LOSS_TIME)
         {
             /* Lost already */

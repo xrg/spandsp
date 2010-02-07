@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_tests.c,v 1.47 2007/12/14 13:38:55 steveu Exp $
+ * $Id: t38_terminal_tests.c,v 1.48 2007/12/20 10:56:11 steveu Exp $
  */
 
 /*! \file */
@@ -243,7 +243,12 @@ int main(int argc, char *argv[])
             use_ecm = TRUE;
             break;
         case 'g':
+#if defined(ENABLE_GUI)
             use_gui = TRUE;
+#else
+            fprintf(stderr, "Graphical monitoring not available\n");
+            exit(2);
+#endif
             break;
         case 'i':
             input_file_name = optarg;
