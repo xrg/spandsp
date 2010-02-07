@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tests.c,v 1.77 2007/08/14 14:57:37 steveu Exp $
+ * $Id: v27ter_tests.c,v 1.78 2007/09/02 11:02:52 steveu Exp $
  */
 
 /*! \page v27ter_tests_page V.27ter modem tests
@@ -185,7 +185,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
     float fpower;
     float error;
     v27ter_rx_state_t *rx;
-    static float smooth_power = 0.0;
+    static float smooth_power = 0.0f;
 #if defined(ENABLE_GUI)
     static int reports = 0;
 #endif
@@ -195,7 +195,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
     {
         fpower = (constel->re - target->re)*(constel->re - target->re)
                + (constel->im - target->im)*(constel->im - target->im);
-        smooth_power = 0.95*smooth_power + 0.05*fpower;
+        smooth_power = 0.95f*smooth_power + 0.05f*fpower;
 #if defined(ENABLE_GUI)
         if (use_gui)
         {
@@ -370,7 +370,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
             exit(2);
         }
-        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
+        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0f)
         {
             printf("    Unexpected frame size in speech file '%s' (%f)\n", decode_test_file, x);
             exit(2);
@@ -380,7 +380,7 @@ int main(int argc, char *argv[])
             printf("    Unexpected sample rate in speech file '%s' (%f)\n", decode_test_file, x);
             exit(2);
         }
-        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
+        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0f)
         {
             printf("    Unexpected number of channels in speech file '%s' (%f)\n", decode_test_file, x);
             exit(2);
@@ -412,7 +412,7 @@ int main(int argc, char *argv[])
 #if defined(ENABLE_GUI)
     if (use_gui)
     {
-        qam_monitor = qam_monitor_init(2.0, NULL);
+        qam_monitor = qam_monitor_init(2.0f, NULL);
         if (!decode_test_file)
         {
             start_line_model_monitor(129);

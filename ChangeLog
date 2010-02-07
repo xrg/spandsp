@@ -1,3 +1,6 @@
+07.08.29 - 0.0.4 - Steve Underwood <steveu@coppice.org>
+    - 
+
 06.05.23 - 0.0.3 - Steve Underwood <steveu@coppice.org>
     - T.38 now implemented, though it needs further polishing.
     - G.726 and G.722 now implemented.

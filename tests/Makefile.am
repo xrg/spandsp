@@ -16,13 +16,13 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.89 2007/08/13 13:08:19 steveu Exp $
+## $Id: Makefile.am,v 1.91 2007/09/06 12:24:54 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
 LIBS += $(TESTLIBS)
 
-nobase_data_DATA = sound_c1_8k.wav sound_c3_8k.wav
+noinst_DATA = sound_c1_8k.wav sound_c3_8k.wav
 
 EXTRA_DIST = regression_tests.sh v42bis_tests.sh fax_tests.sh
  
@@ -83,6 +83,7 @@ noinst_PROGRAMS =   adsi_tests \
                     t38_terminal_tests \
                     t38_terminal_to_gateway_tests \
                     time_scale_tests \
+                    tone_detect_tests \
                     tone_generate_tests \
                     v17_tests \
                     v22bis_tests \
@@ -253,6 +254,9 @@ t38_terminal_to_gateway_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-si
 
 time_scale_tests_SOURCES = time_scale_tests.c
 time_scale_tests_LDADD = $(LIBDIR) -lspandsp
+
+tone_detect_tests_SOURCES = tone_detect_tests.c
+tone_detect_tests_LDADD = $(LIBDIR) -lspandsp
 
 tone_generate_tests_SOURCES = tone_generate_tests.c
 tone_generate_tests_LDADD = $(LIBDIR) -lspandsp

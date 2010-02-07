@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.c,v 1.34 2007/03/03 10:40:33 steveu Exp $
+ * $Id: tone_generate.c,v 1.35 2007/08/29 12:44:36 steveu Exp $
  */
 
 /*! \file */
@@ -46,6 +46,7 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/dc_restore.h"
+#include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/tone_generate.h"
 

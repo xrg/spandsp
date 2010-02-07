@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tests.c,v 1.40 2007/08/14 14:57:37 steveu Exp $
+ * $Id: v22bis_tests.c,v 1.41 2007/09/02 11:02:52 steveu Exp $
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
@@ -199,7 +199,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
 #endif
         fpower = (constel->re - target->re)*(constel->re - target->re)
                + (constel->im - target->im)*(constel->im - target->im);
-        s->smooth_power = 0.95*s->smooth_power + 0.05*fpower;
+        s->smooth_power = 0.95f*s->smooth_power + 0.05f*fpower;
         printf("%8d [%8.4f, %8.4f] [%8.4f, %8.4f] %8.4f %8.4f\n", s->symbol_no, constel->re, constel->im, target->re, target->im, fpower, s->smooth_power);
         s->symbol_no++;
     }
@@ -314,10 +314,10 @@ int main(int argc, char *argv[])
     v22bis_init(&caller, test_bps, 2, TRUE, v22bis_getbit, v22bis_putbit, &caller);
     v22bis_tx_power(&caller, signal_level);
     /* Move the carrier off a bit */
-    caller.tx_carrier_phase_rate = dds_phase_ratef(1207.0);
+    caller.tx_carrier_phase_rate = dds_phase_ratef(1207.0f);
     v22bis_init(&answerer, test_bps, 2, FALSE, v22bis_getbit, v22bis_putbit, &answerer);
     v22bis_tx_power(&answerer, signal_level);
-    answerer.tx_carrier_phase_rate = dds_phase_ratef(2407.0);
+    answerer.tx_carrier_phase_rate = dds_phase_ratef(2407.0f);
     v22bis_rx_set_qam_report_handler(&caller, qam_report, (void *) &qam_caller);
     v22bis_rx_set_qam_report_handler(&answerer, qam_report, (void *) &qam_answerer);
     span_log_set_level(&caller.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);
@@ -326,18 +326,18 @@ int main(int argc, char *argv[])
     span_log_set_tag(&answerer.logging, "answerer");
 
     qam_caller.s = &caller;
-    qam_caller.smooth_power = 0.0;
+    qam_caller.smooth_power = 0.0f;
     qam_caller.symbol_no = 0;
 
     qam_answerer.s = &answerer;
-    qam_answerer.smooth_power = 0.0;
+    qam_answerer.smooth_power = 0.0f;
     qam_answerer.symbol_no = 0;
 
 #if defined(ENABLE_GUI)
     if (use_gui)
     {
-        qam_caller.qam_monitor = qam_monitor_init(6.0, "Calling modem");
-        qam_answerer.qam_monitor = qam_monitor_init(6.0, "Answering modem");
+        qam_caller.qam_monitor = qam_monitor_init(6.0f, "Calling modem");
+        qam_answerer.qam_monitor = qam_monitor_init(6.0f, "Answering modem");
     }
 #endif
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.88 2007/08/25 05:21:37 steveu Exp $
+ * $Id: v17rx.c,v 1.90 2007/09/02 07:34:20 steveu Exp $
  */
 
 /*! \file */
@@ -934,8 +934,6 @@ void v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
         s->symbol_sync_high[1] = s->symbol_sync_high[0];
         s->symbol_sync_high[0] = v;
 
-        z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
-
         /* Put things into the equalization buffer at T/2 rate. The symbol sync.
            will fiddle the step to align this with the symbols. */
         if (s->eq_put_step <= 0)
@@ -967,10 +965,12 @@ void v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
             /* Shift to baseband - since this is done in a full complex form, the
                result is clean, and requires no further filtering, apart from the
                equalizer. */
+            z = dds_complexf(&(s->carrier_phase), 0);
             zz.re = sample.re*z.re - sample.im*z.im;
             zz.im = -sample.re*z.im - sample.im*z.re;
             process_half_baud(s, &zz);
         }
+        dds_advancef(&(s->carrier_phase), s->carrier_phase_rate);
     }
 }
 /*- End of function --------------------------------------------------------*/

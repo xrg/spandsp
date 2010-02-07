@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.h,v 1.11 2007/04/05 19:20:49 steveu Exp $
+ * $Id: super_tone_rx.h,v 1.13 2007/09/01 09:16:57 steveu Exp $
  */
 
 #if !defined(_SPANDSP_SUPER_TONE_RX_H_)
@@ -55,7 +55,7 @@ executive override tone, confirmation tone).
 */
 
 /*! Tone detection indication callback routine */
-typedef void (*tone_report_func_t)(void *user_data, int code, int level);
+typedef void (*tone_report_func_t)(void *user_data, int code, int level, int delay);
 
 #define BINS            128
 

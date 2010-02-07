@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.c,v 1.22 2007/06/25 12:55:22 steveu Exp $
+ * $Id: v8.c,v 1.23 2007/08/29 12:44:36 steveu Exp $
  */
  
 /*! \file */
@@ -46,6 +46,7 @@
 #include "spandsp/logging.h"
 #include "spandsp/queue.h"
 #include "spandsp/async.h"
+#include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"

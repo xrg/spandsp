@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.22 2007/08/13 13:08:18 steveu Exp $
+ * $Id: dtmf.c,v 1.26 2007/09/01 09:16:56 steveu Exp $
  */
  
 /*! \file dtmf.h */
@@ -46,6 +46,7 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/queue.h"
+#include "spandsp/complex.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
 #include "spandsp/super_tone_rx.h"
@@ -394,7 +395,7 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
                     if (s->in_digit  ||  hit)
                     {
                         i = (s->in_digit  &&  !hit)  ?  -99  :  rintf(log10f(s->energy)*10.0f - 20.08f - DTMF_POWER_OFFSET + DBM0_MAX_POWER);
-                        s->realtime_callback(s->realtime_callback_data, hit, i);
+                        s->realtime_callback(s->realtime_callback_data, hit, i, 0);
                     }
                 }
                 else
@@ -586,16 +587,18 @@ int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples)
 }
 /*- End of function --------------------------------------------------------*/
 
-size_t dtmf_tx_put(dtmf_tx_state_t *s, const char *digits)
+size_t dtmf_tx_put(dtmf_tx_state_t *s, const char *digits, ssize_t len)
 {
-    size_t len;
     size_t space;
 
     /* This returns the number of characters that would not fit in the buffer.
        The buffer will only be loaded if the whole string of digits will fit,
        in which case zero is returned. */
-    if ((len = strlen(digits)) == 0)
-        return 0;
+    if (len < 0)
+    {
+        if ((len = strlen(digits)) == 0)
+            return 0;
+    }
     if ((space = queue_free_space(&s->queue)) < len)
         return len - space;
     if (queue_write(&s->queue, (const uint8_t *) digits, len) >= 0)

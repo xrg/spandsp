@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds_tests.c,v 1.18 2007/04/10 16:12:20 steveu Exp $
+ * $Id: dds_tests.c,v 1.19 2007/09/06 12:24:54 steveu Exp $
  */
 
 /*! \file */
@@ -73,6 +73,7 @@ int main(int argc, char *argv[])
     power_meter_t meter;
     power_meter_t meter_i;
     power_meter_t meter_q;
+    int scale;
 
     power_meter_init(&meter, 10);
 
@@ -96,10 +97,11 @@ int main(int argc, char *argv[])
     phase = 0;
 
     printf("Test with 123.456789Hz.\n");
-    phase_inc = dds_phase_rate(123.456789);
+    phase_inc = dds_phase_rate(123.456789f);
+    scale = dds_scaling_dbm0(-10.0f);
     for (i = 0;  i < SAMPLES_PER_CHUNK;  i++)
     {
-        buf[i] = alaw_to_linear(linear_to_alaw(dds(&phase, phase_inc)));
+        buf[i] = alaw_to_linear(linear_to_alaw((dds(&phase, phase_inc)*scale) >> 15));
         power_meter_update(&meter, buf[i]);
     }
     outframes = afWriteFrames(outhandle,
@@ -111,15 +113,15 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
-    printf("Level is %fdBOv\n", power_meter_current_dbov(&meter));
-    if (fabs(power_meter_current_dbov(&meter) + 3.02) > 0.05)
+    printf("Level is %fdBOv/%fdBm0\n", power_meter_current_dbov(&meter), power_meter_current_dbm0(&meter));
+    if (fabs(power_meter_current_dbm0(&meter) + 10.0f) > 0.05f)
     {
         printf("Test failed.\n");
         exit(2);
     }
 
     printf("Test with 12.3456789Hz.\n");
-    phase_inc = dds_phase_rate(12.3456789);
+    phase_inc = dds_phase_rate(12.3456789f);
     for (i = 0;  i < SAMPLES_PER_CHUNK;  i++)
     {
         buf[i] = alaw_to_linear(linear_to_alaw(dds(&phase, phase_inc)));
@@ -134,19 +136,20 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
-    printf("Level is %fdBOv\n", power_meter_current_dbov(&meter));
+    printf("Level is %fdBOv/%fdBm0\n", power_meter_current_dbov(&meter), power_meter_current_dbm0(&meter));
     /* Use a wider tolerance for this very low frequency - the power meter will ripple */
-    if (fabs(power_meter_current_dbov(&meter) + 3.02) > 0.2)
+    if (fabs(power_meter_current_dbov(&meter) + 3.02f) > 0.2f)
     {
         printf("Test failed.\n");
         exit(2);
     }
 
     printf("Test with 2345.6789Hz.\n");
-    phase_inc = dds_phase_rate(2345.6789);
+    phase_inc = dds_phase_rate(2345.6789f);
+    scale = dds_scaling_dbov(-10.0f);
     for (i = 0;  i < SAMPLES_PER_CHUNK;  i++)
     {
-        buf[i] = alaw_to_linear(linear_to_alaw(dds(&phase, phase_inc)));
+        buf[i] = alaw_to_linear(linear_to_alaw((dds(&phase, phase_inc)*scale) >> 15));
         power_meter_update(&meter, buf[i]);
     }
     outframes = afWriteFrames(outhandle,
@@ -158,15 +161,15 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
-    printf("Level is %fdBOv\n", power_meter_current_dbov(&meter));
-    if (fabs(power_meter_current_dbov(&meter) + 3.02) > 0.05)
+    printf("Level is %fdBOv/%fdBm0\n", power_meter_current_dbov(&meter), power_meter_current_dbm0(&meter));
+    if (fabs(power_meter_current_dbov(&meter) + 10.0f) > 0.05f)
     {
         printf("Test failed.\n");
         exit(2);
     }
 
     printf("Test with 3456.789Hz.\n");
-    phase_inc = dds_phase_rate(3456.789);
+    phase_inc = dds_phase_rate(3456.789f);
     for (i = 0;  i < SAMPLES_PER_CHUNK;  i++)
     {
         buf[i] = alaw_to_linear(linear_to_alaw(dds(&phase, phase_inc)));
@@ -181,8 +184,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
-    printf("Level is %fdBOv\n", power_meter_current_dbov(&meter));
-    if (fabs(power_meter_current_dbov(&meter) + 3.02) > 0.05)
+    printf("Level is %fdBOv/%fdBm0\n", power_meter_current_dbov(&meter), power_meter_current_dbm0(&meter));
+    if (fabs(power_meter_current_dbov(&meter) + 3.02f) > 0.05f)
     {
         printf("Test failed.\n");
         exit(2);
@@ -216,12 +219,12 @@ int main(int argc, char *argv[])
     power_meter_init(&meter_q, 7);
 
     phase = 0;
-    phase_inc = dds_phase_ratef(123.456789);
+    phase_inc = dds_phase_ratef(123.456789f);
     for (i = 0;  i < SAMPLES_PER_CHUNK;  i++)
     {
         camp = dds_complexf(&phase, phase_inc);
-        buf[2*i] = camp.re*10000.0;
-        buf[2*i + 1] = camp.im*10000.0;
+        buf[2*i] = camp.re*10000.0f;
+        buf[2*i + 1] = camp.im*10000.0f;
         power_meter_update(&meter_i, buf[2*i]);
         power_meter_update(&meter_q, buf[2*i]);
     }
@@ -234,10 +237,14 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Error writing wave file\n");
         exit(2);
     }
-    printf("Level is %fdBOv/%fdBOv\n", power_meter_current_dbov(&meter_i), power_meter_current_dbov(&meter_q));
-    if (fabs(power_meter_current_dbov(&meter_i) + 13.42) > 0.05
+    printf("Level is %fdBOv/%fdBm0, %fdBOv/%fdBm0\n",
+           power_meter_current_dbov(&meter_i),
+           power_meter_current_dbm0(&meter_i),
+           power_meter_current_dbov(&meter_q),
+           power_meter_current_dbm0(&meter_q));
+    if (fabs(power_meter_current_dbov(&meter_i) + 13.42f) > 0.05f
         ||
-        fabs(power_meter_current_dbov(&meter_q) + 13.42) > 0.05)
+        fabs(power_meter_current_dbov(&meter_q) + 13.42f) > 0.05f)
     {
         printf("Test failed.\n");
         exit(2);

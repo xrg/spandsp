@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx_tests.c,v 1.20 2007/06/28 13:10:59 steveu Exp $
+ * $Id: super_tone_rx_tests.c,v 1.22 2007/09/01 09:16:57 steveu Exp $
  */
 
 /*! \file */
@@ -354,7 +354,7 @@ static void super_tone_rx_fill_descriptor(super_tone_rx_descriptor_t *desc)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void wakeup(void *data, int code, int level)
+static void wakeup(void *data, int code, int level, int delay)
 {
     if (code >= 0)
         printf("Current tone is %d '%s' '%s'\n", code, (tone_names[code])  ?  tone_names[code]  :  "???", (char *) data);

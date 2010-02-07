@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.191 2007/08/18 12:32:38 steveu Exp $
+ * $Id: t30.c,v 1.192 2007/09/02 12:47:07 steveu Exp $
  */
 
 /*! \file */
@@ -283,6 +283,14 @@ static void repeat_last_command(t30_state_t *s);
 static void disconnect(t30_state_t *s);
 static void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len);
 static void decode_url_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len);
+
+#define set_dis_dtc_bit(s,bit) s->dis_dtc_frame[3 + ((bit - 1)/8)] |= (1 << ((bit - 1)%8))
+#define set_dis_dtc_bits(s,val,bit) s->dis_dtc_frame[3 + ((bit - 1)/8)] |= ((val) << ((bit - 1)%8))
+#define clr_dis_dtc_bit(s,bit) s->dis_dtc_frame[3 + ((bit - 1)/8)] &= ~(1 << ((bit - 1)%8))
+
+#define set_dcs_bit(s,bit) s->dcs_frame[3 + ((bit - 1)/8)] |= (1 << ((bit - 1)%8))
+#define set_dcs_bits(s,val,bit) s->dcs_frame[3 + ((bit - 1)/8)] |= ((val) << ((bit - 1)%8))
+#define clr_dcs_bit(s,bit) s->dcs_frame[3 + ((bit - 1)/8)] &= ~(1 << ((bit - 1)%8))
 
 static void rx_start_page(t30_state_t *s)
 {
@@ -1040,14 +1048,14 @@ static int set_dis_or_dtc(t30_state_t *s)
     s->dis_dtc_frame[2] = (uint8_t) (T30_DIS | s->dis_received);
     /* If we have a file name to receive into, then we are receive capable */
     if (s->rx_file[0])
-        s->dis_dtc_frame[4] |= DISBIT2;
+        set_dis_dtc_bit(s, 10);
     else
-        s->dis_dtc_frame[4] &= ~DISBIT2;
+        clr_dis_dtc_bit(s, 10);
     /* If we have a file name to transmit, then we are ready to transmit (polling) */
     if (s->tx_file[0])
-        s->dis_dtc_frame[4] |= DISBIT1;
+        set_dis_dtc_bit(s, 9);
     else
-        s->dis_dtc_frame[4] &= ~DISBIT1;
+        clr_dis_dtc_bit(s, 9);
     //t30_decode_dis_dtc_dcs(s, s->dis_dtc_frame, s->dis_dtc_len);
     return 0;
 }
@@ -1071,9 +1079,9 @@ static int build_dis_or_dtc(t30_state_t *s)
     /* Always say 256 octets per ECM frame preferred, as 64 is never used in the
        real world. */
     if ((s->iaf & T30_IAF_MODE_T37))
-        s->dis_dtc_frame[3] |= DISBIT1;
+        set_dis_dtc_bit(s, 1);
     if ((s->iaf & T30_IAF_MODE_T38))
-        s->dis_dtc_frame[3] |= DISBIT3;
+        set_dis_dtc_bit(s, 3);
     /* No 3G mobile  */
     /* No V.8 */
     /* 256 octets preferred - don't bother making this optional, as everything uses 256 */
@@ -1081,56 +1089,56 @@ static int build_dis_or_dtc(t30_state_t *s)
     /* Ready to receive a fax will be determined separately, and this message edited. */
     /* With no modems set we are actually selecting V.27ter fallback at 2400bps */
     if ((s->supported_modems & T30_SUPPORT_V27TER))
-        s->dis_dtc_frame[4] |= DISBIT4;
+        set_dis_dtc_bit(s, 12);
     if ((s->supported_modems & T30_SUPPORT_V29))
-        s->dis_dtc_frame[4] |= DISBIT3;
+        set_dis_dtc_bit(s, 11);
     /* V.17 is only valid when combined with V.29 and V.27ter, so if we enable V.17 we force the others too. */
     if ((s->supported_modems & T30_SUPPORT_V17))
         s->dis_dtc_frame[4] |= (DISBIT6 | DISBIT4 | DISBIT3);
     if ((s->supported_resolutions & T30_SUPPORT_FINE_RESOLUTION))
-        s->dis_dtc_frame[4] |= DISBIT7;
+        set_dis_dtc_bit(s, 15);
     if ((s->supported_compressions & T30_SUPPORT_T4_2D_COMPRESSION))
-        s->dis_dtc_frame[4] |= DISBIT8;
+        set_dis_dtc_bit(s, 16);
     /* 215mm wide is always supported */
     if ((s->supported_image_sizes & T30_SUPPORT_303MM_WIDTH))
-        s->dis_dtc_frame[5] |= DISBIT2;
+        set_dis_dtc_bit(s, 18);
     else if ((s->supported_image_sizes & T30_SUPPORT_255MM_WIDTH))
-        s->dis_dtc_frame[5] |= DISBIT1;
+        set_dis_dtc_bit(s, 17);
     /* A4 is always supported. */
     if ((s->supported_image_sizes & T30_SUPPORT_UNLIMITED_LENGTH))
-        s->dis_dtc_frame[5] |= DISBIT4;
+        set_dis_dtc_bit(s, 20);
     else if ((s->supported_image_sizes & T30_SUPPORT_B4_LENGTH))
-        s->dis_dtc_frame[5] |= DISBIT3;
+        set_dis_dtc_bit(s, 19);
     /* No scan-line padding required. */
-    s->dis_dtc_frame[5] |= (DISBIT7 | DISBIT6 | DISBIT5);
+    set_dis_dtc_bits(s, 7, 21);
     if ((s->supported_compressions & T30_SUPPORT_NO_COMPRESSION))
-        s->dis_dtc_frame[6] |= DISBIT2;
+        set_dis_dtc_bit(s, 26);
     if (s->ecm_allowed)
     {
         /* ECM allowed */
-        s->dis_dtc_frame[6] |= DISBIT3;
+        set_dis_dtc_bit(s, 27);
         if ((s->supported_compressions & T30_SUPPORT_T6_COMPRESSION))
-            s->dis_dtc_frame[6] |= DISBIT7;
+            set_dis_dtc_bit(s, 31);
     }
     if (s->support_fnv)
-        s->dis_dtc_frame[7] |= DISBIT1;
+        set_dis_dtc_bit(s, 33);
     if ((s->supported_polling_features & T30_SUPPORT_SEP))
-        s->dis_dtc_frame[7] |= DISBIT3;
+        set_dis_dtc_bit(s, 34);
     if ((s->supported_polling_features & T30_SUPPORT_PSA))
-        s->dis_dtc_frame[7] |= DISBIT4;
+        set_dis_dtc_bit(s, 35);
     if ((s->supported_compressions & T30_SUPPORT_T43_COMPRESSION))
-        s->dis_dtc_frame[7] |= DISBIT4;
+        set_dis_dtc_bit(s, 36);
     /* No plane interleave */
     /* No G.726 */
     /* No extended voice coding */
     if ((s->supported_resolutions & T30_SUPPORT_SUPERFINE_RESOLUTION))
-        s->dis_dtc_frame[8] |= DISBIT1;
+        set_dis_dtc_bit(s, 41);
     if ((s->supported_resolutions & T30_SUPPORT_300_300_RESOLUTION))
-        s->dis_dtc_frame[8] |= DISBIT2;
+        set_dis_dtc_bit(s, 42);
     if ((s->supported_resolutions & (T30_SUPPORT_400_400_RESOLUTION | T30_SUPPORT_R16_RESOLUTION)))
-        s->dis_dtc_frame[8] |= DISBIT3;
+        set_dis_dtc_bit(s, 43);
     /* Metric */ 
-    s->dis_dtc_frame[8] |= DISBIT4;
+    set_dis_dtc_bit(s, 45);
     /* Superfine minimum scan line time pattern follows fine */
     /* No selective polling */
     /* No sub-addressing */
@@ -1150,28 +1158,28 @@ static int build_dis_or_dtc(t30_state_t *s)
     /* No 12bits/pel */
     /* No sub-sampling */
     if ((s->supported_image_sizes & T30_SUPPORT_US_LETTER_LENGTH))
-        s->dis_dtc_frame[12] |= DISBIT4;
+        set_dis_dtc_bit(s, 76);
     if ((s->supported_image_sizes & T30_SUPPORT_US_LEGAL_LENGTH))
-        s->dis_dtc_frame[12] |= DISBIT5;
+        set_dis_dtc_bit(s, 77);
     if ((s->supported_compressions & T30_SUPPORT_T85_COMPRESSION))
-        s->dis_dtc_frame[12] |= DISBIT6;
+        set_dis_dtc_bit(s, 78);
     /* No T.85 optional. */
     if ((s->supported_resolutions & T30_SUPPORT_600_600_RESOLUTION))
-        s->dis_dtc_frame[15] |= DISBIT1;
+        set_dis_dtc_bit(s, 105);
     if ((s->supported_resolutions & T30_SUPPORT_1200_1200_RESOLUTION))
-        s->dis_dtc_frame[15] |= DISBIT2;
+        set_dis_dtc_bit(s, 106);
     if ((s->supported_resolutions & T30_SUPPORT_300_600_RESOLUTION))
-        s->dis_dtc_frame[15] |= DISBIT3;
+        set_dis_dtc_bit(s, 107);
     if ((s->supported_resolutions & T30_SUPPORT_400_800_RESOLUTION))
-        s->dis_dtc_frame[15] |= DISBIT4;
+        set_dis_dtc_bit(s, 108);
     if ((s->supported_resolutions & T30_SUPPORT_600_1200_RESOLUTION))
-        s->dis_dtc_frame[15] |= DISBIT5;
+        set_dis_dtc_bit(s, 109);
     if ((s->supported_compressions & T30_SUPPORT_T45_COMPRESSION))
-        s->dis_dtc_frame[16] |= DISBIT4;
+        set_dis_dtc_bit(s, 116);
     if ((s->iaf & T30_IAF_MODE_FLOW_CONTROL))
-        s->dis_dtc_frame[18] |= DISBIT1;
+        set_dis_dtc_bit(s, 121);
     if ((s->iaf & T30_IAF_MODE_CONTINUOUS_FLOW))
-        s->dis_dtc_frame[18] |= DISBIT3;
+        set_dis_dtc_bit(s, 123);
     s->dis_dtc_len = 19;
     //t30_decode_dis_dtc_dcs(s, s->dis_dtc_frame, s->dis_dtc_len);
     return 0;
@@ -1193,7 +1201,7 @@ static int prune_dis_dtc(t30_state_t *s)
     }
     s->dis_dtc_len = i + 1;
     /* Fill in any required extension bits */
-    for (i--  ;  i > 4;  i--)
+    for (i--;  i > 4;  i--)
         s->dis_dtc_frame[i] |= DISBIT8;
     t30_decode_dis_dtc_dcs(s, s->dis_dtc_frame, s->dis_dtc_len);
     return s->dis_dtc_len;
@@ -1238,32 +1246,32 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
     switch (s->line_encoding)
     {
     case T4_COMPRESSION_ITU_T6:
-        s->dcs_frame[6] |= DISBIT7;
+        set_dcs_bit(s, 31);
         break;
     case T4_COMPRESSION_ITU_T4_2D:
-        s->dcs_frame[4] |= DISBIT8;
+        set_dcs_bit(s, 16);
         break;
     default:
         break;
     }
     /* If we have a file to send, tell the far end to go into receive mode. */
-    if (s->tx_file[0])
-        s->dcs_frame[4] |= DISBIT2;
+    if (s->rx_file[0])
+        set_dcs_bit(s, 10);
     /* Set the Y resolution bits */
     switch (s->y_resolution)
     {
     case T4_Y_RESOLUTION_SUPERFINE:
-        s->dcs_frame[8] |= DISBIT1;
+        set_dcs_bit(s, 41);
         break;
     case T4_Y_RESOLUTION_FINE:
-        s->dcs_frame[4] |= DISBIT7;
+        set_dcs_bit(s, 15);
         break;
     default:
     case T4_Y_RESOLUTION_STANDARD:
         break;
     }
     /* Set the minimum scan time to be used */
-    s->dcs_frame[5] |= (s->min_scan_time_code & 0x7) << 4;
+    set_dcs_bits(s, s->min_scan_time_code & 0x7, 21);
     /* Deal with the image width. The X resolution will fall in line with any valid width. */
     switch (s->image_width)
     {
@@ -1279,7 +1287,7 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
             span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not acceptable to far end\n", s->image_width);
             return -1;
         }
-        s->dcs_frame[5] |= DISBIT1;
+        set_dcs_bit(s, 17);
         break;
     case T30_WIDTH_R8_A3:
         if ((s->dis_dtc_frame[5] & (DISBIT2 | DISBIT1)) < 2)
@@ -1288,7 +1296,7 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
             span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not acceptable to far end\n", s->image_width);
             return -1;
         }
-        s->dcs_frame[5] |= DISBIT2;
+        set_dcs_bit(s, 18);
         break;
         /* High (R16) res widths */
     case T30_WIDTH_R16_A4:
@@ -1298,7 +1306,7 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
             span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not acceptable to far end\n", s->image_width);
             return -1;
         }
-        s->dcs_frame[8] |= DISBIT3;
+        set_dcs_bit(s, 43);
         break;
     case T30_WIDTH_R16_B4:
         if ((dis_dtc_frame[8] & DISBIT3) == 0  ||  (s->dis_dtc_frame[5] & (DISBIT2 | DISBIT1)) == 0)
@@ -1307,8 +1315,8 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
             span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not acceptable to far end\n", s->image_width);
             return -1;
         }
-        s->dcs_frame[5] |= DISBIT1;
-        s->dcs_frame[8] |= DISBIT3;
+        set_dcs_bit(s, 17);
+        set_dcs_bit(s, 43);
         break;
     case T30_WIDTH_R16_A3:
         if ((dis_dtc_frame[8] & DISBIT3) == 0  ||  (s->dis_dtc_frame[5] & (DISBIT2 | DISBIT1)) != DISBIT2)
@@ -1317,8 +1325,8 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
             span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not acceptable to far end\n", s->image_width);
             return -1;
         }
-        s->dcs_frame[5] |= DISBIT2;
-        s->dcs_frame[8] |= DISBIT3;
+        set_dcs_bit(s, 18);
+        set_dcs_bit(s, 43);
         break;
     default:
         /* The image is of an unrecognised width. */
@@ -1330,17 +1338,17 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
     /* If the other end supports unlimited length, then use that. Otherwise, if the other end supports
        B4 use that, as its longer than the default A4 length. */
     if ((dis_dtc_frame[5] & DISBIT4))
-        s->dcs_frame[5] |= DISBIT4;
+        set_dcs_bit(s, 20);
     else if ((dis_dtc_frame[5] & DISBIT3))
-        s->dcs_frame[5] |= DISBIT3;
+        set_dcs_bit(s, 19);
 
     if (s->error_correcting_mode)
-        s->dcs_frame[6] |= DISBIT3;
+        set_dcs_bit(s, 27);
 
     if ((s->iaf & T30_IAF_MODE_FLOW_CONTROL)  &&  (s->dis_dtc_frame[18] & DISBIT1))
-        s->dcs_frame[18] |= DISBIT1;
+        set_dcs_bit(s, 121);
     if ((s->iaf & T30_IAF_MODE_CONTINUOUS_FLOW)  &&  (s->dis_dtc_frame[18] & DISBIT3))
-        s->dcs_frame[18] |= DISBIT3;
+        set_dcs_bit(s, 123);
     s->dcs_len = 19;
     //t30_decode_dis_dtc_dcs(s, s->dcs_frame, s->dcs_len);
     return 0;

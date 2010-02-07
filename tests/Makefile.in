@@ -63,11 +63,12 @@ noinst_PROGRAMS = adsi_tests$(EXEEXT) async_tests$(EXEEXT) \
 	t38_gateway_to_terminal_tests$(EXEEXT) \
 	t38_terminal_tests$(EXEEXT) \
 	t38_terminal_to_gateway_tests$(EXEEXT) \
-	time_scale_tests$(EXEEXT) tone_generate_tests$(EXEEXT) \
-	v17_tests$(EXEEXT) v22bis_tests$(EXEEXT) v27ter_tests$(EXEEXT) \
-	v29_tests$(EXEEXT) v42_tests$(EXEEXT) v42bis_tests$(EXEEXT) \
-	v8_tests$(EXEEXT) vector_float_tests$(EXEEXT) \
-	vector_int_tests$(EXEEXT) testadsi$(EXEEXT) testfax$(EXEEXT)
+	time_scale_tests$(EXEEXT) tone_detect_tests$(EXEEXT) \
+	tone_generate_tests$(EXEEXT) v17_tests$(EXEEXT) \
+	v22bis_tests$(EXEEXT) v27ter_tests$(EXEEXT) v29_tests$(EXEEXT) \
+	v42_tests$(EXEEXT) v42bis_tests$(EXEEXT) v8_tests$(EXEEXT) \
+	vector_float_tests$(EXEEXT) vector_int_tests$(EXEEXT) \
+	testadsi$(EXEEXT) testfax$(EXEEXT)
 subdir = tests
 DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
@@ -250,6 +251,9 @@ testfax_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_time_scale_tests_OBJECTS = time_scale_tests.$(OBJEXT)
 time_scale_tests_OBJECTS = $(am_time_scale_tests_OBJECTS)
 time_scale_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_tone_detect_tests_OBJECTS = tone_detect_tests.$(OBJEXT)
+tone_detect_tests_OBJECTS = $(am_tone_detect_tests_OBJECTS)
+tone_detect_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_tone_generate_tests_OBJECTS = tone_generate_tests.$(OBJEXT)
 tone_generate_tests_OBJECTS = $(am_tone_generate_tests_OBJECTS)
 tone_generate_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -330,12 +334,12 @@ SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(t38_terminal_tests_SOURCES) \
 	$(t38_terminal_to_gateway_tests_SOURCES) $(t4_tests_SOURCES) \
 	$(testadsi_SOURCES) $(testfax_SOURCES) \
-	$(time_scale_tests_SOURCES) $(tone_generate_tests_SOURCES) \
-	$(v17_tests_SOURCES) $(v22bis_tests_SOURCES) \
-	$(v27ter_tests_SOURCES) $(v29_tests_SOURCES) \
-	$(v42_tests_SOURCES) $(v42bis_tests_SOURCES) \
-	$(v8_tests_SOURCES) $(vector_float_tests_SOURCES) \
-	$(vector_int_tests_SOURCES)
+	$(time_scale_tests_SOURCES) $(tone_detect_tests_SOURCES) \
+	$(tone_generate_tests_SOURCES) $(v17_tests_SOURCES) \
+	$(v22bis_tests_SOURCES) $(v27ter_tests_SOURCES) \
+	$(v29_tests_SOURCES) $(v42_tests_SOURCES) \
+	$(v42bis_tests_SOURCES) $(v8_tests_SOURCES) \
+	$(vector_float_tests_SOURCES) $(vector_int_tests_SOURCES)
 DIST_SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(at_interpreter_tests_SOURCES) $(awgn_tests_SOURCES) \
 	$(bell_mf_rx_tests_SOURCES) $(bell_mf_tx_tests_SOURCES) \
@@ -363,21 +367,13 @@ DIST_SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(t38_terminal_tests_SOURCES) \
 	$(t38_terminal_to_gateway_tests_SOURCES) $(t4_tests_SOURCES) \
 	$(testadsi_SOURCES) $(testfax_SOURCES) \
-	$(time_scale_tests_SOURCES) $(tone_generate_tests_SOURCES) \
-	$(v17_tests_SOURCES) $(v22bis_tests_SOURCES) \
-	$(v27ter_tests_SOURCES) $(v29_tests_SOURCES) \
-	$(v42_tests_SOURCES) $(v42bis_tests_SOURCES) \
-	$(v8_tests_SOURCES) $(vector_float_tests_SOURCES) \
-	$(vector_int_tests_SOURCES)
-am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
-am__vpath_adj = case $$p in \
-    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
-    *) f=$$p;; \
-  esac;
-am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
-am__installdirs = "$(DESTDIR)$(datadir)"
-nobase_dataDATA_INSTALL = $(install_sh_DATA)
-DATA = $(nobase_data_DATA)
+	$(time_scale_tests_SOURCES) $(tone_detect_tests_SOURCES) \
+	$(tone_generate_tests_SOURCES) $(v17_tests_SOURCES) \
+	$(v22bis_tests_SOURCES) $(v27ter_tests_SOURCES) \
+	$(v29_tests_SOURCES) $(v42_tests_SOURCES) \
+	$(v42bis_tests_SOURCES) $(v8_tests_SOURCES) \
+	$(vector_float_tests_SOURCES) $(vector_int_tests_SOURCES)
+DATA = $(noinst_DATA)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -497,7 +493,7 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
-nobase_data_DATA = sound_c1_8k.wav sound_c3_8k.wav
+noinst_DATA = sound_c1_8k.wav sound_c3_8k.wav
 EXTRA_DIST = regression_tests.sh v42bis_tests.sh fax_tests.sh
 MAINTAINERCLEANFILES = Makefile.in
 INCLUDES = -I$(top_builddir)/src -I$(top_builddir)/spandsp-sim -DDATADIR="\"$(pkgdatadir)\""
@@ -609,6 +605,8 @@ t38_terminal_to_gateway_tests_SOURCES = t38_terminal_to_gateway_tests.c media_mo
 t38_terminal_to_gateway_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 time_scale_tests_SOURCES = time_scale_tests.c
 time_scale_tests_LDADD = $(LIBDIR) -lspandsp
+tone_detect_tests_SOURCES = tone_detect_tests.c
+tone_detect_tests_LDADD = $(LIBDIR) -lspandsp
 tone_generate_tests_SOURCES = tone_generate_tests.c
 tone_generate_tests_LDADD = $(LIBDIR) -lspandsp
 v17_tests_SOURCES = v17_tests.c line_model_monitor.cpp modem_monitor.cpp
@@ -832,6 +830,9 @@ testfax$(EXEEXT): $(testfax_OBJECTS) $(testfax_DEPENDENCIES)
 time_scale_tests$(EXEEXT): $(time_scale_tests_OBJECTS) $(time_scale_tests_DEPENDENCIES) 
 	@rm -f time_scale_tests$(EXEEXT)
 	$(LINK) $(time_scale_tests_LDFLAGS) $(time_scale_tests_OBJECTS) $(time_scale_tests_LDADD) $(LIBS)
+tone_detect_tests$(EXEEXT): $(tone_detect_tests_OBJECTS) $(tone_detect_tests_DEPENDENCIES) 
+	@rm -f tone_detect_tests$(EXEEXT)
+	$(LINK) $(tone_detect_tests_LDFLAGS) $(tone_detect_tests_OBJECTS) $(tone_detect_tests_LDADD) $(LIBS)
 tone_generate_tests$(EXEEXT): $(tone_generate_tests_OBJECTS) $(tone_generate_tests_DEPENDENCIES) 
 	@rm -f tone_generate_tests$(EXEEXT)
 	$(LINK) $(tone_generate_tests_LDFLAGS) $(tone_generate_tests_OBJECTS) $(tone_generate_tests_LDADD) $(LIBS)
@@ -926,6 +927,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testadsi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testfax.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/time_scale_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tone_detect_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tone_generate_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/v17_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/v22bis_tests.Po@am__quote@
@@ -988,25 +990,6 @@ clean-libtool:
 distclean-libtool:
 	-rm -f libtool
 uninstall-info-am:
-install-nobase_dataDATA: $(nobase_data_DATA)
-	@$(NORMAL_INSTALL)
-	test -z "$(datadir)" || $(mkdir_p) "$(DESTDIR)$(datadir)"
-	@$(am__vpath_adj_setup) \
-	list='$(nobase_data_DATA)'; for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  $(am__vpath_adj) \
-	  echo " $(nobase_dataDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(datadir)/$$f'"; \
-	  $(nobase_dataDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(datadir)/$$f"; \
-	done
-
-uninstall-nobase_dataDATA:
-	@$(NORMAL_UNINSTALL)
-	@$(am__vpath_adj_setup) \
-	list='$(nobase_data_DATA)'; for p in $$list; do \
-	  $(am__vpath_adj) \
-	  echo " rm -f '$(DESTDIR)$(datadir)/$$f'"; \
-	  rm -f "$(DESTDIR)$(datadir)/$$f"; \
-	done
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -1087,9 +1070,6 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS) $(DATA) $(HEADERS)
 installdirs:
-	for dir in "$(DESTDIR)$(datadir)"; do \
-	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
-	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -1136,7 +1116,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-nobase_dataDATA
+install-data-am:
 
 install-exec-am:
 
@@ -1164,7 +1144,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-info-am uninstall-nobase_dataDATA
+uninstall-am: uninstall-info-am
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
 	clean-libtool clean-noinstPROGRAMS ctags distclean \
@@ -1172,12 +1152,11 @@ uninstall-am: uninstall-info-am uninstall-nobase_dataDATA
 	distclean-tags distdir dvi dvi-am html html-am info info-am \
 	install install-am install-data install-data-am install-exec \
 	install-exec-am install-info install-info-am install-man \
-	install-nobase_dataDATA install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-info-am \
-	uninstall-nobase_dataDATA
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags uninstall uninstall-am \
+	uninstall-info-am
 
 
 # We need to create the CSS files for echo cancellation tests.

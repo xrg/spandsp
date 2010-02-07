@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.c,v 1.14 2007/02/27 16:52:16 steveu Exp $
+ * $Id: super_tone_rx.c,v 1.18 2007/09/02 14:28:13 steveu Exp $
  */
 
 /*! \file */
@@ -46,11 +46,12 @@
 #endif
 
 #include "spandsp/telephony.h"
+#include "spandsp/complex.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
 #include "spandsp/super_tone_rx.h"
 
-#define THRESHOLD               8.0e7
+#define THRESHOLD               8.0e7f
 
 static int add_super_tone_freq(super_tone_rx_descriptor_t *desc, int freq)
 {
@@ -225,14 +226,14 @@ super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *s,
 
     if (desc == NULL)
         return NULL;
+    if (callback == NULL)
+        return NULL;
     if (s == NULL)
     {
         s = (super_tone_rx_state_t *) malloc(sizeof(super_tone_rx_state_t) + desc->monitored_frequencies*sizeof(goertzel_state_t));
         if (s == NULL)
             return NULL;
     }
-    if (callback == NULL)
-        return NULL;
 
     for (i = 0;  i < 11;  i++)
     {
@@ -246,8 +247,8 @@ super_tone_rx_state_t *super_tone_rx_init(super_tone_rx_state_t *s,
     if (desc)
         s->desc = desc;
     s->detected_tone = -1;
-    s->energy = 0.0;
-    s->total_energy = 0.0;
+    s->energy = 0.0f;
+    s->total_energy = 0.0f;
     for (i = 0;  i < desc->monitored_frequencies;  i++)
         goertzel_init(&s->state[i], &s->desc->desc[i]);
     return  s;
@@ -326,12 +327,12 @@ int super_tone_rx(super_tone_rx_state_t *s, const int16_t amp[], int samples)
                                 k2 = j;
                             }
                         }
-                        if (res[k1] + res[k2] < 0.5*s->total_energy)
+                        if (res[k1] + res[k2] < 0.5f*s->total_energy)
                         {
                             k1 = -1;
                             k2 = -1;
                         }
-                        else if (res[k1] > 4.0*res[k2])
+                        else if (res[k1] > 4.0f*res[k2])
                         {
                             k2 = -1;
                         }
@@ -365,7 +366,7 @@ int super_tone_rx(super_tone_rx_state_t *s, const int16_t amp[], int samples)
                                 if (!test_cadence(s->desc->tone_list[s->detected_tone], -s->desc->tone_segs[s->detected_tone], s->segments, s->rotation++))
                                 {
                                     s->detected_tone = -1;
-                                    s->tone_callback(s->callback_data, s->detected_tone, -10);
+                                    s->tone_callback(s->callback_data, s->detected_tone, -10, 0);
                                 }
                             }
                             if (s->segment_callback)
@@ -390,7 +391,7 @@ int super_tone_rx(super_tone_rx_state_t *s, const int16_t amp[], int samples)
                                 if (!test_cadence(s->desc->tone_list[s->detected_tone], s->desc->tone_segs[s->detected_tone], s->segments, s->rotation))
                                 {
                                     s->detected_tone = -1;
-                                    s->tone_callback(s->callback_data, s->detected_tone, -10);
+                                    s->tone_callback(s->callback_data, s->detected_tone, -10, 0);
                                 }
                             }
                             s->segments[9].min_duration++;
@@ -405,7 +406,7 @@ int super_tone_rx(super_tone_rx_state_t *s, const int16_t amp[], int samples)
                             {
                                 s->detected_tone = j;
                                 s->rotation = 0;
-                                s->tone_callback(s->callback_data, s->detected_tone, -10);
+                                s->tone_callback(s->callback_data, s->detected_tone, -10, 0);
                                 break;
                             }
                         }

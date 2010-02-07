@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds_int.c,v 1.1 2007/05/12 12:25:38 steveu Exp $
+ * $Id: dds_int.c,v 1.4 2007/09/06 12:24:54 steveu Exp $
  */
 
 /*! \file */
@@ -40,6 +40,7 @@
 #endif
 
 #include "spandsp/telephony.h"
+#include "spandsp/complex.h"
 #include "spandsp/dds.h"
 
 #if !defined(M_PI)
@@ -202,13 +203,13 @@ float dds_frequency(int32_t phase_rate)
 
 int dds_scaling_dbm0(float level)
 {
-    return (int) (powf(10.0f, (level - DBM0_MAX_POWER)/20.0f)*(32767.0f*1.414214f));
+    return (int) (powf(10.0f, (level - DBM0_MAX_SINE_POWER)/20.0f)*32767.0f);
 }
 /*- End of function --------------------------------------------------------*/
 
 int dds_scaling_dbov(float level)
 {
-    return (int) (powf(10.0f, (level + 3.02f)/20.0f)*(32767.0f*1.414214f));
+    return (int) (powf(10.0f, (level - DBOV_MAX_SINE_POWER)/20.0f)*32767.0f);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -233,6 +234,12 @@ int16_t dds_lookup(uint32_t phase)
 int16_t dds_offset(uint32_t phase_acc, int32_t phase_offset)
 {
     return dds_lookup(phase_acc + phase_offset);
+}
+/*- End of function --------------------------------------------------------*/
+
+void dds_advance(uint32_t *phase_acc, int32_t phase_rate)
+{
+    *phase_acc += phase_rate;
 }
 /*- End of function --------------------------------------------------------*/
 

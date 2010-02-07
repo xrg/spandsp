@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.33 2007/08/14 14:57:37 steveu Exp $
+ * $Id: adsi_tests.c,v 1.34 2007/08/31 14:47:11 steveu Exp $
  */
 
 /*! \page adsi_tests_page ADSI tests
@@ -730,7 +730,7 @@ int main(int argc, char *argv[])
                         }
                         good_message_received = FALSE;
                         adsi_msg_len = adsi_create_message(&tx_adsi, adsi_msg);
-                        adsi_msg_len = adsi_put_message(&tx_adsi, adsi_msg, adsi_msg_len);
+                        adsi_msg_len = adsi_tx_put_message(&tx_adsi, adsi_msg, adsi_msg_len);
                     }
                 }
                 if (len < BLOCK_LEN)

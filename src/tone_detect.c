@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect.c,v 1.33 2007/08/13 13:21:08 steveu Exp $
+ * $Id: tone_detect.c,v 1.39 2007/09/07 13:22:25 steveu Exp $
  */
  
 /*! \file tone_detect.h */
@@ -45,6 +45,8 @@
 #include <fcntl.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/complex.h"
+#include "spandsp/complex_vector_float.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
 
@@ -139,6 +141,103 @@ float goertzel_result(goertzel_state_t *s)
 #else
     return s->v3*s->v3 + s->v2*s->v2 - s->v2*s->v3*s->fac;
 #endif
+}
+/*- End of function --------------------------------------------------------*/
+
+complexf_t periodogram(const complexf_t coeffs[], const complexf_t amp[], int len)
+{
+    complexf_t sum;
+    complexf_t diff;
+    complexf_t x;
+    int i;
+
+    x = complex_setf(0.0f, 0.0f);
+    for (i = 0;  i < len/2;  i++)
+    {
+        sum = complex_addf(&amp[i], &amp[len - 1 - i]);
+        diff = complex_subf(&amp[i], &amp[len - 1 - i]);
+        x.re += (coeffs[i].re*sum.re - coeffs[i].im*diff.im);
+        x.im += (coeffs[i].re*sum.im + coeffs[i].im*diff.re);
+    }
+    return x;
+}
+/*- End of function --------------------------------------------------------*/
+
+int periodogram_prepare(complexf_t sum[], complexf_t diff[], const complexf_t amp[], int len)
+{
+    int i;
+
+    for (i = 0;  i < len/2;  i++)
+    {
+        sum[i] = complex_addf(&amp[i], &amp[len - 1 - i]);
+        diff[i] = complex_subf(&amp[i], &amp[len - 1 - i]);
+    }
+    return len/2;
+}
+/*- End of function --------------------------------------------------------*/
+
+complexf_t periodogram_apply(const complexf_t coeffs[], const complexf_t sum[], const complexf_t diff[], int len)
+{
+    complexf_t x;
+    int i;
+
+    x = complex_setf(0.0f, 0.0f);
+    for (i = 0;  i < len/2;  i++)
+    {
+        x.re += (coeffs[i].re*sum[i].re - coeffs[i].im*diff[i].im);
+        x.im += (coeffs[i].re*sum[i].im + coeffs[i].im*diff[i].re);
+    }
+    return x;
+}
+/*- End of function --------------------------------------------------------*/
+
+int periodogram_generate_coeffs(complexf_t coeffs[], float freq, int sample_rate, int window_len)
+{
+    float window;
+    float sum;
+    float x;
+    int i;
+
+    sum = 0.0f;
+    for (i = 0;  i < window_len/2;  i++)
+    {
+        /* Apply a Hamming window as we go */
+        window = 0.53836f - 0.46164f*cosf(2.0f*3.1415926535f*i/(window_len - 1.0f));
+        x = (i - window_len/2.0f + 0.5f)*freq*2.0f*3.1415926535f/sample_rate;
+        coeffs[i].re = cosf(x)*window;
+        coeffs[i].im = -sinf(x)*window;
+        sum += window;
+    }
+    /* Rescale for unity gain in the periodogram. The 2.0 factor is to allow for the full window,
+       rather than just the half over which we have summed the coefficients. */
+    sum = 1.0f/(2.0f*sum);
+    for (i = 0;  i < window_len/2;  i++)
+    {
+        coeffs[i].re *= sum;
+        coeffs[i].im *= sum;
+    }
+    return window_len/2;
+}
+/*- End of function --------------------------------------------------------*/
+
+float periodogram_generate_phase_offset(complexf_t *offset, float freq, int sample_rate, int interval)
+{
+    float x;
+
+    /* The phase offset is how far the phase rotates in one frame */
+    x = 2.0f*3.1415926535f*(float) interval/(float) sample_rate;
+    offset->re = cosf(freq*x);
+    offset->im = sinf(freq*x);
+    return 1.0f/x;
+}
+/*- End of function --------------------------------------------------------*/
+
+float periodogram_freq_error(const complexf_t *phase_offset, float scale, const complexf_t *last_result, const complexf_t *result)
+{
+    complexf_t prediction;
+
+    prediction = complex_mulf(last_result, phase_offset);
+    return scale*(result->im*prediction.re - result->re*prediction.im)/(result->re*result->re + result->im*result->im);
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

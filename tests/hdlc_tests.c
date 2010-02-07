@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc_tests.c,v 1.36 2007/08/02 13:55:48 steveu Exp $
+ * $Id: hdlc_tests.c,v 1.37 2007/08/28 13:47:44 steveu Exp $
  */
 
 /*! \file */
@@ -789,7 +789,7 @@ int main(int argc, char *argv[])
 {
     printf("HDLC module tests\n");
 
-    if (0)//test_hdlc_modes())
+    if (test_hdlc_modes())
     {
         printf("Tests failed\n");
         exit(2);

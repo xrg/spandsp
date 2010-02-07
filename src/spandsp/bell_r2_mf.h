@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.h,v 1.11 2007/05/19 18:01:47 steveu Exp $
+ * $Id: bell_r2_mf.h,v 1.12 2007/08/31 14:47:11 steveu Exp $
  */
 
 /*! \file */
@@ -186,9 +186,11 @@ int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int max_samples);
 /*! \brief Put a string of digits in a Bell MF generator's input buffer.
     \param s The Bell MF generator context.
     \param digits The string of digits to be added.
+    \param len The length of the string of digits. If negative, the string is
+           assumed to be a NULL terminated string.
     \return The number of digits actually added. This may be less than the
             length of the digit string, if the buffer fills up. */
-size_t bell_mf_tx_put(bell_mf_tx_state_t *s, const char *digits);
+size_t bell_mf_tx_put(bell_mf_tx_state_t *s, const char *digits, ssize_t len);
 
 /*! \brief Initialise a Bell MF generator context.
     \param s The Bell MF generator context.

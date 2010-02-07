@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17_tests.c,v 1.72 2007/08/17 16:36:59 steveu Exp $
+ * $Id: v17_tests.c,v 1.74 2007/09/02 11:02:52 steveu Exp $
  */
 
 /*! \page v17_tests_page V.17 modem tests
@@ -199,7 +199,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
     complexf_t *coeffs;
     float fpower;
     v17_rx_state_t *rx;
-    static float smooth_power = 0.0;
+    static float smooth_power = 0.0f;
     static int update_interval = 100;
 
     rx = (v17_rx_state_t *) user_data;
@@ -215,7 +215,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
 #endif
         fpower = (constel->re - target->re)*(constel->re - target->re)
                + (constel->im - target->im)*(constel->im - target->im);
-        smooth_power = 0.95*smooth_power + 0.05*fpower;
+        smooth_power = 0.95f*smooth_power + 0.05f*fpower;
         printf("%8d [%8.4f, %8.4f] [%8.4f, %8.4f] %2x %8.4f %8.4f %9.4f %7.3f\n",
                symbol_no,
                constel->re,
@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
             exit(2);
         }
-        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
+        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0f)
         {
             printf("    Unexpected frame size in speech file '%s' (%f)\n", decode_test_file, x);
             exit(2);
@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
             printf("    Unexpected sample rate in speech file '%s' (%f)\n", decode_test_file, x);
             exit(2);
         }
-        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
+        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0f)
         {
             printf("    Unexpected number of channels in speech file '%s' (%f)\n", decode_test_file, x);
             exit(2);
@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
         v17_tx_init(&tx, test_bps, tep, v17getbit, NULL);
         v17_tx_power(&tx, signal_level);
         /* Move the carrier off a bit */
-        tx.carrier_phase_rate = dds_phase_ratef(1792.0);
+        tx.carrier_phase_rate = dds_phase_ratef(1792.0f);
         tx.carrier_phase = 0x40000000;
 
         bert_init(&bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
@@ -415,7 +415,7 @@ int main(int argc, char *argv[])
 #if defined(ENABLE_GUI)
     if (use_gui)
     {
-        qam_monitor = qam_monitor_init(10.0, NULL);
+        qam_monitor = qam_monitor_init(10.0f, NULL);
         if (!decode_test_file)
         {
             start_line_model_monitor(129);
@@ -474,6 +474,8 @@ int main(int argc, char *argv[])
                 }
                 memset(&latest_results, 0, sizeof(latest_results));
                 signal_level--;
+                /* Bump the receiver AGC gain by 1dB, to compensate for the above */
+                rx.agc_scaling_save *= 1.122f;
                 v17_tx_restart(&tx, test_bps, tep, TRUE);
                 v17_tx_power(&tx, signal_level);
                 v17_rx_restart(&rx, test_bps, TRUE);

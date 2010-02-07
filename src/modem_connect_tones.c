@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.c,v 1.12 2007/06/28 13:56:10 steveu Exp $
+ * $Id: modem_connect_tones.c,v 1.15 2007/09/01 09:16:57 steveu Exp $
  */
  
 /*! \file */
@@ -43,6 +43,7 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
+#include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
@@ -161,7 +162,7 @@ static void v21_put_bit(void *user_data, int bit)
             if (s->preamble_on)
             {
                 if (s->tone_callback)
-                    s->tone_callback(s->callback_data, FALSE, -99);
+                    s->tone_callback(s->callback_data, FALSE, -99, 0);
             }
             /* Fall through */
         case PUTBIT_CARRIER_UP:
@@ -192,7 +193,7 @@ static void v21_put_bit(void *user_data, int bit)
         if (x > 4400  &&  x > 4*abs(s->one_zero_weight[0] + s->one_zero_weight[1]))
         {
             if (s->tone_callback)
-                s->tone_callback(s->callback_data, TRUE, -13);
+                s->tone_callback(s->callback_data, TRUE, -13, 0);
             else
                 s->hit = TRUE;
             s->preamble_on = TRUE;
@@ -207,7 +208,7 @@ static void v21_put_bit(void *user_data, int bit)
         if (x < 2000  ||  x < 2*abs(s->one_zero_weight[0] + s->one_zero_weight[1]))
         {
             if (s->tone_callback)
-                s->tone_callback(s->callback_data, FALSE, -99);
+                s->tone_callback(s->callback_data, FALSE, -99, 0);
             s->preamble_on = FALSE;
         }
     }
@@ -248,7 +249,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                     if (++s->tone_cycle_duration >= ms_to_samples(415))
                     {
                         if (s->tone_callback)
-                            s->tone_callback(s->callback_data, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
+                            s->tone_callback(s->callback_data, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f), 0);
                         else
                             s->hit = TRUE;
                         s->tone_present = TRUE;
@@ -285,7 +286,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                     if (++s->tone_cycle_duration >= ms_to_samples(500))
                     {
                         if (s->tone_callback)
-                            s->tone_callback(s->callback_data, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
+                            s->tone_callback(s->callback_data, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f), 0);
                         else
                             s->hit = TRUE;
                         s->tone_present = TRUE;
@@ -339,7 +340,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
                             if (++s->good_cycles > 2)
                             {
                                 if (s->tone_callback)
-                                    s->tone_callback(s->callback_data, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f));
+                                    s->tone_callback(s->callback_data, TRUE, rintf(log10f(s->channel_level/32768.0f)*20.0f + DBM0_MAX_POWER + 0.8f), 0);
                                 else
                                     s->hit = TRUE;
                             }

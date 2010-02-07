@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.h,v 1.13 2007/06/26 15:54:12 steveu Exp $
+ * $Id: dtmf.h,v 1.14 2007/08/31 14:47:11 steveu Exp $
  */
 
 #if !defined(_SPANDSP_DTMF_H_)
@@ -152,9 +152,11 @@ int dtmf_tx(dtmf_tx_state_t *s, int16_t amp[], int max_samples);
 /*! \brief Put a string of digits in a DTMF generator's input buffer.
     \param s The DTMF generator context.
     \param digits The string of digits to be added.
+    \param len The length of the string of digits. If negative, the string is
+           assumed to be a NULL terminated string.
     \return The number of digits actually added. This may be less than the
             length of the digit string, if the buffer fills up. */
-size_t dtmf_tx_put(dtmf_tx_state_t *s, const char *digits);
+size_t dtmf_tx_put(dtmf_tx_state_t *s, const char *digits, ssize_t len);
 
 /*! \brief Initialise a DTMF tone generator context.
     \param s The DTMF generator context.

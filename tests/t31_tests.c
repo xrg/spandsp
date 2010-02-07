@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31_tests.c,v 1.44 2007/08/14 16:19:32 steveu Exp $
+ * $Id: t31_tests.c,v 1.45 2007/09/02 12:47:07 steveu Exp $
  */
 
 /*! \file */
@@ -148,7 +148,7 @@ static const struct command_response_s fax_receive_test_seq[] =
     RESPONSE("\r\nOK\r\n"),
     EXCHANGE("AT+FRH=3\r", "\r\nCONNECT\r\n"),
     //<DCS frame data>
-    RESPONSE("\xFF\x13\x83\x00\xC6\x74\x53\x00\x10\x03"),
+    RESPONSE("\xFF\x13\x83\x00\xC4\x74\xe3\x33\x10\x03"),
     RESPONSE("\r\nOK\r\n"),
     EXCHANGE("AT+FRM=96\r", "\r\nCONNECT\r\n"),
     //<TCF data>

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.c,v 1.15 2006/11/19 14:07:25 steveu Exp $
+ * $Id: time_scale.c,v 1.16 2007/09/02 14:25:51 steveu Exp $
  */
 
 /*! \file */
@@ -81,15 +81,15 @@ static __inline__ int amdf_pitch(int min_pitch, int max_pitch, int16_t amp[], in
 static __inline__ void overlap_add(int16_t amp1[], int16_t amp2[], int len)
 {
     int i;
-    double weight;
-    double step;
+    float weight;
+    float step;
     
-    step = 1.0/len;
-    weight = 0.0;
+    step = 1.0f/len;
+    weight = 0.0f;
     for (i = 0;  i < len;  i++)
     {
         /* TODO: saturate */
-        amp2[i] = (int16_t) ((double) amp1[i]*(1.0 - weight) + (double) amp2[i]*weight);
+        amp2[i] = (int16_t) ((float) amp1[i]*(1.0f - weight) + (float) amp2[i]*weight);
         weight += step;
     }
 }
@@ -97,22 +97,22 @@ static __inline__ void overlap_add(int16_t amp1[], int16_t amp2[], int len)
 
 int time_scale_rate(time_scale_t *s, float rate)
 {
-    if (rate <= 0.0)
+    if (rate <= 0.0f)
         return -1;
     /*endif*/
-    if (rate >= 0.99  &&  rate <= 1.01)
+    if (rate >= 0.99f  &&  rate <= 1.01f)
     {
         /* Treat rate close to normal speed as exactly normal speed, and
            avoid divide by zero, and other numerical problems. */
-        rate = 1.0;
+        rate = 1.0f;
     }
-    else if (rate < 1.0)
+    else if (rate < 1.0f)
     {
-        s->rcomp = rate/(1.0 - rate);
+        s->rcomp = rate/(1.0f - rate);
     }
     else
     {
-        s->rcomp = 1.0/(rate - 1.0);
+        s->rcomp = 1.0f/(rate - 1.0f);
     }
     /*endif*/
     s->rate = rate;
@@ -125,7 +125,7 @@ int time_scale_init(time_scale_t *s, float rate)
     if (time_scale_rate(s, rate))
         return -1;
     /*endif*/
-    s->rate_nudge = 0.0;
+    s->rate_nudge = 0.0f;
     s->fill = 0;
     s->lcp = 0;
     return 0;
@@ -190,7 +190,7 @@ int time_scale(time_scale_t *s, int16_t out[], int16_t in[], int len)
             in_len += s->lcp;
             s->lcp = 0;
         }
-        if (s->rate == 1.0)
+        if (s->rate == 1.0f)
         {
             s->lcp = 0x7FFFFFFF;
         }
@@ -202,17 +202,17 @@ int time_scale(time_scale_t *s, int16_t out[], int16_t in[], int len)
             s->lcp = (int) lcpf;
             /* Note that s->lcp and lcpf are not the same, as lcpf has a fractional part, and s->lcp doesn't */
             s->rate_nudge += s->lcp - lcpf;
-            if (s->rate_nudge >= 0.5)
+            if (s->rate_nudge >= 0.5f)
             {
                 s->lcp--;
-                s->rate_nudge -= 1.0;
+                s->rate_nudge -= 1.0f;
             }
-            else if (s->rate_nudge <= -0.5)
+            else if (s->rate_nudge <= -0.5f)
             {
                 s->lcp++;
-                s->rate_nudge += 1.0;
+                s->rate_nudge += 1.0f;
             }
-            if (s->rate < 1.0)
+            if (s->rate < 1.0f)
             {
                 /* Speed up - drop a chunk of data */
                 overlap_add(s->buf, s->buf + pitch, pitch);

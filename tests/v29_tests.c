@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29_tests.c,v 1.88 2007/08/14 14:57:37 steveu Exp $
+ * $Id: v29_tests.c,v 1.89 2007/09/02 11:02:52 steveu Exp $
  */
 
 /*! \page v29_tests_page V.29 modem tests
@@ -195,7 +195,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
     complexf_t *coeffs;
     float fpower;
     v29_rx_state_t *rx;
-    static float smooth_power = 0.0;
+    static float smooth_power = 0.0f;
     static int update_interval = 100;
 
     rx = (v29_rx_state_t *) user_data;
@@ -203,13 +203,13 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
     {
         fpower = (constel->re - target->re)*(constel->re - target->re)
                + (constel->im - target->im)*(constel->im - target->im);
-        smooth_power = 0.95*smooth_power + 0.05*fpower;
+        smooth_power = 0.95f*smooth_power + 0.05f*fpower;
 #if defined(ENABLE_GUI)
         if (use_gui)
         {
             qam_monitor_update_constel(qam_monitor, constel);
             qam_monitor_update_carrier_tracking(qam_monitor, v29_rx_carrier_frequency(rx));
-            //qam_monitor_update_carrier_tracking(qam_monitor, (fpower)  ?  fpower  :  0.001);
+            //qam_monitor_update_carrier_tracking(qam_monitor, (fpower)  ?  fpower  :  0.001f);
             qam_monitor_update_symbol_tracking(qam_monitor, v29_rx_symbol_timing_correction(rx));
         }
 #endif
@@ -363,7 +363,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
             exit(2);
         }
-        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
+        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0f)
         {
             printf("    Unexpected frame size in speech file '%s'\n", decode_test_file);
             exit(2);
@@ -373,7 +373,7 @@ int main(int argc, char *argv[])
             printf("    Unexpected sample rate in speech file '%s'\n", decode_test_file);
             exit(2);
         }
-        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
+        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0f)
         {
             printf("    Unexpected number of channels in speech file '%s'\n", decode_test_file);
             exit(2);
@@ -399,7 +399,7 @@ int main(int argc, char *argv[])
     }
 
     v29_rx_init(&rx, test_bps, v29putbit, &rx);
-    v29_rx_signal_cutoff(&rx, -45.5);
+    v29_rx_signal_cutoff(&rx, -45.5f);
     v29_rx_set_qam_report_handler(&rx, qam_report, (void *) &rx);
     /* Rotate the starting phase */
     rx.carrier_phase = 0x80000000;
@@ -409,7 +409,7 @@ int main(int argc, char *argv[])
 #if defined(ENABLE_GUI)
     if (use_gui)
     {
-        qam_monitor = qam_monitor_init(6.0, NULL);
+        qam_monitor = qam_monitor_init(6.0f, NULL);
         if (!decode_test_file)
         {
             start_line_model_monitor(129);

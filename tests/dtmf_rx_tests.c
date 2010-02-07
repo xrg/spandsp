@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_rx_tests.c,v 1.30 2007/08/14 14:57:37 steveu Exp $
+ * $Id: dtmf_rx_tests.c,v 1.32 2007/09/01 09:16:57 steveu Exp $
  */
 
 /*
@@ -250,7 +250,7 @@ static void digit_delivery(void *data, const char *digits, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void digit_status(void *data, int signal, int level)
+static void digit_status(void *data, int signal, int level, int delay)
 {
     const char *s = ALL_POSSIBLE_DIGITS;
     int len;

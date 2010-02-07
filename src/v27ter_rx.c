@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.81 2007/08/25 02:35:02 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.83 2007/09/02 14:25:51 steveu Exp $
  */
 
 /*! \file */
@@ -1361,7 +1361,7 @@ static __inline__ complexf_t equalizer_get(v27ter_rx_state_t *s)
     complexf_t z1;
 
     /* Get the next equalized value. */
-    z = complex_setf(0.0, 0.0);
+    z = complex_setf(0.0f, 0.0f);
     p = s->eq_step - 1;
     for (i = 0;  i < V27TER_EQUALIZER_PRE_LEN + 1 + V27TER_EQUALIZER_POST_LEN;  i++)
     {
@@ -1497,8 +1497,8 @@ static __inline__ int find_octant(complexf_t *z)
     if (abs_im > abs_re*0.4142136f  &&  abs_im < abs_re*2.4142136f)
     {
         /* Split the space along the two axes. */
-        b1 = (z->re < 0.0);
-        b2 = (z->im < 0.0);
+        b1 = (z->re < 0.0f);
+        b2 = (z->im < 0.0f);
         bits = (b2 << 2) | ((b1 ^ b2) << 1) | 1;
     }
     else
@@ -1580,10 +1580,10 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
     /* On alternate insertions we have a whole baud, and must process it. */
     if ((s->baud_phase ^= 1))
     {
-        //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, -1, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, -1, 0x%X\n", z.re, z.im, sqrtf(z.re*z.re + z.im*z.im), s->eq_put_step);
         return;
     }
-    //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, 1, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
+    //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, 1, 0x%X\n", z.re, z.im, sqrtf(z.re*z.re + z.im*z.im), s->eq_put_step);
 
     /* Perform a Gardner test for baud alignment */
     p = s->eq_buf[(s->eq_step - 3) & V27TER_EQUALIZER_MASK].re
@@ -1594,7 +1594,7 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
       - s->eq_buf[(s->eq_step - 1) & V27TER_EQUALIZER_MASK].im;
     q *= s->eq_buf[(s->eq_step - 2) & V27TER_EQUALIZER_MASK].im;
 
-    s->gardner_integrate += (p + q > 0.0)  ?  s->gardner_step  :  -s->gardner_step;
+    s->gardner_integrate += (p + q > 0.0f)  ?  s->gardner_step  :  -s->gardner_step;
 
     if (abs(s->gardner_integrate) >= 256)
     {
@@ -1720,8 +1720,8 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
             s->constellation_state = (s->bit_rate == 4800)  ?  4  :  2;
             s->training_count = 0;
             s->training_stage = TRAINING_STAGE_TEST_ONES;
-            s->carrier_track_i = 400.0;
-            s->carrier_track_p = 1000000.0;
+            s->carrier_track_i = 400.0f;
+            s->carrier_track_p = 1000000.0f;
         }
         break;
     case TRAINING_STAGE_TEST_ONES:
@@ -1827,11 +1827,10 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                 s->signal_present = 1;
                 s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
             }
-            if (s->training_stage == TRAINING_STAGE_PARKED)
-                continue;
             /* Only spend effort processing this data if the modem is not
                parked, after training failure. */
-            z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
+            if (s->training_stage == TRAINING_STAGE_PARKED)
+                continue;
         
             /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
                will fiddle the step to align this with the symbols. */
@@ -1874,10 +1873,12 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                 /* Shift to baseband - since this is done in a full complex form, the
                    result is clean, and requires no further filtering, apart from the
                    equalizer. */
+                z = dds_complexf(&(s->carrier_phase), 0);
                 zz.re = sample.re*z.re - sample.im*z.im;
                 zz.im = -sample.re*z.im - sample.im*z.re;
                 process_half_baud(s, &zz);
             }
+            dds_advancef(&(s->carrier_phase), s->carrier_phase_rate);
         }
     }
     else
@@ -1919,11 +1920,10 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                 s->signal_present = 1;
                 s->put_bit(s->user_data, PUTBIT_CARRIER_UP);
             }
-            if (s->training_stage == TRAINING_STAGE_PARKED)
-                continue;
             /* Only spend effort processing this data if the modem is not
                parked, after training failure. */
-            z = dds_complexf(&(s->carrier_phase), s->carrier_phase_rate);
+            if (s->training_stage == TRAINING_STAGE_PARKED)
+                continue;
         
             /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
                will fiddle the step to align this with the symbols. */
@@ -1966,10 +1966,12 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
                 /* Shift to baseband - since this is done in a full complex form, the
                    result is clean, and requires no further filtering apart from the
                    equalizer. */
+                z = dds_complexf(&(s->carrier_phase), 0);
                 zz.re = sample.re*z.re - sample.im*z.im;
                 zz.im = -sample.re*z.im - sample.im*z.re;
                 process_half_baud(s, &zz);
             }
+            dds_advancef(&(s->carrier_phase), s->carrier_phase_rate);
         }
     }
     return 0;

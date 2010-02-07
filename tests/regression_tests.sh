@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: regression_tests.sh,v 1.42 2007/07/28 04:33:25 steveu Exp $
+# $Id: regression_tests.sh,v 1.45 2007/09/07 13:22:25 steveu Exp $
 #
 
 ITUTESTS_TIF=../itutests/fax/itutests.tif
@@ -598,6 +598,15 @@ echo t4_tests completed OK
 #echo time_scale_tests completed OK
 echo time_scale_tests not enabled
 
+./tone_detect_tests >$STDOUT_DEST 2>$STDERR_DEST
+RETVAL=$?
+if [ $RETVAL != 0 ]
+then
+    echo tone_detect_tests failed!
+    exit $RETVAL
+fi
+echo tone_detect_tests completed OK
+
 #./tone_generate_tests >$STDOUT_DEST 2>$STDERR_DEST
 #RETVAL=$?
 #if [ $RETVAL != 0 ]
@@ -608,15 +617,35 @@ echo time_scale_tests not enabled
 #echo tone_generate_tests completed OK
 echo tone_generate_tests not enabled
 
-#./v17_tests >$STDOUT_DEST 2>$STDERR_DEST
-#RETVAL=$?
-#if [ $RETVAL != 0 ]
-#then
-#    echo v17_tests failed!
-#    exit $RETVAL
-#fi
-#echo v17_tests completed OK
-echo v17_tests not enabled
+./v17_tests -s -42 14400 >$STDOUT_DEST 2>$STDERR_DEST
+RETVAL=$?
+if [ $RETVAL != 0 ]
+then
+    echo v17_tests failed!
+    exit $RETVAL
+fi
+./v17_tests -s -42 12000 >$STDOUT_DEST 2>$STDERR_DEST
+RETVAL=$?
+if [ $RETVAL != 0 ]
+then
+    echo v17_tests failed!
+    exit $RETVAL
+fi
+./v17_tests -s -42 9600 >$STDOUT_DEST 2>$STDERR_DEST
+RETVAL=$?
+if [ $RETVAL != 0 ]
+then
+    echo v17_tests failed!
+    exit $RETVAL
+fi
+./v17_tests -s -42 7200 >$STDOUT_DEST 2>$STDERR_DEST
+RETVAL=$?
+if [ $RETVAL != 0 ]
+then
+    echo v17_tests failed!
+    exit $RETVAL
+fi
+echo v17_tests completed OK
 
 #./v22bis_tests >$STDOUT_DEST 2>$STDERR_DEST
 #RETVAL=$?

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.c,v 1.15 2006/11/19 14:07:25 steveu Exp $
+ * $Id: sig_tone.c,v 1.16 2007/08/29 12:44:36 steveu Exp $
  */
 
 /*! \file */
@@ -46,6 +46,7 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/dc_restore.h"
+#include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/sig_tone.h"
 

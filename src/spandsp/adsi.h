@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.h,v 1.23 2007/06/08 13:49:38 steveu Exp $
+ * $Id: adsi.h,v 1.24 2007/08/31 14:47:11 steveu Exp $
  */
 
 /*! \file */
@@ -409,7 +409,7 @@ int adsi_tx(adsi_tx_state_t *s, int16_t *amp, int max_len);
 /*! \brief Request generation of an ADSI alert tone.
     \param s The ADSI transmit context.
 */
-void adsi_send_alert_tone(adsi_tx_state_t *s);
+void adsi_tx_send_alert_tone(adsi_tx_state_t *s);
 
 /*! \brief Put a message into the input buffer of an ADSI transmit context.
     \param s The ADSI transmit context.
@@ -419,7 +419,7 @@ void adsi_send_alert_tone(adsi_tx_state_t *s);
             in the transmitter, this function will return zero, as it will
             not successfully add the message to the buffer.
 */
-int adsi_put_message(adsi_tx_state_t *s, uint8_t *msg, int len);
+int adsi_tx_put_message(adsi_tx_state_t *s, const uint8_t *msg, int len);
 
 /*! \brief Get a field from an ADSI message.
     \param s The ADSI receive context.

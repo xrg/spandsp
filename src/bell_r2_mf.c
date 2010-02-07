@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.c,v 1.15 2007/08/13 13:08:18 steveu Exp $
+ * $Id: bell_r2_mf.c,v 1.17 2007/08/31 14:47:10 steveu Exp $
  */
 
 /*! \file bell_r2_mf.h */
@@ -45,6 +45,7 @@
 #include "spandsp/telephony.h"
 #include "spandsp/queue.h"
 #include "spandsp/dc_restore.h"
+#include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
@@ -287,16 +288,18 @@ int bell_mf_tx(bell_mf_tx_state_t *s, int16_t amp[], int max_samples)
 }
 /*- End of function --------------------------------------------------------*/
 
-size_t bell_mf_tx_put(bell_mf_tx_state_t *s, const char *digits)
+size_t bell_mf_tx_put(bell_mf_tx_state_t *s, const char *digits, ssize_t len)
 {
-    size_t len;
     size_t space;
 
     /* This returns the number of characters that would not fit in the buffer.
        The buffer will only be loaded if the whole string of digits will fit,
        in which case zero is returned. */
-    if ((len = strlen(digits)) == 0)
-        return 0;
+    if (len < 0)
+    {
+        if ((len = strlen(digits)) == 0)
+            return 0;
+    }
     if ((space = queue_free_space(&s->queue)) < len)
         return len - space;
     if (queue_write(&s->queue, (const uint8_t *) digits, len) >= 0)

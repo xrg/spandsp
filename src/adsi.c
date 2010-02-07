@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.49 2007/07/29 17:56:41 steveu Exp $
+ * $Id: adsi.c,v 1.51 2007/08/31 14:47:10 steveu Exp $
  */
 
 /*! \file */
@@ -47,6 +47,7 @@
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
 #include "spandsp/queue.h"
+#include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/async.h"
@@ -140,7 +141,7 @@ static int adsi_tx_get_bit(void *user_data)
             s->msg_len = 0;
         }
     }
-//printf("Tx bit %d\n", bit);
+    //printf("Tx bit %d\n", bit);
     return bit;
 }
 /*- End of function --------------------------------------------------------*/
@@ -460,7 +461,7 @@ int adsi_tx(adsi_tx_state_t *s, int16_t *amp, int max_len)
 }
 /*- End of function --------------------------------------------------------*/
 
-void adsi_send_alert_tone(adsi_tx_state_t *s)
+void adsi_tx_send_alert_tone(adsi_tx_state_t *s)
 {
     tone_gen_init(&(s->alert_tone_gen), &(s->alert_tone_desc));
 }
@@ -519,7 +520,7 @@ void adsi_tx_set_preamble(adsi_tx_state_t *s,
 }
 /*- End of function --------------------------------------------------------*/
 
-int adsi_put_message(adsi_tx_state_t *s, uint8_t *msg, int len)
+int adsi_tx_put_message(adsi_tx_state_t *s, const uint8_t *msg, int len)
 {
     int i;
     int j;
@@ -543,8 +544,7 @@ int adsi_put_message(adsi_tx_state_t *s, uint8_t *msg, int len)
     case ADSI_STANDARD_CLIP_DTMF:
         if (len >= 128)
             return -1;
-        msg[len] = '\0';
-        len -= (int) dtmf_tx_put(&(s->dtmftx), (char *) msg);
+        len -= (int) dtmf_tx_put(&(s->dtmftx), (char *) msg, len);
         break;
     case ADSI_STANDARD_JCLIP:
         if (len > 128 - 9)

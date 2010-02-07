@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones_tests.c,v 1.9 2007/06/28 13:56:10 steveu Exp $
+ * $Id: modem_connect_tones_tests.c,v 1.11 2007/09/01 09:16:57 steveu Exp $
  */
 
 /*! \page modem_connect_tones_tests_page Modem connect tones tests
@@ -109,7 +109,7 @@ static int preamble_get_bit(void *user_data)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void tone_detected(void *user_data, int on, int level)
+static void tone_detected(void *user_data, int on, int level, int delay)
 {
     printf("Preamble declared %s at bit %d\n", (on)  ?  "on"  :  "off", preamble_count);
     if (on)
