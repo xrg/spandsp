@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.147 2006/11/20 17:48:11 steveu Exp $
+ * $Id: t30.c,v 1.149 2006/11/30 15:41:47 steveu Exp $
  */
 
 /*! \file */
@@ -734,11 +734,11 @@ static int get_partial_ecm_page(t30_state_t *s)
                 if (((bit = t4_tx_get_bit(&(s->t4)))) == PUTBIT_END_OF_DATA)
                 {
                     if (k > 0)
-                        s->ecm_data[i][j++] = octet >> (7 - k);
+                        s->ecm_data[i][j++] = (uint8_t) (octet >> (7 - k));
                     if (j > 0)
                     {
                         memset(&s->ecm_data[i][j], 0, s->octets_per_ecm_frame + 4 - j);
-                        s->ecm_len[i++] = s->octets_per_ecm_frame + 4;
+                        s->ecm_len[i++] = (int16_t) (s->octets_per_ecm_frame + 4);
                     }
                     /* The image is not big enough to fill the entire buffer */
                     /* We need to pad to a full frame, as most receivers expect
@@ -748,11 +748,11 @@ static int get_partial_ecm_page(t30_state_t *s)
                     s->ecm_at_page_end = TRUE;
                     return i;
                 }
-                octet = (octet >> 1) | ((bit & 1) << 7);
+                octet = (uint8_t) ((octet >> 1) | ((bit & 1) << 7));
             }
             s->ecm_data[i][j] = octet;
         }
-        s->ecm_len[i] = j;
+        s->ecm_len[i] = (int16_t) j;
     }
     /* We filled the entire buffer */
     s->ecm_frames = 256;
@@ -956,9 +956,9 @@ static int send_pps_frame(t30_state_t *s)
     frame[1] = 0x13;
     frame[2] = T30_PPS;
     frame[3] = (s->ecm_at_page_end)  ?  ((uint8_t) (s->next_tx_step | s->dis_received))  :  T30_NULL;
-    frame[4] = s->ecm_page & 0xFF;
-    frame[5] = s->ecm_block & 0xFF;
-    frame[6] = s->ecm_frames - 1;
+    frame[4] = (uint8_t) (s->ecm_page & 0xFF);
+    frame[5] = (uint8_t) (s->ecm_block & 0xFF);
+    frame[6] = (uint8_t) (s->ecm_frames - 1);
     span_log(&s->logging, SPAN_LOG_FLOW, "Sending PPS + %s\n", t30_frametype(frame[3]));
     send_frame(s, frame, 7);
     return frame[3] & 0xFE;
@@ -2250,7 +2250,7 @@ static void process_rx_fcd(t30_state_t *s, const uint8_t *msg, int len)
             span_log(&s->logging, SPAN_LOG_FLOW, "Storing image frame %d, length %d\n", frame_no, len - 4);
             for (i = 0;  i < len - 4;  i++)
                 s->ecm_data[frame_no][i] = msg[i + 4];
-            s->ecm_len[frame_no] = len - 4;
+            s->ecm_len[frame_no] = (int16_t) (len - 4);
             span_log(&s->logging, SPAN_LOG_FLOW, "Storing ECM frame %d\n", frame_no);
         }
         else
@@ -3993,7 +3993,7 @@ static void octet_reserved_bit(logging_state_t *log,
     if (bit ^ expected)
     {
         /* Only log unexpected values. */
-        s[7 - bit_no + ((bit_no < 4)  ?  1  :  0)] = bit + '0';
+        s[7 - bit_no + ((bit_no < 4)  ?  1  :  0)] = (uint8_t) (bit + '0');
         span_log(log, SPAN_LOG_FLOW, "  %s= Unexpected state for reserved bit: %d\n", s, bit);
     }
 }
@@ -4017,7 +4017,7 @@ static void octet_bit_field(logging_state_t *log,
     /* Now get the actual bit. */
     bit = (octet >> bit_no) & 1;
     /* Edit the bit string for display. */
-    s[7 - bit_no + ((bit_no < 4)  ?  1  :  0)] = bit + '0';
+    s[7 - bit_no + ((bit_no < 4)  ?  1  :  0)] = (uint8_t) (bit + '0');
     /* Find the right tag to display. */
     if (bit)
     {
@@ -4053,10 +4053,10 @@ static void octet_field(logging_state_t *log,
 
     /* Edit the bit string for display. */
     for (i = start;  i < end;  i++)
-        s[7 - i + ((i < 4)  ?  1  :  0)] = ((octet >> i) & 1) + '0';
+        s[7 - i + ((i < 4)  ?  1  :  0)] = (uint8_t) ((octet >> i) & 1) + '0';
 
     /* Find the right tag to display. */
-    octet = (octet >> start) & ((0xFF + (1 << (end - start))) & 0xFF);
+    octet = (uint8_t) ((octet >> start) & ((0xFF + (1 << (end - start))) & 0xFF));
     tag = "Invalid";
     for (i = 0;  tags[i].str;  i++)
     {

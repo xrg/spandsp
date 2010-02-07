@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis.c,v 1.27 2006/11/04 11:28:59 steveu Exp $
+ * $Id: v42bis.c,v 1.29 2006/12/01 18:00:48 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. 
@@ -431,7 +431,7 @@ int v42bis_decompress(v42bis_state_t *s, const uint8_t *buf, int len)
                 }
                 else
                 {
-                    printf("Hit V42BIS_???? - %u\n", code);
+                    printf("Hit V42BIS_???? - %" PRIu32 "\n", code);
                 }
             }
             else if (code == ss->escape_code)
@@ -441,7 +441,7 @@ int v42bis_decompress(v42bis_state_t *s, const uint8_t *buf, int len)
             }
             else
             {
-                ss->output_buf[ss->output_octet_count++] = code;
+                ss->output_buf[ss->output_octet_count++] = (uint8_t) code;
                 if (ss->output_octet_count >= ss->max_len - s->v42bis_parm_n7)
                 {
                     ss->handler(ss->user_data, ss->output_buf, ss->output_octet_count);
@@ -504,7 +504,7 @@ int v42bis_decompress(v42bis_state_t *s, const uint8_t *buf, int len)
             /* Trace back through the octets which form the string, and output them. */
             while (code >= V42BIS_N5)
             {
-if (code > 4095) {printf("Code is 0x%X\n", code); exit(2);}
+if (code > 4095) {printf("Code is 0x%" PRIu32 "\n", code); exit(2);}
                 *string-- = ss->dict[code].node_octet;
                 code = ss->dict[code].parent_code;
             }

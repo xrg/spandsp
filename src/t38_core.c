@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.c,v 1.19 2006/11/19 14:07:25 steveu Exp $
+ * $Id: t38_core.c,v 1.24 2006/12/09 04:50:12 steveu Exp $
  */
 
 /*! \file */
@@ -82,73 +82,73 @@ const char *t38_indicator(int indicator)
     switch (indicator)
     {
     case T38_IND_NO_SIGNAL:
-        type = "T38_IND_NO_SIGNAL";
+        type = "no-signal";
         break;
     case T38_IND_CNG:
-        type = "T38_IND_CNG";
+        type = "cng";
         break;
     case T38_IND_CED:
-        type = "T38_IND_CED";
+        type = "ced";
         break;
     case T38_IND_V21_PREAMBLE:
-        type = "T38_IND_V21_PREAMBLE";
+        type = "v21-preamble";
         break;
     case T38_IND_V27TER_2400_TRAINING:
-        type = "T38_IND_V27TER_2400_TRAINING";
+        type = "v27-2400-training";
         break;
     case T38_IND_V27TER_4800_TRAINING:
-        type = "T38_IND_V27TER_4800_TRAINING";
+        type = "v27-4800-training";
         break;
     case T38_IND_V29_7200_TRAINING:
-        type = "T38_IND_V29_7200_TRAINING";
+        type = "v29-7200-training";
         break;
     case T38_IND_V29_9600_TRAINING:
-        type = "T38_IND_V29_9600_TRAINING";
+        type = "v29-9600-training";
         break;
     case T38_IND_V17_7200_SHORT_TRAINING:
-        type = "T38_IND_V17_7200_SHORT_TRAINING";
+        type = "v17-7200-short-training";
         break;
     case T38_IND_V17_7200_LONG_TRAINING:
-        type = "T38_IND_V17_7200_LONG_TRAINING";
+        type = "v17-7200-long-training";
         break;
     case T38_IND_V17_9600_SHORT_TRAINING:
-        type = "T38_IND_V17_9600_SHORT_TRAINING";
+        type = "v17-9600-short-training";
         break;
     case T38_IND_V17_9600_LONG_TRAINING:
-        type = "T38_IND_V17_9600_LONG_TRAINING";
+        type = "v17-9600-long-training";
         break;
     case T38_IND_V17_12000_SHORT_TRAINING:
-        type = "T38_IND_V17_12000_SHORT_TRAINING";
+        type = "v17-12000-short-training";
         break;
     case T38_IND_V17_12000_LONG_TRAINING:
-        type = "T38_IND_V17_12000_LONG_TRAINING";
+        type = "v17-12000-long-training";
         break;
     case T38_IND_V17_14400_SHORT_TRAINING:
-        type = "T38_IND_V17_14400_SHORT_TRAINING";
+        type = "v17-14400-short-training";
         break;
     case T38_IND_V17_14400_LONG_TRAINING:
-        type = "T38_IND_V17_14400_LONG_TRAINING";
+        type = "v17-14400-long-training";
         break;
     case T38_IND_V8_ANSAM:
-        type = "T38_IND_V8_ANSAM";
+        type = "v8-ansam";
         break;
     case T38_IND_V8_SIGNAL:
-        type = "T38_IND_V8_SIGNAL";
+        type = "v8-signal";
         break;
     case T38_IND_V34_CNTL_CHANNEL_1200:
-        type = "T38_IND_V34_CNTL_CHANNEL_1200";
+        type = "v34-cntl-channel-1200";
         break;
     case T38_IND_V34_PRI_CHANNEL:
-        type = "T38_IND_V34_PRI_CHANNEL";
+        type = "v34-pri-channel";
         break;
     case T38_IND_V34_CC_RETRAIN:
-        type = "T38_IND_V34_CC_RETRAIN";
+        type = "v34-CC-retrain";
         break;
     case T38_IND_V33_12000_TRAINING:
-        type = "T38_IND_V33_12000_TRAINING";
+        type = "v33-12000-training";
         break;
     case T38_IND_V33_14400_TRAINING:
-        type = "T38_IND_V33_14400_TRAINING";
+        type = "v33-14400-training";
         break;
     default:
         type = "???";
@@ -165,49 +165,49 @@ const char *t38_data_type(int data_type)
     switch (data_type)
     {
     case T38_DATA_V21:
-        type = "T38_DATA_V21";
+        type = "v21";
         break;
     case T38_DATA_V27TER_2400:
-        type = "T38_DATA_V27TER_2400";
+        type = "v27-2400";
         break;
     case T38_DATA_V27TER_4800:
-        type = "T38_DATA_V27TER_4800";
+        type = "v27-4800";
         break;
     case T38_DATA_V29_7200:
-        type = "T38_DATA_V29_7200";
+        type = "v29-7200";
         break;
     case T38_DATA_V29_9600:
-        type = "T38_DATA_V29_9600";
+        type = "v29-9600";
         break;
     case T38_DATA_V17_7200:
-        type = "T38_DATA_V17_7200";
+        type = "v17-7200";
         break;
     case T38_DATA_V17_9600:
-        type = "T38_DATA_V17_9600";
+        type = "v17-9600";
         break;
     case T38_DATA_V17_12000:
-        type = "T38_DATA_V17_12000";
+        type = "v17-12000";
         break;
     case T38_DATA_V17_14400:
-        type = "T38_DATA_V17_14400";
+        type = "v17-14400";
         break;
     case T38_DATA_V8:
-        type = "T38_DATA_V8";
+        type = "v8";
         break;
     case T38_DATA_V34_PRI_RATE:
-        type = "T38_DATA_V34_PRI_RATE";
+        type = "v34-pri-rate";
         break;
     case T38_DATA_V34_CC_1200:
-        type = "T38_DATA_V34_CC_1200";
+        type = "v34-CC-1200";
         break;
     case T38_DATA_V34_PRI_CH:
-        type = "T38_DATA_V34_PRI_CH";
+        type = "v34-pri-vh";
         break;
     case T38_DATA_V33_12000:
-        type = "T38_DATA_V33_12000";
+        type = "v33-12000";
         break;
     case T38_DATA_V33_14400:
-        type = "T38_DATA_V33_14400";
+        type = "v33-14400";
         break;
     default:
         type = "???";
@@ -224,40 +224,40 @@ const char *t38_field_type(int field_type)
     switch (field_type)
     {
     case T38_FIELD_HDLC_DATA:
-        type = "T38_FIELD_HDLC_DATA";
+        type = "hdlc-data";
         break;
     case T38_FIELD_HDLC_SIG_END:
-        type = "T38_FIELD_HDLC_SIG_END";
+        type = "hdlc-sig-end";
         break;
     case T38_FIELD_HDLC_FCS_OK:
-        type = "T38_FIELD_HDLC_FCS_OK";
+        type = "hdlc-fcs-OK";
         break;
     case T38_FIELD_HDLC_FCS_BAD:
-        type = "T38_FIELD_HDLC_FCS_BAD";
+        type = "hdlc-fcs-BAD";
         break;
     case T38_FIELD_HDLC_FCS_OK_SIG_END:
-        type = "T38_FIELD_HDLC_FCS_OK_SIG_END";
+        type = "hdlc-fcs-OK-sig-end";
         break;
     case T38_FIELD_HDLC_FCS_BAD_SIG_END:
-        type = "T38_FIELD_HDLC_FCS_BAD_SIG_END";
+        type = "hdlc-fcs-BAD-sig-end";
         break;
     case T38_FIELD_T4_NON_ECM_DATA:
-        type = "T38_FIELD_NON_ECM_DATA";
+        type = "t4-non-ecm-data";
         break;
     case T38_FIELD_T4_NON_ECM_SIG_END:
-        type = "T38_FIELD_NON_ECM_SIG_END";
+        type = "t4-non-ecm-sig-end";
         break;
     case T38_FIELD_CM_MESSAGE:
-        type = "T38_FIELD_CM_MESSAGE";
+        type = "cm-message";
         break;
     case T38_FIELD_JM_MESSAGE:
-        type = "T38_FIELD_JM_MESSAGE";
+        type = "jm-message";
         break;
     case T38_FIELD_CI_MESSAGE:
-        type = "T38_FIELD_CI_MESSAGE";
+        type = "ci-message";
         break;
     case T38_FIELD_V34RATE:
-        type = "T38_FIELD_V34RATE";
+        type = "v34rate";
         break;
     default:
         type = "???";
@@ -312,6 +312,7 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
     int t30_indicator;
     int t30_data;
     int ptr;
+    int other_half;
     int numocts;
     const uint8_t *msg;
     uint8_t type;
@@ -418,8 +419,10 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
             t30_indicator = (buf[0] >> 1) & 0xF;
         }
         span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: indicator %s\n", seq_no, t38_indicator(t30_indicator));
-        s->current_rx_indicator = t30_indicator;
         s->rx_indicator_handler(s, s->rx_user_data, t30_indicator);
+        /* This must come after the indicator handler, so the handler routine sees the existing state of the
+           indicator. */
+        s->current_rx_indicator = t30_indicator;
         break;
     case T38_TYPE_OF_MSG_T30_DATA:
         if ((buf[0] & 0x20))
@@ -466,6 +469,7 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
         }
         count = buf[ptr++];
         //printf("Count is %d\n", count);
+        other_half = FALSE;
         for (i = 0;  i < (int) count;  i++)
         {
             if (ptr >= len)
@@ -473,12 +477,29 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
                 span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Bad length\n", seq_no);
                 return -1;
             }
-            field_data_present = (buf[ptr] >> 7) & 1;
-            /* Decode field_type */
             if (s->t38_version == 0)
             {
-                /* Original version of T.38 with a typo. */
-                field_type = (buf[ptr++] >> 4) & 0x7;
+                /* The original version of T.38 with a typo in the ASN.1 spec. */
+                if (other_half)
+                {
+                    /* The lack of a data field in the previous message means
+                       we are currently in the middle of an octet. */
+                    field_data_present = (buf[ptr] >> 3) & 1;
+                    /* Decode field_type */
+                    field_type = buf[ptr] & 0x7;
+                    ptr++;
+                    other_half = FALSE;
+                }
+                else
+                {
+                    field_data_present = (buf[ptr] >> 7) & 1;
+                    /* Decode field_type */
+                    field_type = (buf[ptr] >> 4) & 0x7;
+                    if (field_data_present)
+                        ptr++;
+                    else
+                        other_half = TRUE;
+                }
                 if (field_type > T38_FIELD_T4_NON_ECM_SIG_END)
                 {
                     span_log(&s->logging, SPAN_LOG_FLOW, "Rx %5d: Unknown field type - %d\n", seq_no, field_type);
@@ -487,6 +508,8 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
             }
             else
             {
+                field_data_present = (buf[ptr] >> 7) & 1;
+                /* Decode field_type */
                 if ((buf[ptr] & 0x40))
                 {
                     if (ptr > len - 2)
@@ -812,7 +835,8 @@ t38_core_state_t *t38_core_init(t38_core_state_t *s,
     s->max_datagram_size = 100;
     s->t38_version = 0;
     s->iaf = FALSE;
-    
+    s->current_rx_indicator = -1;
+
     s->rx_indicator_handler = rx_indicator_handler;
     s->rx_data_handler = rx_data_handler;
     s->rx_missing_handler = rx_missing_handler;

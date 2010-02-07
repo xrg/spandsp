@@ -22,13 +22,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: lpc10_encdecs.h,v 1.8 2006/11/21 13:32:26 steveu Exp $
+ * $Id: lpc10_encdecs.h,v 1.9 2006/11/30 15:41:47 steveu Exp $
  */
 
 #define LPC10_ORDER     10
 
+#if !defined(min)
 #define min(a,b) ((a) <= (b) ? (a) : (b))
+#endif
+#if !defined(max)
 #define max(a,b) ((a) >= (b) ? (a) : (b))
+#endif
 
 void lpc10_placea(int32_t *ipitch,
                   int32_t voibuf[4][2],
@@ -92,12 +96,12 @@ static __inline__ int32_t pow_ii(int32_t x, int32_t n)
 }
 /*- End of function --------------------------------------------------------*/
 
-static __inline__ double r_sign(float a, float b)
+static __inline__ float r_sign(float a, float b)
 {
-    double x;
+    float x;
 
-    x = fabs(a);
-    return (b >= 0.0)  ?  x  :  -x;
+    x = fabsf(a);
+    return (b >= 0.0f)  ?  x  :  -x;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.c,v 1.43 2006/11/15 17:21:04 steveu Exp $
+ * $Id: hdlc.c,v 1.44 2006/11/28 16:59:56 steveu Exp $
  */
 
 /*! \file */
@@ -456,7 +456,7 @@ int hdlc_tx_frame(hdlc_tx_state_t *s, const uint8_t *frame, int len)
     }
     memcpy(s->buffer + s->len, frame, len);
     if (s->crc_bytes == 2)
-        s->crc = crc_itu16_calc(frame, len, s->crc);
+        s->crc = crc_itu16_calc(frame, len, (uint16_t) s->crc);
     else
         s->crc = crc_itu32_calc(frame, len, s->crc);
     if (s->progressive)

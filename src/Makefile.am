@@ -13,7 +13,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.59 2006/11/26 13:13:30 steveu Exp $
+## $Id: Makefile.am,v 1.61 2006/11/30 15:41:47 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -183,3 +183,45 @@ at_interpreter.lo: at_dictionary_gen$(EXEEXT) at_interpreter_dictionary.h
 
 at_interpreter_dictionary.h: at_dictionary_gen$(EXEEXT)
 	./at_dictionary_gen$(EXEEXT) >at_interpreter_dictionary.h
+
+DSP = libspandsp.dsp
+VCPROJ = libspandsp.vcproj
+
+WIN32SOURCES = $(libspandsp_la_SOURCES) gettimeofday.c
+WIN32HEADERS = $(nobase_include_HEADERS) spandsp.h
+
+DSPOUT = | awk '{printf("%s\r\n", $$0)}' >> $(DSP)
+VCPROJOUT = | awk '{printf("%s\r\n", $$0)}' >> $(VCPROJ)
+
+$(DSP): msvc/msvcproj.head msvc/msvcproj.foot Makefile.am
+	echo "creating $(DSP)"
+	@(cp $(srcdir)/msvc/msvcproj.head $(DSP); \
+	echo "# Begin Group \"Source Files\"" $(DSPOUT); \
+	for file in $(WIN32SOURCES); do \
+	echo "# Begin Source File" $(DSPOUT); \
+	echo "" $(DSPOUT); \
+	echo "SOURCE=.\\"$$file $(DSPOUT); \
+	echo "# End Source File" $(DSPOUT); \
+	done; \
+	echo "# End Group" $(DSPOUT); \
+	echo "# Begin Group \"Header Files\"" $(DSPOUT); \
+	for file in $(WIN32HEADERS); do \
+	echo "# Begin Source File" $(DSPOUT); \
+	echo "" $(DSPOUT); \
+	echo "SOURCE=.\\"$$file $(DSPOUT); \
+	echo "# End Source File" $(DSPOUT); \
+	done; \
+	echo "# End Group" $(DSPOUT); \
+	cat $(srcdir)/msvc/msvcproj.foot $(DSPOUT) )
+
+$(VCPROJ): msvc/vc8proj.head msvc/vc8proj.foot Makefile.am
+	echo "creating $(VCPROJ)"
+	@(cp $(srcdir)/msvc/vc8proj.head $(VCPROJ); \
+	for file in $(WIN32SOURCES); do \
+		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT); \
+	done; \
+	echo "</Filter><Filter  Name=\"Header Files\">" $(VCPROJOUT); \
+	for file in $(WIN32HEADERS); do \
+		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT); \
+	done; \
+	cat $(srcdir)/msvc/vc8proj.foot $(VCPROJOUT) )

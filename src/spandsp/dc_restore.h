@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dc_restore.h,v 1.14 2006/10/24 13:45:28 steveu Exp $
+ * $Id: dc_restore.h,v 1.15 2006/12/01 18:00:48 steveu Exp $
  */
 
 /*! \file */
@@ -104,7 +104,7 @@ static __inline__ int16_t fsaturatef(float famp)
         return  INT16_MAX;
     if (famp < -32768.0)
         return  INT16_MIN;
-    return (int16_t) lrintf(famp);
+    return (int16_t) rintf(famp);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -114,7 +114,7 @@ static __inline__ int16_t fsaturate(double damp)
         return  INT16_MAX;
     if (damp < -32768.0)
         return  INT16_MIN;
-    return (int16_t) lrint(damp);
+    return (int16_t) rint(damp);
 }
 /*- End of function --------------------------------------------------------*/
 

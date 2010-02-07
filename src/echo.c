@@ -27,7 +27,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo.c,v 1.19 2006/10/24 13:45:25 steveu Exp $
+ * $Id: echo.c,v 1.20 2006/12/01 18:00:48 steveu Exp $
  */
 
 /*! \file */
@@ -361,7 +361,7 @@ sample_no++;
 
     /* And the answer is..... */
     clean_rx = rx - echo_value;
-printf("echo is %d\n", echo_value);
+printf("echo is %" PRId32 "\n", echo_value);
     /* That was the easy part. Now we need to adapt! */
     if (ec->nonupdate_dwell > 0)
         ec->nonupdate_dwell--;

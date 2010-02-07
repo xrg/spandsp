@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis.h,v 1.14 2006/11/04 11:28:59 steveu Exp $
+ * $Id: v42bis.h,v 1.15 2006/11/30 15:41:47 steveu Exp $
  */
 
 /*! \page v42bis_page V.42bis modem data compression
@@ -159,7 +159,7 @@ typedef struct
     /*! \brief Maximum codeword size (bits) */
     int v42bis_parm_n1;
     /*! \brief Total number of codewords */
-    int v42bis_parm_n2;
+    uint32_t v42bis_parm_n2;
     /*! \brief Maximum string length */
     int v42bis_parm_n7;
 } v42bis_state_t;

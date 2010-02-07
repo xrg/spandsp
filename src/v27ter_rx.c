@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.74 2006/11/20 18:00:36 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.75 2006/11/28 16:59:57 steveu Exp $
  */
 
 /*! \file */
@@ -713,8 +713,8 @@ float v27ter_rx_signal_power(v27ter_rx_state_t *s)
 void v27ter_rx_signal_cutoff(v27ter_rx_state_t *s, float cutoff)
 {
     /* The 0.4 factor allows for the gain of the DC blocker */
-    s->carrier_on_power = power_meter_level_dbm0(cutoff + 2.5f)*0.4f;
-    s->carrier_off_power = power_meter_level_dbm0(cutoff - 2.5f)*0.4f;
+    s->carrier_on_power = (int32_t) (power_meter_level_dbm0(cutoff + 2.5f)*0.4f);
+    s->carrier_off_power = (int32_t) (power_meter_level_dbm0(cutoff - 2.5f)*0.4f);
 }
 /*- End of function --------------------------------------------------------*/
 

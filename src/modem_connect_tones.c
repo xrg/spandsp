@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.c,v 1.5 2006/11/19 14:07:24 steveu Exp $
+ * $Id: modem_connect_tones.c,v 1.6 2006/11/30 15:41:47 steveu Exp $
  */
  
 /*! \file */
@@ -159,7 +159,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
             famp = v1 - 1.2994747954630f*s->z1 + s->z2;
             s->z2 = s->z1;
             s->z1 = v1;
-            notched = famp;
+            notched = rintf(famp);
 
             /* Estimate the overall energy in the channel, and the energy in
                the notch (i.e. overall channel energy - tone energy => noise).
@@ -197,7 +197,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
             famp = v1 + 0.1567596f*s->z1 + s->z2;
             s->z2 = s->z1;
             s->z1 = v1;
-            notched = famp;
+            notched = rintf(famp);
             /* Estimate the overall energy in the channel, and the energy in
                the notch (i.e. overall channel energy - tone energy => noise).
                Use abs instead of multiply for speed (is it really faster?). */
@@ -237,7 +237,7 @@ int modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[
             famp = v1 + 0.1567596f*s->z1 + s->z2;
             s->z2 = s->z1;
             s->z1 = v1;
-            notched = famp;
+            notched = rintf(famp);
             /* Estimate the overall energy in the channel, and the energy in
                the notch (i.e. overall channel energy - tone energy => noise).
                Use abs instead of multiply for speed (is it really faster?).

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: noise.c,v 1.16 2006/11/19 14:07:24 steveu Exp $
+ * $Id: noise.c,v 1.17 2006/11/28 16:59:56 steveu Exp $
  */
 
 /*! \file */
@@ -97,8 +97,8 @@ noise_state_t *noise_init_dbov(noise_state_t *s, int seed, float level, int clas
         s->quality = quality;
     if (class_of_noise == NOISE_CLASS_HOTH)
     {
-        /* Allow for the gain of the filtering */
-        rms *= 1.043;
+        /* Allow for the gain of the filter */
+        rms *= 1.043f;
     }
     s->rms = (int32_t) (rms*sqrt(12.0/quality));
     s->class_of_noise = class_of_noise;

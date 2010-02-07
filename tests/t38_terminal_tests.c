@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_tests.c,v 1.31 2006/11/19 14:07:27 steveu Exp $
+ * $Id: t38_terminal_tests.c,v 1.32 2006/12/09 04:56:20 steveu Exp $
  */
 
 /*! \file */
@@ -198,6 +198,10 @@ int main(int argc, char *argv[])
             continue;
         }
     }
+
+    printf("Using T.38 version %d\n", t38_version);
+    if (use_ecm)
+        printf("Using ECM\n");
 
     if ((path_a_to_b = ip_network_model_init(800, 2000, 0)) == NULL)
     {

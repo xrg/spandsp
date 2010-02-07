@@ -13,7 +13,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.17 2006/11/26 13:13:29 steveu Exp $
+## $Id: Makefile.am,v 1.20 2006/12/06 13:53:36 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -34,6 +34,11 @@ EXTRA_DIST = DueDiligence \
              src/msvc/unistd.h \
              src/msvc/sys/time.h \
              src/msvc/spandsp.def \
+             src/msvc/msvcproj.head \
+             src/msvc/msvcproj.foot \
+             src/msvc/vc8proj.head \
+             src/msvc/vc8proj.foot \
+             src/libspandsp.sln \
              spandsp/global-tones.xml \
              spandsp/tones.dtd
 

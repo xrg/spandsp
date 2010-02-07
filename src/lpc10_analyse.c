@@ -26,7 +26,7 @@
  * implementation of the LPC-10 2400 bps Voice Coder. They do not
  * exert copyright claims on their code, and it may be freely used.
  *
- * $Id: lpc10_analyse.c,v 1.11 2006/11/21 14:33:56 steveu Exp $
+ * $Id: lpc10_analyse.c,v 1.12 2006/11/30 15:41:47 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -58,7 +58,7 @@ static __inline__ float energyf(float amp[], int len)
     rms = 0.0f;
     for (i = 0;  i < len;  i++)
 	    rms += amp[i]*amp[i];
-    rms = sqrt(rms/len);
+    rms = sqrtf(rms/len);
     return rms;
 }
 /*- End of function --------------------------------------------------------*/
@@ -132,7 +132,7 @@ static void eval_highres_amdf(float speech[],
     /* Compute full AMDF using log spaced lags, find coarse minimum */
     eval_amdf(speech, lpita, tau, ltau, tau[ltau - 1], amdf, minptr, maxptr);
     *mintau = tau[*minptr];
-    minamd = amdf[*minptr];
+    minamd = (int32_t) amdf[*minptr];
 
     /* Build table containing all lags within +/- 3 of the AMDF minimum,
        excluding all that have already been computed */
@@ -154,7 +154,7 @@ static void eval_highres_amdf(float speech[],
         if (amdf2[minp2] < (float) minamd)
         {
             *mintau = tau2[minp2];
-            minamd = amdf2[minp2];
+            minamd = (int32_t) amdf2[minp2];
         }
     }
     /* Check one octave up, if there are any lags not yet computed */
@@ -176,7 +176,7 @@ static void eval_highres_amdf(float speech[],
         if (amdf2[minp2] < (float) minamd)
         {
             *mintau = tau2[minp2];
-            minamd = amdf2[minp2];
+            minamd = (int32_t) amdf2[minp2];
             *minptr -= 20;
         }
     }

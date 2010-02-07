@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.65 2006/11/20 13:58:57 steveu Exp $
+ * $Id: t4.c,v 1.67 2006/12/01 18:00:48 steveu Exp $
  */
 
 /*
@@ -105,7 +105,7 @@
 #include "faxfont.h"
 
 #if 1
-#define STATE_TRACE(x,...) /**/
+#define STATE_TRACE(...) /**/
 #else
 void STATE_TRACE(char *format, ...)
 {
@@ -1729,7 +1729,7 @@ int t4_tx_start_page(t4_state_t *s)
     int i;
     int pattern;
     int row_bufptr;
-    uint32_t parm;
+    int parm;
     char *t;
     char header[132 + 1];
 

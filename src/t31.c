@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.82 2006/11/19 14:07:25 steveu Exp $
+ * $Id: t31.c,v 1.83 2006/11/30 15:41:47 steveu Exp $
  */
 
 /*! \file */
@@ -465,7 +465,7 @@ static int t31_modem_control_handler(at_state_t *s, void *user_data, int op, con
         restart_modem(t, T31_SILENCE_TX);
         break;
     case AT_MODEM_CONTROL_RESTART:
-        restart_modem(t, (intptr_t) num);
+        restart_modem(t, (int) (intptr_t) num);
         return 0;
     case AT_MODEM_CONTROL_DTE_TIMEOUT:
         if (num)

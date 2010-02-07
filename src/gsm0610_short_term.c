@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_short_term.c,v 1.8 2006/11/19 14:07:24 steveu Exp $
+ * $Id: gsm0610_short_term.c,v 1.9 2006/11/30 15:41:47 steveu Exp $
  */
 
 /*! \file */
@@ -237,7 +237,7 @@ static void short_term_analysis_filtering(gsm0610_state_t *s,
             int32_t rpi;
 
             ui = *u;
-            *u++ = u_out;
+            *u++ = (int16_t) u_out;
             rpi = *rpx++;
             u_out = ui + (((rpi*di) + 0x4000) >> 15);
             di = di + (((rpi*ui) + 0x4000) >> 15);
@@ -245,7 +245,7 @@ static void short_term_analysis_filtering(gsm0610_state_t *s,
             di = saturate(di);
         }
         /*endfor*/
-        amp[i] = di;
+        amp[i] = (int16_t) di;
     }
     /*endfor*/
 }
@@ -275,7 +275,7 @@ static void short_term_synthesis_filtering(gsm0610_state_t *s,
                    ?
                    INT16_MAX
                    :
-                   (((int32_t) tmp1*(int32_t) tmp2 + 16384) >> 15) & 0xFFFF);
+                   (int16_t) (((int32_t) tmp1*(int32_t) tmp2 + 16384) >> 15) & 0xFFFF);
 
             sri = gsm_sub(sri, tmp2);
 
@@ -283,7 +283,7 @@ static void short_term_synthesis_filtering(gsm0610_state_t *s,
                     ?
                     INT16_MAX
                     :
-                    (((int32_t) tmp1*(int32_t) sri + 16384) >> 15) & 0xFFFF);
+                    (int16_t) (((int32_t) tmp1*(int32_t) sri + 16384) >> 15) & 0xFFFF);
 
             v[i + 1] = gsm_add(v[i], tmp1);
         }

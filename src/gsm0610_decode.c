@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_decode.c,v 1.11 2006/11/19 14:07:24 steveu Exp $
+ * $Id: gsm0610_decode.c,v 1.12 2006/11/30 15:41:47 steveu Exp $
  */
 
 /*! \file */
@@ -132,22 +132,22 @@ int gsm0610_unpack_wav49(gsm0610_frame_t *s, const uint8_t code[], int half)
     c = code;
     if (half)
         bitstream_init(&bs);
-    s->LARc[0] = bitstream_get(&bs, &c, 6);
-    s->LARc[1] = bitstream_get(&bs, &c, 6);
-    s->LARc[2] = bitstream_get(&bs, &c, 5);
-    s->LARc[3] = bitstream_get(&bs, &c, 5);
-    s->LARc[4] = bitstream_get(&bs, &c, 4);
-    s->LARc[5] = bitstream_get(&bs, &c, 4);
-    s->LARc[6] = bitstream_get(&bs, &c, 3);
-    s->LARc[7] = bitstream_get(&bs, &c, 3);
+    s->LARc[0] = (int16_t) bitstream_get(&bs, &c, 6);
+    s->LARc[1] = (int16_t) bitstream_get(&bs, &c, 6);
+    s->LARc[2] = (int16_t) bitstream_get(&bs, &c, 5);
+    s->LARc[3] = (int16_t) bitstream_get(&bs, &c, 5);
+    s->LARc[4] = (int16_t) bitstream_get(&bs, &c, 4);
+    s->LARc[5] = (int16_t) bitstream_get(&bs, &c, 4);
+    s->LARc[6] = (int16_t) bitstream_get(&bs, &c, 3);
+    s->LARc[7] = (int16_t) bitstream_get(&bs, &c, 3);
     for (i = 0;  i < 4;  i++)
     {
-        s->Nc[i] = bitstream_get(&bs, &c, 7);
-        s->bc[i] = bitstream_get(&bs, &c, 2);
-        s->Mc[i] = bitstream_get(&bs, &c, 2);
-        s->xmaxc[i] = bitstream_get(&bs, &c, 6);
+        s->Nc[i] = (int16_t) bitstream_get(&bs, &c, 7);
+        s->bc[i] = (int16_t) bitstream_get(&bs, &c, 2);
+        s->Mc[i] = (int16_t) bitstream_get(&bs, &c, 2);
+        s->xmaxc[i] = (int16_t) bitstream_get(&bs, &c, 6);
         for (j = 0;  j < 13;  j++)
-            s->xMc[i][j] = bitstream_get(&bs, &c, 3);
+            s->xMc[i][j] = (int16_t) bitstream_get(&bs, &c, 3);
     }
     return (half)  ?  33  :  32;
 }
@@ -166,22 +166,22 @@ int gsm0610_unpack_voip(gsm0610_frame_t *s, const uint8_t code[])
     magic = bitstream_get2(&bs, &c, 4);
     if (magic != GSM0610_MAGIC)
         return -1;
-    s->LARc[0] = bitstream_get2(&bs, &c, 6);
-    s->LARc[1] = bitstream_get2(&bs, &c, 6);
-    s->LARc[2] = bitstream_get2(&bs, &c, 5);
-    s->LARc[3] = bitstream_get2(&bs, &c, 5);
-    s->LARc[4] = bitstream_get2(&bs, &c, 4);
-    s->LARc[5] = bitstream_get2(&bs, &c, 4);
-    s->LARc[6] = bitstream_get2(&bs, &c, 3);
-    s->LARc[7] = bitstream_get2(&bs, &c, 3);
+    s->LARc[0] = (int16_t) bitstream_get2(&bs, &c, 6);
+    s->LARc[1] = (int16_t) bitstream_get2(&bs, &c, 6);
+    s->LARc[2] = (int16_t) bitstream_get2(&bs, &c, 5);
+    s->LARc[3] = (int16_t) bitstream_get2(&bs, &c, 5);
+    s->LARc[4] = (int16_t) bitstream_get2(&bs, &c, 4);
+    s->LARc[5] = (int16_t) bitstream_get2(&bs, &c, 4);
+    s->LARc[6] = (int16_t) bitstream_get2(&bs, &c, 3);
+    s->LARc[7] = (int16_t) bitstream_get2(&bs, &c, 3);
     for (i = 0;  i < 4;  i++)
     {
-        s->Nc[i] = bitstream_get2(&bs, &c, 7);
-        s->bc[i] = bitstream_get2(&bs, &c, 2);
-        s->Mc[i] = bitstream_get2(&bs, &c, 2);
-        s->xmaxc[i] = bitstream_get2(&bs, &c, 6);
+        s->Nc[i] = (int16_t) bitstream_get2(&bs, &c, 7);
+        s->bc[i] = (int16_t) bitstream_get2(&bs, &c, 2);
+        s->Mc[i] = (int16_t) bitstream_get2(&bs, &c, 2);
+        s->xmaxc[i] = (int16_t) bitstream_get2(&bs, &c, 6);
         for (j = 0;  j < 13;  j++)
-            s->xMc[i][j] = bitstream_get2(&bs, &c, 3);
+            s->xMc[i][j] = (int16_t) bitstream_get2(&bs, &c, 3);
     }
     return 33;
 }

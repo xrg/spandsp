@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_to_gateway_tests.c,v 1.28 2006/11/19 14:07:27 steveu Exp $
+ * $Id: t38_terminal_to_gateway_tests.c,v 1.29 2006/12/09 04:56:20 steveu Exp $
  */
 
 /*! \file */
@@ -216,6 +216,10 @@ int main(int argc, char *argv[])
             continue;
         }
     }
+
+    printf("Using T.38 version %d\n", t38_version);
+    if (use_ecm)
+        printf("Using ECM\n");
 
     filesetup = AF_NULL_FILESETUP;
     wave_handle = AF_NULL_FILEHANDLE;

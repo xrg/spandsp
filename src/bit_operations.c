@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bit_operations.c,v 1.4 2006/11/19 14:07:24 steveu Exp $
+ * $Id: bit_operations.c,v 1.5 2006/11/30 15:41:47 steveu Exp $
  */
 
 /*! \file */
@@ -45,9 +45,9 @@
 uint16_t bit_reverse16(uint16_t x)
 {
     x = (x >> 8) | (x << 8);
-    x = ((x & 0xF0F0F0F0) >> 4) | ((x & 0x0F0F0F0F) << 4);
-    x = ((x & 0xCCCCCCCC) >> 2) | ((x & 0x33333333) << 2);
-    return ((x & 0xAAAAAAAA) >> 1) | ((x & 0x55555555) << 1);
+    x = ((x & 0xF0F0) >> 4) | ((x & 0x0F0F) << 4);
+    x = ((x & 0xCCCC) >> 2) | ((x & 0x3333) << 2);
+    return ((x & 0xAAAA) >> 1) | ((x & 0x5555) << 1);
 }
 /*- End of function --------------------------------------------------------*/
 

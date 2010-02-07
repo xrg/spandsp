@@ -209,6 +209,11 @@ EXTRA_DIST = DueDiligence \
              src/msvc/unistd.h \
              src/msvc/sys/time.h \
              src/msvc/spandsp.def \
+             src/msvc/msvcproj.head \
+             src/msvc/msvcproj.foot \
+             src/msvc/vc8proj.head \
+             src/msvc/vc8proj.foot \
+             src/libspandsp.sln \
              spandsp/global-tones.xml \
              spandsp/tones.dtd
 
@@ -420,7 +425,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/. $(distdir)/config $(distdir)/doc $(distdir)/spandsp $(distdir)/src/msvc $(distdir)/src/msvc/sys
+	$(mkdir_p) $(distdir)/. $(distdir)/config $(distdir)/doc $(distdir)/spandsp $(distdir)/src $(distdir)/src/msvc $(distdir)/src/msvc/sys
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.10 2006/11/01 12:58:21 steveu Exp $
+ * $Id: t38_terminal.h,v 1.11 2006/12/07 13:22:26 steveu Exp $
  */
 
 /*! \file */
@@ -54,10 +54,8 @@ typedef struct
     uint8_t tx_data[T38_TX_BUF_LEN];
     int tx_out_bytes;
 
-    int current_rx_indicator;
-
     int next_tx_indicator;
-    int current_tx_data;
+    int current_tx_data_type;
 
     /*! \brief TRUE is a carrier is presnt. Otherwise FALSE. */
     int rx_signal_present;

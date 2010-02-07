@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: telephony.h,v 1.8 2006/10/24 13:45:28 steveu Exp $
+ * $Id: telephony.h,v 1.9 2006/11/28 16:59:57 steveu Exp $
  */
 
 #if !defined(_TELEPHONY_H_)
@@ -31,11 +31,11 @@
 #define SAMPLE_RATE             8000
 
 /* This is based on A-law, but u-law is only 0.03dB different */
-#define DBM0_MAX_POWER          (3.14 + 3.02)
-#define DBM0_MAX_SINE_POWER     (3.14)
+#define DBM0_MAX_POWER          (3.14f + 3.02f)
+#define DBM0_MAX_SINE_POWER     (3.14f)
 /* This is based on the ITU definition of dbOv in G.100.1 */
-#define DBOV_MAX_POWER          (0.0)
-#define DBOV_MAX_SINE_POWER     (-3.02)
+#define DBOV_MAX_POWER          (0.0f)
+#define DBOV_MAX_SINE_POWER     (-3.02f)
 
 /*! \brief A handler for pure receive. The buffer cannot be altered. */
 typedef int (span_rx_handler_t)(void *s, const int16_t amp[], int len);

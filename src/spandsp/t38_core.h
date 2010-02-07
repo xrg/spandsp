@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.h,v 1.10 2006/10/24 13:45:28 steveu Exp $
+ * $Id: t38_core.h,v 1.11 2006/12/07 13:22:26 steveu Exp $
  */
 
 /*! \file */
@@ -134,15 +134,22 @@ enum t38_field_types_e
     T38_FIELD_V34RATE
 };
 
-enum
+enum t38_field_classes_e
+{
+    T38_FIELD_CLASS_NONE = 0,
+    T38_FIELD_CLASS_HDLC,
+    T38_FIELD_CLASS_NON_ECM,
+};
+
+enum t38_message_types_e
 {
     T38_TYPE_OF_MSG_T30_INDICATOR = 0,
     T38_TYPE_OF_MSG_T30_DATA
 };
 
-enum
+enum t38_transport_types_e
 {
-    T38_TRANSPORT_UDPTL,
+    T38_TRANSPORT_UDPTL = 0,
     T38_TRANSPORT_RTP,
     T38_TRANSPORT_TCP
 };

@@ -54,7 +54,6 @@ typedef __int64		int64_t;
 #pragma warning(disable:4100 4200 4706 4295 4125)
 
 #pragma comment(lib, "ws2_32.lib")
-#pragma comment(lib, "libtiff_i.lib")
 
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp

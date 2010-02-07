@@ -26,7 +26,7 @@
  * implementation of the LPC-10 2400 bps Voice Coder. They do not
  * exert copyright claims on their code, and it may be freely used.
  *
- * $Id: lpc10_decode.c,v 1.13 2006/11/21 13:18:58 steveu Exp $
+ * $Id: lpc10_decode.c,v 1.14 2006/11/30 15:41:47 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -153,7 +153,7 @@ static void bsynz(lpc10_decode_state_t *s,
     }
     else
     {
-        sscale = sqrt((float) ip)/6.928f;
+        sscale = sqrtf((float) ip)/6.928f;
         for (i = 0;  i < ip;  i++)
         {
             s->exc[LPC10_ORDER + i] = 0.0f;
@@ -205,7 +205,7 @@ static void bsynz(lpc10_decode_state_t *s,
     }
     /* Apply gain to match RMS */
     ssq = rms*rms*ip;
-    gain = sqrt(ssq/xssq);
+    gain = sqrtf(ssq/xssq);
     for (i = 0;  i < ip;  i++)
         sout[i] = gain*s->exc2[LPC10_ORDER + i];
 }
@@ -436,11 +436,11 @@ static int pitsyn(lpc10_decode_state_t *s,
                         alro = log((s->rco[j] + 1)/(1 - s->rco[j]));
                         alrn = log((rc[j] + 1)/(1 - rc[j]));
                         xxy = alro + prop*(alrn - alro);
-                        xxy = exp(xxy);
-                        rci[j + *nout*rci_dim1 + 1] = (xxy - 1)/(xxy + 1);
+                        xxy = expf(xxy);
+                        rci[j + *nout*rci_dim1 + 1] = (xxy - 1.0f)/(xxy + 1.0f);
                     }
-                    rmsi[*nout - 1] = log(s->rmso) + prop*(log(*rms) - log(s->rmso));
-                    rmsi[*nout - 1] = exp(rmsi[*nout - 1]);
+                    rmsi[*nout - 1] = logf(s->rmso) + prop*(logf(*rms) - logf(s->rmso));
+                    rmsi[*nout - 1] = expf(rmsi[*nout - 1]);
                 }
             }
             if (vflag != 1)
@@ -506,7 +506,7 @@ static float reflection_coeffs_to_predictor_coeffs(float rc[], float pc[], float
     g2pass = 1.0f;
     for (i = 0;  i < LPC10_ORDER;  i++)
         g2pass *= 1.0f - rc[i]*rc[i];
-    g2pass = gprime*sqrt(g2pass);
+    g2pass = gprime*sqrtf(g2pass);
     pc[0] = rc[0];
     for (i = 1;  i < LPC10_ORDER;  i++)
     {
@@ -1093,7 +1093,7 @@ int lpc10_decode(lpc10_decode_state_t *s, int16_t amp[], const uint8_t code[], i
         decode(s, &frame, voice, &pitch, &rms, rc);
         synths(s, voice, &pitch, &rms, rc, speech);
         for (j = 0;  j < LPC10_SAMPLES_PER_FRAME;  j++)
-            amp[i*LPC10_SAMPLES_PER_FRAME + j] = lrintf(32768.0f*speech[j]);
+            amp[i*LPC10_SAMPLES_PER_FRAME + j] = rintf(32768.0f*speech[j]);
     }
 
     return quant*LPC10_SAMPLES_PER_FRAME;

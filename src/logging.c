@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: logging.c,v 1.21 2006/10/24 13:45:25 steveu Exp $
+ * $Id: logging.c,v 1.22 2006/11/30 15:41:47 steveu Exp $
  */
 
 /*! \file */
@@ -98,7 +98,8 @@ int span_log(logging_state_t *s, int level, const char *format, ...)
             if ((s->level & SPAN_LOG_SHOW_DATE))
             {
                 gettimeofday(&nowx, NULL);
-                tim = gmtime(&nowx.tv_sec);
+                now = nowx.tv_sec;
+                tim = gmtime(&now);
                 snprintf(msg + len,
                          1024 - len,
                          "%04d/%02d/%02d %02d:%02d:%02d.%03d ",

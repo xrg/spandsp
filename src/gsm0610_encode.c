@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_encode.c,v 1.11 2006/11/19 14:07:24 steveu Exp $
+ * $Id: gsm0610_encode.c,v 1.12 2006/11/30 15:41:47 steveu Exp $
  */
 
 /*! \file */
@@ -138,15 +138,15 @@ int gsm0610_pack_none(uint8_t c[], gsm0610_frame_t *s)
     
     i = 0;
     for (j = 0;  j < 8;  j++)
-        c[i++] = s->LARc[j];
+        c[i++] = (uint8_t) s->LARc[j];
     for (j = 0;  j < 4;  j++)
     {
-        c[i++] = s->Nc[j];
-        c[i++] = s->bc[j];
-        c[i++] = s->Mc[j];
-        c[i++] = s->xmaxc[j];
+        c[i++] = (uint8_t) s->Nc[j];
+        c[i++] = (uint8_t) s->bc[j];
+        c[i++] = (uint8_t) s->Mc[j];
+        c[i++] = (uint8_t) s->xmaxc[j];
         for (k = 0;  k < 13;  k++)
-            c[i++] = s->xMc[j][k];
+            c[i++] = (uint8_t) s->xMc[j][k];
     }
     return 76;
 }
@@ -326,7 +326,7 @@ int gsm0610_encode(gsm0610_state_t *s, uint8_t code[], const int16_t amp[], int 
         /*endswitch*/
     }
     /*endwhile*/
-    return (c - code);
+    return (int) (c - code);
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

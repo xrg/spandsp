@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.16 2006/10/24 13:22:02 steveu Exp $
+ * $Id: t38_gateway.h,v 1.17 2006/12/07 13:22:26 steveu Exp $
  */
 
 /*! \file */
@@ -97,12 +97,13 @@ typedef struct
                purposes. */
     int non_ecm_flow_control_fill_octets;
 
-    /*! \brief The most recent T.38 indicator received from the far end. */
-    int current_rx_indicator;
+    int current_rx_data_type;
+    int current_rx_field_type;
+    int current_rx_field_class;
     int in_progress_rx_indicator;
 
     /*! \brief The current T.38 data type being sent. */
-    int current_tx_data;
+    int current_tx_data_type;
 
     /*! \brief TRUE if we are in error correcting (ECM) mode */
     int ecm_mode;

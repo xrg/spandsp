@@ -26,7 +26,7 @@
  * implementation of the LPC-10 2400 bps Voice Coder. They do not
  * exert copyright claims on their code, and it may be freely used.
  *
- * $Id: lpc10_voicing.c,v 1.6 2006/11/21 13:18:58 steveu Exp $
+ * $Id: lpc10_voicing.c,v 1.7 2006/11/30 15:41:47 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -478,7 +478,7 @@ void lpc10_voicing(lpc10_encode_state_t *s,
     /* NOTE: The divisor is a function of REF, the expected energies. */
     /* Computing MIN */
     /* Computing MAX */
-    r2 = sqrt((float) (s->lbue*s->lbve))*64/3000;
+    r2 = sqrtf((float) (s->lbue*s->lbve))*64/3000;
     r1 = max(r2, 1.0f);
     s->dither = min(r1, 20.0f);
     /* Voicing decisions are returned in VOIBUF. */

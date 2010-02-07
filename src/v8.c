@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.c,v 1.19 2006/11/19 14:07:26 steveu Exp $
+ * $Id: v8.c,v 1.20 2006/11/30 15:41:47 steveu Exp $
  */
  
 /*! \file */
@@ -158,10 +158,8 @@ const char *v8_protocol_to_str(int protocol)
         return "LAPM";
     case V8_PROTOCOL_EXTENSION:
         return "Extension";
-    default:
-        return "Undefined";
     }
-    return "???";
+    return "Undefined";
 }
 /*- End of function --------------------------------------------------------*/
 

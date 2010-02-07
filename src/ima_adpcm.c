@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm.c,v 1.16 2006/11/19 14:07:24 steveu Exp $
+ * $Id: ima_adpcm.c,v 1.18 2006/11/30 15:41:47 steveu Exp $
  */
 
 /*! \file */
@@ -178,7 +178,7 @@ static int16_t decode(ima_adpcm_state_t *s, uint8_t adpcm)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int encode(ima_adpcm_state_t *s, int16_t linear)
+static uint8_t encode(ima_adpcm_state_t *s, int16_t linear)
 {
     int e;
     int ss;
@@ -230,7 +230,7 @@ static int encode(ima_adpcm_state_t *s, int16_t linear)
     else if (s->step_index > 88)
         s->step_index = 88;
     /*endif*/
-    return adpcm;
+    return (uint8_t) adpcm;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -293,7 +293,7 @@ int ima_adpcm_decode(ima_adpcm_state_t *s,
                 /*endif*/
             }
             /*endfor*/
-            amp[samples++] = decode(s, j);
+            amp[samples++] = decode(s, (uint8_t) j);
             code <<= vdvi_decode[j].bits;
             s->bits -= vdvi_decode[j].bits;
         }
@@ -317,7 +317,7 @@ int ima_adpcm_decode(ima_adpcm_state_t *s,
             if (vdvi_decode[j].bits > s->bits)
                 break;
             /*endif*/
-            amp[samples++] = decode(s, j);
+            amp[samples++] = decode(s, (uint8_t) j);
             code <<= vdvi_decode[j].bits;
             s->bits -= vdvi_decode[j].bits;
         }
@@ -358,14 +358,14 @@ int ima_adpcm_encode(ima_adpcm_state_t *s,
             if (s->bits >= 8)
             {
                 s->bits -= 8;
-                ima_data[bytes++] = s->ima_byte >> s->bits;
+                ima_data[bytes++] = (uint8_t) (s->ima_byte >> s->bits);
             }
             /*endif*/
         }
         /*endfor*/
         if (s->bits)
         {
-            ima_data[bytes++] = ((s->ima_byte << 8) | 0xFF) >> s->bits;
+            ima_data[bytes++] = (uint8_t) (((s->ima_byte << 8) | 0xFF) >> s->bits);
         }
         /*endif*/
     }
@@ -375,7 +375,7 @@ int ima_adpcm_encode(ima_adpcm_state_t *s,
         {
             s->ima_byte = (uint8_t) ((s->ima_byte >> 4) | (encode(s, amp[i]) << 4));
             if ((s->bits++ & 1))
-                ima_data[bytes++] = s->ima_byte;
+                ima_data[bytes++] = (uint8_t) s->ima_byte;
             /*endif*/
         }
         /*endfor*/

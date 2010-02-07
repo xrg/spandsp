@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.65 2006/11/19 14:07:25 steveu Exp $
+ * $Id: v17rx.c,v 1.66 2006/11/28 16:59:56 steveu Exp $
  */
 
 /*! \file */
@@ -11183,8 +11183,8 @@ float v17_rx_signal_power(v17_rx_state_t *s)
 void v17_rx_signal_cutoff(v17_rx_state_t *s, float cutoff)
 {
     /* The 0.4 factor allows for the gain of the DC blocker */
-    s->carrier_on_power = power_meter_level_dbm0(cutoff + 2.5f)*0.4f;
-    s->carrier_off_power = power_meter_level_dbm0(cutoff - 2.5f)*0.4f;
+    s->carrier_on_power = (int32_t) (power_meter_level_dbm0(cutoff + 2.5f)*0.4f);
+    s->carrier_off_power = (int32_t) (power_meter_level_dbm0(cutoff - 2.5f)*0.4f);
 }
 /*- End of function --------------------------------------------------------*/
 

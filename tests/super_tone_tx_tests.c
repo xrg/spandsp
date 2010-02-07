@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx_tests.c,v 1.15 2006/11/20 13:58:57 steveu Exp $
+ * $Id: super_tone_tx_tests.c,v 1.16 2006/12/01 18:00:48 steveu Exp $
  */
 
 /*! \file */
@@ -204,7 +204,7 @@ static void parse_tone_set(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur)
             tone_tree = NULL;
             parse_tone(&tone_tree, doc, ns, cur);
             super_tone_tx_init(&tone, tone_tree);
-printf("Len %p %p %d %d\n", tone.levels[0], tone_tree, tone_tree->length, tone_tree->tone);
+printf("Len %p %p %d %d\n", (void *) tone.levels[0], (void *) tone_tree, tone_tree->length, tone_tree->tone);
             play_tones(&tone, 99999999);
             super_tone_tx_free(tone_tree);
         }

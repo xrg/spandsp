@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_dictionary_gen.c,v 1.6 2006/11/19 14:07:24 steveu Exp $
+ * $Id: at_dictionary_gen.c,v 1.7 2006/11/30 15:41:47 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -541,7 +541,7 @@ static void trie_recursive_build_packed_trie(trie_node_t *t)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void trie_add(trie_t *s, const char *u, int len)
+static void trie_add(trie_t *s, const char *u, size_t len)
 {
     int i;
     int index;

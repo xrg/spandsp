@@ -48,7 +48,7 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.h,v 1.12 2006/10/24 13:45:28 steveu Exp $
+ * $Id: g726.h,v 1.13 2006/11/28 16:59:57 steveu Exp $
  */
 
 /*! \file */
@@ -107,7 +107,7 @@ typedef struct g726_state_s
     /*! The external coding, for tandem operation */
     int ext_coding;
     /*! The number of bits per sample */
-    int bits_per_sample;
+    unsigned int bits_per_sample;
     /*! One fo the G.726_PACKING_xxx options */
     int packing;
 

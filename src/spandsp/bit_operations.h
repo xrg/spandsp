@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bit_operations.h,v 1.10 2006/11/15 18:42:05 steveu Exp $
+ * $Id: bit_operations.h,v 1.11 2006/11/28 15:37:03 steveu Exp $
  */
 
 /*! \file */
@@ -193,7 +193,7 @@ uint16_t make_mask16(uint16_t x);
     \return The word with the single set bit. */
 static __inline__ uint32_t least_significant_one32(uint32_t x)
 {
-    return (x & -x);
+    return (x & (-(int32_t) x));
 }
 /*- End of function --------------------------------------------------------*/
 

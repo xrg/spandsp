@@ -27,7 +27,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm.c,v 1.21 2006/10/24 13:45:26 steveu Exp $
+ * $Id: oki_adpcm.c,v 1.22 2006/11/28 16:59:56 steveu Exp $
  */
 
 /*! \file */
@@ -57,7 +57,7 @@ static const int16_t step_size[49] =
     1552
 };
 
-static const int step_adjustment[8] =
+static const int16_t step_adjustment[8] =
 {
     -1, -1, -1, -1, 2, 4, 6, 8
 };

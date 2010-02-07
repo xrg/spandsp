@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.c,v 1.30 2006/11/24 12:34:55 steveu Exp $
+ * $Id: tone_generate.c,v 1.31 2006/11/28 16:59:56 steveu Exp $
  */
 
 /*! \file */
@@ -161,7 +161,7 @@ int tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples)
                 {
                     yamp = dds_modf(&(s->phase[1]), s->phase_rate[1], s->gain[1], 0);
                     if (s->modulate)
-                        xamp *= (1.0 + yamp);
+                        xamp *= (1.0f + yamp);
                     else
                         xamp += yamp;
                 }
