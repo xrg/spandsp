@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.89 2007/10/24 13:32:06 steveu Exp $
+ * $Id: t38_gateway.c,v 1.90 2007/10/25 16:25:40 steveu Exp $
  */
 
 /*! \file */
@@ -476,16 +476,16 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     default:
         break;
     }
-    s->non_ecm_bit_no = 0;
-    s->current_non_ecm_octet = 0xFF;
-    s->non_ecm_flow_control_fill_octet = 0xFF;
-    s->non_ecm_at_initial_all_ones = TRUE;
-    s->bit_stream = 0;
     if (s->non_ecm_flow_control_fill_octets)
     {
         span_log(&s->logging, SPAN_LOG_WARNING, "Flow control generated %d octets\n", s->non_ecm_flow_control_fill_octets);
         s->non_ecm_flow_control_fill_octets = 0;
     }
+    s->non_ecm_bit_no = 0;
+    s->current_non_ecm_octet = 0xFF;
+    s->non_ecm_flow_control_fill_octet = 0xFF;
+    s->non_ecm_at_initial_all_ones = TRUE;
+    s->bit_stream = 0xFFFF;
     s->in_progress_rx_indicator = indicator;
     return TRUE;
 }
