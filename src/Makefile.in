@@ -341,6 +341,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/complex.h \
                          spandsp/complex_filters.h \
                          spandsp/complex_vector_float.h \
+                         spandsp/complex_vector_int.h \
                          spandsp/dc_restore.h \
                          spandsp/dds.h \
                          spandsp/dtmf.h \
