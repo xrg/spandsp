@@ -5,7 +5,7 @@
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
- * Copyright (C) 2003, 2004, 2005, 2006, 2007 Steve Underwood
+ * Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009 Steve Underwood
  *
  * All rights reserved.
  *
@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.291 2009/04/23 15:40:32 steveu Exp $
+ * $Id: t30.c,v 1.295 2009/04/29 14:12:29 steveu Exp $
  */
 
 /*! \file */
@@ -245,7 +245,7 @@ term it T2A. No tolerance is specified for this timer. T2A specifies the maximum
 end of a frame, after the initial flag has been seen. */
 #define DEFAULT_TIMER_T2A               3000
 
-/*! If the HDLC carrier falls during reception, we need to apply a minimum time before continuing. if we
+/*! If the HDLC carrier falls during reception, we need to apply a minimum time before continuing. If we
    don't, there are circumstances where we could continue and reply before the incoming signals have
    really finished. E.g. if a bad DCS is received in a DCS-TCF sequence, we need wait for the TCF
    carrier to pass, before continuing. This timer is specified as 200ms, but no tolerance is specified.
@@ -316,14 +316,16 @@ received. If the timer T8 expires, a DCN command is transmitted for call release
 
 enum
 {
-    TIMER_IS_T2 = 0,
-    TIMER_IS_T2A = 1,
-    TIMER_IS_T2B = 2,
-    TIMER_IS_T2C = 3,
-    TIMER_IS_T4 = 4,
-    TIMER_IS_T4A = 5,
-    TIMER_IS_T4B = 6,
-    TIMER_IS_T4C = 7
+    TIMER_IS_IDLE = 0,
+    TIMER_IS_T2,
+    TIMER_IS_T1A,
+    TIMER_IS_T2A,
+    TIMER_IS_T2B,
+    TIMER_IS_T2C,
+    TIMER_IS_T4,
+    TIMER_IS_T4A,
+    TIMER_IS_T4B,
+    TIMER_IS_T4C
 };
 
 /* Start points in the fallback table for different capabilities */
@@ -3150,7 +3152,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_state_f_doc_ecm(t30_state_t *s, const uint8_t *msg, int len)
+static void process_state_f_post_doc_ecm(t30_state_t *s, const uint8_t *msg, int len)
 {
     uint8_t fcf2;
     
@@ -4166,6 +4168,7 @@ static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
             /* Restart the command or response timer, T2 or T4 */
             switch (s->timer_t2_t4_is)
             {
+            case TIMER_IS_T1A:
             case TIMER_IS_T2:
             case TIMER_IS_T2A:
             case TIMER_IS_T2B:
@@ -4358,7 +4361,7 @@ static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
             break;
         case T30_STATE_F_DOC_ECM:
         case T30_STATE_F_POST_DOC_ECM:
-            process_state_f_doc_ecm(s, msg, len);
+            process_state_f_post_doc_ecm(s, msg, len);
             break;
         case T30_STATE_F_POST_RCP_MCF:
             process_state_f_post_rcp_mcf(s, msg, len);
@@ -4670,13 +4673,14 @@ static void timer_t2a_start(t30_state_t *s)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Start T1A\n");
         s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T1A);
+        s->timer_t2_t4_is = TIMER_IS_T1A;
     }
     else
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Start T2A\n");
         s->timer_t2_t4 = ms_to_samples(DEFAULT_TIMER_T2A);
+        s->timer_t2_t4_is = TIMER_IS_T2A;
     }
-    s->timer_t2_t4_is = TIMER_IS_T2A;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -4714,8 +4718,47 @@ static void timer_t4b_start(t30_state_t *s)
 
 static void timer_t2_t4_stop(t30_state_t *s)
 {
-    span_log(&s->logging, SPAN_LOG_FLOW, "Stop T2/T4\n");
+    const char *tag;
+    
+    switch (s->timer_t2_t4_is)
+    {
+    case TIMER_IS_IDLE:
+        tag = "none";
+        break;
+    case TIMER_IS_T1A:
+        tag = "T1A";
+        break;
+    case TIMER_IS_T2:
+        tag = "T2";
+        break;
+    case TIMER_IS_T2A:
+        tag = "T2A";
+        break;
+    case TIMER_IS_T2B:
+        tag = "T2B";
+        break;
+    case TIMER_IS_T2C:
+        tag = "T2C";
+        break;
+    case TIMER_IS_T4:
+        tag = "T4";
+        break;
+    case TIMER_IS_T4A:
+        tag = "T4A";
+        break;
+    case TIMER_IS_T4B:
+        tag = "T4B";
+        break;
+    case TIMER_IS_T4C:
+        tag = "T4C";
+        break;
+    default:
+        tag = "T2/T4";
+        break;
+    }
+    span_log(&s->logging, SPAN_LOG_FLOW, "Stop %s (%d remaining)\n", tag, s->timer_t2_t4);
     s->timer_t2_t4 = 0;
+    s->timer_t2_t4_is = TIMER_IS_IDLE;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -4754,7 +4797,8 @@ static void timer_t1_expired(t30_state_t *s)
 
 static void timer_t2_expired(t30_state_t *s)
 {
-    span_log(&s->logging, SPAN_LOG_FLOW, "T2 expired in phase %s, state %d\n", phase_names[s->phase], s->state);
+    if (s->timer_t2_t4_is != TIMER_IS_T2B)
+        span_log(&s->logging, SPAN_LOG_FLOW, "T2 expired in phase %s, state %d\n", phase_names[s->phase], s->state);
     switch (s->state)
     {
     case T30_STATE_III_Q_MCF:
@@ -4817,6 +4861,14 @@ static void timer_t2_expired(t30_state_t *s)
     }
     queue_phase(s, T30_PHASE_B_TX);
     start_receiving_document(s);
+}
+/*- End of function --------------------------------------------------------*/
+
+static void timer_t1a_expired(t30_state_t *s)
+{
+    span_log(&s->logging, SPAN_LOG_FLOW, "T1A expired in phase %s, state %d. An HDLC frame lasted too long.\n", phase_names[s->phase], s->state);
+    s->current_status = T30_ERR_HDLC_CARRIER;
+    disconnect(s);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -5273,6 +5325,7 @@ SPAN_DECLARE(int) t30_non_ecm_get_chunk(void *user_data, uint8_t buf[], int max_
 static void t30_hdlc_rx_status(void *user_data, int status)
 {
     t30_state_t *s;
+    int was_trained;
 
     s = (t30_state_t *) user_data;
     span_log(&s->logging, SPAN_LOG_FLOW, "HDLC signal status is %s (%d) in state %d\n", signal_status_to_str(status), status, s->state);
@@ -5303,12 +5356,40 @@ static void t30_hdlc_rx_status(void *user_data, int status)
         }
         break;
     case SIG_STATUS_CARRIER_DOWN:
+        was_trained = s->rx_trained;
         s->rx_signal_present = FALSE;
         s->rx_trained = FALSE;
         /* If a phase change has been queued to occur after the receive signal drops,
            its time to change. */
         if (s->next_phase != T30_PHASE_IDLE)
         {
+            switch (s->state)
+            {
+            case T30_STATE_F_POST_DOC_ECM:
+                /* Page ended cleanly with an RCP */
+                if (s->current_status == T30_ERR_RX_NOCARRIER)
+                    s->current_status = T30_ERR_OK;
+                break;
+            case T30_STATE_F_DOC_ECM:
+                /* We should be receiving a document right now, but it did not end cleanly. */
+                if (was_trained)
+                {
+                    span_log(&s->logging, SPAN_LOG_WARNING, "ECM signal did not end cleanly\n");
+                    /* We trained OK, so we should have some kind of received page, possibly with
+                       zero good HDLC frames, even though it did not end cleanly. */
+                    set_state(s, T30_STATE_F_POST_DOC_ECM);
+                    set_phase(s, T30_PHASE_D_RX);
+                    timer_t2_start(s);
+                    if (s->current_status == T30_ERR_RX_NOCARRIER)
+                        s->current_status = T30_ERR_OK;
+                }
+                else
+                {
+                    span_log(&s->logging, SPAN_LOG_WARNING, "ECM carrier not found\n");
+                    s->current_status = T30_ERR_RX_NOCARRIER;
+                }
+                break;
+            }
             timer_t2_t4_stop(s);
             set_phase(s, s->next_phase);
             if (s->next_phase == T30_PHASE_C_NON_ECM_RX)
@@ -5319,6 +5400,7 @@ static void t30_hdlc_rx_status(void *user_data, int status)
         {
             switch (s->timer_t2_t4_is)
             {
+            case TIMER_IS_T1A:
             case TIMER_IS_T2A:
             case TIMER_IS_T2C:
                 timer_t2b_start(s);
@@ -5344,6 +5426,7 @@ static void t30_hdlc_rx_status(void *user_data, int status)
         {
             switch(s->timer_t2_t4_is)
             {
+            case TIMER_IS_T1A:
             case TIMER_IS_T2:
             case TIMER_IS_T2A:
                 timer_t2a_start(s);
@@ -5416,7 +5499,7 @@ SPAN_DECLARE_NONSTD(void) t30_hdlc_accept(void *user_data, const uint8_t *msg, i
         return;
     }
     s->rx_frame_received = TRUE;
-    /* Cancel the command or response timer */
+    /* Cancel the command or response timer (if one is running) */
     timer_t2_t4_stop(s);
     process_rx_control_msg(s, msg, len);
 }
@@ -5760,6 +5843,9 @@ SPAN_DECLARE(void) t30_timer_update(t30_state_t *s, int samples)
         {
             switch (s->timer_t2_t4_is)
             {
+            case TIMER_IS_T1A:
+                timer_t1a_expired(s);
+                break;
             case TIMER_IS_T2:
                 timer_t2_expired(s);
                 break;
