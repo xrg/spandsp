@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.167.4.3 2009/12/19 11:33:08 steveu Exp $
+ * $Id: v29rx.c,v 1.167.4.4 2009/12/19 14:18:13 steveu Exp $
  */
 
 /*! \file */
@@ -498,7 +498,7 @@ static __inline__ void symbol_sync(v29_rx_state_t *s)
     /* This symbol sync scheme is based on the technique first described by Dominique Godard in
         Passband Timing Recovery in an All-Digital Modem Receiver
         IEEE TRANSACTIONS ON COMMUNICATIONS, VOL. COM-26, NO. 5, MAY 1978 */
-    
+
     /* This is slightly rearranged for figure 3b of the Godard paper, as this saves a couple of
        maths operations */
 #if defined(SPANDSP_USE_FIXED_POINT)

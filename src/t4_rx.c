@@ -3,7 +3,6 @@
  * SpanDSP - a series of DSP components for telephony
  *
  * t4_rx.c - ITU T.4 FAX receive processing
- * This depends on libtiff (see <http://www.libtiff.org>)
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -24,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_rx.c,v 1.12.2.5 2009/12/19 11:33:07 steveu Exp $
+ * $Id: t4_rx.c,v 1.12.2.8 2009/12/21 17:18:39 steveu Exp $
  */
 
 /*
@@ -220,7 +219,7 @@ static int set_tiff_directory_info(t4_state_t *s)
        right. For multi-page documents we will need to come back and fill in
        the right answer when we know it. */
     TIFFSetField(t->tiff_file, TIFFTAG_PAGENUMBER, s->current_page++, 1);
-    s->pages_in_file = s->current_page;
+    s->tiff.pages_in_file = s->current_page;
     if (t->output_compression == COMPRESSION_CCITT_T4)
     {
         if (s->t4_t6_rx.bad_rows)
@@ -253,7 +252,7 @@ static void write_tiff_image(t4_state_t *s)
     set_tiff_directory_info(s);
     /* ..and then write the image... */
     if (TIFFWriteEncodedStrip(s->tiff.tiff_file, 0, s->image_buffer, s->image_length*s->bytes_per_row) < 0)
-        span_log(&s->logging, SPAN_LOG_WARNING, "%s: Error writing TIFF strip.\n", s->file);
+        span_log(&s->logging, SPAN_LOG_WARNING, "%s: Error writing TIFF strip.\n", s->tiff.file);
     /* ...then the directory entry, and libtiff is happy. */
     TIFFWriteDirectory(s->tiff.tiff_file);
 }
@@ -281,15 +280,15 @@ static int close_tiff_output_file(t4_state_t *s)
     }
     TIFFClose(t->tiff_file);
     t->tiff_file = NULL;
-    if (s->file)
+    if (t->file)
     {
         /* Try not to leave a file behind, if we didn't receive any pages to
            put in it. */
         if (s->current_page == 0)
-            remove(s->file);
-        free((char *) s->file);
+            remove(t->file);
+        free((char *) t->file);
+        t->file = NULL;
     }
-    s->file = NULL;
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -545,10 +544,10 @@ static int put_decoded_row(t4_state_t *s)
             s->cur_runs[s->t4_t6_rx.a_cursor] += (s->image_width - fudge);
         }
         /* Ensure there is a previous line to copy from. */
-        if (s->image_size != s->last_row_starts_at)
+        if (s->image_size != s->t4_t6_rx.last_row_starts_at)
         {
             /* Copy the previous row over this one */
-            memcpy(s->image_buffer + s->image_size, s->image_buffer + s->last_row_starts_at, s->bytes_per_row);
+            memcpy(s->image_buffer + s->image_size, s->image_buffer + s->t4_t6_rx.last_row_starts_at, s->bytes_per_row);
             s->image_size += s->bytes_per_row;
             s->image_length++;
         }
@@ -562,7 +561,7 @@ static int put_decoded_row(t4_state_t *s)
     s->cur_runs[s->t4_t6_rx.a_cursor + 1] = 0;
 
     /* Prepare the buffers for the next row. */
-    s->last_row_starts_at = row_starts_at;
+    s->t4_t6_rx.last_row_starts_at = row_starts_at;
     /* Swap the buffers */
     p = s->cur_runs;
     s->cur_runs = s->ref_runs;
@@ -621,7 +620,7 @@ SPAN_DECLARE(int) t4_rx_end_page(t4_state_t *s)
     s->t4_t6_rx.rx_bits = 0;
     s->t4_t6_rx.rx_skip_bits = 0;
     s->t4_t6_rx.rx_bitstream = 0;
-    s->consecutive_eols = EOLS_TO_END_ANY_RX_PAGE;
+    s->t4_t6_rx.consecutive_eols = EOLS_TO_END_ANY_RX_PAGE;
 
     s->image_size = 0;
     return 0;
@@ -664,13 +663,13 @@ static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
        analysis. */
     if ((s->t4_t6_rx.rx_bits += quantity) < 13)
         return FALSE;
-    if (s->consecutive_eols)
+    if (s->t4_t6_rx.consecutive_eols)
     {
         /* Check if the image has already terminated. */
-        if (s->consecutive_eols >= EOLS_TO_END_ANY_RX_PAGE)
+        if (s->t4_t6_rx.consecutive_eols >= EOLS_TO_END_ANY_RX_PAGE)
             return TRUE;
         /* Check if the image hasn't even started. */
-        if (s->consecutive_eols < 0)
+        if (s->t4_t6_rx.consecutive_eols < 0)
         {
             /* We are waiting for the very first EOL (1D or 2D only). */
             /* We need to take this bit by bit, as the EOL could be anywhere,
@@ -683,7 +682,7 @@ static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
             }
             /* We have an EOL, so now the page begins and we can proceed to
                process the bit stream as image data. */
-            s->consecutive_eols = 0;
+            s->t4_t6_rx.consecutive_eols = 0;
             if (s->line_encoding == T4_COMPRESSION_ITU_T4_1D)
             {
                 s->row_is_2d = FALSE;
@@ -721,20 +720,20 @@ static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
                    EOL, as the row length should be zero at that point. Therefore
                    we should count up both EOLs, unless there is some bogus partial
                    row ahead of them. */
-                s->consecutive_eols++;
+                s->t4_t6_rx.consecutive_eols++;
                 if (s->line_encoding == T4_COMPRESSION_ITU_T6)
                 {
-                    if (s->consecutive_eols >= EOLS_TO_END_T6_RX_PAGE)
+                    if (s->t4_t6_rx.consecutive_eols >= EOLS_TO_END_T6_RX_PAGE)
                     {
-                        s->consecutive_eols = EOLS_TO_END_ANY_RX_PAGE;
+                        s->t4_t6_rx.consecutive_eols = EOLS_TO_END_ANY_RX_PAGE;
                         return TRUE;
                     }
                 }
                 else
                 {
-                    if (s->consecutive_eols >= EOLS_TO_END_T4_RX_PAGE)
+                    if (s->t4_t6_rx.consecutive_eols >= EOLS_TO_END_T4_RX_PAGE)
                     {
-                        s->consecutive_eols = EOLS_TO_END_ANY_RX_PAGE;
+                        s->t4_t6_rx.consecutive_eols = EOLS_TO_END_ANY_RX_PAGE;
                         return TRUE;
                     }
                 }
@@ -745,7 +744,7 @@ static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
                    end of page condition. */
                 if (s->t4_t6_rx.run_length > 0)
                     add_run_to_row(s);
-                s->consecutive_eols = 0;
+                s->t4_t6_rx.consecutive_eols = 0;
                 if (put_decoded_row(s))
                     return TRUE;
                 update_row_bit_info(s);
@@ -759,7 +758,7 @@ static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
             {
                 force_drop_rx_bits(s, 12);
             }
-            s->its_black = FALSE;
+            s->t4_t6_rx.its_black = FALSE;
             s->t4_t6_rx.black_white = 0;
             s->t4_t6_rx.run_length = 0;
             s->row_len = 0;
@@ -801,7 +800,7 @@ static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
                 /* We now need to extract a white/black or black/white pair of runs, using the 1D
                    method. If the first of the pair takes us exactly to the end of the row, there
                    should still be a zero length element for the second of the pair. */
-                s->its_black = s->t4_t6_rx.a_cursor & 1;
+                s->t4_t6_rx.its_black = s->t4_t6_rx.a_cursor & 1;
                 s->t4_t6_rx.black_white = 2;
                 break;
             case S_Vert:
@@ -859,7 +858,7 @@ static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
         }
         else
         {
-            if (s->its_black)
+            if (s->t4_t6_rx.its_black)
             {
                 bits = s->t4_t6_rx.rx_bitstream & 0x1FFF;
                 STATE_TRACE("State %d, %d - Black %d %d %d\n",
@@ -876,7 +875,7 @@ static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
                     s->t4_t6_rx.a0 += t4_1d_black_table[bits].param;
                     break;
                 case S_TermB:
-                    s->its_black = FALSE;
+                    s->t4_t6_rx.its_black = FALSE;
                     if (s->row_len < s->image_width)
                     {
                         s->t4_t6_rx.run_length += t4_1d_black_table[bits].param;
@@ -910,7 +909,7 @@ static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
                     s->t4_t6_rx.a0 += t4_1d_white_table[bits].param;
                     break;
                 case S_TermW:
-                    s->its_black = TRUE;
+                    s->t4_t6_rx.its_black = TRUE;
                     if (s->row_len < s->image_width)
                     {
                         s->t4_t6_rx.run_length += t4_1d_white_table[bits].param;
@@ -945,7 +944,7 @@ static int rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
                 update_row_bit_info(s);
                 if (put_decoded_row(s))
                     return TRUE;
-                s->its_black = FALSE;
+                s->t4_t6_rx.its_black = FALSE;
                 s->t4_t6_rx.black_white = 0;
                 s->t4_t6_rx.run_length = 0;
                 s->row_len = 0;
@@ -1009,7 +1008,7 @@ SPAN_DECLARE(t4_state_t *) t4_rx_init(t4_state_t *s, const char *file, int outpu
         return NULL;
 
     /* Save the file name for logging reports. */
-    s->file = strdup(file);
+    s->tiff.file = strdup(file);
     /* Only provide for one form of coding throughout the file, even though the
        coding on the wire could change between pages. */
     switch (output_encoding)
@@ -1033,9 +1032,9 @@ SPAN_DECLARE(t4_state_t *) t4_rx_init(t4_state_t *s, const char *file, int outpu
     s->bytes_per_row = 0;
 
     s->current_page = 0;
-    s->pages_in_file = 0;
-    s->start_page = 0;
-    s->stop_page = INT_MAX;
+    s->tiff.pages_in_file = 0;
+    s->tiff.start_page = 0;
+    s->tiff.stop_page = INT_MAX;
 
     s->image_buffer = NULL;
     s->image_buffer_size = 0;
@@ -1086,7 +1085,7 @@ SPAN_DECLARE(int) t4_rx_start_page(t4_state_t *s)
     s->row_is_2d = (s->line_encoding == T4_COMPRESSION_ITU_T6);
     /* We start at -1 EOLs for 1D and 2D decoding, as an indication we are waiting for the
        first EOL. T.6 coding starts without any preamble. */
-    s->consecutive_eols = (s->line_encoding == T4_COMPRESSION_ITU_T6)  ?  0  :  -1;
+    s->t4_t6_rx.consecutive_eols = (s->line_encoding == T4_COMPRESSION_ITU_T6)  ?  0  :  -1;
 
     s->t4_t6_rx.bad_rows = 0;
     s->t4_t6_rx.longest_bad_row_run = 0;
@@ -1096,10 +1095,10 @@ SPAN_DECLARE(int) t4_rx_start_page(t4_state_t *s)
     s->tx_bits = 8;
     s->image_size = 0;
     s->line_image_size = 0;
-    s->last_row_starts_at = 0;
+    s->t4_t6_rx.last_row_starts_at = 0;
 
     s->row_len = 0;
-    s->its_black = FALSE;
+    s->t4_t6_rx.its_black = FALSE;
     s->t4_t6_rx.black_white = 0;
 
     /* Initialise the reference line to all white */
@@ -1107,7 +1106,6 @@ SPAN_DECLARE(int) t4_rx_start_page(t4_state_t *s)
     s->ref_runs[1] =
     s->ref_runs[2] =
     s->ref_runs[3] = s->image_width;
-    s->ref_steps = 1;
 
     s->t4_t6_rx.b_cursor = 1;
     s->t4_t6_rx.a_cursor = 0;
@@ -1199,8 +1197,8 @@ SPAN_DECLARE(void) t4_rx_set_model(t4_state_t *s, const char *model)
 
 SPAN_DECLARE(void) t4_get_transfer_statistics(t4_state_t *s, t4_stats_t *t)
 {
-    t->pages_transferred = s->current_page - s->start_page;
-    t->pages_in_file = s->pages_in_file;
+    t->pages_transferred = s->current_page - s->tiff.start_page;
+    t->pages_in_file = s->tiff.pages_in_file;
     t->width = s->image_width;
     t->length = s->image_length;
     t->bad_rows = s->t4_t6_rx.bad_rows;

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_rx.h,v 1.3.2.2 2009/12/19 09:47:56 steveu Exp $
+ * $Id: t4_rx.h,v 1.3.2.3 2009/12/21 17:18:40 steveu Exp $
  */
 
 /*! \file */
@@ -46,9 +46,24 @@ typedef int (*t4_row_write_handler_t)(void *user_data, const uint8_t buf[], size
 /*! Supported compression modes. */
 typedef enum
 {
+    /*! No compression */
+    T4_COMPRESSION_NONE = 0,
+    /*! T.1 1D compression */
     T4_COMPRESSION_ITU_T4_1D = 1,
+    /*! T.4 2D compression */
     T4_COMPRESSION_ITU_T4_2D = 2,
-    T4_COMPRESSION_ITU_T6 = 3
+    /*! T.6 2D compression */
+    T4_COMPRESSION_ITU_T6 = 3,
+    /*! T.85 monochrome JBIG coding */
+    T4_COMPRESSION_ITU_T85 = 4,
+    /*! T.43 colour JBIG coding */
+    T4_COMPRESSION_ITU_T43 = 5,
+    /*! T.45 run length colour compression */
+    T4_COMPRESSION_ITU_T45 = 6,
+    /*! T.81 + T.30 Annex E colour JPEG coding */
+    T4_COMPRESSION_ITU_T81 = 7,
+    /*! T.81 + T.30 Annex K colour sYCC-JPEG coding */
+    T4_COMPRESSION_ITU_SYCC_T81 = 8
 } t4_image_compression_t;
 
 /*! Supported X resolutions, in pixels per metre. */

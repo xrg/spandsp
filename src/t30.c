@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.305.4.2 2009/12/19 10:44:10 steveu Exp $
+ * $Id: t30.c,v 1.305.4.3 2009/12/19 14:18:12 steveu Exp $
  */
 
 /*! \file */
@@ -1135,11 +1135,21 @@ int t30_build_dis_or_dtc(t30_state_t *s)
             set_ctrl_bit(s->local_dis_dtc_frame, T30_DIS_BIT_T6_CAPABLE);
         if ((s->supported_compressions & T30_SUPPORT_T43_COMPRESSION))
             set_ctrl_bit(s->local_dis_dtc_frame, T30_DIS_BIT_T43_CAPABLE);
-        if ((s->supported_compressions & T30_SUPPORT_T85_COMPRESSION))
-            set_ctrl_bit(s->local_dis_dtc_frame, 78);
-        /* No T.85 optional L0. */
+#if 0
         if ((s->supported_compressions & T30_SUPPORT_T45_COMPRESSION))
             set_ctrl_bit(s->local_dis_dtc_frame, T30_DIS_BIT_T45_CAPABLE);
+        if ((s->supported_compressions & T30_SUPPORT_T81_COMPRESSION))
+            set_ctrl_bit(s->local_dis_dtc_frame, T30_DIS_BIT_T81_CAPABLE);
+        if ((s->supported_compressions & T30_SUPPORT_SYCC_T81_COMPRESSION))
+            set_ctrl_bit(s->local_dis_dtc_frame, T30_DIS_BIT_SYCC_T81_CAPABLE);
+        if ((s->supported_compressions & T30_SUPPORT_T85_COMPRESSION))
+            set_ctrl_bit(s->local_dis_dtc_frame, T30_DIS_BIT_T85_CAPABLE);
+        /* No T.85 optional L0. */
+        //if ((s->supported_compressions & T30_SUPPORT_T85_L0_COMPRESSION))
+        //    set_ctrl_bit(s->local_dis_dtc_frame, T30_DIS_BIT_T85_L0_CAPABLE);
+        //if ((s->supported_compressions & T30_SUPPORT_T89_COMPRESSION))
+        //    set_ctrl_bit(s->local_dis_dtc_frame, T30_DIS_BIT_T89_CAPABLE);
+#endif
     }
     if ((s->supported_t30_features & T30_SUPPORT_FIELD_NOT_VALID))
         set_ctrl_bit(s->local_dis_dtc_frame, T30_DIS_BIT_FNV_CAPABLE);
@@ -1174,7 +1184,7 @@ int t30_build_dis_or_dtc(t30_state_t *s)
     /* No Basic transfer mode (BTM) */
     /* No mixed mode (polling) */
     /* No character mode */
-    /* No mixed mode (Annex E/T.4) */
+    /* No mixed mode (T.4/Annex E) */
     /* No mode 26 (T.505) */
     /* No digital network capability */
     /* No duplex operation */
@@ -1287,6 +1297,13 @@ static int build_dcs(t30_state_t *s)
     /* Select the compression to use. */
     switch (s->line_encoding)
     {
+#if 0
+    case T4_COMPRESSION_ITU_T85:
+        set_ctrl_bit(s->dcs_frame, T30_DCS_BIT_T85_MODE);
+        //set_ctrl_bit(s->dcs_frame, T30_DCS_BIT_T85_L0_MODE);
+        set_ctrl_bits(s->dcs_frame, T30_MIN_SCAN_0MS, 21);
+        break;
+#endif
     case T4_COMPRESSION_ITU_T6:
         set_ctrl_bit(s->dcs_frame, T30_DCS_BIT_T6_MODE);
         set_ctrl_bits(s->dcs_frame, T30_MIN_SCAN_0MS, 21);
@@ -1456,7 +1473,7 @@ static int build_dcs(t30_state_t *s)
         if ((s->far_dis_dtc_frame[5] & (DISBIT2 | DISBIT1)) < 1)
             bad = T30_ERR_NOSIZESUPPORT;
         else if (!(s->supported_image_sizes & T30_SUPPORT_255MM_WIDTH))
-            bad = T30_ERR_BADTIFF;
+            bad = T30_ERR_NOSIZESUPPORT;
         else
             set_ctrl_bit(s->dcs_frame, 17);
         break;
@@ -1468,19 +1485,19 @@ static int build_dcs(t30_state_t *s)
         if ((s->far_dis_dtc_frame[5] & (DISBIT2 | DISBIT1)) < 2)
             bad = T30_ERR_NOSIZESUPPORT;
         else if (!(s->supported_image_sizes & T30_SUPPORT_303MM_WIDTH))    
-            bad = T30_ERR_BADTIFF;
+            bad = T30_ERR_NOSIZESUPPORT;
         else
             set_ctrl_bit(s->dcs_frame, 18);
         break;
     default:
         /* T.30 does not support this width */
-        bad = T30_ERR_BADTIFF;
+        bad = T30_ERR_NOSIZESUPPORT;
         break;
     }
     if (bad != T30_ERR_OK)
     {
         s->current_status = bad;
-        span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not a valid FAX image width\n", s->image_width);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not an acceptable FAX image width\n", s->image_width);
         return -1;
     }
     switch (s->image_width)
@@ -1516,13 +1533,13 @@ static int build_dcs(t30_state_t *s)
         break;
     default:
         /* T.30 does not support this width */
-        bad = T30_ERR_BADTIFF;
+        bad = T30_ERR_NOSIZESUPPORT;
         break;
     }
     if (bad != T30_ERR_OK)
     {
         s->current_status = bad;
-        span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not a valid FAX image width\n", s->image_width);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not an acceptable FAX image width\n", s->image_width);
         return -1;
     }
     /* Deal with the image length */
@@ -2018,7 +2035,15 @@ static int process_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
     /* 256 octets per ECM frame */
     s->octets_per_ecm_frame = 256;
     /* Select the compression to use. */
+#if 0
+    if (s->error_correcting_mode  &&  (s->supported_compressions & T30_SUPPORT_T85_COMPRESSION)  &&  test_ctrl_bit(s->far_dis_dtc_frame, T30_DIS_BIT_T85_CAPABLE))
+    {
+        s->line_encoding = T4_COMPRESSION_ITU_T85;
+    }
+    else if (s->error_correcting_mode  &&  (s->supported_compressions & T30_SUPPORT_T6_COMPRESSION)  &&  test_ctrl_bit(s->far_dis_dtc_frame, T30_DIS_BIT_T6_CAPABLE))
+#else
     if (s->error_correcting_mode  &&  (s->supported_compressions & T30_SUPPORT_T6_COMPRESSION)  &&  test_ctrl_bit(s->far_dis_dtc_frame, T30_DIS_BIT_T6_CAPABLE))
+#endif
     {
         s->line_encoding = T4_COMPRESSION_ITU_T6;
     }
@@ -2030,7 +2055,7 @@ static int process_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
     {
         s->line_encoding = T4_COMPRESSION_ITU_T4_1D;
     }
-    span_log(&s->logging, SPAN_LOG_FLOW, "Selected compression %d\n", s->line_encoding);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Selected compression %s (%d)\n", t4_encoding_to_str(s->line_encoding), s->line_encoding);
     switch (s->far_dis_dtc_frame[4] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3))
     {
     case (DISBIT6 | DISBIT4 | DISBIT3):
@@ -2230,7 +2255,13 @@ static int process_rx_dcs(t30_state_t *s, const uint8_t *msg, int len)
     s->image_width = widths[i][dcs_frame[5] & (DISBIT2 | DISBIT1)];
 
     /* Check which compression we will use. */
+#if 0
+    if (test_ctrl_bit(dcs_frame, T30_DCS_BIT_T85_MODE))
+        s->line_encoding = T4_COMPRESSION_ITU_T85;
+    else if (test_ctrl_bit(dcs_frame, T30_DCS_BIT_T6_MODE))
+#else
     if (test_ctrl_bit(dcs_frame, T30_DCS_BIT_T6_MODE))
+#endif
         s->line_encoding = T4_COMPRESSION_ITU_T6;
     else if (test_ctrl_bit(dcs_frame, T30_DCS_BIT_2D_CODING))
         s->line_encoding = T4_COMPRESSION_ITU_T4_2D;
@@ -2683,7 +2714,6 @@ static void process_state_b(t30_state_t *s, const uint8_t *msg, int len)
 {
     uint8_t fcf;
 
-    /* We should be sending the TCF data right now */
     fcf = msg[2] & 0xFE;
     switch (fcf)
     {
@@ -6006,6 +6036,7 @@ SPAN_DECLARE(void) t30_timer_update(t30_state_t *s, int samples)
     {
         if ((s->timer_t0_t1 -= samples) <= 0)
         {
+            s->timer_t0_t1 = 0;
             if (s->far_end_detected)
                 timer_t1_expired(s);
             else

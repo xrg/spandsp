@@ -22,13 +22,13 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tx.h,v 1.2.2.2 2009/12/19 09:47:56 steveu Exp $
+ * $Id: t4_tx.h,v 1.2.2.3 2009/12/21 17:18:40 steveu Exp $
  */
 
 /*! \file */
 
 #if !defined(_SPANDSP_T4_TX_H_)
-#define _SPANDSP_T4__TXH_
+#define _SPANDSP_T4_TX_H_
 
 typedef int (*t4_row_read_handler_t)(void *user_data, uint8_t buf[], size_t len);
 
@@ -68,19 +68,23 @@ SPAN_DECLARE(int) t4_tx_next_page_has_different_format(t4_state_t *s);
     \return zero for success, -1 for failure. */
 SPAN_DECLARE(int) t4_tx_end_page(t4_state_t *s);
 
+/*! \brief Return the next bit of the current document page, without actually
+           moving forward in the buffer. The document will be padded for the
+           current minimum scan line time.
+    \param s The T.4 context.
+    \return The next bit (i.e. 0 or 1). For the last bit of data, bit 1 is
+            set (i.e. the returned value is 2 or 3). */
+SPAN_DECLARE(int) t4_tx_check_bit(t4_state_t *s);
+
 /*! \brief Get the next bit of the current document page. The document will
-           be padded for the current minimum scan line time. If the
-           file does not contain an RTC (return to control) code at
-           the end of the page, one will be added where appropriate.
+           be padded for the current minimum scan line time.
     \param s The T.4 context.
     \return The next bit (i.e. 0 or 1). For the last bit of data, bit 1 is
             set (i.e. the returned value is 2 or 3). */
 SPAN_DECLARE(int) t4_tx_get_bit(t4_state_t *s);
 
 /*! \brief Get the next byte of the current document page. The document will
-           be padded for the current minimum scan line time. If the
-           file does not contain an RTC (return to control) code at
-           the end of the page, one will be added where appropriate.
+           be padded for the current minimum scan line time.
     \param s The T.4 context.
     \return The next byte. For the last byte of data, bit 8 is
             set. In this case, one or more bits of the byte may be padded with
@@ -88,25 +92,13 @@ SPAN_DECLARE(int) t4_tx_get_bit(t4_state_t *s);
 SPAN_DECLARE(int) t4_tx_get_byte(t4_state_t *s);
 
 /*! \brief Get the next chunk of the current document page. The document will
-           be padded for the current minimum scan line time. If the
-           file does not contain an RTC (return to control) code at
-           the end of the page, one will be added where appropriate.
+           be padded for the current minimum scan line time.
     \param s The T.4 context.
     \param buf The buffer into which the chunk is to written.
     \param max_len The maximum length of the chunk.
     \return The actual length of the chunk. If this is less than max_len it 
             indicates that the end of the document has been reached. */
 SPAN_DECLARE(int) t4_tx_get_chunk(t4_state_t *s, uint8_t buf[], int max_len);
-
-/*! \brief Return the next bit of the current document page, without actually
-           moving forward in the buffer. The document will be padded for the
-           current minimum scan line time. If the file does not contain an
-           RTC (return to control) code at the end of the page, one will be
-           added.
-    \param s The T.4 context.
-    \return The next bit (i.e. 0 or 1). For the last bit of data, bit 1 is
-            set (i.e. the returned value is 2 or 3). */
-SPAN_DECLARE(int) t4_tx_check_bit(t4_state_t *s);
 
 /*! \brief End the transmission of a document. Tidy up and close the file.
            This should be used to end T.4 transmission started with t4_tx_init.
