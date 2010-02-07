@@ -287,6 +287,9 @@
 /* Use the SSE5 instruction set (i386 and x86_64 only). */
 #undef SPANDSP_USE_SSE5
 
+/* Use the SSSE3 instruction set (i386 and x86_64 only). */
+#undef SPANDSP_USE_SSSE3
+
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 

@@ -151,6 +151,8 @@ COND_SSE5_FALSE = @COND_SSE5_FALSE@
 COND_SSE5_TRUE = @COND_SSE5_TRUE@
 COND_SSE_FALSE = @COND_SSE_FALSE@
 COND_SSE_TRUE = @COND_SSE_TRUE@
+COND_SSSE3_FALSE = @COND_SSSE3_FALSE@
+COND_SSSE3_TRUE = @COND_SSSE3_TRUE@
 COND_TESTDATA_FALSE = @COND_TESTDATA_FALSE@
 COND_TESTDATA_TRUE = @COND_TESTDATA_TRUE@
 COND_TESTS_FALSE = @COND_TESTS_FALSE@
@@ -508,6 +510,7 @@ noinst_HEADERS = faxfont.h \
                         filter_tools.h \
                         gsm0610_local.h \
                         lpc10_encdecs.h \
+                        mmx_sse_decs.h \
                         t30_local.h \
                         t4_states.h \
                         v17_v32bis_rx_constellation_maps.h \
