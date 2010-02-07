@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.h,v 1.70 2009/04/12 09:12:11 steveu Exp $
+ * $Id: v29rx.h,v 1.71 2009/06/02 16:03:56 steveu Exp $
  */
 
 /*! \file */
@@ -198,7 +198,7 @@ SPAN_DECLARE(void) v29_rx_set_modem_status_handler(v29_rx_state_t *s, modem_rx_s
     \param amp The audio sample buffer.
     \param len The number of samples in the buffer.
     \return The number of samples unprocessed. */
-SPAN_DECLARE(int) v29_rx(v29_rx_state_t *s, const int16_t amp[], int len);
+SPAN_DECLARE_NONSTD(int) v29_rx(v29_rx_state_t *s, const int16_t amp[], int len);
 
 /*! Fake processing of a missing block of received V.29 modem audio samples.
     (e.g due to packet loss).

@@ -1,8 +1,9 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * v17rx_constellation_maps.h - ITU V.17 modem receive part.
- *                              Constellation mapping.
+ * v17rx_v32bis_constellation_maps.h - ITU V.17 and V.32bis modems
+ *                                     receive part.
+ *                                     Constellation mapping.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,7 +24,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx_constellation_maps.h,v 1.6 2008/07/10 13:34:00 steveu Exp $
+ * $Id: v17_v32bis_rx_constellation_maps.h,v 1.1 2009/06/02 11:51:57 steveu Exp $
  */
 
 /* The following table maps the 8 soft-decisions associated with every possible point in the

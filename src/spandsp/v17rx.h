@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.63 2009/04/12 04:20:01 steveu Exp $
+ * $Id: v17rx.h,v 1.64 2009/06/02 16:03:56 steveu Exp $
  */
 
 /*! \file */
@@ -297,7 +297,7 @@ SPAN_DECLARE(void) v17_rx_set_modem_status_handler(v17_rx_state_t *s, modem_rx_s
     \param len The number of samples in the buffer.
     \return The number of samples unprocessed.
 */
-SPAN_DECLARE(int) v17_rx(v17_rx_state_t *s, const int16_t amp[], int len);
+SPAN_DECLARE_NONSTD(int) v17_rx(v17_rx_state_t *s, const int16_t amp[], int len);
 
 /*! Fake processing of a missing block of received V.17 modem audio samples.
     (e.g due to packet loss).

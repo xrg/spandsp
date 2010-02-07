@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: test_utils.c,v 1.13 2009/05/30 15:30:21 steveu Exp $
+ * $Id: test_utils.c,v 1.14 2009/06/01 16:27:12 steveu Exp $
  */
 
 /*! \file */
@@ -72,7 +72,7 @@ static int circle_init = FALSE;
 static complex_t icircle[MAX_FFT_LEN/2];
 static int icircle_init = FALSE;
 
-SPAN_DECLARE(complexify_state_t) *complexify_init(void)
+SPAN_DECLARE(complexify_state_t *) complexify_init(void)
 {
     complexify_state_t *s;
     int i;
@@ -261,7 +261,7 @@ SPAN_DECLARE(void) ifft(complex_t data[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(codec_munge_state_t) *codec_munge_init(int codec, int info)
+SPAN_DECLARE(codec_munge_state_t *) codec_munge_init(int codec, int info)
 {
     codec_munge_state_t *s;
     

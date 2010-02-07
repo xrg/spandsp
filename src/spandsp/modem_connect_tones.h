@@ -24,7 +24,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.h,v 1.23 2009/05/18 15:57:17 steveu Exp $
+ * $Id: modem_connect_tones.h,v 1.24 2009/06/02 16:03:56 steveu Exp $
  */
  
 /*! \file */
@@ -124,9 +124,9 @@ SPAN_DECLARE(int) modem_connect_tones_tx_free(modem_connect_tones_tx_state_t *s)
     \param len The number of samples to generate.
     \return The number of samples generated.
 */
-SPAN_DECLARE(int) modem_connect_tones_tx(modem_connect_tones_tx_state_t *s,
-                                         int16_t amp[],
-                                         int len);
+SPAN_DECLARE_NONSTD(int) modem_connect_tones_tx(modem_connect_tones_tx_state_t *s,
+                                                int16_t amp[],
+                                                int len);
 
 /*! \brief Process a block of samples through an instance of the modem connect
            tones detector.
@@ -135,9 +135,9 @@ SPAN_DECLARE(int) modem_connect_tones_tx(modem_connect_tones_tx_state_t *s,
     \param len The number of samples in the array.
     \return The number of unprocessed samples.
 */
-SPAN_DECLARE(int) modem_connect_tones_rx(modem_connect_tones_rx_state_t *s,
-                                         const int16_t amp[],
-                                         int len);
+SPAN_DECLARE_NONSTD(int) modem_connect_tones_rx(modem_connect_tones_rx_state_t *s,
+                                                const int16_t amp[],
+                                                int len);
                              
 /*! \brief Test if a modem_connect tone has been detected.
     \param s The context.

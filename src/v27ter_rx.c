@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.129 2009/05/30 17:29:23 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.130 2009/06/02 16:03:56 steveu Exp $
  */
 
 /*! \file */
@@ -837,7 +837,7 @@ static __inline__ int signal_detect(v27ter_rx_state_t *s, int16_t amp)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
+SPAN_DECLARE_NONSTD(int) v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
 {
     int i;
     int step;

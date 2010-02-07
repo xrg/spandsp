@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.9 2009/05/31 14:47:10 steveu Exp $
+## $Id: Makefile.am,v 1.10 2009/06/02 16:03:55 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -28,6 +28,7 @@ MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = libspandsp_sim.dsp \
              libspandsp_sim.2005.vcproj \
              libspandsp_sim.2008.vcproj \
+             msvc/make_line_models.2008.vcproj \
              msvc/msvcproj.head \
              msvc/msvcproj.foot \
              msvc/vc8proj.head \

@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.147 2009/05/16 03:34:45 steveu Exp $
+ * $Id: v17rx.c,v 1.149 2009/06/02 16:03:56 steveu Exp $
  */
 
 /*! \file */
@@ -64,12 +64,12 @@
 #include "spandsp/private/logging.h"
 #include "spandsp/private/v17rx.h"
 
-#include "v17tx_constellation_maps.h"
-#include "v17rx_constellation_maps.h"
+#include "v17_v32bis_tx_constellation_maps.h"
+#include "v17_v32bis_rx_constellation_maps.h"
 #if defined(SPANDSP_USE_FIXED_POINT)
-#include "v17rx_fixed_rrc.h"
+#include "v17_v32bis_rx_fixed_rrc.h"
 #else
-#include "v17rx_floating_rrc.h"
+#include "v17_v32bis_rx_floating_rrc.h"
 #endif
 
 /*! The nominal frequency of the carrier, in Hertz */
@@ -292,18 +292,6 @@ static int descramble(v17_rx_state_t *s, int in_bit)
     else
         s->scramble_reg |= (in_bit & 1);
     return out_bit;
-}
-/*- End of function --------------------------------------------------------*/
-
-static __inline__ int find_quadrant(complexf_t *z)
-{
-    int b1;
-    int b2;
-
-    /* Split the space along the two diagonals. */
-    b1 = (z->im > z->re);
-    b2 = (z->im < -z->re);
-    return (b2 << 1) | (b1 ^ b2);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1079,7 +1067,7 @@ static __inline__ int signal_detect(v17_rx_state_t *s, int16_t amp)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
+SPAN_DECLARE_NONSTD(int) v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
 {
     int i;
     int step;
@@ -1229,22 +1217,22 @@ SPAN_DECLARE(int) v17_rx_restart(v17_rx_state_t *s, int bit_rate, int short_trai
     switch (bit_rate)
     {
     case 14400:
-        s->constellation = v17_14400_constellation;
+        s->constellation = v17_v32bis_14400_constellation;
         s->space_map = 0;
         s->bits_per_symbol = 6;
         break;
     case 12000:
-        s->constellation = v17_12000_constellation;
+        s->constellation = v17_v32bis_12000_constellation;
         s->space_map = 1;
         s->bits_per_symbol = 5;
         break;
     case 9600:
-        s->constellation = v17_9600_constellation;
+        s->constellation = v17_v32bis_9600_constellation;
         s->space_map = 2;
         s->bits_per_symbol = 4;
         break;
     case 7200:
-        s->constellation = v17_7200_constellation;
+        s->constellation = v17_v32bis_7200_constellation;
         s->space_map = 3;
         s->bits_per_symbol = 3;
         break;

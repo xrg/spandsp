@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g722_tests.c,v 1.31 2009/05/30 15:23:13 steveu Exp $
+ * $Id: g722_tests.c,v 1.32 2009/06/02 14:55:36 steveu Exp $
  */
 
 /*! \file */
@@ -370,7 +370,6 @@ int main(int argc, char *argv[])
     int encode;
     int decode;
     int tone_test;
-    float x;
     const char *in_file;
     const char *out_file;
     int16_t indata[BLOCK_LEN];
@@ -491,7 +490,7 @@ int main(int argc, char *argv[])
                 }
                 if (info.samplerate != SAMPLE_RATE)
                 {
-                    fprintf(stderr, "    Unexpected sample rate %f in audio file '%s'\n", x, in_file);
+                    fprintf(stderr, "    Unexpected sample rate %d in audio file '%s'\n", info.samplerate, in_file);
                     exit(2);
                 }
                 if (info.channels != 1)
@@ -509,7 +508,7 @@ int main(int argc, char *argv[])
                 }
                 if (info.samplerate != G722_SAMPLE_RATE)
                 {
-                    fprintf(stderr, "    Unexpected sample rate %f in audio file '%s'\n", x, in_file);
+                    fprintf(stderr, "    Unexpected sample rate %d in audio file '%s'\n", info.samplerate, in_file);
                     exit(2);
                 }
                 if (info.channels != 1)

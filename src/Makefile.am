@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.133 2009/05/31 14:47:10 steveu Exp $
+## $Id: Makefile.am,v 1.134 2009/06/02 11:51:57 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -277,8 +277,8 @@ noinst_HEADERS =        faxfont.h \
                         lpc10_encdecs.h \
                         t30_local.h \
                         t4_states.h \
-                        v17rx_constellation_maps.h \
-                        v17tx_constellation_maps.h \
+                        v17_v32bis_rx_constellation_maps.h \
+                        v17_v32bis_tx_constellation_maps.h \
                         v29tx_constellation_maps.h
 
 noinst_PROGRAMS = make_at_dictionary \
@@ -301,25 +301,25 @@ t4.$(OBJEXT): spandsp/version.h
 
 t4.lo: spandsp/version.h
 
-v17rx.$(OBJEXT): v17rx_fixed_rrc.h v17rx_floating_rrc.h
+v17rx.$(OBJEXT): v17_v32bis_rx_fixed_rrc.h v17_v32bis_rx_floating_rrc.h
 
-v17rx.lo: v17rx_fixed_rrc.h v17rx_floating_rrc.h
+v17rx.lo: v17_v32bis_rx_fixed_rrc.h v17_v32bis_rx_floating_rrc.h
 
-v17rx_fixed_rrc.h: make_modem_filter$(EXEEXT)
-	./make_modem_filter$(EXEEXT) -m V.17 -i -r >v17rx_fixed_rrc.h
+v17_v32bis_rx_fixed_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.17 -i -r >v17_v32bis_rx_fixed_rrc.h
 
-v17rx_floating_rrc.h: make_modem_filter$(EXEEXT)
-	./make_modem_filter$(EXEEXT) -m V.17 -r >v17rx_floating_rrc.h
+v17_v32bis_rx_floating_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.17 -r >v17_v32bis_rx_floating_rrc.h
 
-v17tx.$(OBJEXT): v17tx_fixed_rrc.h v17tx_floating_rrc.h
+v17tx.$(OBJEXT): v17_v32bis_tx_fixed_rrc.h v17_v32bis_tx_floating_rrc.h
 
-v17tx.lo: v17tx_fixed_rrc.h v17tx_floating_rrc.h
+v17tx.lo: v17_v32bis_tx_fixed_rrc.h v17_v32bis_tx_floating_rrc.h
 
-v17tx_fixed_rrc.h: make_modem_filter$(EXEEXT)
-	./make_modem_filter$(EXEEXT) -m V.17 -i -t >v17tx_fixed_rrc.h
+v17_v32bis_tx_fixed_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.17 -i -t >v17_v32bis_tx_fixed_rrc.h
 
-v17tx_floating_rrc.h: make_modem_filter$(EXEEXT)
-	./make_modem_filter$(EXEEXT) -m V.17 -t >v17tx_floating_rrc.h
+v17_v32bis_tx_floating_rrc.h: make_modem_filter$(EXEEXT)
+	./make_modem_filter$(EXEEXT) -m V.17 -t >v17_v32bis_tx_floating_rrc.h
 
 v22bis_rx.$(OBJEXT): v22bis_rx_1200_fixed_rrc.h \
                      v22bis_rx_2400_fixed_rrc.h \

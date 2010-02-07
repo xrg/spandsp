@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.c,v 1.75 2009/04/21 13:59:07 steveu Exp $
+ * $Id: v27ter_tx.c,v 1.76 2009/06/02 16:03:56 steveu Exp $
  */
 
 /*! \file */
@@ -244,7 +244,7 @@ static complexf_t getbaud(v27ter_tx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len)
+SPAN_DECLARE_NONSTD(int) v27ter_tx(v27ter_tx_state_t *s, int16_t amp[], int len)
 {
 #if defined(SPANDSP_USE_FIXED_POINT)
     complexi_t x;

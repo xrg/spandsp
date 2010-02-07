@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.h,v 1.41 2009/04/12 09:12:11 steveu Exp $
+ * $Id: v17tx.h,v 1.42 2009/06/02 16:03:56 steveu Exp $
  */
 
 /*! \file */
@@ -160,7 +160,7 @@ SPAN_DECLARE(void) v17_tx_set_modem_status_handler(v17_tx_state_t *s, modem_tx_s
     \param len The number of samples to be generated.
     \return The number of samples actually generated.
 */
-SPAN_DECLARE(int) v17_tx(v17_tx_state_t *s, int16_t amp[], int len);
+SPAN_DECLARE_NONSTD(int) v17_tx(v17_tx_state_t *s, int16_t amp[], int len);
 
 #if defined(__cplusplus)
 }

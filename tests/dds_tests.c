@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds_tests.c,v 1.25 2009/05/30 15:23:13 steveu Exp $
+ * $Id: dds_tests.c,v 1.26 2009/06/02 14:55:36 steveu Exp $
  */
 
 /*! \file */
@@ -46,6 +46,7 @@
 #include <sndfile.h>
 
 #include "spandsp.h"
+#include "spandsp-sim.h"
 
 #define OUTPUT_FILE_NAME            "dds.wav"
 #define OUTPUT_FILE_NAME_COMPLEX    "complex_dds.wav"

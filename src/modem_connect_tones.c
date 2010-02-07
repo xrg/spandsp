@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.c,v 1.36 2009/05/18 15:57:17 steveu Exp $
+ * $Id: modem_connect_tones.c,v 1.37 2009/06/02 16:03:56 steveu Exp $
  */
  
 /*! \file */
@@ -87,9 +87,9 @@ SPAN_DECLARE(const char *) modem_connect_tone_to_str(int tone)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) modem_connect_tones_tx(modem_connect_tones_tx_state_t *s,
-                                         int16_t amp[],
-                                         int len)
+SPAN_DECLARE_NONSTD(int) modem_connect_tones_tx(modem_connect_tones_tx_state_t *s,
+                                                int16_t amp[],
+                                                int len)
 {
     int16_t mod;
     int i;
@@ -354,7 +354,9 @@ static void v21_put_bit(void *user_data, int bit)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) modem_connect_tones_rx(modem_connect_tones_rx_state_t *s, const int16_t amp[], int len)
+SPAN_DECLARE_NONSTD(int) modem_connect_tones_rx(modem_connect_tones_rx_state_t *s,
+                                                const int16_t amp[],
+                                                int len)
 {
     int i;
     int16_t notched;

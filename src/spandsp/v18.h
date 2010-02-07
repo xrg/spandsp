@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v18.h,v 1.4 2009/05/22 16:39:01 steveu Exp $
+ * $Id: v18.h,v 1.5 2009/06/02 16:03:56 steveu Exp $
  */
  
 /*! \file */
@@ -100,7 +100,7 @@ SPAN_DECLARE(int) v18_free(v18_state_t *s);
     \param max_len The number of samples to be generated.
     \return The number of samples actually generated.
 */
-SPAN_DECLARE(int) v18_tx(v18_state_t *s, int16_t amp[], int max_len);
+SPAN_DECLARE_NONSTD(int) v18_tx(v18_state_t *s, int16_t amp[], int max_len);
 
 /*! Process a block of received V.18 audio samples.
     \brief Process a block of received V.18 audio samples.
@@ -108,7 +108,7 @@ SPAN_DECLARE(int) v18_tx(v18_state_t *s, int16_t amp[], int max_len);
     \param amp The audio sample buffer.
     \param len The number of samples in the buffer.
 */
-SPAN_DECLARE(int) v18_rx(v18_state_t *s, const int16_t amp[], int len);
+SPAN_DECLARE_NONSTD(int) v18_rx(v18_state_t *s, const int16_t amp[], int len);
 
 /*! \brief Put a string to a V.18 context's input buffer.
     \param s The V.18 context.

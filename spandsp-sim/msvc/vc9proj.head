@@ -3,23 +3,23 @@
 	ProjectType="Visual C++"
 	Version="9.00"
 	Name="libspandsp_sim"
-	ProjectGUID="{1CBB0077-18C5-455F-801C-0A0CE7B0BBF5}"
+	ProjectGUID="{502F1E51-F0A0-4607-AB7F-05BAB530AAE1}"
 	RootNamespace="libspandsp_sim"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="131072"
 	>
-  <Platforms>
-    <Platform
+	<Platforms>
+		<Platform
 			Name="Win32"
 		/>
-    <Platform
+		<Platform
 			Name="x64"
 		/>
-  </Platforms>
-  <ToolFiles>
-  </ToolFiles>
-  <Configurations>
-    <Configuration
+	</Platforms>
+	<ToolFiles>
+	</ToolFiles>
+	<Configurations>
+		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)Debug"
 			IntermediateDirectory="$(ConfigurationName)"
@@ -27,7 +27,22 @@
 			CharacterSet="1"
 			BuildLogFile="$(IntDir)\BuildLog $(ProjectName).htm"
 			>
-      <Tool
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories=".;..\src\spandsp;..\src;..\src\msvc;..\..\tiff-3.8.2\libtiff"
@@ -42,7 +57,16 @@
 				CompileAs="1"
 				DisableSpecificWarnings="4127"
 			/>
-      <Tool
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
@@ -52,17 +76,53 @@
 				ImportLibrary="./Debug\spandsp_sim.lib"
 				TargetMachine="1"
 			/>
-    </Configuration>
-    <Configuration
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)Release"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="1"
-			BuildLogFile="$(IntDir)\BuildLog $(ProjectName).htm"
 			WholeProgramOptimization="1"
+			BuildLogFile="$(IntDir)\BuildLog $(ProjectName).htm"
 			>
-      <Tool
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories=".;..\src\spandsp;..\src;..\src\msvc;..\..\tiff-3.8.2\libtiff"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBSPANDSP_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;HAVE_CONFIG_H"
@@ -73,7 +133,16 @@
 				DebugInformationFormat="3"
 				DisableSpecificWarnings="4127"
 			/>
-      <Tool
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
@@ -85,8 +154,29 @@
 				ImportLibrary="./Release\spandsp_sim.lib"
 				TargetMachine="1"
 			/>
-    </Configuration>
-    <Configuration
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
 			Name="Debug|x64"
 			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
@@ -94,7 +184,7 @@
 			CharacterSet="1"
 			BuildLogFile="$(IntDir)\BuildLog $(ProjectName).htm"
 			>
-      <Tool
+			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories=".;..\src\spandsp;..\src;..\src\msvc;..\..\tiff-3.8.2\libtiff"
@@ -109,7 +199,7 @@
 				CompileAs="1"
 				DisableSpecificWarnings="4127"
 			/>
-      <Tool
+			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
@@ -119,8 +209,8 @@
 				ImportLibrary="$(TargetDir)spandsp_sim.lib"
 				TargetMachine="17"
 			/>
-    </Configuration>
-    <Configuration
+		</Configuration>
+		<Configuration
 			Name="Release|x64"
 			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
@@ -129,7 +219,7 @@
 			BuildLogFile="$(IntDir)\BuildLog $(ProjectName).htm"
 			WholeProgramOptimization="1"
 			>
-      <Tool
+			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories=".;..\src\spandsp;..\src;..\src\msvc;..\..\tiff-3.8.2\libtiff"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBSPANDSP_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;HAVE_CONFIG_H"
@@ -140,7 +230,7 @@
 				DebugInformationFormat="3"
 				DisableSpecificWarnings="4127"
 			/>
-      <Tool
+			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
@@ -152,12 +242,12 @@
 				ImportLibrary="$(TargetDir)spandsp_sim.lib"
 				TargetMachine="17"
 			/>
-    </Configuration>
-  </Configurations>
-  <References>
-  </References>
-  <Files>
-    <Filter
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+	<Files>
+		<Filter
 			Name="Source Files"
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"

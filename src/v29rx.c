@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.165 2009/05/16 03:34:45 steveu Exp $
+ * $Id: v29rx.c,v 1.166 2009/06/02 16:03:56 steveu Exp $
  */
 
 /*! \file */
@@ -913,7 +913,7 @@ static __inline__ int signal_detect(v29_rx_state_t *s, int16_t amp)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
+SPAN_DECLARE_NONSTD(int) v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
 {
     int i;
     int step;

@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.69 2009/05/30 15:30:21 steveu Exp $
+# $Id: configure.ac,v 1.70 2009/06/02 11:51:57 steveu Exp $
 
 # @start 1
 
@@ -162,6 +162,7 @@ AC_CHECK_FUNCS([strerror])
 AC_CHECK_FUNCS([strstr])
 AC_CHECK_FUNCS([strtol])
 AC_CHECK_FUNCS([gettimeofday])
+AC_CHECK_FUNCS([drand48])
 
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT

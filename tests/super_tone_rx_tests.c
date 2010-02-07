@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx_tests.c,v 1.32 2009/05/30 15:23:14 steveu Exp $
+ * $Id: super_tone_rx_tests.c,v 1.33 2009/06/02 14:55:36 steveu Exp $
  */
 
 /*! \file */
@@ -59,6 +59,7 @@
 //#endif
 
 #include "spandsp.h"
+#include "spandsp-sim.h"
 
 #define IN_FILE_NAME    "super_tone.wav"
 
