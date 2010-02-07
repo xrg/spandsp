@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.c,v 1.24 2005/08/31 19:27:53 steveu Exp $
+ * $Id: v29tx.c,v 1.25 2005/09/28 17:11:49 steveu Exp $
  */
 
 /*! \file */
@@ -294,6 +294,7 @@ void v29_tx_set_get_bit(v29_tx_state_t *s, get_bit_func_t get_bit, void *user_da
 
 int v29_tx_restart(v29_tx_state_t *s, int rate, int tep)
 {
+    span_log(&s->logging, SPAN_LOG_FLOW, "Restarting V.29\n");
     switch (rate)
     {
     case 9600:

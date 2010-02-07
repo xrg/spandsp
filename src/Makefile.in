@@ -62,13 +62,14 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 libspandsp_la_LIBADD =
 am_libspandsp_la_OBJECTS = adsi.lo awgn.lo bert.lo complex_dds.lo \
 	complex_filters.lo dds.lo ec_disable_detector.lo echo.lo \
-	fsk.lo hdlc.lo ima_adpcm.lo logging.lo modem_echo.lo \
-	oki_adpcm.lo oss.lo playout.lo plc.lo power_meter.lo queue.lo \
-	schedule.lo sig_tone.lo super_tone_rx.lo super_tone_tx.lo \
-	t4.lo t30.lo t31.lo t35.lo testcpuid.lo time_scale.lo \
-	tone_detect.lo tone_generate.lo v17rx.lo v17tx.lo v22bis_rx.lo \
-	v22bis_tx.lo v27ter_rx.lo v27ter_tx.lo v29rx.lo v29tx.lo \
-	v42.lo v42bis.lo v8.lo
+	fsk.lo g722_encode.lo g722_decode.lo hdlc.lo ima_adpcm.lo \
+	logging.lo modem_echo.lo noise.lo oki_adpcm.lo oss.lo \
+	playout.lo plc.lo power_meter.lo queue.lo schedule.lo \
+	sig_tone.lo super_tone_rx.lo super_tone_tx.lo t4.lo t30.lo \
+	t31.lo t35.lo testcpuid.lo time_scale.lo tone_detect.lo \
+	tone_generate.lo v17rx.lo v17tx.lo v22bis_rx.lo v22bis_tx.lo \
+	v27ter_rx.lo v27ter_tx.lo v29rx.lo v29tx.lo v42.lo v42bis.lo \
+	v8.lo
 libspandsp_la_OBJECTS = $(am_libspandsp_la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
@@ -195,7 +196,7 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 MAINTAINERCLEANFILES = Makefile.in
-INCLUDES = -I$(top_buildir)
+INCLUDES = -I$(top_builddir)
 lib_LTLIBRARIES = libspandsp.la
 libspandsp_la_SOURCES = adsi.c \
                         awgn.c \
@@ -206,10 +207,13 @@ libspandsp_la_SOURCES = adsi.c \
                         ec_disable_detector.c \
                         echo.c \
                         fsk.c \
+                        g722_encode.c \
+                        g722_decode.c \
                         hdlc.c \
                         ima_adpcm.c \
                         logging.c \
                         modem_echo.c \
+                        noise.c \
                         oki_adpcm.c \
                         oss.c \
                         playout.c \
@@ -256,11 +260,13 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/fir.h \
                         spandsp/fsk.h \
                         spandsp/g168models.h \
+                        spandsp/g722.h \
                         spandsp/hdlc.h \
                         spandsp/ima_adpcm.h \
                         spandsp/logging.h \
                         spandsp/mmx.h \
                         spandsp/modem_echo.h \
+                        spandsp/noise.h \
                         spandsp/oss.h \
                         spandsp/oki_adpcm.h \
                         spandsp/playout.h \
@@ -393,10 +399,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ec_disable_detector.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/echo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fsk.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g722_decode.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g722_encode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hdlc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ima_adpcm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/logging.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/modem_echo.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/noise.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/oki_adpcm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/oss.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/playout.Plo@am__quote@

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.h,v 1.9 2005/06/26 16:43:58 steveu Exp $
+ * $Id: hdlc.h,v 1.11 2005/10/08 04:40:58 steveu Exp $
  */
 
 /*! \file */
@@ -61,12 +61,14 @@ typedef struct
     /*! \brief An opaque parameter passed to the callback routine. */
     void *user_data;
     int report_bad_frames;
+    int framing_ok_threshold;
+    int flags_seen;
 
     /*! \brief 0 = sync hunt, !0 = receiving */
     int rx_state;	
-    unsigned int bitbuf;
-    unsigned int byteinprogress;
-    int numbits;
+    unsigned int bit_buf;
+    unsigned int byte_in_progress;
+    int num_bits;
 	
     /*! \brief Buffer for a frame in progress. */
     uint8_t buffer[HDLC_MAXFRAME_LEN + 2];
@@ -112,7 +114,7 @@ typedef struct
     /*! \brief An opaque parameter passed to the callback routine. */
     void *user_data;
 
-    int numbits;
+    int num_bits;
     int idle_byte;
 
     int len;
@@ -165,22 +167,20 @@ int crc_itu16_check(const uint8_t *buf, int len);
 
 /*! \brief Initialise an HDLC receiver context.
     \param s A pointer to an HDLC receiver context.
+    \param crc32 TRUE to use CRC32. FALSE to use CRC16.
+    \param report_bad_frames TRUE to request the reporting of bad frames.
+    \param framing_ok_threshold The number of flags needed to start the framing OK condition.
     \param handler The function to be called when a good HDLC frame is received.
     \param user_data An opaque parameter for the callback routine.
     \return A pointer to the HDLC receiver context.
 */
 hdlc_rx_state_t *hdlc_rx_init(hdlc_rx_state_t *s,
                               int crc32,
+                              int report_bad_frames,
+                              int framing_ok_threshold,
                               hdlc_frame_handler_t handler,
                               void *user_data);
 
-/*! \brief Control whether bad frames are reported.
-    \param s A pointer to an HDLC receiver context.
-    \param report TRUE if bad frames should be reported.
-*/
-void hdlc_rx_bad_frame_control(hdlc_rx_state_t *s,
-                               int report);
-                                                        
 /*! \brief Get the current receive statistics.
     \param s A pointer to an HDLC receiver context.
     \param t A pointer to the buffer for the statistics.

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.20 2005/08/31 19:27:52 steveu Exp $
+ * $Id: t31.c,v 1.26 2005/10/10 22:17:17 steveu Exp $
  */
 
 /*! \file */
@@ -45,6 +45,8 @@
 
 #include "spandsp.h"
 
+#define ms_to_samples(t)    (((t)*SAMPLE_RATE)/1000)
+
 enum
 {
     ASCII_RESULT_CODES = 1,
@@ -60,6 +62,7 @@ t31_profile_t profiles[3] =
         .result_code_format = ASCII_RESULT_CODES,
         .pulse_dial = FALSE,
         .double_escape = FALSE,
+        .adaptive_receive = FALSE,
         .s_regs[0] = 0,
         .s_regs[3] = '\r',
         .s_regs[4] = '\n',
@@ -89,7 +92,7 @@ static char *revision = "0.0.2";
 
 enum
 {
-    T31_SILENCE_TX,
+    T31_SILENCE,
     T31_CED_TONE,
     T31_CNG_TONE,
     T31_V21_TX,
@@ -113,7 +116,8 @@ enum
     RESPONSE_CODE_NO_DIALTONE,
     RESPONSE_CODE_BUSY,
     RESPONSE_CODE_NO_ANSWER,
-    RESPONSE_CODE_FCERROR
+    RESPONSE_CODE_FCERROR,
+    RESPONSE_CODE_FRH3
 };
 
 const char *response_codes[] =
@@ -128,7 +132,10 @@ const char *response_codes[] =
     "BUSY",
     "NO ANSWER",
     "+FCERROR",
+    "+FRH:3"
 };
+
+static int restart_modem(t31_state_t *s, int new_modem);
 
 static void at_put_response(t31_state_t *s, const char *t)
 {
@@ -173,6 +180,38 @@ static void at_put_response_code(t31_state_t *s, int code)
 }
 /*- End of function --------------------------------------------------------*/
 
+static void t31_reset_callid(t31_state_t *s)
+{
+    s->callid_displayed = 0;
+    s->call_date = NULL;
+    s->call_time = NULL;
+    s->originating_name = NULL;
+    s->originating_number = NULL;
+    s->originating_ani = NULL;
+    s->destination_number = NULL;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void t31_display_callid(t31_state_t *s)
+{
+    char buf[132 + 1];
+
+    snprintf(buf, sizeof(buf), "DATE=%s", (s->call_date)  ?  s->call_date  :  "<NONE>");
+    at_put_response(s, buf);
+    snprintf(buf, sizeof(buf), "TIME=%s", (s->call_time)  ?  s->call_time  :  "<NONE>");
+    at_put_response(s, buf);
+    snprintf(buf, sizeof(buf), "NAME=%s", (s->originating_name)  ?  s->originating_name  :  "<NONE>");
+    at_put_response(s, buf);
+    snprintf(buf, sizeof(buf), "NMBR=%s", (s->originating_number)  ?  s->originating_number  :  "<NONE>");
+    at_put_response(s, buf);
+    snprintf(buf, sizeof(buf), "ANID=%s", (s->originating_ani)  ?  s->originating_ani  :  "<NONE>");
+    at_put_response(s, buf);
+    snprintf(buf, sizeof(buf), "NDID=%s", (s->destination_number)  ?  s->destination_number  :  "<NONE>");
+    at_put_response(s, buf);
+    s->callid_displayed = 1;
+}
+/*- End of function --------------------------------------------------------*/
+
 static void fast_putbit(void *user_data, int bit)
 {
     t31_state_t *s;
@@ -200,7 +239,7 @@ static void fast_putbit(void *user_data, int bit)
                 s->at_tx_handler(s, s->at_tx_user_data, s->rx_data, s->rx_data_bytes);
                 s->rx_data_bytes = 0;
                 at_put_response_code(s, RESPONSE_CODE_NO_CARRIER);
-                s->at_rx_mode = AT_MODE_COMMAND;
+                s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
             }
             s->rx_signal_present = FALSE;
             break;
@@ -271,11 +310,13 @@ static void hdlc_tx_underflow(void *user_data)
     if (s->hdlc_final)
     {
         at_put_response_code(s, RESPONSE_CODE_OK);
-        s->at_rx_mode = AT_MODE_COMMAND;
+        s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
         s->hdlc_final = FALSE;
+        restart_modem(s, T31_SILENCE);
     }
     else
     {
+        s->last_dtedata_samples = s->call_samples;
         at_put_response_code(s, RESPONSE_CODE_CONNECT);
     }
 }
@@ -294,8 +335,11 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
         switch (len)
         {
         case PUTBIT_CARRIER_UP:
-            s->rx_signal_present = TRUE;
-            s->rx_message_received = FALSE;
+            if (s->modem == T31_CNG_TONE  ||  s->modem == T31_V21_RX)
+            {
+                s->rx_signal_present = TRUE;
+                s->rx_message_received = FALSE;
+            }
             break;
         case PUTBIT_CARRIER_DOWN:
             if (s->rx_message_received)
@@ -320,6 +364,28 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
                 s->modem = T31_V21_RX;
                 s->transmit = FALSE;
             }
+            if (s->modem != T31_V21_RX)
+            {
+                /* V.21 has been detected while expecting a different carrier.
+                   If +FAR=0 then result +FCERROR and return to command-mode.
+                   If +FAR=1 then report +FRH:3 and CONNECT, switching to
+                   V.21 receive mode. */
+                if (s->p.adaptive_receive)
+                {
+                    s->rx_signal_present = TRUE;
+                    s->rx_message_received = FALSE;
+                    s->modem = T31_V21_RX;
+                    s->transmit = FALSE;
+                    s->dte_is_waiting = TRUE;
+                    at_put_response_code(s, RESPONSE_CODE_FRH3);
+                }
+                else
+                {
+                    s->modem = T31_SILENCE;
+                    s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
+                    at_put_response_code(s, RESPONSE_CODE_FCERROR);
+                }
+            }
             break;
         default:
             fprintf(stderr, "Unexpected HDLC special length - %d!\n", len);
@@ -333,31 +399,41 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
     {
         at_put_response_code(s, RESPONSE_CODE_CONNECT);
         /* Send straight away */
-        for (i = 0;  i < len;  i++)
+        /* It is safe to look at the two bytes beyond the length of the message,
+           and expect to find the FCS there. */
+        for (i = 0;  i < len + 2;  i++)
         {
             if (msg[i] == DLE)
                 s->rx_data[s->rx_data_bytes++] = DLE;
             s->rx_data[s->rx_data_bytes++] = msg[i];
         }
-        /* Fake CRC */
-        /* Is there any point consuming CPU cycles calculating a real CRC? Does anything care? */
-        s->rx_data[s->rx_data_bytes++] = 0;
-        s->rx_data[s->rx_data_bytes++] = 0;
         s->rx_data[s->rx_data_bytes++] = DLE;
         s->rx_data[s->rx_data_bytes++] = ETX;
         s->at_tx_handler(s, s->at_tx_user_data, s->rx_data, s->rx_data_bytes);
         s->rx_data_bytes = 0;
-        at_put_response_code(s, (ok)  ?  RESPONSE_CODE_OK  :  RESPONSE_CODE_FCERROR);
+        at_put_response_code(s, (ok)  ?  RESPONSE_CODE_OK  :  RESPONSE_CODE_ERROR);
         s->dte_is_waiting = FALSE;
-        s->at_rx_mode = AT_MODE_COMMAND;
     }
     else
     {
         /* Queue it */
-        buf[0] = (ok)  ?  RESPONSE_CODE_OK  :  RESPONSE_CODE_FCERROR;
+        buf[0] = (ok)  ?  RESPONSE_CODE_OK  :  RESPONSE_CODE_ERROR;
+        s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
         memcpy(buf + 1, msg, len);
         queue_write_msg(&(s->rx_queue), buf, len + 1);
     }
+    s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
+}
+/*- End of function --------------------------------------------------------*/
+
+void t31_v21_rx(t31_state_t *s)
+{
+    hdlc_rx_init(&(s->hdlcrx), FALSE, TRUE, 5, hdlc_accept, s);
+    s->hdlc_final = FALSE;
+    s->hdlc_len = 0;
+    s->dled = FALSE;
+    fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_bit, &(s->hdlcrx));
+    s->transmit = TRUE;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -365,12 +441,14 @@ static int restart_modem(t31_state_t *s, int new_modem)
 {
     tone_gen_descriptor_t tone_desc;
 
-printf("Restart modem %d\n", new_modem);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Restart modem %d\n", new_modem);
     if (s->modem == new_modem)
         return 0;
     queue_flush(&(s->rx_queue));
     s->modem = new_modem;
     s->data_final = FALSE;
+    s->rx_signal_present = FALSE;
+    s->rx_message_received = FALSE;
     switch (s->modem)
     {
     case T31_CED_TONE:
@@ -406,17 +484,11 @@ printf("Restart modem %d\n", new_modem);
         /* Do V.21/HDLC receive in parallel. The other end may send its
            first message at any time. The CNG tone will continue until
            we get a valid preamble. */
-        hdlc_rx_init(&(s->hdlcrx), FALSE, hdlc_accept, s);
-        hdlc_rx_bad_frame_control(&(s->hdlcrx), TRUE);
-        s->hdlc_final = FALSE;
-        s->hdlc_len = 0;
-        s->dled = FALSE;
-        fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_bit, &(s->hdlcrx));
-        s->transmit = TRUE;
+        t31_v21_rx(s);
         break;
     case T31_V21_TX:
         hdlc_tx_init(&(s->hdlctx), FALSE, hdlc_tx_underflow, s);
-        hdlc_tx_preamble(&(s->hdlctx), 40);
+        hdlc_tx_preamble(&(s->hdlctx), 43);
         s->hdlc_final = FALSE;
         s->hdlc_len = 0;
         s->dled = FALSE;
@@ -424,13 +496,7 @@ printf("Restart modem %d\n", new_modem);
         s->transmit = TRUE;
         break;
     case T31_V21_RX:
-        hdlc_rx_init(&(s->hdlcrx), FALSE, hdlc_accept, s);
-        hdlc_rx_bad_frame_control(&(s->hdlcrx), TRUE);
-        s->hdlc_final = FALSE;
-        s->hdlc_len = 0;
-        s->dled = FALSE;
-        fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_bit, &(s->hdlcrx));
-        s->transmit = FALSE;
+        t31_v21_rx(s);
         break;
 #if defined(ENABLE_V17)
     case T31_V17_TX:
@@ -439,26 +505,35 @@ printf("Restart modem %d\n", new_modem);
         s->transmit = TRUE;
         break;
     case T31_V17_RX:
+        /* Allow for +FCERROR/+FRH:3 */
+        t31_v21_rx(s);
         v17_rx_restart(&(s->v17rx), s->bit_rate, s->short_train);
         s->transmit = FALSE;
         break;
 #endif
     case T31_V27TER_TX:
-        v27ter_tx_restart(&(s->v27ter_tx), FALSE, s->bit_rate);
+        v27ter_tx_restart(&(s->v27ter_tx), s->bit_rate, FALSE);
         s->tx_data_bytes = 0;
         s->transmit = TRUE;
         break;
     case T31_V27TER_RX:
+        /* Allow for +FCERROR/+FRH:3 */
+        t31_v21_rx(s);
         v27ter_rx_restart(&(s->v27ter_rx), s->bit_rate);
         s->transmit = FALSE;
         break;
     case T31_V29_TX:
-        v29_tx_restart(&(s->v29tx), FALSE, s->bit_rate);
+        v29_tx_restart(&(s->v29tx), s->bit_rate, FALSE);
         s->tx_data_bytes = 0;
         s->transmit = TRUE;
         break;
     case T31_V29_RX:
+        /* Allow for +FCERROR/+FRH:3 */
+        t31_v21_rx(s);
         v29_rx_restart(&(s->v29rx), s->bit_rate);
+        s->transmit = FALSE;
+        break;
+    case T31_SILENCE:
         s->transmit = FALSE;
         break;
     }
@@ -520,7 +595,7 @@ static __inline__ void dle_unstuff(t31_state_t *s, const char *stuffed, int len)
             {
                 fprintf(stderr, "%d byte data\n", s->tx_in_bytes);
                 s->data_final = TRUE;
-                s->at_rx_mode = AT_MODE_COMMAND;
+                s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
                 return;
             }
             s->tx_data[s->tx_in_bytes++] = stuffed[i];
@@ -607,12 +682,10 @@ static int parse_out(t31_state_t *s, const char **t, int *target, int max_value,
         }
         break;
     case '?':
-printf("XXXX\n");
         /* Show current value */
         val = (target)  ?  *target  :  0;
         snprintf(buf, sizeof(buf), "%s%d", (prefix)  ?  prefix  :  "", val);
         at_put_response(s, buf);
-printf("YYYY\n");
         break;
     default:
         return FALSE;
@@ -716,13 +789,13 @@ static int match_element(const char **variant, const char *variants)
     char const *t;
 
     s = variants;
-    for (i = 1;  *s;  i++)
+    for (i = 0;  *s;  i++)
     {
         if ((t = strchr(s, ',')))
             len = t - s;
         else
             len = strlen(s);
-        if (memcmp(*variant, s, len) == 0)
+        if (len == strlen(*variant)  &&  memcmp(*variant, s, len) == 0)
         {
             *variant += len;
             return  i;
@@ -739,6 +812,8 @@ static int parse_string_out(t31_state_t *s, const char **t, int *target, int max
 {
     char buf[100];
     int val;
+    int len;
+    char *tmp;
 
     switch (*(*t)++)
     {
@@ -761,9 +836,15 @@ static int parse_string_out(t31_state_t *s, const char **t, int *target, int max
         }
         break;
     case '?':
-        /* Show current value */
+        /* Show current index value from def */
         val = (target)  ?  *target  :  0;
-        snprintf(buf, sizeof(buf), "%s%d", (prefix)  ?  prefix  :  "", val);
+        while (val--  &&  (def = strchr(def, ',')))
+            def++;
+        if ((tmp = strchr(def, ',')))
+            len = tmp - def;
+        else
+            len = strlen(def);
+        snprintf(buf, sizeof(buf), "%s%.*s", (prefix)  ?  prefix  :  "", len, def);
         at_put_response(s, buf);
         break;
     default:
@@ -863,9 +944,9 @@ static int process_class1_cmd(t31_state_t *s, const char **t)
         break;
     default:
 #if defined(ENABLE_V17)
-        allowed = "24,48,72,96";
-#else
         allowed = "24,48,72,73,74,96,97,98,121,122,145,146";
+#else
+        allowed = "24,48,72,96";
 #endif
         break;
     }
@@ -880,11 +961,14 @@ static int process_class1_cmd(t31_state_t *s, const char **t)
     }
     /* All class 1 FAX commands are supposed to give an ERROR response, if the phone
        is on-hook. */
+    if (s->at_rx_mode == AT_MODE_ONHOOK_COMMAND)
+        return FALSE;
+
     switch (operation)
     {
     case 'S':
         s->transmit = new_transmit;
-        s->modem = T31_SILENCE_TX;
+        s->modem = T31_SILENCE;
         if (new_transmit)
         {
             /* Send some silence to space transmissions. */
@@ -894,12 +978,12 @@ static int process_class1_cmd(t31_state_t *s, const char **t)
         {
             /* Wait until we have received a specified period of silence. */
             queue_flush(&(s->rx_queue));
-            /* TODO: wait */
+            s->silence_awaited = val*80;
+            s->at_rx_mode = AT_MODE_DELIVERY;
         }
-        /* If this is the last thing on the command line, inhibit an immediate response */
-        if (*t == '\0')
-            *t = (const char *) -1;
-printf("Silence %dms\n", val*10);
+        /* Inhibit an immediate response.  (These commands should not be part of a multi-command entry.) */
+        *t = (const char *) -1;
+        span_log(&s->logging, SPAN_LOG_FLOW, "Silence %dms\n", val*10);
         break;
     case 'H':
         switch (val)
@@ -912,7 +996,7 @@ printf("Silence %dms\n", val*10);
         default:
             return FALSE;
         }
-printf("HDLC\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "HDLC\n");
         if (new_modem != s->modem)
         {
             restart_modem(s, new_modem);
@@ -921,12 +1005,14 @@ printf("HDLC\n");
         s->transmit = new_transmit;
         if (new_transmit)
         {
+            s->last_dtedata_samples = s->call_samples;
             at_put_response_code(s, RESPONSE_CODE_CONNECT);
             s->at_rx_mode = AT_MODE_HDLC;
         }
         else
         {
             /* Send straight away, if there is something queued. */
+            s->at_rx_mode = AT_MODE_DELIVERY;
             do
             {
                 if (!queue_empty(&(s->rx_queue)))
@@ -1030,11 +1116,15 @@ printf("HDLC\n");
         default:
             return FALSE;
         }
-        fprintf(stderr, "Short training = %d, bit rate = %d\n", s->short_train, s->bit_rate);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Short training = %d, bit rate = %d\n", s->short_train, s->bit_rate);
         if (new_transmit)
         {
             at_put_response_code(s, RESPONSE_CODE_CONNECT);
             s->at_rx_mode = AT_MODE_STUFFED;
+        }
+        else
+        {
+            s->at_rx_mode = AT_MODE_DELIVERY;
         }
         restart_modem(s, new_modem);
         *t = (const char *) -1;
@@ -1065,6 +1155,7 @@ static const char *at_cmd_A(t31_state_t *s, const char *t)
     }
     /* Answering should now be in progress. No AT response should be
        issued at this point. */
+    s->call_samples = 0;
     return (const char *) -1;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1078,6 +1169,7 @@ static const char *at_cmd_D(t31_state_t *s, const char *t)
     char ch;
 
     /* V.250 6.3.1 - Dial (abortable) */ 
+    t31_reset_callid(s);
     t += 1;
     ok = FALSE;
     /* There are a numbers of options in a dial command string.
@@ -1147,6 +1239,7 @@ static const char *at_cmd_D(t31_state_t *s, const char *t)
         return NULL;
     /* Dialing should now be in progress. No AT response should be
        issued at this point. */
+    s->call_samples = 0;
     return (const char *) -1;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1172,6 +1265,7 @@ static const char *at_cmd_H(t31_state_t *s, const char *t)
     t += 1;
     if ((val = parse_num(&t, 0)) < 0)
         return NULL;
+    t31_reset_callid(s);
     s->call_control_handler(s, s->call_control_user_data, NULL);
     return t;
 }
@@ -1180,7 +1274,6 @@ static const char *at_cmd_H(t31_state_t *s, const char *t)
 static const char *at_cmd_I(t31_state_t *s, const char *t)
 {
     int val;
-    char buf[132 + 1];
 
     /* V.250 6.1.3 - Request identification information */ 
     /* N.B. The information supplied in response to an ATIx command is very
@@ -1194,14 +1287,6 @@ static const char *at_cmd_I(t31_state_t *s, const char *t)
         break;
     case 3:
         at_put_response(s, manufacturer);
-        break;
-    case 8:
-        sprintf(buf, "NMBR = %s", (s->originating_number)  ?  s->originating_number  :  "");
-        at_put_response(s, buf);
-        break;
-    case 9:
-        sprintf(buf, "NDID = %s", (s->destination_number)  ?  s->destination_number  :  "");
-        at_put_response(s, buf);
         break;
     default:
         return NULL;
@@ -1428,6 +1513,7 @@ static const char *at_cmd_Z(t31_state_t *s, const char *t)
     /* Just make sure we are on hook */
     s->call_control_handler(s, s->call_control_user_data, NULL);
     s->p = profiles[val];
+    t31_reset_callid(s);
     return t;
 }
 /*- End of function --------------------------------------------------------*/
@@ -2817,10 +2903,9 @@ static const char *at_cmd_plus_EWIND(t31_state_t *s, const char *t)
 static const char *at_cmd_plus_FAR(t31_state_t *s, const char *t)
 {
     /* T.31 8.5.1 - Adaptive reception control */ 
-    /* TODO: */
     t += 4;
-    if (!parse_out(s, &t, NULL, 1, NULL, "0"))
-        return NULL;
+    if (!parse_out(s, &t, &(s->p.adaptive_receive), 1, NULL, "0,1"))
+         return NULL;
     return t;
 }
 /*- End of function --------------------------------------------------------*/
@@ -2845,7 +2930,7 @@ static const char *at_cmd_plus_FCLASS(t31_state_t *s, const char *t)
     /* T.31 says the reply string should be "0,1.0", however making
        it "0,1,1.0" makes things compatible with a lot more software
        that may be expecting a pre-T.31 modem. */
-    if (!parse_out(s, &t, &s->fclass_mode, 1, NULL, "0,1,1.0"))
+    if (!parse_string_out(s, &t, &s->fclass_mode, 1, NULL, "0,1,1.0"))
         return NULL;
     return t;
 }
@@ -3496,7 +3581,9 @@ static const char *at_cmd_plus_VCID(t31_state_t *s, const char *t)
 {
     /* 3GPP TS 27.007 C.2.3 - Calling number ID presentation */
     /* TODO: */
-    t += 4;
+    t += 5;
+    if (!parse_out(s, &t, &(s->display_callid), 1, NULL, "0,1"))
+         return NULL;
     return t;
 }
 /*- End of function --------------------------------------------------------*/
@@ -3614,6 +3701,21 @@ static const char *at_cmd_plus_VRA(t31_state_t *s, const char *t)
     /* V.253 10.2.5 - Ringing tone goes away timer */
     /* TODO: */
     t += 4;
+    return t;
+}
+/*- End of function --------------------------------------------------------*/
+
+static const char *at_cmd_plus_VRID(t31_state_t *s, const char *t)
+{
+    int val;
+
+    /* Extension of V.253 +VCID, Calling number ID report/repeat */
+    t += 5;
+    val = 0;
+    if (!parse_out(s, &t, &val, 1, NULL, "0,1"))
+         return NULL;
+    if (val == 1)
+        t31_display_callid(s);
     return t;
 }
 /*- End of function --------------------------------------------------------*/
@@ -3971,6 +4073,7 @@ at_cmd_item_t at_commands[] =
     {"+VLS", at_cmd_plus_VLS},          /* V.253 10.2.4 - Analogue source/destination selection */
     {"+VPP", at_cmd_plus_VPP},          /* V.253 10.4.2 - Voice packet protocol */
     {"+VRA", at_cmd_plus_VRA},          /* V.253 10.2.5 - Ringing tone goes away timer */
+    {"+VRID", at_cmd_plus_VRID},        /* Extension - Find the originating and destination numbers */
     {"+VRL", at_cmd_plus_VRL},          /* V.253 10.1.2 - Ring local phone */
     {"+VRN", at_cmd_plus_VRN},          /* V.253 10.2.6 - Ringing tone never appeared timer */
     {"+VRX", at_cmd_plus_VRX},          /* V.253 10.1.3 - Voice receive state */
@@ -4006,7 +4109,7 @@ at_cmd_item_t at_commands[] =
     {"T", at_cmd_T},                    /* V.250 6.3.2 - Select tone dialling (command) */ 
     {"V", at_cmd_V},                    /* V.250 6.2.6 - DCE response format */ 
     {"X", at_cmd_X},                    /* V.250 6.2.7 - Result code selection and call progress monitoring control */ 
-    {"Z", at_cmd_Z},                    /* V.250 6.1.1 - Reset to default configuration */ 
+    {"Z", at_cmd_Z},                    /* V.250 6.1.1 - Reset to default configuration */
 };
 
 static int cmd_compare(const void *a, const void *b)
@@ -4024,6 +4127,9 @@ static void at_interpreter(t31_state_t *s, const char *cmd, int len)
     at_cmd_item_t *yyy;
     const char *t;
 
+    if (s->p.echo)
+        s->at_tx_handler(s, s->at_tx_user_data, (uint8_t *) cmd, len);
+
     for (i = 0;  i < len;  i++)
     {
         /* The spec says the top bit should be ignored */
@@ -4034,20 +4140,18 @@ static void at_interpreter(t31_state_t *s, const char *cmd, int len)
             /* Look for the initial "at", "AT", "a/" or "A/", and ignore anything before it */
             /* V.250 5.2.1 only shows "at" and "AT" as command prefixes. "At" and "aT" are
                not specified, despite 5.4.1 saying upper and lower case are equivalent in
-               commands. */
+               commands. Let's be tolerant and accept them. */
             if (tolower(c) == 'a')
             {
                 s->line_ptr = 0;
-                s->line[s->line_ptr++] = c;
+                s->line[s->line_ptr++] = toupper(c);
             }
             else if (s->line_ptr == 1)
             {
-                if ((c == 't'  &&  s->line[0] == 'a')
-                    ||
-                    (c == 'T'  &&  s->line[0] == 'A'))
+                if (tolower(c) == 't')
                 {
                     /* We have an "AT" command */
-                    s->line[s->line_ptr++] = c;
+                    s->line[s->line_ptr++] = toupper(c);
                 }
                 else if (c == '/')
                 {
@@ -4078,24 +4182,25 @@ static void at_interpreter(t31_state_t *s, const char *cmd, int len)
                 {
                     /* The spec says the commands within a command line are executed in order, until
                        an error is found, or the end of the command line is reached. */
-                    if (s->p.echo)
-                        s->at_tx_handler(s, s->at_tx_user_data, (uint8_t *) s->line, strlen(s->line));
                     t = s->line + 2;
                     while (t  &&  *t)
                     {
                         xxx.tag = t;
                         xxx.serv = 0;
                         yyy = (at_cmd_item_t *) bsearch(&xxx, at_commands, sizeof(at_commands)/sizeof(at_cmd_item_t), sizeof(at_cmd_item_t), cmd_compare);
-                        if (yyy  &&  (t = yyy->serv(s, t)))
-                        {
-                            if (t == (const char *) -1)
-                                break;
-                        }
-                        else
+                        if (yyy == NULL)
                         {
                             t = NULL;
                             break;
                         }
+                        /* We have a match. See if there is a better (i.e. longer) one */
+                        while (++yyy < &at_commands[sizeof(at_commands)/sizeof(at_cmd_item_t)]  &&  cmd_compare(&xxx, yyy) == 0)
+                            /* dummy */;
+                        yyy--;
+                        if ((t = yyy->serv(s, t)) == NULL)
+                            break;
+                        if (t == (const char *) -1)
+                            break;
                     }
                     if (t != (const char *) -1)
                     {
@@ -4104,6 +4209,11 @@ static void at_interpreter(t31_state_t *s, const char *cmd, int len)
                         else
                             at_put_response_code(s, RESPONSE_CODE_OK);
                     }
+                }
+                else if (s->line_ptr == 2)
+                {
+                    /* It's just an empty "AT" command, return OK. */
+                    at_put_response_code(s, RESPONSE_CODE_OK);
                 }
                 s->line_ptr = 0;
             }
@@ -4124,53 +4234,61 @@ void t31_call_event(t31_state_t *s, int event)
 {
     tone_gen_descriptor_t tone_desc;
 
-printf("Call event %d received\n", event);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Call event %d received\n", event);
     switch (event)
     {
     case T31_CALL_EVENT_ALERTING:
+        if (s->display_callid && !s->callid_displayed)
+            t31_display_callid(s);
         at_put_response_code(s, RESPONSE_CODE_RING);
         break;
     case T31_CALL_EVENT_ANSWERED:
         if (s->fclass_mode == 0)
         {
             /* Normal data modem connection */
-            /* TODO: */
             s->at_rx_mode = AT_MODE_CONNECTED;
+            /* TODO: */
         }
         else
         {
             /* FAX modem connection */
-            s->at_rx_mode = AT_MODE_COMMAND;
+            s->at_rx_mode = AT_MODE_DELIVERY;
             restart_modem(s, T31_CED_TONE);
         }
         break;
     case T31_CALL_EVENT_CONNECTED:
-printf("Dial call - connected. fclass=%d\n", s->fclass_mode);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Dial call - connected. fclass=%d\n", s->fclass_mode);
         if (s->fclass_mode == 0)
         {
             /* Normal data modem connection */
-            /* TODO: */
             s->at_rx_mode = AT_MODE_CONNECTED;
+            /* TODO: */
         }
         else
         {
             /* FAX modem connection */
-            s->at_rx_mode = AT_MODE_COMMAND;
+            s->at_rx_mode = AT_MODE_DELIVERY;
             restart_modem(s, T31_CNG_TONE);
             s->dte_is_waiting = TRUE;
         }
         break;
     case T31_CALL_EVENT_BUSY:
-        s->at_rx_mode = AT_MODE_COMMAND;
+        s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
         at_put_response_code(s, RESPONSE_CODE_BUSY);
         break;
     case T31_CALL_EVENT_NO_DIALTONE:
-        s->at_rx_mode = AT_MODE_COMMAND;
+        s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
         at_put_response_code(s, RESPONSE_CODE_NO_DIALTONE);
         break;
     case T31_CALL_EVENT_NO_ANSWER:
-        s->at_rx_mode = AT_MODE_COMMAND;
+        s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
         at_put_response_code(s, RESPONSE_CODE_NO_ANSWER);
+        break;
+    case T31_CALL_EVENT_HANGUP:
+        span_log(&s->logging, SPAN_LOG_FLOW, "Hangup... at_rx_mode %d\n", s->at_rx_mode);
+        if (s->at_rx_mode != AT_MODE_OFFHOOK_COMMAND && s->at_rx_mode != AT_MODE_ONHOOK_COMMAND)
+            at_put_response_code(s, RESPONSE_CODE_NO_CARRIER);
+        s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
         break;
     default:
         break;
@@ -4178,29 +4296,77 @@ printf("Dial call - connected. fclass=%d\n", s->fclass_mode);
 }
 /*- End of function --------------------------------------------------------*/
 
-void t31_at_rx(t31_state_t *s, const char *t, int len)
+int t31_at_rx(t31_state_t *s, const char *t, int len)
 {
+    s->last_dtedata_samples = s->call_samples;
+
     switch (s->at_rx_mode)
     {
-    case AT_MODE_COMMAND:
+    case AT_MODE_ONHOOK_COMMAND:
+    case AT_MODE_OFFHOOK_COMMAND:
         at_interpreter(s, t, len);
         break;
-    case AT_MODE_CONNECTED:
+    case AT_MODE_DELIVERY:
+        /* data from the DTE in this state returns us to command mode */
+        s->rx_data_bytes = 0;
+        s->transmit = FALSE;
+        s->modem = T31_SILENCE;
+        s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
+        at_put_response_code(s, RESPONSE_CODE_OK);
         break;
     case AT_MODE_HDLC:
         dle_unstuff_hdlc(s, t, len);
         break;
     case AT_MODE_STUFFED:
+        /* TODO: This buffer management is not very nice */
+        /* Make room for new data in existing data buffer. */
+        s->tx_in_bytes = &(s->tx_data[s->tx_in_bytes]) - &(s->tx_data[s->tx_data_bytes]);
+        memmove(&(s->tx_data[0]), &(s->tx_data[s->tx_data_bytes]), s->tx_in_bytes);
+        s->tx_data_bytes = 0;
+        if (len > T31_TX_BUF_LEN - s->tx_in_bytes)
+            len = T31_TX_BUF_LEN - s->tx_in_bytes;
         dle_unstuff(s, t, len);
         break;
     }
+    return len;
 }
 /*- End of function --------------------------------------------------------*/
 
 int t31_rx(t31_state_t *s, int16_t *buf, int len)
 {
     int i;
-    int read_len;
+
+    /* Monitor for received silence.  Maximum needed detection is AT+FRS=255 (255*10ms). */
+    /* We could probably only run this loop if (s->modem == T31_SILENCE), however,
+       the spec says "when silence has been present on the line for the amount of
+       time specified".  That means some of the silence may have occurred before
+       the AT+FRS=n command. This condition, however, is not likely to ever be the
+       case.  (AT+FRS=n will usually be issued before the remote goes silent.) */
+    for (i = 0;  i < len;  i++)
+    {
+        if (power_meter_update(&(s->rx_power), buf[i]) > s->silence_threshold_power)
+        {
+            s->silence_heard = 0;
+        }
+        else
+        {        
+            if (s->silence_heard <= 255*ms_to_samples(10))
+                s->silence_heard++;
+        }
+    }
+
+    /* Time is determined by counting audio packets come in. */
+    s->call_samples += len;
+    /* In HDLC transmit mode if 5 seconds elapse without data from the DTE
+       then we must result in ERROR, returning to command-mode. */
+    if (s->at_rx_mode == AT_MODE_HDLC
+        &&
+        s->call_samples > s->last_dtedata_samples + ms_to_samples(5000))
+    {
+        s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
+        at_put_response_code(s, RESPONSE_CODE_ERROR);
+        restart_modem(s, T31_SILENCE);
+    }
 
     if (!s->transmit  ||  s->modem == T31_CNG_TONE)
     {
@@ -4215,13 +4381,28 @@ int t31_rx(t31_state_t *s, int16_t *buf, int len)
 #if defined(ENABLE_V17)
         case T31_V17_RX:
             v17_rx(&(s->v17rx), buf, len);
+            if (!(s->rx_signal_present))
+                fsk_rx(&(s->v21rx), buf, len);
             break;
 #endif
         case T31_V27TER_RX:
             v27ter_rx(&(s->v27ter_rx), buf, len);
+            if (!(s->rx_signal_present))
+                fsk_rx(&(s->v21rx), buf, len);
             break;
         case T31_V29_RX:
             v29_rx(&(s->v29rx), buf, len);
+            if (!(s->rx_signal_present))
+                fsk_rx(&(s->v21rx), buf, len);
+            break;
+        case T31_SILENCE:
+            if (s->silence_awaited  &&  s->silence_heard >= s->silence_awaited)
+            {
+                s->silence_heard = 0;
+                s->silence_awaited = 0;
+                at_put_response_code(s, RESPONSE_CODE_OK);
+                s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
+            }
             break;
         default:
             /* Absorb the data, but ignore it. */
@@ -4248,10 +4429,11 @@ int t31_tx(t31_state_t *s, int16_t *buf, int max_len)
             s->silent_samples -= len;
             max_len -= len;
             memset(buf, 0, len*sizeof(int16_t));
-            if (max_len > 0  &&  s->modem == T31_SILENCE_TX)
+            if (max_len > 0  &&  s->modem == T31_SILENCE)
             {
                 at_put_response_code(s, RESPONSE_CODE_OK);
                 max_len = 0;
+                s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
             }
         }
         if (max_len > 0)
@@ -4264,7 +4446,6 @@ int t31_tx(t31_state_t *s, int16_t *buf, int max_len)
                     /* Go directly to V.21/HDLC transmit. */
                     restart_modem(s, T31_V21_TX);
                     s->at_rx_mode = AT_MODE_HDLC;
-                    at_put_response_code(s, RESPONSE_CODE_CONNECT);
                 }
                 len += lenx;
                 break;
@@ -4277,18 +4458,30 @@ int t31_tx(t31_state_t *s, int16_t *buf, int max_len)
 #if defined(ENABLE_V17)
             case T31_V17_TX:
                 if ((lenx = v17_tx(&(s->v17tx), buf + len, max_len)) <= 0)
+                {
                     at_put_response_code(s, RESPONSE_CODE_OK);
+                    s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
+                    restart_modem(s, T31_SILENCE);
+                }
                 len += lenx;
                 break;
 #endif
             case T31_V27TER_TX:
                 if ((lenx = v27ter_tx(&(s->v27ter_tx), buf + len, max_len)) <= 0)
+                {
                     at_put_response_code(s, RESPONSE_CODE_OK);
+                    s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
+                    restart_modem(s, T31_SILENCE);
+                }
                 len += lenx;
                 break;
             case T31_V29_TX:
                 if ((lenx = v29_tx(&(s->v29tx), buf + len, max_len)) <= 0)
+                {
                     at_put_response_code(s, RESPONSE_CODE_OK);
+                    s->at_rx_mode = AT_MODE_OFFHOOK_COMMAND;
+                    restart_modem(s, T31_SILENCE);
+                }
                 len += lenx;
                 break;
             }
@@ -4315,12 +4508,18 @@ int t31_init(t31_state_t *s,
     v29_tx_init(&(s->v29tx), 9600, FALSE, fast_getbit, s);
     v27ter_rx_init(&(s->v27ter_rx), 4800, fast_putbit, s);
     v27ter_tx_init(&(s->v27ter_tx), 4800, FALSE, fast_getbit, s);
+    power_meter_init(&(s->rx_power), 4);
+    s->silence_threshold_power = power_meter_level(-30);
     s->rx_signal_present = FALSE;
 
+    t31_reset_callid(s);
+    s->display_callid = 0;
     s->line_ptr = 0;
-    s->at_rx_mode = AT_MODE_COMMAND;
-    s->originating_number = NULL;
-    s->destination_number = NULL;
+    s->silent_samples = 0;
+    s->silence_heard = 0;
+    s->silence_awaited = 0;
+    s->call_samples = 0;
+    s->at_rx_mode = AT_MODE_ONHOOK_COMMAND;
     s->modem = -1;
     s->transmit = -1;
     s->p = profiles[0];

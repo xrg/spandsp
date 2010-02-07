@@ -37,12 +37,14 @@ noinst_PROGRAMS =   adsi_tests \
                     fax_tests \
                     fsk_tests \
                     g168_tests \
+                    g722_tests \
                     hdlc_tests \
                     ima_adpcm_tests \
                     line_model_tests \
                     makecss \
                     make_line_models \
                     modem_echo_tests \
+                    noise_tests \
                     oki_adpcm_tests \
                     playout_tests \
                     plc_tests \
@@ -115,6 +117,9 @@ fsk_tests_LDADD = -L$(top_builddir)/src -lspandsp
 g168_tests_SOURCES = g168_tests.c
 g168_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
+g722_tests_SOURCES = g722_tests.c
+g722_tests_LDADD = -L$(top_builddir)/src -lspandsp
+
 hdlc_tests_SOURCES = hdlc_tests.c
 hdlc_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
@@ -132,6 +137,9 @@ make_line_models_LDADD = -L$(top_builddir)/src -lspandsp
 
 modem_echo_tests_SOURCES = modem_echo_tests.c echo_monitor.cpp
 modem_echo_tests_LDADD = -L$(top_builddir)/src -lspandsp
+
+noise_tests_SOURCES = noise_tests.c
+noise_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
 oki_adpcm_tests_SOURCES = oki_adpcm_tests.c
 oki_adpcm_tests_LDADD = -L$(top_builddir)/src -lspandsp
@@ -198,3 +206,11 @@ testadsi_LDADD = -L$(top_builddir)/src -lspandsp
 
 testfax_SOURCES = testfax.c
 testfax_LDADD = -L$(top_builddir)/src -lspandsp
+
+# We need to run make_line_models, so it generates the line_models.h file
+# used by several of the test programs.
+
+line_model.$(OBJEXT): make_line_models$(EXEEXT) line_models.h
+
+line_models.h:
+	./make_line_models$(EXEEXT)

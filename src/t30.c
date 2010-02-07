@@ -206,13 +206,11 @@ static void fast_putbit(void *user_data, int bit)
         switch (bit)
         {
         case PUTBIT_TRAINING_FAILED:
-            if (s->verbose)
-                fprintf(stderr, "Fast carrier training failed\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Fast carrier training failed\n");
             break;
         case PUTBIT_TRAINING_SUCCEEDED:
             /* The modem is now trained */
-            if (s->verbose)
-                fprintf(stderr, "Fast carrier trained\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Fast carrier trained\n");
             /* In case we are in trainability test mode... */
             /* A FAX machine is supposed to send 1.5s of training test
                data, but some send a little bit less. Lets just check
@@ -222,12 +220,10 @@ static void fast_putbit(void *user_data, int bit)
             s->rx_signal_present = TRUE;
             break;
         case PUTBIT_CARRIER_UP:
-            if (s->verbose)
-                fprintf(stderr, "Fast carrier up\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Fast carrier up\n");
             break;
         case PUTBIT_CARRIER_DOWN:
-            if (s->verbose)
-                fprintf(stderr, "Fast carrier down\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Fast carrier down\n");
             switch (s->state)
             {
             case T30_STATE_F_TCF:
@@ -246,8 +242,7 @@ static void fast_putbit(void *user_data, int bit)
                         s->training_most_zeros = s->training_current_zeros;
                     if (s->training_most_zeros < s->bit_rate)
                     {
-                        if (s->verbose)
-                            fprintf(stderr, "Trainability test failed - longest run of zeros was %d\n", s->training_most_zeros);
+                        span_log(&s->logging, SPAN_LOG_FLOW, "Trainability test failed - longest run of zeros was %d\n", s->training_most_zeros);
                         send_simple_frame(s, T30_FTT);
                     }
                     else
@@ -259,7 +254,8 @@ static void fast_putbit(void *user_data, int bit)
                         set_phase(s, T30_PHASE_BDE_TX);
                         if (!s->in_message  &&  t4_rx_init(&(s->t4), s->rx_file, T4_COMPRESSION_ITU_T4_2D))
                         {
-                            fprintf(stderr, "Cannot open target TIFF file '%s'\n", s->rx_file);
+                            span_log(&s->logging, SPAN_LOG_WARNING, "Cannot open target TIFF file '%s'\n", s->rx_file);
+                            s->current_status = T30_ERR_FILEERROR;
                             send_dcn(s);
                         }
                         else
@@ -285,8 +281,7 @@ static void fast_putbit(void *user_data, int bit)
             s->rx_signal_present = FALSE;
             break;
         default:
-            if (s->verbose)
-                fprintf(stderr, "Eh!\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Eh!\n");
             break;
         }
         return;
@@ -375,8 +370,7 @@ static int fast_getbit(void *user_data)
         bit = 0;
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "fast_getbit in bad state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "fast_getbit in bad state %d\n", s->state);
         break;
     }
     return bit;
@@ -388,15 +382,13 @@ static void hdlc_tx_underflow(void *user_data)
     t30_state_t *s;
     
     s = (t30_state_t *) user_data;
-    if (s->verbose)
-        fprintf(stderr, "HDLC underflow in state %d\n", s->state);
+    span_log(&s->logging, SPAN_LOG_FLOW, "HDLC underflow in state %d\n", s->state);
     /* We have finished sending our messages, so move on to the next operation. */
     switch (s->state)
     {
     case T30_STATE_F:
         /* Send trainability response */
-        if (s->verbose)
-            fprintf(stderr, "Post trainability\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Post trainability\n");
         set_phase(s, T30_PHASE_C_RX);
         break;
     case T30_STATE_F_MPS_MCF:
@@ -425,8 +417,7 @@ static void hdlc_tx_underflow(void *user_data)
         s->timer_t4 = DEFAULT_TIMER_T4*SAMPLE_RATE;
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "Bad state in hdlc_tx_underflow - %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Bad state in hdlc_tx_underflow - %d\n", s->state);
         break;
     }
 }
@@ -436,12 +427,12 @@ static void print_frame(t30_state_t *s, const char *io, const uint8_t *fr, int f
 {
     int i;
     
-    if (s->verbose)
+    if (span_log_test(&s->logging, SPAN_LOG_FLOW))
     {
-        fprintf(stderr, "%s %s:", io, t30_frametype(fr[0]));
+        span_log(&s->logging, SPAN_LOG_FLOW, "%s %s:", io, t30_frametype(fr[0]));
         for (i = 0;  i < frlen;  i++)
-            fprintf(stderr, " %02x", fr[i]);
-        fprintf(stderr, "\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, " %02x", fr[i]);
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "\n");
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -483,8 +474,7 @@ static void send_ident_frame(t30_state_t *s, uint8_t cmd, int lastframe)
     if (s->local_ident[0])
     {
         len = strlen(s->local_ident);
-        if (s->verbose)
-            fprintf(stderr, "Sending ident\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Sending ident\n");
         p = 0;
         frame[p++] = cmd;  /* T30_TSI or T30_CSI */
         while (len > 0)
@@ -588,16 +578,14 @@ static int build_dcs(t30_state_t *s, const uint8_t *dis_frame)
 #if defined(ENABLE_V17)
     if (!(dis_frame[2] & (DISBIT6 | DISBIT4 | DISBIT3)))
     {
-        if (s->verbose)
-            fprintf(stderr, "Remote does not support V.17, V.29 or V.27ter\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Remote does not support V.17, V.29 or V.27ter\n");
         /* We cannot talk to this machine! */
         return -1;
     }
 #else
     if (!(dis_frame[2] & (DISBIT4 | DISBIT3)))
     {
-        if (s->verbose)
-            fprintf(stderr, "Remote does not support V.29 or V.27ter\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Remote does not support V.29 or V.27ter\n");
         /* We cannot talk to this machine! */
         return -1;
     }
@@ -677,8 +665,7 @@ static int build_dcs(t30_state_t *s, const uint8_t *dis_frame)
             break;
         }
         s->resolution = T4_Y_RESOLUTION_FINE;
-        if (s->verbose)
-            fprintf(stderr, "Remote fax does not support super-fine resolution.\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Remote fax does not support super-fine resolution.\n");
         /* Fall through */
     case T4_Y_RESOLUTION_FINE:
         if ((dis_frame[2] & DISBIT7))
@@ -688,8 +675,7 @@ static int build_dcs(t30_state_t *s, const uint8_t *dis_frame)
             break;
         }
         s->resolution = T4_Y_RESOLUTION_STANDARD;
-        if (s->verbose)
-            fprintf(stderr, "Remote fax does not support fine resolution.\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Remote fax does not support fine resolution.\n");
         /* Fall through */
     case T4_Y_RESOLUTION_STANDARD:
         s->dcs_frame[3] = translate_min_scan_time[0][min_bits_field] << 4;
@@ -731,7 +717,7 @@ static int check_dcs(t30_state_t *s, const uint8_t *dcs_frame, int len)
     /* Check DCS frame from remote */
     t30_decode_dis_dtc_dcs(s, dcs_frame, len);
     if (len < 4)
-        fprintf(stderr, "Short DCS frame\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Short DCS frame\n");
     if (len >= 7  &&  (dcs_frame[6] & DISBIT1))
         s->resolution = T4_Y_RESOLUTION_SUPERFINE;
     else if (dcs_frame[2] & DISBIT7)
@@ -741,7 +727,7 @@ static int check_dcs(t30_state_t *s, const uint8_t *dcs_frame, int len)
     s->image_width = widths[1][dcs_frame[3] & (DISBIT2 | DISBIT1)];
     s->line_encoding = (dcs_frame[2] & DISBIT8)  ?  T4_COMPRESSION_ITU_T4_2D  :  T4_COMPRESSION_ITU_T4_1D;
     if (!(dcs_frame[2] & DISBIT2))
-        fprintf(stderr, "Remote cannot receive\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Remote cannot receive\n");
 
     speed = dcs_frame[2] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3);
     switch (speed)
@@ -781,8 +767,7 @@ static int check_dcs(t30_state_t *s, const uint8_t *dcs_frame, int len)
         s->modem_type = T30_MODEM_V27TER;
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "Remote asked for a modem standard we do not support\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Remote asked for a modem standard we do not support\n");
         return -1;
     }
     return 0;
@@ -801,8 +786,7 @@ static void send_dcn(t30_state_t *s)
 
 static void disconnect(t30_state_t *s)
 {
-    if (s->verbose)
-        fprintf(stderr, "Disconnecting\n");
+    span_log(&s->logging, SPAN_LOG_FLOW, "Disconnecting\n");
     /* Make sure any FAX in progress is tidied up. If the tidying up has
        already happened, repeating it here is harmless. */
     t4_rx_end(&(s->t4));
@@ -823,11 +807,11 @@ static int start_sending_document(t30_state_t *s)
         /* There is nothing to send */
         return  FALSE;
     }
-    if (s->verbose)
-        fprintf(stderr, "Start sending document\n");
+    span_log(&s->logging, SPAN_LOG_FLOW,"Start sending document\n");
     if (t4_tx_init(&(s->t4), s->tx_file, -1, -1))
     {
-        fprintf(stderr, "Cannot open source TIFF file '%s'\n", s->tx_file);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Cannot open source TIFF file '%s'\n", s->tx_file);
+        s->current_status = T30_ERR_FILEERROR;
         return  FALSE;
     }
     t4_tx_set_tx_encoding(&(s->t4), s->line_encoding);
@@ -864,8 +848,7 @@ static int start_receiving_document(t30_state_t *s)
         /* There is nothing to receive to */
         return  FALSE;
     }
-    if (s->verbose)
-        fprintf(stderr, "Start receiving document\n");
+    span_log(&s->logging, SPAN_LOG_FLOW, "Start receiving document\n");
     set_phase(s, T30_PHASE_BDE_TX);
     send_ident_frame(s, T30_CSI, FALSE);
     build_dis(s);
@@ -896,13 +879,13 @@ static void process_rx_dis(t30_state_t *s, const uint8_t *msg, int len)
             ||
             !start_sending_document(s))
         {
-            printf("DIS nothing to send [%d]\n", incompatible);
+            span_log(&s->logging, SPAN_LOG_FLOW, "DIS nothing to send [%d]\n", incompatible);
             /* ... then try to receive something */
             if ((incompatible = build_dis(s))
                 ||
                 !start_receiving_document(s))
             {
-                printf("DIS nothing to receive [%d]\n", incompatible);
+                span_log(&s->logging, SPAN_LOG_FLOW, "DIS nothing to receive [%d]\n", incompatible);
                 /* There is nothing to do, or nothing we are able to do. */
                 send_dcn(s);
             }
@@ -913,8 +896,7 @@ static void process_rx_dis(t30_state_t *s, const uint8_t *msg, int len)
         /* TODO: retry */
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "Unexpected DIS received in state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected DIS received in state %d\n", s->state);
         break;
     }
 }
@@ -938,13 +920,13 @@ static void process_rx_dtc(t30_state_t *s, const uint8_t *msg, int len)
             ||
             !start_sending_document(s))
         {
-            printf("DTC nothing to send [%d]\n", incompatible);
+            span_log(&s->logging, SPAN_LOG_FLOW, "DTC nothing to send [%d]\n", incompatible);
             /* ... then try to receive something */
             if ((incompatible = build_dis(s))
                 ||
                 !start_receiving_document(s))
             {
-                printf("DTC nothing to receive [%d]\n", incompatible);
+                span_log(&s->logging, SPAN_LOG_FLOW, "DTC nothing to receive [%d]\n", incompatible);
                 /* There is nothing to do, or nothing we are able to do. */
                 send_dcn(s);
             }
@@ -954,8 +936,7 @@ static void process_rx_dtc(t30_state_t *s, const uint8_t *msg, int len)
         /* It appears they didn't see what we sent - retry */
         break;
     default:
-        if (s->verbose)
-           fprintf(stderr, "Unexpected DTC received in state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected DTC received in state %d\n", s->state);
         break;
     }
 }
@@ -974,14 +955,12 @@ static void process_rx_dcs(t30_state_t *s, const uint8_t *msg, int len)
         check_dcs(s, &msg[2], len - 2);
         if (s->phase_b_handler)
             s->phase_b_handler(s, s->phase_d_user_data, T30_DCS);
-        if (s->verbose)
-            fprintf(stderr, "Get at %dbps, modem %d\n", s->bit_rate, s->modem_type);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Get at %dbps, modem %d\n", s->bit_rate, s->modem_type);
         s->state = T30_STATE_F_TCF;
         set_phase(s, T30_PHASE_C_RX);
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "Unexpected DCS received in state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected DCS received in state %d\n", s->state);
         break;
     }
 }
@@ -994,8 +973,7 @@ static void process_rx_cfr(t30_state_t *s, const uint8_t *msg, int len)
     {
     case T30_STATE_D_TCF:
         /* Trainability test succeeded. Send the document. */
-        if (s->verbose)
-            fprintf(stderr, "Trainability test succeeded\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Trainability test succeeded\n");
         s->timer_t4 = 0;
         /* Send the first page */
         t4_tx_set_local_ident(&(s->t4), s->local_ident);
@@ -1004,8 +982,7 @@ static void process_rx_cfr(t30_state_t *s, const uint8_t *msg, int len)
         queue_phase(s, T30_PHASE_C_TX);
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "Unexpected CFR received in state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected CFR received in state %d\n", s->state);
         break;
     }
 }
@@ -1018,16 +995,14 @@ static void process_rx_ftt(t30_state_t *s, const uint8_t *msg, int len)
     {
     case T30_STATE_D_TCF:
         /* Trainability test failed. Try again. */
-        if (s->verbose)
-            fprintf(stderr, "Trainability test failed\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Trainability test failed\n");
         /* TODO: Renegotiate for a different speed */
         /* Sending training after the messages */
         s->state = T30_STATE_D;
         queue_phase(s, T30_PHASE_C_TX);
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "Unexpected FTT received in state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected FTT received in state %d\n", s->state);
         break;
     }
 }
@@ -1049,8 +1024,7 @@ static void process_rx_mps(t30_state_t *s, const uint8_t *msg, int len)
         send_simple_frame(s, T30_MCF);
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "Unexpected MPS received in state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected MPS received in state %d\n", s->state);
         break;
     }
 }
@@ -1074,8 +1048,7 @@ static void process_rx_eom(t30_state_t *s, const uint8_t *msg, int len)
         send_frame(s, s->dis_frame, s->dis_len, TRUE);
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "Unexpected EOM received in state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected EOM received in state %d\n", s->state);
         break;
     }
 }
@@ -1096,8 +1069,7 @@ static void process_rx_eop(t30_state_t *s, const uint8_t *msg, int len)
         send_simple_frame(s, T30_MCF);
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "Unexpected EOP received in state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected EOP received in state %d\n", s->state);
         break;
     }
 }
@@ -1122,10 +1094,10 @@ static void process_rx_mcf(t30_state_t *s, const uint8_t *msg, int len)
         if (s->phase_d_handler)
             s->phase_d_handler(s, s->phase_d_user_data, T30_MCF);
         s->state = T30_STATE_R;
-        if (s->verbose)
+        if (span_log_test(&s->logging, SPAN_LOG_FLOW))
         {
             t4_get_transfer_statistics(&(s->t4), &stats);
-            fprintf(stderr, "Success - delivered %d pages\n", stats.pages_transferred);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Success - delivered %d pages\n", stats.pages_transferred);
         }
         break;
     case T30_STATE_II_EOP:
@@ -1133,15 +1105,14 @@ static void process_rx_mcf(t30_state_t *s, const uint8_t *msg, int len)
             s->phase_d_handler(s, s->phase_d_user_data, T30_MCF);
         t4_tx_end(&(s->t4));
         send_dcn(s);
-        if (s->verbose)
+        if (span_log_test(&s->logging, SPAN_LOG_FLOW))
         {
             t4_get_transfer_statistics(&(s->t4), &stats);
-            fprintf(stderr, "Success - delivered %d pages\n", stats.pages_transferred);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Success - delivered %d pages\n", stats.pages_transferred);
         }
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "Unexpected MCF received in state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected MCF received in state %d\n", s->state);
         break;
     }
 }
@@ -1172,8 +1143,7 @@ static void process_rx_rtp(t30_state_t *s, const uint8_t *msg, int len)
         send_dcn(s);
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "Unexpected RTP received in state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected RTP received in state %d\n", s->state);
         break;
     }
 }
@@ -1201,8 +1171,7 @@ static void process_rx_rtn(t30_state_t *s, const uint8_t *msg, int len)
         send_dcn(s);
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "Unexpected RTN received in state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected RTN received in state %d\n", s->state);
         break;
     }
 }
@@ -1211,24 +1180,21 @@ static void process_rx_rtn(t30_state_t *s, const uint8_t *msg, int len)
 static void process_rx_pip(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* Procedure interrupt positive */
-    if (s->verbose)
-        fprintf(stderr, "Unexpected PIP received in state %d\n", s->state);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected PIP received in state %d\n", s->state);
 }
 /*- End of function --------------------------------------------------------*/
 
 static void process_rx_pin(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* Procedure interrupt negative */
-    if (s->verbose)
-        fprintf(stderr, "Unexpected PIN received in state %d\n", s->state);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected PIN received in state %d\n", s->state);
 }
 /*- End of function --------------------------------------------------------*/
 
 static void process_rx_crp(t30_state_t *s, const uint8_t *msg, int len)
 {
     /* Command repeat */
-    if (s->verbose)
-        fprintf(stderr, "Unexpected CRP received in state %d\n", s->state);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected CRP received in state %d\n", s->state);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1245,14 +1211,12 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
         switch (len)
         {
         case PUTBIT_CARRIER_UP:
-            if (s->verbose)
-                fprintf(stderr, "Slow carrier up\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Slow carrier up\n");
             s->rx_signal_present = TRUE;
             s->timer_sig_on = SAMPLE_RATE*DEFAULT_TIMER_SIG_ON;
             break;
         case PUTBIT_CARRIER_DOWN:
-            if (s->verbose)
-                fprintf(stderr, "Slow carrier down\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Slow carrier down\n");
             if (s->next_phase == T30_PHASE_C_TX)
             {
                 s->next_phase = -1;
@@ -1264,8 +1228,7 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
             /* Just ignore these */
             break;
         default:
-            if (s->verbose)
-                fprintf(stderr, "Unexpected HDLC special length - %d!\n", len);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected HDLC special length - %d!\n", len);
             break;
         }
         return;
@@ -1275,8 +1238,7 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
     s->timer_t2 = 0;
     if (msg[0] != 0xFF  ||  !(msg[1] == 0x03  ||  msg[1] == 0x13))
     {
-        if (s->verbose)
-            fprintf(stderr, "Bad frame header - %02x %02x", msg[0], msg[1]);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Bad frame header - %02x %02x", msg[0], msg[1]);
         return;
     }
     print_frame(s, "<<<", &msg[2], len - 2);
@@ -1290,15 +1252,13 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
         s->msgendtime = s->samplecount + 4*SAMPLE_RATE;  /* reset timeout counter (4 secs in future) */
         break;
     default:
-        if (s->verbose)
-            fprintf(stderr, "Unexpected HDLC frame received\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected HDLC frame received\n");
         break;
     }
 
     if (!final_frame)
     {
-        if (s->verbose)
-            fprintf(stderr, "%s without final frame tag\n", t30_frametype(msg[2]));
+        span_log(&s->logging, SPAN_LOG_FLOW, "%s without final frame tag\n", t30_frametype(msg[2]));
         /* The following handles all the message types we expect to get without
            a final frame tag. If we get one that T.30 says we should not expect
            in a particular context, its pretty harmless, so don't worry. */
@@ -1335,9 +1295,9 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
             if (t35_decode(&msg[3], len - 3, &s->vendor, &s->model))
             {
                 if (s->vendor)
-                    fprintf(stderr, "The remote was made by '%s'\n", s->vendor);
+                    span_log(&s->logging, SPAN_LOG_FLOW, "The remote was made by '%s'\n", s->vendor);
                 if (s->model)
-                    fprintf(stderr, "The remote is a '%s'\n", s->model);
+                    span_log(&s->logging, SPAN_LOG_FLOW, "The remote is a '%s'\n", s->model);
             }
             break;
         case T30_NSC:
@@ -1367,13 +1327,13 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
             decode_url_msg(s, NULL, &msg[2], len - 2);
             break;
         default:
-            fprintf(stderr, "Unexpected %s frame\n", t30_frametype(msg[2]));
+            span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected %s frame\n", t30_frametype(msg[2]));
             break;
         }
     }
     else
     {
-        fprintf(stderr, "%s with final frame tag\n", t30_frametype(msg[2]));
+        span_log(&s->logging, SPAN_LOG_FLOW, "%s with final frame tag\n", t30_frametype(msg[2]));
         /* Once we have any successful message from the far end, we
            cancel timer T1 */
         s->timer_t1 = 0;
@@ -1381,7 +1341,7 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
         /* The following handles context sensitive message types, which should
            occur at the end of message sequences. They should, therefore have
            the final frame flag set. */
-        fprintf(stderr, "In state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "In state %d\n", s->state);
         switch (msg[2])
         {
         case T30_DCS:
@@ -1490,7 +1450,7 @@ static void set_phase(t30_state_t *s, int phase)
             tone_gen_init(&(s->tone_gen), &tone_desc);
             if (s->t30_flush_handler)
                 s->t30_flush_handler(s, s->t30_flush_user_data, 3);
-            hdlc_rx_init(&(s->hdlcrx), FALSE, hdlc_accept, s);
+            hdlc_rx_init(&(s->hdlcrx), FALSE, FALSE, 1, hdlc_accept, s);
             fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_bit, &(s->hdlcrx));
             break;
         case T30_PHASE_A_CNG:
@@ -1508,13 +1468,13 @@ static void set_phase(t30_state_t *s, int phase)
             tone_gen_init(&(s->tone_gen), &tone_desc);
             if (s->t30_flush_handler)
                 s->t30_flush_handler(s, s->t30_flush_user_data, 3);
-            hdlc_rx_init(&(s->hdlcrx), FALSE, hdlc_accept, s);
+            hdlc_rx_init(&(s->hdlcrx), FALSE, FALSE, 1, hdlc_accept, s);
             fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_bit, &(s->hdlcrx));
             break;
         case T30_PHASE_BDE_RX:
             if (s->t30_flush_handler)
                 s->t30_flush_handler(s, s->t30_flush_user_data, 3);
-            hdlc_rx_init(&(s->hdlcrx), FALSE, hdlc_accept, s);
+            hdlc_rx_init(&(s->hdlcrx), FALSE, FALSE, 1, hdlc_accept, s);
             fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_bit, &(s->hdlcrx));
             break;
         case T30_PHASE_BDE_TX:
@@ -1581,8 +1541,7 @@ static void set_phase(t30_state_t *s, int phase)
         case T30_PHASE_CALL_FINISHED:
             break;
         }
-        if (s->verbose)
-            fprintf(stderr, "Changed from phase %d to %d\n", s->phase, phase);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Changed from phase %d to %d\n", s->phase, phase);
         s->phase = phase;
     }
 }
@@ -1590,11 +1549,11 @@ static void set_phase(t30_state_t *s, int phase)
 
 void timer_t1_expired(t30_state_t *s)
 {
-    if (s->verbose)
-        fprintf(stderr, "T1 timeout in state %d\n", s->state);
+    span_log(&s->logging, SPAN_LOG_FLOW, "T1 timeout in state %d\n", s->state);
     /* The initial connection establishment has timeout out. In other words, we
        have been unable to communicate successfully with a remote machine.
        It is time to abandon the call. */
+    s->current_status = T30_ERR_T1EXPIRED;
     switch (s->state)
     {
     case T30_STATE_T:
@@ -1614,24 +1573,23 @@ void timer_t1_expired(t30_state_t *s)
 
 void timer_t2_expired(t30_state_t *s)
 {
-    if (s->verbose)
-        fprintf(stderr, "T2 timeout\n");
+    span_log(&s->logging, SPAN_LOG_FLOW, "T2 timeout\n");
     start_receiving_document(s);
 }
 /*- End of function --------------------------------------------------------*/
 
 void timer_t3_expired(t30_state_t *s)
 {
-    if (s->verbose)
-        fprintf(stderr, "T3 timeout\n");
+    span_log(&s->logging, SPAN_LOG_FLOW, "T3 timeout\n");
+    s->current_status = T30_ERR_T3EXPIRED;
+    disconnect(s);
 }
 /*- End of function --------------------------------------------------------*/
 
 void timer_t4_expired(t30_state_t *s)
 {
     /* There was no response (or only a corrupt response) to a command */
-    if (s->verbose)
-        fprintf(stderr, "T4 timeout in state %d\n", s->state);
+    span_log(&s->logging, SPAN_LOG_FLOW, "T4 timeout in state %d\n", s->state);
     switch (s->state)
     {
     case T30_STATE_F_EOP_MCF:
@@ -1756,8 +1714,7 @@ static void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, in
         msg = text;
     if (len > 21)
     {
-        if (s->verbose)
-            fprintf(stderr, "Bad %s frame length - %d\n", t30_frametype(pkt[0]), len);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Bad %s frame length - %d\n", t30_frametype(pkt[0]), len);
         msg[0] = '\0';
         return;
     }
@@ -1770,8 +1727,7 @@ static void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, in
     while (p > 1)
         msg[k++] = pkt[--p];
     msg[k] = '\0';
-    if (s->verbose)
-        fprintf(stderr, "Remote fax gave %s as: \"%s\"\n", t30_frametype(pkt[0]), msg);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Remote fax gave %s as: \"%s\"\n", t30_frametype(pkt[0]), msg);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1785,8 +1741,7 @@ static void decode_password(t30_state_t *s, char *msg, const uint8_t *pkt, int l
         msg = text;
     if (len > 21)
     {
-        if (s->verbose)
-            fprintf(stderr, "Bad password frame length - %d\n", len);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Bad password frame length - %d\n", len);
         msg[0] = '\0';
         return;
     }
@@ -1799,8 +1754,7 @@ static void decode_password(t30_state_t *s, char *msg, const uint8_t *pkt, int l
     while (p > 1)
         msg[k++] = pkt[--p];
     msg[k] = '\0';
-    if (s->verbose)
-        fprintf(stderr, "Remote fax gave the password as: \"%s\"\n", msg);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Remote fax gave the password as: \"%s\"\n", msg);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1814,87 +1768,100 @@ static void decode_url_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int le
         msg = text;
     if (len < 3  ||  len > 77 + 3  ||  len != pkt[2] + 3)
     {
-        if (s->verbose)
-            fprintf(stderr, "Bad %s frame length - %d\n", t30_frametype(pkt[0]), len);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Bad %s frame length - %d\n", t30_frametype(pkt[0]), len);
         msg[0] = '\0';
         return;
     }
     memcpy(msg, &pkt[3], len - 3);
     msg[len - 3] = '\0';
-    if (s->verbose)
-        fprintf(stderr, "Remote fax gave %s as: %d, %d, \"%s\"\n", t30_frametype(pkt[0]), pkt[0], pkt[1], msg);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Remote fax gave %s as: %d, %d, \"%s\"\n", t30_frametype(pkt[0]), pkt[0], pkt[1], msg);
 }
 /*- End of function --------------------------------------------------------*/
 
 void t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *pkt, int len)
 {
-    if (s  &&  !s->verbose)
+    if (s  &&  (s->logging.level & SPAN_LOG_SEVERITY_MASK) < SPAN_LOG_FLOW)
         return;
-
-    fprintf(stderr, "%s:\n", t30_frametype(pkt[0]));
+    if (len <= 2)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
     
-    if ((pkt[1] & DISBIT1))
-        fprintf(stderr, "  Store and forward Internet fax (T.37)\n");
-    if ((pkt[1] & DISBIT3))
-        fprintf(stderr, "  Real-time Internet fax (T.38)\n");
-    if ((pkt[1] & DISBIT4))
-        fprintf(stderr, "  3rd generation mobile network\n");
-    if (pkt[0] == T30_DCS)
+    span_log(&s->logging, SPAN_LOG_FLOW, "%s:\n", t30_frametype(pkt[2]));
+    if (len <= 3)
     {
-        if ((pkt[1] & DISBIT6))
-            fprintf(stderr, "  Invalid: 1\n");
-        if ((pkt[1] & DISBIT7))
-            fprintf(stderr, "  Invalid: 1\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
     }
-    else
-    {
-        if ((pkt[1] & DISBIT6))
-            fprintf(stderr, "  V.8 capable\n");
-        fprintf(stderr, "  Prefer %d octet blocks\n", (pkt[1] & DISBIT7)  ?  64  :  256);
-    }
-    if ((pkt[1] & (DISBIT2 | DISBIT5 | DISBIT8)))
-        fprintf(stderr, "  Reserved: 0x%X\n", (pkt[1] & (DISBIT2 | DISBIT4 | DISBIT5 | DISBIT8)));
+    if ((pkt[3] & DISBIT1))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Store and forward Internet fax (T.37)\n");
+    if ((pkt[3] & DISBIT3))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Real-time Internet fax (T.38)\n");
+    if ((pkt[3] & DISBIT4))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  3rd generation mobile network\n");
 
-    if (pkt[0] == T30_DCS)
+    if (pkt[2] == T30_DCS)
     {
-        if ((pkt[2] & DISBIT1))
-            fprintf(stderr, "  Set to \"0\": 1\n");
+        if ((pkt[3] & DISBIT6))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Invalid: 1\n");
+        if ((pkt[3] & DISBIT7))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Invalid: 1\n");
     }
     else
     {
-        if ((pkt[2] & DISBIT1))
-            fprintf(stderr, "  Ready to transmit a fax document (polling)\n");
+        if ((pkt[3] & DISBIT6))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  V.8 capable\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Prefer %d octet blocks\n", (pkt[3] & DISBIT7)  ?  64  :  256);
     }
-    if ((pkt[2] & DISBIT2))
-        fprintf(stderr, "  Can receive fax\n");
-    if (pkt[0] == T30_DCS)
+    if ((pkt[3] & (DISBIT2 | DISBIT5 | DISBIT8)))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Reserved: 0x%X\n", (pkt[3] & (DISBIT2 | DISBIT4 | DISBIT5 | DISBIT8)));
+    if (len <= 4)
     {
-        fprintf(stderr, "  Selected data signalling rate: ");
-        switch (pkt[2] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
+    
+    if (pkt[2] == T30_DCS)
+    {
+        if ((pkt[4] & DISBIT1))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Set to \"0\": 1\n");
+    }
+    else
+    {
+        if ((pkt[4] & DISBIT1))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Ready to transmit a fax document (polling)\n");
+    }
+    if ((pkt[4] & DISBIT2))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Can receive fax\n");
+    if (pkt[2] == T30_DCS)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Selected data signalling rate: ");
+        switch (pkt[4] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3))
         {
         case 0:
-            fprintf(stderr, "V.27ter, 2400bps\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.27ter, 2400bps\n");
             break;
         case DISBIT4:
-            fprintf(stderr, "V.27ter, 4800bps\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.27ter, 4800bps\n");
             break;
         case DISBIT3:
-            fprintf(stderr, "V.29, 9600bps\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.29, 9600bps\n");
             break;
         case (DISBIT4 | DISBIT3):
-            fprintf(stderr, "V.29, 7200bps\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.29, 7200bps\n");
             break;
         case DISBIT6:
-            fprintf(stderr, "V.17, 14400bps\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.17, 14400bps\n");
             break;
         case (DISBIT6 | DISBIT4):
-            fprintf(stderr, "V.17, 12000bps\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.17, 12000bps\n");
             break;
         case (DISBIT6 | DISBIT3):
-            fprintf(stderr, "V.17, 9600bps\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.17, 9600bps\n");
             break;
         case (DISBIT6 | DISBIT4 | DISBIT3):
-            fprintf(stderr, "V.17, 7200bps\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.17, 7200bps\n");
             break;
         case (DISBIT5 | DISBIT3):
         case (DISBIT5 | DISBIT4 | DISBIT3):
@@ -1902,503 +1869,573 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *pkt, int len)
         case (DISBIT6 | DISBIT5 | DISBIT3):
         case (DISBIT6 | DISBIT5 | DISBIT4):
         case (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3):
-            fprintf(stderr, "Reserved\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "Reserved\n");
             break;
         default:
-            fprintf(stderr, "Not used\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "Not used\n");
             break;
         }
     }
     else
     {
-        fprintf(stderr, "  Supported data signalling rates: ");
-        switch (pkt[2] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Supported data signalling rates: ");
+        switch (pkt[4] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3))
         {
         case 0:
-            fprintf(stderr, "V.27ter fallback mode\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.27ter fallback mode\n");
             break;
         case DISBIT4:
-            fprintf(stderr, "V.27ter\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.27ter\n");
             break;
         case DISBIT3:
-            fprintf(stderr, "V.29\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.29\n");
             break;
         case (DISBIT4 | DISBIT3):
-            fprintf(stderr, "V.27ter and V.29\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.27ter and V.29\n");
             break;
         case (DISBIT6 | DISBIT4 | DISBIT3):
-            fprintf(stderr, "V.27ter, V.29 and V.17\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.27ter, V.29 and V.17\n");
             break;
         case (DISBIT5 | DISBIT4):
         case (DISBIT6 | DISBIT4):
         case (DISBIT6 | DISBIT5 | DISBIT4):
         case (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3):
-            fprintf(stderr, "Reserved\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "Reserved\n");
             break;
         default:
-            fprintf(stderr, "Not used\n");
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "Not used\n");
             break;
         }
-    }
-    if ((pkt[2] & DISBIT7))
-        fprintf(stderr, "  R8x7.7lines/mm and/or 200x200pels/25.4mm\n");
-    if ((pkt[2] & DISBIT8))
-        fprintf(stderr, "  2D coding\n");
-
-    if (pkt[0] == T30_DCS)
-    {
-        fprintf(stderr, "  Scan line length: ");
-        switch (pkt[3] & (DISBIT2 | DISBIT1))
-        {
-        case 0:
-            fprintf(stderr, "215mm\n");
-            break;
-        case DISBIT2:
-            fprintf(stderr, "303mm\n");
-            break;
-        case DISBIT1:
-            fprintf(stderr, "255mm\n");
-            break;
-        default:
-            fprintf(stderr, "Invalid\n");
-            break;
-        }
-        fprintf(stderr, "  Recording length: ");
-        switch (pkt[3] & (DISBIT4 | DISBIT3))
-        {
-        case 0:
-            fprintf(stderr, "A4 (297mm)\n");
-            break;
-        case DISBIT3:
-            fprintf(stderr, "Unlimited\n");
-            break;
-        case DISBIT4:
-            fprintf(stderr, "B4 (364mm)\n");
-            break;
-        case (DISBIT4 | DISBIT3):
-            fprintf(stderr, "Invalid\n");
-            break;
-        }
-        fprintf(stderr, "  Minimum scan line time: ");
-        switch (pkt[3] & (DISBIT7 | DISBIT6 | DISBIT5))
-        {
-        case 0:
-            fprintf(stderr, "20ms\n");
-            break;
-        case DISBIT7:
-            fprintf(stderr, "40ms\n");
-            break;
-        case DISBIT6:
-            fprintf(stderr, "10ms\n");
-            break;
-        case DISBIT5:
-            fprintf(stderr, "5ms\n");
-            break;
-        case (DISBIT7 | DISBIT6 | DISBIT5):
-            fprintf(stderr, "0ms\n");
-            break;
-        default:
-            fprintf(stderr, "Invalid\n");
-            break;
-        }
-    }
-    else
-    {
-        fprintf(stderr, "  Scan line length: ");
-        switch (pkt[3] & (DISBIT2 | DISBIT1))
-        {
-        case 0:
-            fprintf(stderr, "215mm\n");
-            break;
-        case DISBIT2:
-            fprintf(stderr, "215mm, 255mm or 303mm\n");
-            break;
-        case DISBIT1:
-            fprintf(stderr, "215mm or 255mm\n");
-            break;
-        default:
-            fprintf(stderr, "Invalid\n");
-            break;
-        }
-        fprintf(stderr, "  Recording length: ");
-        switch (pkt[3] & (DISBIT4 | DISBIT3))
-        {
-        case 0:
-            fprintf(stderr, "A4 (297mm)\n");
-            break;
-        case DISBIT3:
-            fprintf(stderr, "Unlimited\n");
-            break;
-        case DISBIT4:
-            fprintf(stderr, "A4 (297mm) and B4 (364mm)\n");
-            break;
-        case (DISBIT4 | DISBIT3):
-            fprintf(stderr, "Invalid\n");
-            break;
-        }
-        fprintf(stderr, "  Receiver's minimum scan line time: ");
-        switch (pkt[3] & (DISBIT7 | DISBIT6 | DISBIT5))
-        {
-        case 0:
-            fprintf(stderr, "20ms at 3.85 l/mm: T7.7 = T3.85\n");
-            break;
-        case DISBIT7:
-            fprintf(stderr, "40ms at 3.85 l/mm: T7.7 = T3.85\n");
-            break;
-        case DISBIT6:
-            fprintf(stderr, "10ms at 3.85 l/mm: T7.7 = T3.85\n");
-            break;
-        case DISBIT5:
-            fprintf(stderr, "5ms at 3.85 l/mm: T7.7 = T3.85\n");
-            break;
-        case (DISBIT7 | DISBIT6):
-            fprintf(stderr, "10ms at 3.85 l/mm: T7.7 = 1/2 T3.85\n");
-            break;
-        case (DISBIT6 | DISBIT5):
-            fprintf(stderr, "20ms at 3.85 l/mm: T7.7 = 1/2 T3.85\n");
-            break;
-        case (DISBIT7 | DISBIT5):
-            fprintf(stderr, "40ms at 3.85 l/mm: T7.7 = 1/2 T3.85\n");
-            break;
-        case (DISBIT7 | DISBIT6 | DISBIT5):
-            fprintf(stderr, "0ms at 3.85 l/mm: T7.7 = T3.85\n");
-            break;
-        }
-    }
-    if (!(pkt[3] & DISBIT8))
-        return;
-
-    if ((pkt[4] & DISBIT2))
-        fprintf(stderr, "  Uncompressed mode\n");
-    if ((pkt[4] & DISBIT3))
-        fprintf(stderr, "  Error correction mode\n");
-    if (pkt[2] == T30_DCS)
-    {
-        fprintf(stderr, "  Frame size: %s\n", (pkt[4] & DISBIT4)  ?  "64 octets"  :  "256 octets");
-    }
-    else
-    {
-        if ((pkt[4] & DISBIT4))
-            fprintf(stderr, "  Set to \"0\": 0x%X\n", (pkt[4] & DISBIT4));
     }
     if ((pkt[4] & DISBIT7))
-        fprintf(stderr, "  T.6 coding\n");
-    if ((pkt[4] & (DISBIT1 | DISBIT5 | DISBIT6)))
-        fprintf(stderr, "  Reserved: 0x%X\n", (pkt[4] & (DISBIT1 | DISBIT5 | DISBIT6)));
-    if (!(pkt[4] & DISBIT8))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  R8x7.7lines/mm and/or 200x200pels/25.4mm\n");
+    if ((pkt[4] & DISBIT8))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  2D coding\n");
+    if (len <= 5)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
         return;
+    }
 
-    if ((pkt[5] & DISBIT1))
-        fprintf(stderr, "  \"Field not valid\" supported\n");
     if (pkt[2] == T30_DCS)
     {
-        if ((pkt[5] & DISBIT2))
-            fprintf(stderr, "  Set to \"0\": 1\n");
-        if ((pkt[5] & DISBIT3))
-            fprintf(stderr, "  Set to \"0\": 1\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Scan line length: ");
+        switch (pkt[5] & (DISBIT2 | DISBIT1))
+        {
+        case 0:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "215mm\n");
+            break;
+        case DISBIT2:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "303mm\n");
+            break;
+        case DISBIT1:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "255mm\n");
+            break;
+        default:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "Invalid\n");
+            break;
+        }
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Recording length: ");
+        switch (pkt[5] & (DISBIT4 | DISBIT3))
+        {
+        case 0:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "A4 (297mm)\n");
+            break;
+        case DISBIT3:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "Unlimited\n");
+            break;
+        case DISBIT4:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "B4 (364mm)\n");
+            break;
+        case (DISBIT4 | DISBIT3):
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "Invalid\n");
+            break;
+        }
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Minimum scan line time: ");
+        switch (pkt[5] & (DISBIT7 | DISBIT6 | DISBIT5))
+        {
+        case 0:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "20ms\n");
+            break;
+        case DISBIT7:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "40ms\n");
+            break;
+        case DISBIT6:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "10ms\n");
+            break;
+        case DISBIT5:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "5ms\n");
+            break;
+        case (DISBIT7 | DISBIT6 | DISBIT5):
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "0ms\n");
+            break;
+        default:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "Invalid\n");
+            break;
+        }
     }
     else
     {
-        if ((pkt[5] & DISBIT2))
-            fprintf(stderr, "  Multiple selective polling\n");
-        if ((pkt[5] & DISBIT3))
-            fprintf(stderr, "  Polled Subaddress\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Scan line length: ");
+        switch (pkt[5] & (DISBIT2 | DISBIT1))
+        {
+        case 0:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "215mm\n");
+            break;
+        case DISBIT2:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "215mm, 255mm or 303mm\n");
+            break;
+        case DISBIT1:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "215mm or 255mm\n");
+            break;
+        default:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "Invalid\n");
+            break;
+        }
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Recording length: ");
+        switch (pkt[5] & (DISBIT4 | DISBIT3))
+        {
+        case 0:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "A4 (297mm)\n");
+            break;
+        case DISBIT3:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "Unlimited\n");
+            break;
+        case DISBIT4:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "A4 (297mm) and B4 (364mm)\n");
+            break;
+        case (DISBIT4 | DISBIT3):
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "Invalid\n");
+            break;
+        }
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Receiver's minimum scan line time: ");
+        switch (pkt[5] & (DISBIT7 | DISBIT6 | DISBIT5))
+        {
+        case 0:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "20ms at 3.85 l/mm: T7.7 = T3.85\n");
+            break;
+        case DISBIT7:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "40ms at 3.85 l/mm: T7.7 = T3.85\n");
+            break;
+        case DISBIT6:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "10ms at 3.85 l/mm: T7.7 = T3.85\n");
+            break;
+        case DISBIT5:
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "5ms at 3.85 l/mm: T7.7 = T3.85\n");
+            break;
+        case (DISBIT7 | DISBIT6):
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "10ms at 3.85 l/mm: T7.7 = 1/2 T3.85\n");
+            break;
+        case (DISBIT6 | DISBIT5):
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "20ms at 3.85 l/mm: T7.7 = 1/2 T3.85\n");
+            break;
+        case (DISBIT7 | DISBIT5):
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "40ms at 3.85 l/mm: T7.7 = 1/2 T3.85\n");
+            break;
+        case (DISBIT7 | DISBIT6 | DISBIT5):
+            span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "0ms at 3.85 l/mm: T7.7 = T3.85\n");
+            break;
+        }
     }
-    if ((pkt[5] & DISBIT4))
-        fprintf(stderr, "  T.43 coding\n");
-    if ((pkt[5] & DISBIT5))
-        fprintf(stderr, "  Plane interleave\n");
-    if ((pkt[5] & DISBIT6))
-        fprintf(stderr, "  Voice coding with 32kbit/s ADPCM (Rec. G.726)\n");
-    if ((pkt[5] & DISBIT7))
-        fprintf(stderr, "  Reserved for the use of extended voice coding set\n");
     if (!(pkt[5] & DISBIT8))
         return;
+    if (len <= 6)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
 
-    if ((pkt[6] & DISBIT1))
-        fprintf(stderr, "  R8x15.4lines/mm\n");
     if ((pkt[6] & DISBIT2))
-        fprintf(stderr, "  300x300pels/25.4mm\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Uncompressed mode\n");
     if ((pkt[6] & DISBIT3))
-        fprintf(stderr, "  R16x15.4lines/mm and/or 400x400pels/25.4 mm\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Error correction mode\n");
     if (pkt[2] == T30_DCS)
     {
-        fprintf(stderr, "  Resolution type selection: %s\n", (pkt[6] & DISBIT4)  ?  "inch-based"  :  "metric-based");
-        if ((pkt[6] & DISBIT5))
-            fprintf(stderr, "  Don't care: 1\n");
-        if ((pkt[6] & DISBIT6))
-            fprintf(stderr, "  Don't care: 1\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame size: %s\n", (pkt[6] & DISBIT4)  ?  "64 octets"  :  "256 octets");
     }
     else
     {
         if ((pkt[6] & DISBIT4))
-            fprintf(stderr, "  Inch-based resolution preferred\n");
-        if ((pkt[6] & DISBIT5))
-            fprintf(stderr, "  Metric-based resolution preferred\n");
-        fprintf(stderr, "  Minimum scan line time for higher resolutions: %s\n", (pkt[6] & DISBIT6)  ?  "T15.4 = 1/2 T7.7"  :  "T15.4 = T7.7");
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Set to \"0\": 0x%X\n", (pkt[6] & DISBIT4));
     }
-    if (pkt[2] == T30_DCS)
-    {
-        if ((pkt[6] & DISBIT7))
-            fprintf(stderr, "  Set to \"0\": 1\n");
-    }
-    else
-    {
-        if ((pkt[6] & DISBIT7))
-            fprintf(stderr, "  Selective polling OK\n");
-    }
+    if ((pkt[6] & DISBIT7))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  T.6 coding\n");
+    if ((pkt[6] & (DISBIT1 | DISBIT5 | DISBIT6)))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Reserved: 0x%X\n", (pkt[6] & (DISBIT1 | DISBIT5 | DISBIT6)));
     if (!(pkt[6] & DISBIT8))
         return;
+    if (len <= 7)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
 
     if ((pkt[7] & DISBIT1))
-        fprintf(stderr, "  Subaddressing\n");
-    if ((pkt[7] & DISBIT2))
-        fprintf(stderr, "  Password\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  \"Field not valid\" supported\n");
     if (pkt[2] == T30_DCS)
     {
+        if ((pkt[7] & DISBIT2))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Set to \"0\": 1\n");
         if ((pkt[7] & DISBIT3))
-            fprintf(stderr, "  Set to \"0\": 1\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Set to \"0\": 1\n");
     }
     else
     {
+        if ((pkt[7] & DISBIT2))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Multiple selective polling\n");
         if ((pkt[7] & DISBIT3))
-            fprintf(stderr, "  Ready to transmit a data file (polling)\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Polled Subaddress\n");
     }
-    if ((pkt[7] & DISBIT5))
-        fprintf(stderr, "  Binary file transfer (BFT)\n");
-    if ((pkt[7] & DISBIT6))
-        fprintf(stderr, "  Document transfer mode (DTM)\n");
-    if ((pkt[7] & DISBIT7))
-        fprintf(stderr, "  Electronic data interchange (EDI)\n");
     if ((pkt[7] & DISBIT4))
-        fprintf(stderr, "  Reserved: 1\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  T.43 coding\n");
+    if ((pkt[7] & DISBIT5))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Plane interleave\n");
+    if ((pkt[7] & DISBIT6))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Voice coding with 32kbit/s ADPCM (Rec. G.726)\n");
+    if ((pkt[7] & DISBIT7))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Reserved for the use of extended voice coding set\n");
     if (!(pkt[7] & DISBIT8))
         return;
+    if (len <= 8)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
 
     if ((pkt[8] & DISBIT1))
-        fprintf(stderr, "  Basic transfer mode (BTM)\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  R8x15.4lines/mm\n");
+    if ((pkt[8] & DISBIT2))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  300x300pels/25.4mm\n");
+    if ((pkt[8] & DISBIT3))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  R16x15.4lines/mm and/or 400x400pels/25.4 mm\n");
     if (pkt[2] == T30_DCS)
     {
-        if ((pkt[8] & DISBIT3))
-            fprintf(stderr, "  Set to \"0\": 1\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Resolution type selection: %s\n", (pkt[8] & DISBIT4)  ?  "inch-based"  :  "metric-based");
+        if ((pkt[8] & DISBIT5))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Don't care: 1\n");
+        if ((pkt[8] & DISBIT6))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Don't care: 1\n");
     }
     else
     {
-        if ((pkt[8] & DISBIT3))
-            fprintf(stderr, "  Ready to transfer a character or mixed mode document (polling)\n");
+        if ((pkt[8] & DISBIT4))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Inch-based resolution preferred\n");
+        if ((pkt[8] & DISBIT5))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Metric-based resolution preferred\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Minimum scan line time for higher resolutions: %s\n", (pkt[8] & DISBIT6)  ?  "T15.4 = 1/2 T7.7"  :  "T15.4 = T7.7");
     }
-    if ((pkt[8] & DISBIT4))
-        fprintf(stderr, "  Character mode\n");
-    if ((pkt[8] & DISBIT6))
-        fprintf(stderr, "  Mixed mode (Annex E/T.4)\n");
-    if ((pkt[8] & (DISBIT2 | DISBIT5 | DISBIT7)))
-        fprintf(stderr, "  Reserved: 0x%X\n", (pkt[8] & (DISBIT2 | DISBIT5 | DISBIT7)));
+    if (pkt[2] == T30_DCS)
+    {
+        if ((pkt[8] & DISBIT7))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Set to \"0\": 1\n");
+    }
+    else
+    {
+        if ((pkt[8] & DISBIT7))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Selective polling OK\n");
+    }
     if (!(pkt[8] & DISBIT8))
         return;
+    if (len <= 9)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
 
     if ((pkt[9] & DISBIT1))
-        fprintf(stderr, "  Processable mode 26 (Rec. T.505)\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Subaddressing\n");
     if ((pkt[9] & DISBIT2))
-        fprintf(stderr, "  Digital network\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Password\n");
     if (pkt[2] == T30_DCS)
     {
         if ((pkt[9] & DISBIT3))
-            fprintf(stderr, "  Duplex or half-duplex\n");
-        if ((pkt[9] & DISBIT4))
-            fprintf(stderr, "  Full colour mode\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Set to \"0\": 1\n");
     }
     else
     {
         if ((pkt[9] & DISBIT3))
-            fprintf(stderr, "  Duplex\n");
-        if ((pkt[9] & DISBIT4))
-            fprintf(stderr, "  JPEG coding\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Ready to transmit a data file (polling)\n");
     }
     if ((pkt[9] & DISBIT5))
-        fprintf(stderr, "  Full colour mode\n");
-    if (pkt[2] == T30_DCS)
-    {
-        if ((pkt[9] & DISBIT6))
-            fprintf(stderr, "  Preferred Huffman tables\n");
-    }
-    else
-    {
-        if ((pkt[9] & DISBIT6))
-            fprintf(stderr, "  Set to \"0\": 1\n");
-    }
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Binary file transfer (BFT)\n");
+    if ((pkt[9] & DISBIT6))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Document transfer mode (DTM)\n");
     if ((pkt[9] & DISBIT7))
-        fprintf(stderr, "  12bits/pel component\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Electronic data interchange (EDI)\n");
+    if ((pkt[9] & DISBIT4))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Reserved: 1\n");
     if (!(pkt[9] & DISBIT8))
         return;
+    if (len <= 10)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
 
     if ((pkt[10] & DISBIT1))
-        fprintf(stderr, "  No subsampling (1:1:1)\n");
-    if ((pkt[10] & DISBIT2))
-        fprintf(stderr, "  Custom illuminant\n");
-    if ((pkt[10] & DISBIT3))
-        fprintf(stderr, "  Custom gamut range\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Basic transfer mode (BTM)\n");
+    if (pkt[2] == T30_DCS)
+    {
+        if ((pkt[10] & DISBIT3))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Set to \"0\": 1\n");
+    }
+    else
+    {
+        if ((pkt[10] & DISBIT3))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Ready to transfer a character or mixed mode document (polling)\n");
+    }
     if ((pkt[10] & DISBIT4))
-        fprintf(stderr, "  North American Letter (215.9mm x 279.4mm)\n");
-    if ((pkt[10] & DISBIT5))
-        fprintf(stderr, "  North American Legal (215.9mm x 355.6mm)\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Character mode\n");
     if ((pkt[10] & DISBIT6))
-        fprintf(stderr, "  Single-progression sequential coding (Rec. T.85) basic\n");
-    if ((pkt[10] & DISBIT7))
-        fprintf(stderr, "  Single-progression sequential coding (Rec. T.85) optional L0\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Mixed mode (Annex E/T.4)\n");
+    if ((pkt[10] & (DISBIT2 | DISBIT5 | DISBIT7)))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Reserved: 0x%X\n", (pkt[10] & (DISBIT2 | DISBIT5 | DISBIT7)));
     if (!(pkt[10] & DISBIT8))
         return;
+    if (len <= 11)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
 
     if ((pkt[11] & DISBIT1))
-        fprintf(stderr, "  HKM key management\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Processable mode 26 (Rec. T.505)\n");
     if ((pkt[11] & DISBIT2))
-        fprintf(stderr, "  RSA key management\n");
-    if ((pkt[11] & DISBIT3))
-        fprintf(stderr, "  Override\n");
-    if ((pkt[11] & DISBIT4))
-        fprintf(stderr, "  HFX40 cipher\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Digital network\n");
+    if (pkt[2] == T30_DCS)
+    {
+        if ((pkt[11] & DISBIT3))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Duplex or half-duplex\n");
+        if ((pkt[11] & DISBIT4))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Full colour mode\n");
+    }
+    else
+    {
+        if ((pkt[11] & DISBIT3))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Duplex\n");
+        if ((pkt[11] & DISBIT4))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  JPEG coding\n");
+    }
     if ((pkt[11] & DISBIT5))
-        fprintf(stderr, "  Alternative cipher number 2\n");
-    if ((pkt[11] & DISBIT6))
-        fprintf(stderr, "  Alternative cipher number 3\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Full colour mode\n");
+    if (pkt[2] == T30_DCS)
+    {
+        if ((pkt[11] & DISBIT6))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Preferred Huffman tables\n");
+    }
+    else
+    {
+        if ((pkt[11] & DISBIT6))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Set to \"0\": 1\n");
+    }
     if ((pkt[11] & DISBIT7))
-        fprintf(stderr, "  HFX40-I hashing\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  12bits/pel component\n");
     if (!(pkt[11] & DISBIT8))
         return;
+    if (len <= 12)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
 
     if ((pkt[12] & DISBIT1))
-        fprintf(stderr, "  Alternative hashing system 2\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  No subsampling (1:1:1)\n");
     if ((pkt[12] & DISBIT2))
-        fprintf(stderr, "  Alternative hashing system 3\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Custom illuminant\n");
     if ((pkt[12] & DISBIT3))
-        fprintf(stderr, "  Reserved for future security features\n");
-    if ((pkt[12] & (DISBIT4 | DISBIT5 | DISBIT6)))
-        fprintf(stderr, "  T.44 (Mixed Raster Content): 0x%X\n", (pkt[12] & (DISBIT4 | DISBIT5 | DISBIT6)));
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Custom gamut range\n");
+    if ((pkt[12] & DISBIT4))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  North American Letter (215.9mm x 279.4mm)\n");
+    if ((pkt[12] & DISBIT5))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  North American Legal (215.9mm x 355.6mm)\n");
     if ((pkt[12] & DISBIT6))
-        fprintf(stderr, "  Page length maximum stripe size for T.44 (Mixed Raster Content)\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Single-progression sequential coding (Rec. T.85) basic\n");
+    if ((pkt[12] & DISBIT7))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Single-progression sequential coding (Rec. T.85) optional L0\n");
     if (!(pkt[12] & DISBIT8))
         return;
+    if (len <= 13)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
 
     if ((pkt[13] & DISBIT1))
-        fprintf(stderr, "  Colour/gray-scale 300pels/25.4mm x 300lines/25.4mm or 400pels/25.4mm x 400lines/25.4mm resolution\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  HKM key management\n");
     if ((pkt[13] & DISBIT2))
-        fprintf(stderr, "  100pels/25.4mm x 100lines/25.4mm for colour/gray scale\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  RSA key management\n");
     if ((pkt[13] & DISBIT3))
-        fprintf(stderr, "  Simple phase C BFT negotiations\n");
-    if (pkt[2] == T30_DCS)
-    {
-        if ((pkt[13] & DISBIT4))
-            fprintf(stderr, "  Set to \"0\": 1\n");
-        if ((pkt[13] & DISBIT5))
-            fprintf(stderr, "  Set to \"0\": 1\n");
-    }
-    else
-    {
-        if ((pkt[13] & DISBIT4))
-            fprintf(stderr, "  Reserved for Extended BFT Negotiations capable\n");
-        if ((pkt[13] & DISBIT5))
-            fprintf(stderr, "  Internet Selective Polling address (ISP)\n");
-    }
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Override\n");
+    if ((pkt[13] & DISBIT4))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  HFX40 cipher\n");
+    if ((pkt[13] & DISBIT5))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Alternative cipher number 2\n");
     if ((pkt[13] & DISBIT6))
-        fprintf(stderr, "  Internet Routing Address (IRA)\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Alternative cipher number 3\n");
     if ((pkt[13] & DISBIT7))
-        fprintf(stderr, "  Reserved: 1\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  HFX40-I hashing\n");
     if (!(pkt[13] & DISBIT8))
         return;
+    if (len <= 14)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
 
     if ((pkt[14] & DISBIT1))
-        fprintf(stderr, "  600pels/25.4mm x 600lines/25.4mm\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Alternative hashing system 2\n");
     if ((pkt[14] & DISBIT2))
-        fprintf(stderr, "  1200pels/25.4mm x 1200lines/25.4mm\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Alternative hashing system 3\n");
     if ((pkt[14] & DISBIT3))
-        fprintf(stderr, "  300pels/25.4mm x 600lines/25.4mm\n");
-    if ((pkt[14] & DISBIT4))
-        fprintf(stderr, "  400pels/25.4mm x 800lines/25.4mm\n");
-    if ((pkt[14] & DISBIT5))
-        fprintf(stderr, "  600pels/25.4mm x 1200lines/25.4mm\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Reserved for future security features\n");
+    if ((pkt[14] & (DISBIT4 | DISBIT5 | DISBIT6)))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  T.44 (Mixed Raster Content): 0x%X\n", (pkt[14] & (DISBIT4 | DISBIT5 | DISBIT6)));
     if ((pkt[14] & DISBIT6))
-        fprintf(stderr, "  Colour/gray scale 600pels/25.4mm x 600lines/25.4mm\n");
-    if ((pkt[14] & DISBIT7))
-        fprintf(stderr, "  Colour/gray scale 1200pels/25.4mm x 1200lines/25.4mm\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Page length maximum stripe size for T.44 (Mixed Raster Content)\n");
     if (!(pkt[14] & DISBIT8))
         return;
+    if (len <= 15)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
 
     if ((pkt[15] & DISBIT1))
-        fprintf(stderr, "  Double sided printing capability (alternate mode)\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Colour/gray-scale 300pels/25.4mm x 300lines/25.4mm or 400pels/25.4mm x 400lines/25.4mm resolution\n");
     if ((pkt[15] & DISBIT2))
-        fprintf(stderr, "  Double sided printing capability (continuous mode)\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  100pels/25.4mm x 100lines/25.4mm for colour/gray scale\n");
+    if ((pkt[15] & DISBIT3))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Simple phase C BFT negotiations\n");
     if (pkt[2] == T30_DCS)
     {
-        if ((pkt[15] & DISBIT3))
-            fprintf(stderr, "  Black and white mixed raster content profile (MRCbw)\n");
+        if ((pkt[15] & DISBIT4))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Set to \"0\": 1\n");
+        if ((pkt[15] & DISBIT5))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Set to \"0\": 1\n");
     }
     else
     {
-        if ((pkt[15] & DISBIT3))
-            fprintf(stderr, "  Set to \"0\": 1\n");
+        if ((pkt[15] & DISBIT4))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Reserved for Extended BFT Negotiations capable\n");
+        if ((pkt[15] & DISBIT5))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Internet Selective Polling address (ISP)\n");
     }
-    if ((pkt[15] & DISBIT4))
-        fprintf(stderr, "  T.45 run length colour encoded\n");
-    fprintf(stderr, "  Shared memory ");
-    switch (pkt[15] & (DISBIT5 | DISBIT6))
-    {
-    case 0:
-        fprintf(stderr, "not available\n");
-        break;
-    case DISBIT5:
-        fprintf(stderr, "level 1 = 1.0M bytes\n");
-        break;
-    case DISBIT6:
-        fprintf(stderr, "level 2 = 2.0M bytes\n");
-        break;
-    case DISBIT5 | DISBIT6:
-        fprintf(stderr, "level 3 = unlimited (i.e. >=32M bytes)\n");
-        break;
-    }
+    if ((pkt[15] & DISBIT6))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Internet Routing Address (IRA)\n");
     if ((pkt[15] & DISBIT7))
-        fprintf(stderr, "  Reserved: 1\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Reserved: 1\n");
     if (!(pkt[15] & DISBIT8))
         return;
+    if (len <= 16)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
 
     if ((pkt[16] & DISBIT1))
-        fprintf(stderr, "  Flow control capability for T.38 communication\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  600pels/25.4mm x 600lines/25.4mm\n");
     if ((pkt[16] & DISBIT2))
-        fprintf(stderr, "  K>4\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  1200pels/25.4mm x 1200lines/25.4mm\n");
     if ((pkt[16] & DISBIT3))
-        fprintf(stderr, "  Internet aware T.38 mode fax device capability\n");
-    fprintf(stderr, "  T.89 (Application profiles for ITU-T Rec T.8)");
-    switch (pkt[16] & (DISBIT4 | DISBIT5 | DISBIT6))
-    {
-    case 0:
-        fprintf(stderr, "not used\n");
-        break;
-    case DISBIT6:
-        fprintf(stderr, "profile 1\n");
-        break;
-    case DISBIT5:
-        fprintf(stderr, "profile 2\n");
-        break;
-    case DISBIT5 | DISBIT6:
-        fprintf(stderr, "profile 3\n");
-        break;
-    case DISBIT4:
-        fprintf(stderr, "profiles 2 and 3\n");
-        break;
-    case DISBIT4 | DISBIT6:
-        fprintf(stderr, "reserved\n");
-        break;
-    case DISBIT4 | DISBIT5:
-        fprintf(stderr, "reserved\n");
-        break;
-    case DISBIT4 | DISBIT5 | DISBIT6:
-        fprintf(stderr, "reserved\n");
-        break;
-    }
+        span_log(&s->logging, SPAN_LOG_FLOW, "  300pels/25.4mm x 600lines/25.4mm\n");
+    if ((pkt[16] & DISBIT4))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  400pels/25.4mm x 800lines/25.4mm\n");
+    if ((pkt[16] & DISBIT5))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  600pels/25.4mm x 1200lines/25.4mm\n");
+    if ((pkt[16] & DISBIT6))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Colour/gray scale 600pels/25.4mm x 600lines/25.4mm\n");
     if ((pkt[16] & DISBIT7))
-        fprintf(stderr, "  sYCC-JPEG coding\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Colour/gray scale 1200pels/25.4mm x 1200lines/25.4mm\n");
     if (!(pkt[16] & DISBIT8))
         return;
+    if (len <= 17)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
 
-    fprintf(stderr, "  Extended beyond the current T.30 specification!\n");
+    if ((pkt[17] & DISBIT1))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Double sided printing capability (alternate mode)\n");
+    if ((pkt[17] & DISBIT2))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Double sided printing capability (continuous mode)\n");
+    if (pkt[2] == T30_DCS)
+    {
+        if ((pkt[17] & DISBIT3))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Black and white mixed raster content profile (MRCbw)\n");
+    }
+    else
+    {
+        if ((pkt[17] & DISBIT3))
+            span_log(&s->logging, SPAN_LOG_FLOW, "  Set to \"0\": 1\n");
+    }
+    if ((pkt[17] & DISBIT4))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  T.45 run length colour encoded\n");
+    span_log(&s->logging, SPAN_LOG_FLOW, "  Shared memory ");
+    switch (pkt[17] & (DISBIT5 | DISBIT6))
+    {
+    case 0:
+        span_log(&s->logging, SPAN_LOG_FLOW, "not available\n");
+        break;
+    case DISBIT5:
+        span_log(&s->logging, SPAN_LOG_FLOW, "level 1 = 1.0M bytes\n");
+        break;
+    case DISBIT6:
+        span_log(&s->logging, SPAN_LOG_FLOW, "level 2 = 2.0M bytes\n");
+        break;
+    case DISBIT5 | DISBIT6:
+        span_log(&s->logging, SPAN_LOG_FLOW, "level 3 = unlimited (i.e. >=32M bytes)\n");
+        break;
+    }
+    if ((pkt[17] & DISBIT7))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Reserved: 1\n");
+    if (!(pkt[17] & DISBIT8))
+        return;
+    if (len <= 18)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Frame is short\n");
+        return;
+    }
+
+    if ((pkt[18] & DISBIT1))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Flow control capability for T.38 communication\n");
+    if ((pkt[18] & DISBIT2))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  K>4\n");
+    if ((pkt[18] & DISBIT3))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  Internet aware T.38 mode fax device capability\n");
+    span_log(&s->logging, SPAN_LOG_FLOW, "  T.89 (Application profiles for ITU-T Rec T.8)");
+    switch (pkt[18] & (DISBIT4 | DISBIT5 | DISBIT6))
+    {
+    case 0:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "not used\n");
+        break;
+    case DISBIT6:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "profile 1\n");
+        break;
+    case DISBIT5:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "profile 2\n");
+        break;
+    case DISBIT5 | DISBIT6:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "profile 3\n");
+        break;
+    case DISBIT4:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "profiles 2 and 3\n");
+        break;
+    case DISBIT4 | DISBIT6:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "reserved\n");
+        break;
+    case DISBIT4 | DISBIT5:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "reserved\n");
+        break;
+    case DISBIT4 | DISBIT5 | DISBIT6:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "reserved\n");
+        break;
+    }
+    if ((pkt[18] & DISBIT7))
+        span_log(&s->logging, SPAN_LOG_FLOW, "  sYCC-JPEG coding\n");
+    if (!(pkt[18] & DISBIT8))
+        return;
+
+    span_log(&s->logging, SPAN_LOG_FLOW, "  Extended beyond the current T.30 specification!\n");
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -2406,6 +2443,7 @@ int fax_init(t30_state_t *s, int calling_party, void *user_data)
 {
     memset(s, 0, sizeof(*s));
     s->phase = T30_PHASE_IDLE;
+    s->current_status = T30_ERR_OK;
 #if defined(ENABLE_V17)
     s->bit_rate = 14400;
     s->modem_type = T30_MODEM_V17;
@@ -2559,7 +2597,7 @@ int fax_tx_process(t30_state_t *s, int16_t *buf, int max_len)
                    through the system, so it is safe to report the end of the
                    call. */
                 if (s->phase_e_handler)
-                    s->phase_e_handler(s, s->phase_e_user_data, TRUE);
+                    s->phase_e_handler(s, s->phase_e_user_data, s->current_status);
                 set_phase(s, T30_PHASE_CALL_FINISHED);
             }
         }

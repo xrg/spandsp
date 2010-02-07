@@ -18,7 +18,7 @@
 
 MAINTAINERCLEANFILES = Makefile.in
 
-INCLUDES = -I$(top_buildir)
+INCLUDES = -I$(top_builddir)
 
 lib_LTLIBRARIES = libspandsp.la
 
@@ -31,10 +31,13 @@ libspandsp_la_SOURCES = adsi.c \
                         ec_disable_detector.c \
                         echo.c \
                         fsk.c \
+                        g722_encode.c \
+                        g722_decode.c \
                         hdlc.c \
                         ima_adpcm.c \
                         logging.c \
                         modem_echo.c \
+                        noise.c \
                         oki_adpcm.c \
                         oss.c \
                         playout.c \
@@ -81,11 +84,13 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/fir.h \
                         spandsp/fsk.h \
                         spandsp/g168models.h \
+                        spandsp/g722.h \
                         spandsp/hdlc.h \
                         spandsp/ima_adpcm.h \
                         spandsp/logging.h \
                         spandsp/mmx.h \
                         spandsp/modem_echo.h \
+                        spandsp/noise.h \
                         spandsp/oss.h \
                         spandsp/oki_adpcm.h \
                         spandsp/playout.h \

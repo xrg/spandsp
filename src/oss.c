@@ -23,12 +23,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oss.c,v 1.5 2005/08/31 19:27:52 steveu Exp $
+ * $Id: oss.c,v 1.6 2005/09/28 17:11:49 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+
+#if defined(HAVE_SYS_SOUNDCARD_H)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -224,3 +226,4 @@ int main(int argc, char *argv[])
 /*- End of function --------------------------------------------------------*/
 #endif
 /*- End of file ------------------------------------------------------------*/
+#endif

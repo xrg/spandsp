@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.12 2005/06/27 17:25:52 steveu Exp $
+ * $Id: t31.h,v 1.17 2005/10/10 22:17:17 steveu Exp $
  */
 
 /*! \file */
@@ -46,8 +46,10 @@ typedef int (t31_at_tx_handler_t)(t31_state_t *s, void *user_data, const uint8_t
 
 enum t31_rx_mode_e
 {
-    AT_MODE_COMMAND,
+    AT_MODE_ONHOOK_COMMAND,
+    AT_MODE_OFFHOOK_COMMAND,
     AT_MODE_CONNECTED,
+    AT_MODE_DELIVERY,
     AT_MODE_HDLC,
     AT_MODE_STUFFED
 };
@@ -59,8 +61,11 @@ enum t31_call_event_e
     T31_CALL_EVENT_ANSWERED,
     T31_CALL_EVENT_BUSY,
     T31_CALL_EVENT_NO_DIALTONE,
-    T31_CALL_EVENT_NO_ANSWER
+    T31_CALL_EVENT_NO_ANSWER,
+    T31_CALL_EVENT_HANGUP
 };
+
+#define T31_TX_BUF_LEN      (4096*32)
 
 typedef struct
 {
@@ -69,6 +74,7 @@ typedef struct
     int result_code_format;
     int pulse_dial;
     int double_escape;
+    int adaptive_receive;
     uint8_t s_regs[100];
 } t31_profile_t;
 
@@ -89,12 +95,18 @@ struct t31_state_s
     int dte_parity;
     /*! The currently select FAX modem class. 0 = data modem mode. */
     int fclass_mode;
+    int display_callid;
+    int callid_displayed;
+    char *call_date;
+    char *call_time;
+    char *originating_name;
     char *originating_number;
+    char *originating_ani;
     char *destination_number;
     t31_profile_t p;
     uint8_t rx_data[256];
     int rx_data_bytes;
-    uint8_t tx_data[200000]; //[256];
+    uint8_t tx_data[T31_TX_BUF_LEN];
     int tx_in_bytes;
     int tx_data_bytes;
     int bit_no;
@@ -142,9 +154,20 @@ struct t31_state_s
     /*! \brief A V.27ter modem context used when receiving FAXes at 2400bps or
                4800bps */
     v27ter_rx_state_t v27ter_rx;
-    /*! \brief A counter for audio samples when inserting times silences according
+    /*! \brief Rx power meter, use to detect silence */
+    power_meter_t rx_power;
+    int32_t silence_threshold_power;
+
+    /*! \brief A counter for audio samples when inserting timed silences according
                to the ITU specifications. */
     int silent_samples;
+	/*! \brief Samples of silence heard */
+    int silence_heard;
+	/*! \brief Samples of silence awaited */
+    int silence_awaited;
+    /*! \brief Samples elapsed in the current call */
+    int64_t call_samples;
+    int64_t last_dtedata_samples;
     int modem;
     int transmit;
     int short_train;
@@ -160,6 +183,9 @@ struct t31_state_s
     void *call_control_user_data;
     t31_at_tx_handler_t *at_tx_handler;
     void *at_tx_user_data;
+
+    /*! \brief Error and flow logging control */
+    logging_state_t logging;
 };
 
 #ifdef __cplusplus
@@ -168,7 +194,7 @@ extern "C" {
 
 void t31_call_event(t31_state_t *s, int event);
 
-void t31_at_rx(t31_state_t *s, const char *t, int len);
+int t31_at_rx(t31_state_t *s, const char *t, int len);
 
 int t31_rx(t31_state_t *s, int16_t *buf, int max_len);
 

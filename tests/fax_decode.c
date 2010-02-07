@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_decode.c,v 1.7 2005/09/01 17:06:45 steveu Exp $
+ * $Id: fax_decode.c,v 1.8 2005/09/28 17:11:50 steveu Exp $
  */
 
 #define	_ISOC9X_SOURCE	1
@@ -100,15 +100,9 @@ static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
 
 void t4_begin(void)
 {
-    if (t4_rx_init(&t4_state, "fax_decode.tif", T4_COMPRESSION_ITU_T4_2D))
-    {
-        printf("Failed to init\n");
-        exit(0);
-    }
-        
     t4_rx_set_rx_encoding(&t4_state, T4_COMPRESSION_ITU_T4_2D);
-    t4_rx_set_row_resolution(&t4_state, T4_X_RESOLUTION_R8);
-    t4_rx_set_column_resolution(&t4_state, T4_Y_RESOLUTION_FINE);
+    t4_rx_set_column_resolution(&t4_state, T4_X_RESOLUTION_R8);
+    t4_rx_set_row_resolution(&t4_state, T4_Y_RESOLUTION_STANDARD);
     t4_rx_set_columns(&t4_state, 1728);
 
     t4_rx_start_page(&t4_state);
@@ -129,7 +123,6 @@ void t4_end(void)
     printf("Image resolution = %dx%d\n", stats.column_resolution, stats.row_resolution);
     printf("Bad rows = %d\n", stats.bad_rows);
     printf("Longest bad row run = %d\n", stats.longest_bad_row_run);
-    t4_rx_end(&t4_state);
     t4_up = FALSE;
 }
 /*- End of function --------------------------------------------------------*/
@@ -170,6 +163,7 @@ static void v17_put_bit(void *user_data, int bit)
     end_of_page = t4_rx_putbit(&t4_state, bit);
     if (end_of_page)
     {
+        t4_end();
         printf("End of page detected\n");
     }
     //printf("V.17 Rx bit %d - %d\n", rx_bits++, bit);
@@ -212,6 +206,7 @@ static void v29_put_bit(void *user_data, int bit)
     end_of_page = t4_rx_putbit(&t4_state, bit);
     if (end_of_page)
     {
+        t4_end();
         printf("End of page detected\n");
     }
     //printf("V.29 Rx bit %d - %d\n", rx_bits++, bit);
@@ -233,6 +228,7 @@ static void v27ter_put_bit(void *user_data, int bit)
             break;
         case PUTBIT_TRAINING_SUCCEEDED:
             printf("V.27ter Training succeeded\n");
+            t4_begin();
             break;
         case PUTBIT_CARRIER_UP:
             //printf("V.27ter Carrier up\n");
@@ -279,7 +275,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot open wave file '%s'\n", filename);
         exit(2);
     }
-    hdlc_rx_init(&hdlcrx, FALSE, hdlc_accept, NULL);
+    hdlc_rx_init(&hdlcrx, FALSE, FALSE, 1, hdlc_accept, NULL);
     fsk_rx_init(&fsk, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_bit, &hdlcrx);
 #if defined(ENABLE_V17)
     v17_rx_init(&v17, 14400, v17_put_bit, NULL);
@@ -293,6 +289,12 @@ int main(int argc, char *argv[])
     //v29_rx_signal_cutoff(&v29, -45.0);
     v27ter_rx_signal_cutoff(&v27ter, -40.0);
 
+    if (t4_rx_init(&t4_state, "fax_decode.tif", T4_COMPRESSION_ITU_T4_2D))
+    {
+        printf("Failed to init\n");
+        exit(0);
+    }
+        
     for (;;)
     {
         len = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, NB_SAMPLES);
@@ -305,6 +307,7 @@ int main(int argc, char *argv[])
         v29_rx(&v29, amp, len);
         //v27ter_rx(&v27ter, amp, len);
     }
+    t4_rx_end(&t4_state);
 
     if (afCloseFile(inhandle) != 0)
     {

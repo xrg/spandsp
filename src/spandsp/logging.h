@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: logging.h,v 1.2 2005/10/08 04:40:58 steveu Exp $
  */
 
 /*! \file */
@@ -38,6 +38,8 @@
 #define SPAN_LOG_SHOW_PROTOCOL          0x0400
 #define SPAN_LOG_SHOW_VARIANT           0x0800
 #define SPAN_LOG_SHOW_TAG               0x1000
+
+#define SPAN_LOG_SUPPRESS_LABELLING     0x8000
 
 /* Logging severity levels */
 enum
@@ -66,8 +68,32 @@ typedef struct
 extern "C" {
 #endif
 
+/*! Test if logging of a specified severity level is enabled.
+    \brief Test if logging of a specified severity level is enabled.
+    \param s The logging context.
+    \param level The severity level to be tested.
+    \return TRUE if logging is enable, else FALSE.
+*/
+int span_log_test(logging_state_t *s, int level);
+
+/*! Generate a log entry.
+    \brief Generate a log entry.
+    \param s The logging context.
+    \param level The severity level of the entry.
+    \param format ???
+    \return 0 if no output generated, else 1.
+*/
 int span_log(logging_state_t *s, int level, const char *format, ...);
 
+/*! Generate a log entry displaying the contents of a buffer.
+    \brief Generate a log entry displaying the contents of a buffer
+    \param s The logging context.
+    \param level The severity level of the entry.
+    \param tag A label for the log entry.
+    \param buf The buffer to be dumped to the log.
+    \param len The length of buf.
+    \return 0 if no output generated, else 1.
+*/
 int span_log_buf(logging_state_t *s, int level, const char *tag, const uint8_t *buf, int len);
 
 int span_log_init(logging_state_t *s, int level, const char *tag);

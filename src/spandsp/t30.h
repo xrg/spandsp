@@ -273,7 +273,6 @@ struct t30_state_s
     const char *vendor;
     /*! \brief The model of the remote machine, if known, else NULL. */
     const char *model;
-    int verbose;
 
     /*! \brief A pointer to a callback routine to be called when phase B events
         occur. */
@@ -382,6 +381,9 @@ struct t30_state_s
     int image_width;
     char rx_file[256];
     char tx_file[256];
+    int current_status;
+    /*! \brief Error and flow logging control */
+    logging_state_t logging;
 };
 
 typedef struct

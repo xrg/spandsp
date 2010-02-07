@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.40 2005/08/31 19:27:53 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.41 2005/09/28 17:11:49 steveu Exp $
  */
 
 /*! \file */
@@ -730,9 +730,10 @@ static __inline__ complex_t equalizer_get(v27ter_rx_state_t *s)
 
     /* Get the next equalized value. */
     z = complex_set(0.0, 0.0);
+    p = s->eq_step - 1;
     for (i = 0;  i < 2*V27_EQUALIZER_LEN + 1;  i++)
     {
-        p = (s->eq_step + i) & V27_EQUALIZER_MASK;
+        p = (p - 1) & V27_EQUALIZER_MASK;
         z1 = complex_mul(&s->eq_coeff[i], &s->eq_buf[p]);
         z = complex_add(&z, &z1);
     }
@@ -749,12 +750,13 @@ static void tune_equalizer(v27ter_rx_state_t *s, const complex_t *z, const compl
 
     /* Find the x and y mismatch from the exact constellation position. */
     ez = complex_sub(target, z);
-
     ez.re *= s->eq_delta;
     ez.im *= s->eq_delta;
-    for (i = 0;  i <= 2*V27_EQUALIZER_LEN;  i++)
+
+    p = s->eq_step - 1;
+    for (i = 0;  i < 2*V27_EQUALIZER_LEN + 1;  i++)
     {
-        p = (s->eq_step + i) & V27_EQUALIZER_MASK;
+        p = (p - 1) & V27_EQUALIZER_MASK;
         z1 = complex_conj(&s->eq_buf[p]);
         z1 = complex_mul(&ez, &z1);
         s->eq_coeff[i] = complex_add(&s->eq_coeff[i], &z1);
@@ -1236,6 +1238,7 @@ void v27ter_rx_set_put_bit(v27ter_rx_state_t *s, put_bit_func_t put_bit, void *u
 
 int v27ter_rx_restart(v27ter_rx_state_t *s, int rate)
 {
+    span_log(&s->logging, SPAN_LOG_FLOW, "Restarting V.27ter\n");
     if (rate != 4800  &&  rate != 2400)
         return -1;
     s->bit_rate = rate;

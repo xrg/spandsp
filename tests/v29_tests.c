@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29_tests.c,v 1.39 2005/09/01 17:06:46 steveu Exp $
+ * $Id: v29_tests.c,v 1.40 2005/09/28 17:11:50 steveu Exp $
  */
 
 /*! \page v29_tests_page V.29 modem tests
@@ -60,13 +60,12 @@
 
 #define BLOCK_LEN       160
 
-#define IN_FILE_NAME    "v29_samp.wav"
 #define OUT_FILE_NAME   "v29.wav"
 
-int decode_test = FALSE;
+char *decode_test_file = NULL;
+int use_gui = FALSE;
 
 int symbol_no = 0;
-
 int rx_bits = 0;
 
 bert_state_t bert;
@@ -154,7 +153,7 @@ static void v29putbit(void *user_data, int bit)
         return;
     }
 
-    if (decode_test)
+    if (decode_test_file)
         printf("Rx bit %d - %d\n", rx_bits++, bit);
     else
         bert_put_bit(&bert, bit);
@@ -183,10 +182,13 @@ void qam_report(void *user_data, const complex_t *constel, const complex_t *targ
                + (constel->im - target->im)*(constel->im - target->im);
         smooth_power = 0.95*smooth_power + 0.05*fpower;
 #if defined(ENABLE_GUI)
-        update_qam_monitor(constel);
-        //update_qam_carrier_tracking(v29_rx_carrier_frequency(rx));
-        update_qam_carrier_tracking((fpower)  ?  fpower  :  0.001);
-        update_qam_symbol_tracking(v29_rx_symbol_timing_correction(rx));
+        if (use_gui)
+        {
+            update_qam_monitor(constel);
+            //update_qam_carrier_tracking(v29_rx_carrier_frequency(rx));
+            update_qam_carrier_tracking((fpower)  ?  fpower  :  0.001);
+            update_qam_symbol_tracking(v29_rx_symbol_timing_correction(rx));
+        }
 #endif
         printf("%8d [%8.4f, %8.4f] [%8.4f, %8.4f] %8.4f %8.4f %9.4f %7.3f %7.1f\n",
                symbol_no,
@@ -209,7 +211,8 @@ void qam_report(void *user_data, const complex_t *constel, const complex_t *targ
         for (i = 0;  i < len;  i++)
             printf("%3d (%15.5f, %15.5f) -> %15.5f\n", i, coeffs[i].re, coeffs[i].im, power(&coeffs[i]));
 #if defined(ENABLE_GUI)
-        update_qam_equalizer_monitor(coeffs, len);
+        if (use_gui)
+            update_qam_equalizer_monitor(coeffs, len);
 #endif
     }
 }
@@ -241,17 +244,24 @@ int main(int argc, char *argv[])
     test_bps = 9600;
     tep = FALSE;
     line_model_no = 0;
-    decode_test = FALSE;
+    decode_test_file = NULL;
+    use_gui = FALSE;
     for (i = 1;  i < argc;  i++)
     {
         if (strcmp(argv[i], "-d") == 0)
         {
-            decode_test = TRUE;
+            i++;
+            decode_test_file = argv[i];
             continue;
         }
         if (strcmp(argv[i], "-t") == 0)
         {
             tep = TRUE;
+            continue;
+        }
+        if (strcmp(argv[i], "-g") == 0)
+        {
+            use_gui = TRUE;
             continue;
         }
         if (strcmp(argv[i], "-m") == 0)
@@ -283,13 +293,13 @@ int main(int argc, char *argv[])
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
 
-    if (decode_test)
+    if (decode_test_file)
     {
         /* We will decode the audio from a wave file. */
-        inhandle = afOpenFile(IN_FILE_NAME, "r", NULL);
+        inhandle = afOpenFile(decode_test_file, "r", NULL);
         if (inhandle == AF_NULL_FILEHANDLE)
         {
-            fprintf(stderr, "    Cannot open wave file '%s'\n", IN_FILE_NAME);
+            fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
             exit(2);
         }
     }
@@ -324,13 +334,14 @@ int main(int argc, char *argv[])
         exit(2);
     }
 #if defined(ENABLE_GUI)
-    start_qam_monitor(6.0);
+    if (use_gui)
+        start_qam_monitor(6.0);
 #endif
 
     total_samples = 0;
     for (block = 0;  ;  block++)
     {
-        if (decode_test)
+        if (decode_test_file)
         {
             samples = afReadFrames(inhandle,
                                    AF_DEFAULT_TRACK,
@@ -369,13 +380,14 @@ int main(int argc, char *argv[])
             printf("smooth power %f\n", power_meter_dbm0(&power_meter));
         }
         v29_rx(&rx, amp, samples);
-        if (!decode_test  &&  block%500 == 0)
+        if (decode_test_file == NULL  &&  block%500 == 0)
             printf("Noise level is %d\n", noise_level);
     }
-    if (decode_test)
+    if (decode_test_file)
     {
 #if defined(ENABLE_GUI)
-        qam_wait_to_end();
+        if (use_gui)
+            qam_wait_to_end();
 #endif
     }
     else

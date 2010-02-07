@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
         fax_set_phase_b_handler(&mc->fax, phase_b_handler, (void *) (intptr_t) mc->chan);
         fax_set_phase_d_handler(&mc->fax, phase_d_handler, (void *) (intptr_t) mc->chan);
         fax_set_phase_e_handler(&mc->fax, phase_e_handler, (void *) (intptr_t) mc->chan);
-        mc->fax.verbose = 1;
+        mc->fax.logging.level = SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW;
         memset(mc->amp, 0, sizeof(mc->amp));
     }
     for (;;)

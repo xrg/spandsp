@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.c,v 1.8 2005/08/31 19:27:53 steveu Exp $
+ * $Id: v42.c,v 1.10 2005/10/08 04:40:58 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -84,7 +84,7 @@ static __inline__ void lapm_init_header(uint8_t *frame, int command)
     /* Data link connection identifier (0) */
     /* Command/response (0 if answerer, 1 if originator) */
     /* Extended address (1) */
-    frame[0] = (LAPM_DLCI_DTE_TO_DTE << 2) | ((command) ? 0x02 : 0x00) | 0x01;
+    frame[0] = (LAPM_DLCI_DTE_TO_DTE << 2) | ((command)  ?  0x02  :  0x00) | 0x01;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -993,8 +993,8 @@ void lapm_hdlc_underflow(void *user_data)
     uint8_t buf[1024];
     int len;
 
-    span_log(&s->logging, SPAN_LOG_FLOW, "HDLC underflow\n");
     s = (lapm_state_t *) user_data;
+    span_log(&s->logging, SPAN_LOG_FLOW, "HDLC underflow\n");
     if (s->state == LAPM_DATA)
     {
         if (!queue_empty(&(s->tx_queue)))
@@ -1017,7 +1017,7 @@ void lapm_restart(lapm_state_t *s)
     /*endif*/
 #endif
     hdlc_tx_init(&s->hdlc_tx, FALSE, lapm_hdlc_underflow, s);
-    hdlc_rx_init(&s->hdlc_rx, FALSE, lapm_receive, s);
+    hdlc_rx_init(&s->hdlc_rx, FALSE, FALSE, 1, lapm_receive, s);
     /* TODO: This is a bodge! */
     s->t401_timer = -1;
     s->t402_timer = -1;

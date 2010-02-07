@@ -595,7 +595,7 @@ int v17_tx_restart(v17_tx_state_t *s, int rate, int tep, int short_train)
     s->convolution = 0;
     s->scramble_reg = 0x2ECDD5;
     s->in_training = TRUE;
-    s->tep_step = (tep) ?  V17_TRAINING_TEP_LEN  :  0;
+    s->tep_step = (tep)  ?  V17_TRAINING_TEP_LEN  :  0;
     s->short_train = short_train;
     s->training_step = 0;
     s->carrier_phase = 0;

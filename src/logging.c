@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: logging.c,v 1.2 2005/08/31 19:27:52 steveu Exp $
+ * $Id: logging.c,v 1.4 2005/10/08 04:40:57 steveu Exp $
  */
 
 /*! \file */
@@ -69,6 +69,14 @@ static const char *severities[] =
     "DEBUG 3"
 };
 
+int span_log_test(logging_state_t *s, int level)
+{
+    if (s  &&  (s->level & SPAN_LOG_SEVERITY_MASK) >= (level & SPAN_LOG_SEVERITY_MASK))
+        return TRUE;
+    return FALSE;
+}
+/*- End of function --------------------------------------------------------*/
+
 int span_log(logging_state_t *s, int level, const char *format, ...)
 {
     char msg[1024 + 1];
@@ -78,44 +86,37 @@ int span_log(logging_state_t *s, int level, const char *format, ...)
     struct tm *tim;
     time_t now;
 
-    if (s  &&  (s->level & SPAN_LOG_SEVERITY_MASK) >= level)
+    if (span_log_test(s, level))
     {
         va_start(arg_ptr, format);
         len = 0;
-        if ((s->level & SPAN_LOG_SHOW_DATE))
+        if ((level & SPAN_LOG_SUPPRESS_LABELLING) == 0)
         {
-            time(&now);
-            tim = gmtime(&now);
-            sprintf(msg + len,
-                    "%04d/%02d/%02d %02d:%02d:%02d ",
-                    tim->tm_year + 1900,
-                    tim->tm_mon + 1,
-                    tim->tm_mday,
-                    tim->tm_hour,
-                    tim->tm_min,
-                    tim->tm_sec);
-            len += strlen(msg + len);
-        }
-        /*endif*/
-        if ((s->level & SPAN_LOG_SHOW_SEVERITY)  &&  (s->level & SPAN_LOG_SEVERITY_MASK) <= SPAN_LOG_DEBUG_3)
-        {
-            strcpy(msg + len, severities[s->level & SPAN_LOG_SEVERITY_MASK]);
-            len += strlen(msg + len);
-            msg[len++] = ' ';
-        }
-        /*endif*/
-        if ((s->level & SPAN_LOG_SHOW_PROTOCOL)  &&  s->protocol)
-        {
-            strcpy(msg + len, s->protocol);
-            len += strlen(msg + len);
-            msg[len++] = ' ';
-        }
-        /*endif*/
-        if ((s->level & SPAN_LOG_SHOW_TAG)  &&  s->tag)
-        {
-            strcpy(msg + len, s->tag);
-            len += strlen(msg + len);
-            msg[len++] = ' ';
+            if ((s->level & SPAN_LOG_SHOW_DATE))
+            {
+                time(&now);
+                tim = gmtime(&now);
+                snprintf(msg + len,
+                         1024 - len,
+                         "%04d/%02d/%02d %02d:%02d:%02d ",
+                         tim->tm_year + 1900,
+                         tim->tm_mon + 1,
+                         tim->tm_mday,
+                         tim->tm_hour,
+                         tim->tm_min,
+                         tim->tm_sec);
+                len += strlen(msg + len);
+            }
+            /*endif*/
+            if ((s->level & SPAN_LOG_SHOW_SEVERITY)  &&  (s->level & SPAN_LOG_SEVERITY_MASK) <= SPAN_LOG_DEBUG_3)
+                len += snprintf(msg + len, 1024 - len, "%s ", severities[s->level & SPAN_LOG_SEVERITY_MASK]);
+            /*endif*/
+            if ((s->level & SPAN_LOG_SHOW_PROTOCOL)  &&  s->protocol)
+                len += snprintf(msg + len, 1024 - len, "%s ", s->protocol);
+            /*endif*/
+            if ((s->level & SPAN_LOG_SHOW_TAG)  &&  s->tag)
+                len += snprintf(msg + len, 1024 - len, "%s ", s->tag);
+            /*endif*/
         }
         /*endif*/
         len += vsnprintf(msg + len, 1024 - len, format, arg_ptr);
@@ -134,23 +135,18 @@ int span_log(logging_state_t *s, int level, const char *format, ...)
 
 int span_log_buf(logging_state_t *s, int level, const char *tag, const uint8_t *buf, int len)
 {
-    int i;
     char msg[1024];
-    char *t;
+    int i;
+    int msg_len;
     
-    if (s  &&  (s->level & SPAN_LOG_SEVERITY_MASK) >= level)
+    if (span_log_test(s, level))
     {
-        t = msg;
-        strcpy(t, tag);
-        t += strlen(t);
-        *t++ = ' ';
+        msg_len = 0;
+        if (tag)
+            msg_len += snprintf(msg + msg_len, 1024 - msg_len, "%s", tag);
         for (i = 0;  i < len;  i++)
-        {
-            sprintf(t, " %02x", buf[i]);
-            t += 3;
-        }
-        *t++ = '\n';
-        *t = '\0';
+            msg_len += snprintf(msg + msg_len, 1024 - msg_len, " %02x", buf[i]);
+        msg_len += snprintf(msg + msg_len, 1024 - msg_len, "\n");
         return span_log(s, level, msg);
     }
     return 0;

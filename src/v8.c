@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.c,v 1.5 2005/08/31 19:27:53 steveu Exp $
+ * $Id: v8.c,v 1.6 2005/10/08 04:40:58 steveu Exp $
  */
  
 /*! \file */
@@ -47,6 +47,8 @@
 #include "spandsp/fsk.h"
 #include "spandsp/v8.h"
 
+#define ms_to_samples(t)    (((t)*SAMPLE_RATE)/1000)
+
 enum
 {
     V8_WAIT_1S,
@@ -69,34 +71,140 @@ enum
 #define V8_CI_SYNC      1
 #define V8_CM_SYNC      2
 
-void log_supported_modulations(v8_state_t *s, int modulation_schemes)
+void v8_log_supported_modulations(v8_state_t *s, int modulation_schemes)
 {
+    const char *comma;
+    
+    comma = "";
+    span_log(&s->logging, SPAN_LOG_FLOW, "");
     if (modulation_schemes & V8_MOD_V17)
-        span_log(&s->logging, SPAN_LOG_FLOW, "V.17 supported\n");
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.17", comma);
+        comma = ", ";
+    }
     if (modulation_schemes & V8_MOD_V21)
-        span_log(&s->logging, SPAN_LOG_FLOW, "V.21 supported\n");
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.21", comma);
+        comma = ", ";
+    }
     if (modulation_schemes & V8_MOD_V22)
-        span_log(&s->logging, SPAN_LOG_FLOW, "V.22/V.22bis supported\n");
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.22/V.22bis", comma);
+        comma = ", ";
+    }
     if (modulation_schemes & V8_MOD_V23HALF)
-        span_log(&s->logging, SPAN_LOG_FLOW, "V.23 half-duplex supported\n");
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.23 half-duplex", comma);
+        comma = ", ";
+    }
     if (modulation_schemes & V8_MOD_V23)
-        span_log(&s->logging, SPAN_LOG_FLOW, "V.23 duplex supported\n");
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.23 duplex", comma);
+        comma = ", ";
+    }
     if (modulation_schemes & V8_MOD_V26BIS)
-        span_log(&s->logging, SPAN_LOG_FLOW, "V.26bis supported\n");
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.26bis", comma);
+        comma = ", ";
+    }
     if (modulation_schemes & V8_MOD_V26TER)
-        span_log(&s->logging, SPAN_LOG_FLOW, "V.26ter supported\n");
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.26ter", comma);
+        comma = ", ";
+    }
     if (modulation_schemes & V8_MOD_V27TER)
-        span_log(&s->logging, SPAN_LOG_FLOW, "V.27ter supported\n");
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.27ter", comma);
+        comma = ", ";
+    }
     if (modulation_schemes & V8_MOD_V29)
-        span_log(&s->logging, SPAN_LOG_FLOW, "V.29 half-duplex supported\n");
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.29 half-duplex", comma);
+        comma = ", ";
+    }
     if (modulation_schemes & V8_MOD_V32)
-        span_log(&s->logging, SPAN_LOG_FLOW, "V.32/V.32bis supported\n");
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.32/V.32bis", comma);
+        comma = ", ";
+    }
     if (modulation_schemes & V8_MOD_V34HALF)
-        span_log(&s->logging, SPAN_LOG_FLOW, "V.34 half-duplex supported\n");
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.34 half-duplex", comma);
+        comma = ", ";
+    }
     if (modulation_schemes & V8_MOD_V34)
-        span_log(&s->logging, SPAN_LOG_FLOW, "V.34 duplex supported\n");
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.34 duplex", comma);
+        comma = ", ";
+    }
     if (modulation_schemes & V8_MOD_V90)
-        span_log(&s->logging, SPAN_LOG_FLOW, "V.90/V.92 supported\n");
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.90/V.92", comma);
+        comma = ", ";
+    }
+    if (modulation_schemes & V8_MOD_V92)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "%sV.92", comma);
+        comma = ", ";
+    }
+    span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, " supported\n");
+}
+
+void v8_log_selected_modulation(v8_state_t *s, int modulation_scheme)
+{
+    span_log(&s->logging, SPAN_LOG_FLOW, "V.8 result is ");
+    switch (modulation_scheme)
+    {
+    case V8_MOD_V17:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.17 duplex");
+        break;
+    case V8_MOD_V21:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.21 duplex");
+        break;
+    case V8_MOD_V22:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.22/V22.bis duplex");
+        break;
+    case V8_MOD_V23HALF:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.23 half-duplex");
+        break;
+    case V8_MOD_V23:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.23 duplex");
+        break;
+    case V8_MOD_V26BIS:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.23 duplex");
+        break;
+    case V8_MOD_V26TER:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.23 duplex");
+        break;
+    case V8_MOD_V27TER:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.23 duplex");
+        break;
+    case V8_MOD_V29:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.29 half-duplex");
+        break;
+    case V8_MOD_V32:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.32/V32.bis duplex");
+        break;
+    case V8_MOD_V34HALF:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.34 half-duplex");
+        break;
+    case V8_MOD_V34:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.34 duplex");
+        break;
+    case V8_MOD_V90:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.90 duplex");
+        break;
+    case V8_MOD_V92:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "V.92 duplex");
+        break;
+    case V8_MOD_FAILED:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "negotiation failed");
+        break;
+    default:
+        span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "undefined (%d}", modulation_scheme);
+        break;
+    }
+    span_log(&s->logging, SPAN_LOG_FLOW | SPAN_LOG_SUPPRESS_LABELLING, "\n");
 }
 
 static void ci_decode(v8_state_t *s)
@@ -207,7 +315,7 @@ static void cm_jm_decode(v8_state_t *s)
                 /* Skip any future extensions we do not understand */
                 while  ((*++p & 0x38) == 0x10)
                     /* dummy loop */;
-                log_supported_modulations(s, s->far_end_modulations);
+                v8_log_supported_modulations(s, s->far_end_modulations);
             }
         }
     }
@@ -222,6 +330,7 @@ static void put_bit(void *user_data, int bit)
     v8_state_t *s;
     int new_preamble_type;
     int i;
+    const char *tag;
 
     s = user_data;
     if (bit < 0)
@@ -250,21 +359,25 @@ static void put_bit(void *user_data, int bit)
     if (new_preamble_type)
     {
         /* Debug */
-        if (s->preamble_type == V8_CI_SYNC)
+        if (span_log_test(&s->logging, SPAN_LOG_FLOW))
         {
-            span_log(&s->logging, SPAN_LOG_FLOW, "CI: ");
-        }
-        else if (s->preamble_type == V8_CM_SYNC)
-        {
-            if (s->caller)
-                span_log(&s->logging, SPAN_LOG_FLOW, "JM: ");
+            if (s->preamble_type == V8_CI_SYNC)
+            {
+                tag = "CI: ";
+            }
+            else if (s->preamble_type == V8_CM_SYNC)
+            {
+                if (s->caller)
+                    tag = "JM: ";
+                else
+                    tag = "CM: ";
+            }
             else
-                span_log(&s->logging, SPAN_LOG_FLOW, "CM: ");
+            {
+                tag = "??: ";
+            }
+            span_log_buf(&s->logging, SPAN_LOG_FLOW, tag, s->rx_data, s->rx_data_ptr);
         }
-        for (i = 0;  i < s->rx_data_ptr;  i++)
-            span_log(&s->logging, SPAN_LOG_FLOW, " %02x", s->rx_data[i]);
-        span_log(&s->logging, SPAN_LOG_FLOW, "\n");
-        
         /* Decode previous sequence */
         switch (s->preamble_type)
         {
@@ -484,7 +597,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         if (queue_empty(&s->tx_queue))
         {
             s->state = V8_CI_OFF;
-            s->ci_timer = 500*8;
+            s->ci_timer = ms_to_samples(500);
         }
         break;
     case V8_CI_OFF:
@@ -494,7 +607,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         {
             /* Set the Te interval. The spec. says 500ms is the minimum,
                but gives reasons why 1 second is a better value. */
-            s->ci_timer = 1000*8;
+            s->ci_timer = ms_to_samples(1000);
             s->state = V8_HEARD_ANSAM;
             break;
         }
@@ -521,7 +634,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         {
             v8_decode_init(s);
             s->state = V8_CM_ON;
-            s->negotiation_timer = 5000*8;
+            s->negotiation_timer = ms_to_samples(5000);
             send_cm_jm(s, s->available_modulations);
 	}
         break;
@@ -563,7 +676,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         residual_samples = fsk_rx(&s->v21rx, amp, samples);
         if (queue_empty(&s->tx_queue))
         {
-            s->negotiation_timer = 75*8;
+            s->negotiation_timer = ms_to_samples(75);
             s->state = V8_SIGC;
         }
         break;
@@ -584,7 +697,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
                 
             v8_decode_init(s);
             s->state = V8_CM_WAIT;
-            s->negotiation_timer = 5000*8;
+            s->negotiation_timer = ms_to_samples(5000);
         }
         break;
     case V8_CM_WAIT:
@@ -594,7 +707,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
             /* Stop sending ANSam and send JM instead */
             fsk_tx_init(&s->v21tx, &preset_fsk_specs[FSK_V21CH2], get_bit, s);
             /* Set the timeout for JM */
-            s->negotiation_timer = 5000*8; 
+            s->negotiation_timer = ms_to_samples(5000); 
             s->state = V8_JM_ON;
             s->common_modulations = s->available_modulations & s->far_end_modulations;
             s->selected_modulation = select_modulation(s->common_modulations);
@@ -614,7 +727,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         if (s->got_cj)
         {
             /* Stop sending JM, and wait 75 ms */
-            s->negotiation_timer = 75*8;
+            s->negotiation_timer = ms_to_samples(75);
             s->state = V8_SIGA;
             break;
         }
@@ -664,12 +777,12 @@ v8_state_t *v8_init(v8_state_t *s,
     if (s->caller)
     {
         s->state = V8_WAIT_1S;
-        s->negotiation_timer = 1000*8;
+        s->negotiation_timer = ms_to_samples(1000);
     }
     else
     {
         s->state = V8_WAIT_200MS;
-        s->negotiation_timer = 200*8;
+        s->negotiation_timer = ms_to_samples(200);
     }
     if (queue_create(&s->tx_queue, 1024, 0))
         return NULL;

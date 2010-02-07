@@ -2,7 +2,7 @@ Summary:   Steve's DSP library for telephony spans.
 Name:      @PACKAGE@
 Version:   @VERSION@
 Release:   1
-Copyright: GPL
+License:   GPL
 URL:       http://www.soft-switch.org/spandsp
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 Source:    http://www.soft-switch.org/spandsp/@PACKAGE@-@VERSION@.tar.gz

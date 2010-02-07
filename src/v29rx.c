@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.53 2005/08/31 19:27:53 steveu Exp $
+ * $Id: v29rx.c,v 1.54 2005/09/28 17:11:49 steveu Exp $
  */
 
 /*! \file */
@@ -1551,9 +1551,10 @@ static __inline__ complex_t equalizer_get(v29_rx_state_t *s)
 
     /* Get the next equalized value. */
     z = complex_set(0.0, 0.0);
+    p = s->eq_step - 1;
     for (i = 0;  i < 2*V29_EQUALIZER_LEN + 1;  i++)
     {
-        p = (s->eq_step + i) & V29_EQUALIZER_MASK;
+        p = (p - 1) & V29_EQUALIZER_MASK;
         z1 = complex_mul(&s->eq_coeff[i], &s->eq_buf[p]);
         z = complex_add(&z, &z1);
     }
@@ -1573,9 +1574,10 @@ static void tune_equalizer(v29_rx_state_t *s, const complex_t *z, const complex_
     ez.re *= s->eq_delta;
     ez.im *= s->eq_delta;
 
-    for (i = 0;  i <= 2*V29_EQUALIZER_LEN;  i++)
+    p = s->eq_step - 1;
+    for (i = 0;  i < 2*V29_EQUALIZER_LEN + 1;  i++)
     {
-        p = (s->eq_step + i) & V29_EQUALIZER_MASK;
+        p = (p - 1) & V29_EQUALIZER_MASK;
         z1 = complex_conj(&s->eq_buf[p]);
         z1 = complex_mul(&ez, &z1);
         s->eq_coeff[i] = complex_add(&s->eq_coeff[i], &z1);

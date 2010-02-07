@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.c,v 1.13 2005/08/31 19:27:52 steveu Exp $
+ * $Id: hdlc.c,v 1.15 2005/10/08 04:40:57 steveu Exp $
  */
 
 /*! \file */
@@ -234,9 +234,9 @@ void hdlc_rx_bit(hdlc_rx_state_t *s, int new_bit)
         {
         case PUTBIT_CARRIER_UP:
             /* Reset the HDLC receiver. */
-            s->rx_state = FALSE;
             s->len = 0;
-            s->numbits = 0;
+            s->num_bits = 0;
+            s->flags_seen = 0;
         case PUTBIT_CARRIER_DOWN:
         case PUTBIT_TRAINING_SUCCEEDED:
         case PUTBIT_TRAINING_FAILED:
@@ -248,20 +248,21 @@ void hdlc_rx_bit(hdlc_rx_state_t *s, int new_bit)
         }
         return;
     }
-    s->bitbuf |= (new_bit & 1);
-    if ((s->bitbuf & 0x7F) == 0x7E)
+    s->bit_buf |= (new_bit & 1);
+    if ((s->bit_buf & 0x7F) == 0x7E)
     {
-        if ((s->bitbuf & 0x80))
+        if ((s->bit_buf & 0x80))
         {
             /* Hit HDLC abort */
             s->rx_aborts++;
-            s->rx_state = FALSE;
+            s->flags_seen--;
         }
         else
         {
             /* Hit HDLC flag */
-            if (s->rx_state)
+            if (s->flags_seen >= s->framing_ok_threshold)
             {
+                /* We have a frame */
                 if (s->len)
                 {
                     if (s->len >= s->crc_bytes)
@@ -279,7 +280,6 @@ void hdlc_rx_bit(hdlc_rx_state_t *s, int new_bit)
                         }
                         else
                         {
-                            //printf("CRC error - %d bytes\n", s->len);
                             if (s->report_bad_frames)
                             {
                                 s->frame_handler(s->user_data,
@@ -299,36 +299,36 @@ void hdlc_rx_bit(hdlc_rx_state_t *s, int new_bit)
             }
             else
             {
-                s->frame_handler(s->user_data, TRUE, NULL, PUTBIT_FRAMING_OK);
-                s->rx_state = TRUE;
+                if (++s->flags_seen == s->framing_ok_threshold)
+                    s->frame_handler(s->user_data, TRUE, NULL, PUTBIT_FRAMING_OK);
             }
             s->len = 0;
-            s->numbits = 0;
+            s->num_bits = 0;
         }
     }
     else
     {
-        if (s->rx_state  &&  (s->bitbuf & 0x3F) != 0x3E)
+        if (s->flags_seen >= s->framing_ok_threshold  &&  (s->bit_buf & 0x3F) != 0x3E)
         {
-            s->byteinprogress |= ((s->bitbuf & 0x01) << 8);
-            s->byteinprogress >>= 1;
-            if (++s->numbits == 8)
+            s->byte_in_progress |= ((s->bit_buf & 0x01) << 8);
+            s->byte_in_progress >>= 1;
+            if (++s->num_bits == 8)
             {
                 if (s->len >= sizeof(s->buffer))
                 {
                     /* Frame too long */
                     s->rx_length_errors++;
-                    s->rx_state = FALSE;
+                    s->flags_seen--;
                 }
                 else
                 {
-                    s->buffer[s->len++] = s->byteinprogress;
-                    s->numbits = 0;
+                    s->buffer[s->len++] = s->byte_in_progress;
+                    s->num_bits = 0;
                 }
             }
         }
     }
-    s->bitbuf <<= 1;
+    s->bit_buf <<= 1;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -336,22 +336,23 @@ void hdlc_rx_byte(hdlc_rx_state_t *s, int new_byte)
 {
     int i;
 
-    s->bitbuf |= new_byte;
+    s->bit_buf |= new_byte;
     for (i = 0;  i < 8;  i++)
     {
-        if ((s->bitbuf & 0x7F00) == 0x7E00)
+        if ((s->bit_buf & 0x7F00) == 0x7E00)
         {
-            if ((s->bitbuf & 0x8000))
+            if ((s->bit_buf & 0x8000))
             {
                 /* Hit HDLC abort */
                 s->rx_aborts++;
-                s->rx_state = FALSE;
+                s->flags_seen--;
             }
             else
             {
                 /* Hit HDLC flag */
-                if (s->rx_state)
+                if (s->flags_seen >= s->framing_ok_threshold)
                 {
+                    /* We have a frame */
                     if (s->len)
                     {
                         if (s->len >= s->crc_bytes)
@@ -369,7 +370,6 @@ void hdlc_rx_byte(hdlc_rx_state_t *s, int new_byte)
                             }
                             else
                             {
-                                //printf("CRC error - %d bytes\n", s->len);
                                 if (s->report_bad_frames)
                                 {
                                     s->frame_handler(s->user_data,
@@ -389,36 +389,36 @@ void hdlc_rx_byte(hdlc_rx_state_t *s, int new_byte)
                 }
                 else
                 {
-                    s->frame_handler(s->user_data, TRUE, NULL, PUTBIT_FRAMING_OK);
-                    s->rx_state = TRUE;
+                    if (++s->flags_seen == s->framing_ok_threshold)
+                        s->frame_handler(s->user_data, TRUE, NULL, PUTBIT_FRAMING_OK);
                 }
                 s->len = 0;
-                s->numbits = 0;
+                s->num_bits = 0;
             }
         }
         else
         {
-            if (s->rx_state  &&  (s->bitbuf & 0x3F00) != 0x3E00)
+            if (s->flags_seen >= s->framing_ok_threshold  &&  (s->bit_buf & 0x3F00) != 0x3E00)
             {
-                s->byteinprogress |= (s->bitbuf & 0x0100);
-                s->byteinprogress >>= 1;
-                if (++s->numbits == 8)
+                s->byte_in_progress |= (s->bit_buf & 0x0100);
+                s->byte_in_progress >>= 1;
+                if (++s->num_bits == 8)
                 {
                     if (s->len >= sizeof(s->buffer))
                     {
                         /* Frame too long */
                         s->rx_length_errors++;
-                        s->rx_state = FALSE;
+                        s->flags_seen--;
                     }
                     else
                     {
-                        s->buffer[s->len++] = s->byteinprogress;
-                        s->numbits = 0;
+                        s->buffer[s->len++] = s->byte_in_progress;
+                        s->num_bits = 0;
                     }
                 }
             }
         }
-        s->bitbuf <<= 1;
+        s->bit_buf <<= 1;
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -427,113 +427,94 @@ void hdlc_tx_frame(hdlc_tx_state_t *s, const uint8_t *frame, int len)
 {
     int i;
     int j;
-    int byteinprogress;
-    int ones;
+    int byte_in_progress;
     int bits;
     uint32_t crc;
-
+    
     if (s->crc_bytes == 2)
         crc = crc_itu16_calc(frame, len);
     else
         crc = crc_itu32_calc(frame, len);
 
-    bits = 0;
-    if (s->numbits)
+    if (s->num_bits)
     {
         /* Complete the flag byte currently in progress */
-        byteinprogress = 0x7E7E >> (8 - s->numbits);
-        for (bits = 0;  bits < s->numbits;  bits++)
-        {
-            s->buffer[s->len] = (s->buffer[s->len] << 1) | (byteinprogress & 0x01);
-            byteinprogress >>= 1;
-        }
+        s->buffer[s->len] = s->idle_byte >> (8 - s->num_bits);
     }
-    ones = 0;
+    bits = s->num_bits;
+    byte_in_progress = 0;
     while (len--)
     {
-        byteinprogress = *frame++;
+        byte_in_progress |= ((int) *frame++ << 8);
         for (i = 0;  i < 8;  i++)
         {
-            if (byteinprogress & 0x01)
+            if (byte_in_progress & 0x0100)
             {
                 s->buffer[s->len] = (s->buffer[s->len] << 1) | 0x01;
-                if (++ones >= 5)
+                if ((byte_in_progress & 0x1F0) == 0x1F0)
                 {
+                    byte_in_progress &= ~0x1F0;
                     if (++bits == 8)
                     {
                         s->len++;
                         bits = 0;
                     }
                     s->buffer[s->len] <<= 1;
-                    ones = 0;
                 }
             }
             else
             {
                 s->buffer[s->len] <<= 1;
-                ones = 0;
             }
             if (++bits == 8)
             {
                 s->len++;
                 bits = 0;
             }
-            byteinprogress >>= 1;
+            byte_in_progress >>= 1;
         }
     }
     /* Now add the CRC */
     for (j = 0;  j < s->crc_bytes;  j++)
     {
-        byteinprogress = crc & 0xFF;
+        byte_in_progress |= ((crc & 0xFF) << 8);
         for (i = 0;  i < 8;  i++)
         {
-            if (byteinprogress & 0x01)
+            if (byte_in_progress & 0x0100)
             {
                 s->buffer[s->len] = (s->buffer[s->len] << 1) | 0x01;
-                if (++ones >= 5)
+                if ((byte_in_progress & 0x1F0) == 0x1F0)
                 {
+                    byte_in_progress &= ~0x1F0;
                     if (++bits == 8)
                     {
                         s->len++;
                         bits = 0;
                     }
                     s->buffer[s->len] <<= 1;
-                    ones = 0;
                 }
             }
             else
             {
                 s->buffer[s->len] <<= 1;
-                ones = 0;
             }
             if (++bits == 8)
             {
                 s->len++;
                 bits = 0;
             }
-            byteinprogress >>= 1;
+            byte_in_progress >>= 1;
         }
         crc >>= 8;
     }
     /* Finish off the current byte with some flag bits. If we are at the
        start of a byte we need a whole byte of flag to ensure we cannot
        end up with back to back frames, and no flag byte at all */
-    s->numbits = bits;
-    byteinprogress = 0x7E7E;
-    while (bits++ < 8)
-    {
-        s->buffer[s->len] <<= 1;
-        s->buffer[s->len] |= (byteinprogress & 0x01);
-        byteinprogress >>= 1;
-    }
-    s->len++;
-    /* Now a full byte of flag */
-    for (bits = 0;  bits < 8;  bits++)
-    {
-        s->idle_byte = (s->idle_byte << 1) | (byteinprogress & 0x01);
-        byteinprogress >>= 1;
-    }
-    s->idle_byte &= 0xFF;
+    s->buffer[s->len] <<= (8 - bits);
+    s->buffer[s->len++] |= (0x7E >> bits);
+    /* Now create a full byte of flag */
+    s->num_bits = bits;
+    s->idle_byte = (0x7E7E >> s->num_bits) & 0xFF;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -591,6 +572,8 @@ int hdlc_tx_getbit(hdlc_tx_state_t *s)
 
 hdlc_rx_state_t *hdlc_rx_init(hdlc_rx_state_t *s,
                               int crc32,
+                              int report_bad_frames,
+                              int framing_ok_threshold,
                               hdlc_frame_handler_t handler,
                               void *user_data)
 {
@@ -598,14 +581,9 @@ hdlc_rx_state_t *hdlc_rx_init(hdlc_rx_state_t *s,
     s->frame_handler = handler;
     s->user_data = user_data;
     s->crc_bytes = (crc32)  ?  4  :  2;
+    s->report_bad_frames = report_bad_frames;
+    s->framing_ok_threshold = (framing_ok_threshold < 1)  ?  1  :  framing_ok_threshold;
     return s;
-}
-/*- End of function --------------------------------------------------------*/
-
-void hdlc_rx_bad_frame_control(hdlc_rx_state_t *s,
-                               int report)
-{
-    s->report_bad_frames = report;
 }
 /*- End of function --------------------------------------------------------*/
 

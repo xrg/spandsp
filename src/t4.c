@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.34 2005/08/31 19:27:52 steveu Exp $
+ * $Id: t4.c,v 1.35 2005/09/28 17:11:49 steveu Exp $
  */
 
 /*
@@ -2000,7 +2000,23 @@ void t4_get_transfer_statistics(t4_state_t *s, t4_stats_t *t)
     t->image_size = s->image_size;
 }
 /*- End of function --------------------------------------------------------*/
+
+const char *t4_encoding_to_str(int encoding)
+{
+    switch (encoding)
+    {
+    case T4_COMPRESSION_ITU_T4_1D:
+        return "T.4 1-D";
+    case T4_COMPRESSION_ITU_T4_2D:
+        return "T.4 2-D";
+    case T4_COMPRESSION_ITU_T6:
+        return "T.6";
+    }
+    return "???";
+}
+/*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/
+
 #if 0
 uint32_t encode_faxrecvparams(void)
 {

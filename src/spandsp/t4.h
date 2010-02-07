@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.14 2005/06/26 16:43:58 steveu Exp $
+ * $Id: t4.h,v 1.15 2005/09/28 17:11:50 steveu Exp $
  */
 
 /*! \file */
@@ -404,6 +404,13 @@ int t4_tx_get_columns(t4_state_t *s);
     \param t A pointer to a statistics structure.
 */
 void t4_get_transfer_statistics(t4_state_t *s, t4_stats_t *t);
+
+/*! Get the short text name of an encoding format. 
+    \brief Get the short text name of an encoding format.
+    \param encoding The encoding type.
+    \return A pointer to the string.
+*/
+const char *t4_encoding_to_str(int encoding);
 
 #ifdef __cplusplus
 }

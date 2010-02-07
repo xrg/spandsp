@@ -193,7 +193,13 @@ target_alias = @target_alias@
 noinst_SCRIPTS = spandsp.spec
 nobase_data_DATA = spandsp/global-tones.xml spandsp/tones.dtd
 MAINTAINERCLEANFILES = Makefile.in
-EXTRA_DIST = DueDiligence spandsp.spec doc/libspandsp-doxygen spandsp/global-tones.xml spandsp/tones.dtd
+EXTRA_DIST = DueDiligence \
+             spandsp.spec \
+             wrapper.xsl \
+             doc/libspandsp-doxygen \
+             spandsp/global-tones.xml \
+             spandsp/tones.dtd
+
 @COND_DOC_TRUE@MAYBE_DOC = doc
 @COND_TESTS_TRUE@MAYBE_TESTS = tests
 @COND_ITUTESTS_TRUE@MAYBE_ITUTESTS = itutests
@@ -645,7 +651,7 @@ uninstall-info: uninstall-info-recursive
 
 
 faq: faq.xml
-	docbook2html -o faq faq.xml
+	cd faq ; xsltproc ../wrapper.xsl ../faq.xml
 
 rpm: rpm-build
 

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8_tests.c,v 1.2 2005/09/01 17:06:46 steveu Exp $
+ * $Id: v8_tests.c,v 1.3 2005/10/08 04:40:58 steveu Exp $
  */
 
 #define	_ISOC9X_SOURCE	1
@@ -48,7 +48,11 @@
 
 void handler(void *user_data, int result)
 {
-    printf("V.8 result is %d\n", result);
+    v8_state_t *s;
+    
+    s = (v8_state_t *) user_data;
+    
+    v8_log_selected_modulation(s, result);
 }
 
 int main(int argc, char *argv[])
@@ -84,12 +88,16 @@ int main(int argc, char *argv[])
     outhandle = afOpenFile("v8.wav", "w", filesetup);
     if (outhandle == AF_NULL_FILEHANDLE)
     {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", "v17.wav");
+        fprintf(stderr, "    Cannot create wave file '%s'\n", "v8.wav");
         exit(2);
     }
 
-    v8_init(&v8_caller, TRUE, 0xFFFFFFFF, handler, NULL);
-    v8_init(&v8_answerer, FALSE, 0xFFFFFFFF, handler, NULL);
+    v8_init(&v8_caller, TRUE, 0xFFFFFFFF, handler, &v8_caller);
+    v8_init(&v8_answerer, FALSE, 0xFFFFFFFF, handler, &v8_answerer);
+    v8_caller.logging.level = SPAN_LOG_FLOW | SPAN_LOG_SHOW_TAG;
+    v8_caller.logging.tag = "caller";
+    v8_answerer.logging.level = SPAN_LOG_FLOW | SPAN_LOG_SHOW_TAG;
+    v8_answerer.logging.tag = "answerer";
     for (i = 0;  i < 1000;  i++)
     {
         samples = v8_tx(&v8_caller, amp, SAMPLES_PER_CHUNK);
@@ -125,7 +133,7 @@ int main(int argc, char *argv[])
     }
     if (afCloseFile(outhandle))
     {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", "v17.wav");
+        fprintf(stderr, "    Cannot close wave file '%s'\n", "v8.wav");
         exit(2);
     }
     return  0;

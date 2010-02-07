@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc_tests.c,v 1.9 2005/09/01 17:06:45 steveu Exp $
+ * $Id: hdlc_tests.c,v 1.10 2005/09/28 17:11:50 steveu Exp $
  */
 
 //#define _ISOC9X_SOURCE  1
@@ -129,11 +129,11 @@ int main(int argc, char *argv[])
     /* Now try sending HDLC messages with CRC-16 */
     printf("Testing with CRC-16\n");
     hdlc_tx_init(&tx, FALSE, NULL, NULL);
-    hdlc_rx_init(&rx, FALSE, frame_handler, NULL);
+    hdlc_rx_init(&rx, FALSE, FALSE, 1, frame_handler, NULL);
 
     hdlc_tx_preamble(&tx, 40);
     len = 2;
-    for (i = 0;  i < 10000;  i++)
+    for (i = 0;  i < 1000000;  i++)
     {
         nextbyte = hdlc_tx_getbyte(&tx);
         //printf("%x\n", nextbyte);
@@ -158,11 +158,11 @@ int main(int argc, char *argv[])
     /* Now try sending HDLC messages with CRC-32 */
     printf("Testing with CRC-32\n");
     hdlc_tx_init(&tx, TRUE, NULL, NULL);
-    hdlc_rx_init(&rx, TRUE, frame_handler, NULL);
+    hdlc_rx_init(&rx, TRUE, FALSE, 1, frame_handler, NULL);
 
     hdlc_tx_preamble(&tx, 40);
     len = 2;
-    for (i = 0;  i < 10000;  i++)
+    for (i = 0;  i < 1000000;  i++)
     {
         nextbyte = hdlc_tx_getbyte(&tx);
         //printf("%x\n", nextbyte);

@@ -338,19 +338,19 @@ static int modem_call_control(t31_state_t *s, void *user_data, const char *num)
         if (num[0])
         {
             /* Dialing */
-            printf("Dialing '%s'\n", num);
+            printf("\nDialing '%s'\n", num);
         }
         else
         {
             /* Answering */
-            printf("Answering\n");
+            printf("\nAnswering\n");
         }
         /*endif*/
     }
     else
     {
         /* Hang up */
-        printf("Answering\n");
+        printf("\nHanging up\n");
     }
     /*endif*/
     return 0;
@@ -372,7 +372,6 @@ int main(int argc, char *argv[])
     AFfilesetup filesetup;
     int i;
     int j;
-    struct machine_s *mc;
     int outframes;
     char buf[128 + 1];
     int16_t silence[SAMPLES_PER_CHUNK];
@@ -477,3 +476,5 @@ int main(int argc, char *argv[])
     }
     return  0;
 }
+/*- End of function --------------------------------------------------------*/
+/*- End of file ------------------------------------------------------------*/

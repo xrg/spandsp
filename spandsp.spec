@@ -2,7 +2,7 @@ Summary:   Steve's DSP library for telephony spans.
 Name:      spandsp
 Version:   0.0.2
 Release:   1
-Copyright: GPL
+License:   GPL
 URL:       http://www.soft-switch.org/spandsp
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 Source:    http://www.soft-switch.org/spandsp/spandsp-0.0.2.tar.gz

@@ -53,6 +53,7 @@
 #include <spandsp/modem_echo.h>
 #include <spandsp/fsk.h>
 #include <spandsp/hdlc.h>
+#include <spandsp/noise.h>
 #include <spandsp/oss.h>
 #include <spandsp/time_scale.h>
 #include <spandsp/tone_detect.h>
@@ -73,15 +74,17 @@
 #include <spandsp/v8.h>
 #include <spandsp/v42.h>
 #include <spandsp/v42bis.h>
-#include <spandsp/t31.h>
 #include <spandsp/t4.h>
 #include <spandsp/t30.h>
 #include <spandsp/t30_fcf.h>
 #include <spandsp/t35.h>
+#include <spandsp/t31.h>
+//#include <spandsp/t38.h>
 //#include <spandsp/fax.h>
 #include <spandsp/adsi.h>
 #include <spandsp/oki_adpcm.h>
 #include <spandsp/ima_adpcm.h>
+#include <spandsp/g722.h>
 #include <spandsp/plc.h>
 #include <spandsp/playout.h>
 

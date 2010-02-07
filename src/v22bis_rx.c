@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.14 2005/08/31 19:27:53 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.15 2005/09/28 17:11:49 steveu Exp $
  */
 
 /*! \file */
@@ -1502,25 +1502,14 @@ static complex_t equalizer_get(v22bis_state_t *s)
 
     /* Get the next equalized value. */
     z = complex_set(0.0, 0.0);
+    p = s->eq_step - 1;
     for (i = 0;  i < 2*V22BIS_EQUALIZER_LEN + 1;  i++)
     {
-        p = (s->eq_step + i) & V22BIS_EQUALIZER_MASK;
+        p = (p - 1) & V22BIS_EQUALIZER_MASK;
         z1 = complex_mul(&s->eq_coeff[i], &s->eq_buf[p]);
         z = complex_add(&z, &z1);
     }
     return z;
-}
-/*- End of function --------------------------------------------------------*/
-
-static inline int find_quadrant(complex_t *z)
-{
-    int b1;
-    int b2;
-
-    /* Split the space along the two diagonals. */
-    b1 = (z->im > z->re);
-    b2 = (z->im < -z->re);
-    return (b2 << 1) | (b1 ^ b2);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1536,9 +1525,10 @@ static void tune_equalizer(v22bis_state_t *s, const complex_t *z, const complex_
     ez.re *= s->eq_delta;
     ez.im *= s->eq_delta;
 
-    for (i = 0;  i <= 2*V22BIS_EQUALIZER_LEN;  i++)
+    p = s->eq_step - 1;
+    for (i = 0;  i < 2*V22BIS_EQUALIZER_LEN + 1;  i++)
     {
-        p = (s->eq_step + i) & V22BIS_EQUALIZER_MASK;
+        p = (p - 1) & V22BIS_EQUALIZER_MASK;
         z1 = complex_conj(&s->eq_buf[p]);
         z1 = complex_mul(&ez, &z1);
         s->eq_coeff[i] = complex_add(&s->eq_coeff[i], &z1);
@@ -1546,6 +1536,18 @@ static void tune_equalizer(v22bis_state_t *s, const complex_t *z, const complex_
         s->eq_coeff[i].re *= 0.9999;
         s->eq_coeff[i].im *= 0.9999;
     }
+}
+/*- End of function --------------------------------------------------------*/
+
+static inline int find_quadrant(complex_t *z)
+{
+    int b1;
+    int b2;
+
+    /* Split the space along the two diagonals. */
+    b1 = (z->im > z->re);
+    b2 = (z->im < -z->re);
+    return (b2 << 1) | (b1 ^ b2);
 }
 /*- End of function --------------------------------------------------------*/
 

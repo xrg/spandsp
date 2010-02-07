@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.h,v 1.4 2005/05/27 14:27:48 steveu Exp $
+ * $Id: v8.h,v 1.5 2005/10/08 04:40:58 steveu Exp $
  */
  
 /*! \file */
@@ -116,6 +116,9 @@ v8_state_t *v8_init(v8_state_t *s,
                     void *user_data);
 int v8_tx(v8_state_t *s, int16_t *amp, int max_samples);
 int v8_rx(v8_state_t *s, const int16_t *amp, int samples);
+
+void v8_log_supported_modulations(v8_state_t *s, int modulation_schemes);
+void v8_log_selected_modulation(v8_state_t *s, int modulation_scheme);
 
 #ifdef __cplusplus
 }
