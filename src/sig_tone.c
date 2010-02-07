@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.c,v 1.2 2004/10/11 13:27:12 steveu Exp $
+ * $Id: sig_tone.c,v 1.5 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
@@ -32,9 +32,14 @@
 #define	_ISOC9X_SOURCE	1
 #define _ISOC99_SOURCE	1
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <math.h>
+#include <memory.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/dc_restore.h"

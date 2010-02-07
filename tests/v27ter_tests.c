@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tests.c,v 1.26 2005/01/29 09:12:06 steveu Exp $
+ * $Id: v27ter_tests.c,v 1.29 2005/09/01 17:06:46 steveu Exp $
  */
 
 /*! \page v27ter_tests_page V.27ter modem tests
@@ -41,7 +41,7 @@
 #define ENABLE_GUI
 #endif
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -243,23 +243,26 @@ int main(int argc, char *argv[])
 
     test_bps = 4800;
     tep = FALSE;
-    line_model_no = 5;
-    i = 1;
-    if (argc > i)
+    line_model_no = 0;
+    decode_test = FALSE;
+    for (i = 1;  i < argc;  i++)
     {
         if (strcmp(argv[i], "-d") == 0)
         {
             decode_test = TRUE;
-            i++;
+            continue;
         }
         if (strcmp(argv[i], "-t") == 0)
         {
             tep = TRUE;
-            i++;
+            continue;
         }
-    }
-    if (argc > i)
-    {
+        if (strcmp(argv[i], "-m") == 0)
+        {
+            i++;
+            line_model_no = atoi(argv[i]);
+            continue;
+        }
         if (strcmp(argv[i], "4800") == 0)
             test_bps = 4800;
         else if (strcmp(argv[i], "2400") == 0)
@@ -269,11 +272,6 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Invalid bit rate\n");
             exit(2);
         }
-    }
-    if (argc > i)
-    {
-        line_model_no = atoi(argv[i]);
-        i++;
     }
     filesetup = afNewFileSetup();
     if (filesetup == AF_NULL_FILESETUP)
@@ -364,10 +362,8 @@ int main(int argc, char *argv[])
             one_way_line_model(line_model, amp, gen_amp, samples);
         }
         v27ter_rx(&rx, amp, samples);
-        if (block%500 == 0)
-        {
+        if (!decode_test  &&  block%500 == 0)
             printf("Noise level is %d\n", noise_level);
-        }
     }
     if (decode_test)
     {

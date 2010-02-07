@@ -5,7 +5,7 @@ Release:   1
 Copyright: GPL
 URL:       http://www.soft-switch.org/spandsp
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
-Source:    http://www.opencall.org/spandsp/spandsp-0.0.2.tar.gz
+Source:    http://www.soft-switch.org/spandsp/spandsp-0.0.2.tar.gz
 
 Group:     System Environment/Libraries
 Obsoletes: spandsp

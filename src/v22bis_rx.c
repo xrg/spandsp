@@ -23,20 +23,25 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.10 2005/03/20 04:07:17 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.14 2005/08/31 19:27:53 steveu Exp $
  */
 
 /*! \file */
 
 /* THIS IS A WORK IN PROGRESS - NOT YET FUNCTIONAL! */
 
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/logging.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/arctan2.h"
 #include "spandsp/complex.h"
@@ -1557,7 +1562,7 @@ static __inline__ void track_carrier(v22bis_state_t *s, const complex_t *z, cons
 
     s->rx_carrier_phase_rate += 500.0*zz.im;
     s->rx_carrier_phase += 1000000.0*zz.im;
-    //fprintf(stderr, "Im = %15.5f   f = %15.5f\n", zz.im, s->rx_carrier_phase_rate*8000.0/(65536.0*65536.0));
+    //span_log(&s->logging, SPAN_LOG_FLOW, "Im = %15.5f   f = %15.5f\n", zz.im, s->rx_carrier_phase_rate*8000.0/(65536.0*65536.0));
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1623,7 +1628,7 @@ static void decode_baud(v22bis_state_t *s, complex_t *z)
         put_bit(s, raw_bits >> 1);
     }
     //track_carrier(s, z, &v22bis_constellation[nearest]);
-printf("Tune eq %10.5f,%10.5f -> %10.5f,%10.5f\n", z->re, z->im, v22bis_constellation[nearest].re, v22bis_constellation[nearest].im);
+span_log(&s->logging, SPAN_LOG_FLOW, "Tune eq %10.5f,%10.5f -> %10.5f,%10.5f\n", z->re, z->im, v22bis_constellation[nearest].re, v22bis_constellation[nearest].im);
     //tune_equalizer(s, z, &v22bis_constellation[nearest]);
     s->rx_constellation_state = nearest;
 }
@@ -1643,10 +1648,8 @@ static void process_baud(v22bis_state_t *s, const complex_t *sample)
     int32_t angle;
     int32_t ang;
 
-    s->rx_rrc_filter[s->rx_rrc_filter_step].re =
-    s->rx_rrc_filter[s->rx_rrc_filter_step + V22BIS_RX_FILTER_STEPS].re = sample->re;
-    s->rx_rrc_filter[s->rx_rrc_filter_step].im =
-    s->rx_rrc_filter[s->rx_rrc_filter_step + V22BIS_RX_FILTER_STEPS].im = sample->im;
+    s->rx_rrc_filter[s->rx_rrc_filter_step] =
+    s->rx_rrc_filter[s->rx_rrc_filter_step + V22BIS_RX_FILTER_STEPS] = *sample;
     if (++s->rx_rrc_filter_step >= V22BIS_RX_FILTER_STEPS)
         s->rx_rrc_filter_step = 0;
 
@@ -1654,7 +1657,7 @@ static void process_baud(v22bis_state_t *s, const complex_t *sample)
        will fiddle the step to align this with the bits. */
     if ((s->eq_put_step -= 12) > 0)
     {
-        //fprintf(stderr, "Samp, %f, %f, %f, 0, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, 0, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
         return;
     }
 
@@ -1675,8 +1678,7 @@ static void process_baud(v22bis_state_t *s, const complex_t *sample)
 
     /* Add a sample to the equalizer's circular buffer, but don't calculate anything
        at this time. */
-    s->eq_buf[s->eq_step].re = z.re;
-    s->eq_buf[s->eq_step].im = z.im;
+    s->eq_buf[s->eq_step] = z;
     s->eq_step = (s->eq_step + 1) & V22BIS_EQUALIZER_MASK;
 
     /* On alternate insertions we have a whole baud and must process it. */
@@ -1697,7 +1699,7 @@ static void process_baud(v22bis_state_t *s, const complex_t *sample)
 
     if (abs(s->gardner_integrate) >= 16)
     {
-fprintf(stderr, "Gardner kick %d\n", s->gardner_integrate);
+span_log(&s->logging, SPAN_LOG_FLOW, "Gardner kick %d\n", s->gardner_integrate);
         /* This integrate and dump approach avoids rapid changes of the equalizer put step.
            Rapid changes, without hysteresis, are bad. They degrade the equalizer performance
            when the true symbol boundary is close to a sample boundary. */
@@ -1710,7 +1712,7 @@ fprintf(stderr, "Gardner kick %d\n", s->gardner_integrate);
 
     z = equalizer_get(s);
 
-fprintf(stderr, "VVV %p %d\n", s->user_data, s->rx_training);
+span_log(&s->logging, SPAN_LOG_FLOW, "VVV %p %d\n", s->user_data, s->rx_training);
     switch (s->rx_training)
     {
     case V22BIS_TRAINING_STAGE_NORMAL_OPERATION:
@@ -1760,13 +1762,13 @@ fprintf(stderr, "VVV %p %d\n", s->user_data, s->rx_training);
                round in 90 degree steps. */
             s->angles[s->rx_training_count - 60] =
             s->start_angles[s->rx_training_count - 60] = angle;
-fprintf(stderr, "WWW %p 0x%08x %d\n", s->user_data, angle, s->rx_training_count);
+span_log(&s->logging, SPAN_LOG_FLOW, "WWW %p 0x%08x %d\n", s->user_data, angle, s->rx_training_count);
             break;
         }
         ang = angle - s->angles[(s->rx_training_count - 64) & 0xF];
-fprintf(stderr, "XXX %p 0x%08x 0x%08x 0x%08x %d\n", s->user_data, ang, angle, s->angles[(s->rx_training_count - 64) & 0xF], s->rx_training_count);
+span_log(&s->logging, SPAN_LOG_FLOW, "XXX %p 0x%08x 0x%08x 0x%08x %d\n", s->user_data, ang, angle, s->angles[(s->rx_training_count - 64) & 0xF], s->rx_training_count);
         s->angles[(s->rx_training_count - 60) & 0xF] = angle;
-printf("TWIDDLING THUMBS - %d\n", s->rx_training_count);
+span_log(&s->logging, SPAN_LOG_FLOW, "TWIDDLING THUMBS - %d\n", s->rx_training_count);
         if (s->rx_training_count == ms_to_symbols(155 + 456))
             s->detected_unscrambled_ones = TRUE;
         if (s->rx_training_count == ms_to_symbols(155 + 457))
@@ -1775,7 +1777,7 @@ printf("TWIDDLING THUMBS - %d\n", s->rx_training_count);
         //    &&
         if (s->rx_training_count != ms_to_symbols(200))
             break;
-fprintf(stderr, "YYY %p 0x%x %d\n", s->user_data, ang, s->rx_training_count);
+span_log(&s->logging, SPAN_LOG_FLOW, "YYY %p 0x%x %d\n", s->user_data, ang, s->rx_training_count);
         /* We seem to have a phase reversal */
         /* Slam the carrier frequency into line, based on the total phase drift over the last
            section. Use the shift from the odd bits and the shift from the even bits to get
@@ -1788,9 +1790,9 @@ fprintf(stderr, "YYY %p 0x%x %d\n", s->user_data, ang, s->rx_training_count);
             + (s->angles[j + 1] - s->start_angles[1])/i;
             + (s->angles[j + 2] - s->start_angles[2])/i;
             + (s->angles[j + 3] - s->start_angles[3])/i;
-        fprintf(stderr, "Coarse carrier frequency %7.2f (%d)\n", s->rx_carrier_phase_rate*8000.0/(65536.0*65536.0), s->rx_training_count);
-printf("0x%X 0x%X 0x%X 0x%X\n", s->start_angles[0], s->start_angles[1], s->start_angles[2], s->start_angles[3]);
-printf("0x%X 0x%X 0x%X 0x%X\n", s->angles[j], s->angles[(j + 1) & 0xF], s->angles[(j + 2) & 0xF], s->angles[(j + 3) & 0xF]);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Coarse carrier frequency %7.2f (%d)\n", s->rx_carrier_phase_rate*8000.0/(65536.0*65536.0), s->rx_training_count);
+span_log(&s->logging, SPAN_LOG_FLOW, "0x%X 0x%X 0x%X 0x%X\n", s->start_angles[0], s->start_angles[1], s->start_angles[2], s->start_angles[3]);
+span_log(&s->logging, SPAN_LOG_FLOW, "0x%X 0x%X 0x%X 0x%X\n", s->angles[j], s->angles[(j + 1) & 0xF], s->angles[(j + 2) & 0xF], s->angles[(j + 3) & 0xF]);
 #if 0
         s->rx_carrier_phase_rate += 3*(ang/40);
         /* Make a step shift in the phase, to pull it into line. We need to rotate the RRC filter

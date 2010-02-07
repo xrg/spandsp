@@ -23,20 +23,24 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.c,v 1.3 2005/02/04 19:19:31 steveu Exp $
+ * $Id: time_scale.c,v 1.7 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
 #include <limits.h>
-
+#include <tgmath.h>
 #include <tiffio.h>
 
 #include "spandsp.h"

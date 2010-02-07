@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo.c,v 1.2 2005/03/03 14:18:58 steveu Exp $
+ * $Id: modem_echo.c,v 1.5 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
@@ -33,11 +33,16 @@
    of the 32 bit values) in the FIR. For the working 16 bit values, we need 4 sets.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <unistd.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/alaw_ulaw.h"

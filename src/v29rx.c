@@ -23,18 +23,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.50 2005/03/28 08:15:21 steveu Exp $
+ * $Id: v29rx.c,v 1.53 2005/08/31 19:27:53 steveu Exp $
  */
 
 /*! \file */
 
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/logging.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/arctan2.h"
 #include "spandsp/complex.h"
@@ -1632,7 +1637,7 @@ static __inline__ void track_carrier(v29_rx_state_t *s, const complex_t *z, cons
        the filter will be damped more to keep us on target. */
     s->carrier_phase_rate += s->carrier_track_i*zz.im;
     s->carrier_phase += s->carrier_track_p*zz.im;
-    //fprintf(stderr, "Im = %15.5f   f = %15.5f\n", zz.im, s->carrier_phase_rate*SAMPLE_RATE/(65536.0*65536.0));
+    //span_log(&s->logging, SPAN_LOG_FLOW, "Im = %15.5f   f = %15.5f\n", zz.im, s->carrier_phase_rate*SAMPLE_RATE/(65536.0*65536.0));
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1654,7 +1659,7 @@ static __inline__ void put_bit(v29_rx_state_t *s, int bit)
     }
     else
     {
-        //fprintf(stderr, "bit %5d %d\n", s->training_cd, out_bit);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "bit %5d %d\n", s->training_cd, out_bit);
         /* The bits during the final stage of training should be all ones. However,
            buggy modems mean you cannot rely on this. Therefore we don't bother
            testing for ones, but just rely on a constellation mismatch measurement. */
@@ -1761,17 +1766,15 @@ static void process_baud(v29_rx_state_t *s, const complex_t *sample)
     int32_t angle;
     int32_t ang;
 
-    s->rrc_filter[s->rrc_filter_step].re =
-    s->rrc_filter[s->rrc_filter_step + V29RX_FILTER_STEPS].re = sample->re;
-    s->rrc_filter[s->rrc_filter_step].im =
-    s->rrc_filter[s->rrc_filter_step + V29RX_FILTER_STEPS].im = sample->im;
+    s->rrc_filter[s->rrc_filter_step] =
+    s->rrc_filter[s->rrc_filter_step + V29RX_FILTER_STEPS] = *sample;
     if (++s->rrc_filter_step >= V29RX_FILTER_STEPS)
         s->rrc_filter_step = 0;
     /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
        will fiddle the step to align this with the bits. */
     if ((s->eq_put_step -= 48) > 0)
     {
-        //fprintf(stderr, "Samp, %f, %f, %f, 0, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, 0, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
         return;
     }
 
@@ -1792,8 +1795,7 @@ static void process_baud(v29_rx_state_t *s, const complex_t *sample)
 
     /* Add a sample to the equalizer's circular buffer, but don't calculate anything
        at this time. */
-    s->eq_buf[s->eq_step].re = z.re;
-    s->eq_buf[s->eq_step].im = z.im;
+    s->eq_buf[s->eq_step] = z;
     s->eq_step = (s->eq_step + 1) & V29_EQUALIZER_MASK;
 
     /* On alternate insertions we have a whole baud, and must process it. */
@@ -1875,7 +1877,7 @@ static void process_baud(v29_rx_state_t *s, const complex_t *sample)
                     + (s->angles[j | 0x1] - s->start_angles[1])/i;
                 s->carrier_phase_rate += 3*(ang/20);
             }
-            fprintf(stderr, "Coarse carrier frequency %7.2f (%d)\n", s->carrier_phase_rate*8000.0/(65536.0*65536.0), i);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Coarse carrier frequency %7.2f (%d)\n", s->carrier_phase_rate*8000.0/(65536.0*65536.0), i);
 
             /* Make a step shift in the phase, to pull it into line. We need to rotate the RRC filter
                buffer and the equalizer buffer, as well as the carrier phase, for this to play out
@@ -1892,7 +1894,7 @@ static void process_baud(v29_rx_state_t *s, const complex_t *sample)
                cannot track the worst case timing error specified in V.29. This should be 0.01%,
                but since we might be off in the opposite direction from the source, the total
                error could be higher. */
-            s->gardner_step = 1;
+            s->gardner_step = 2;
             /* We have just seen the first bit of the scrambled sequence, so skip it. */
             bit = scrambled_training_bit(s);
             s->training_count = 1;
@@ -1904,7 +1906,7 @@ static void process_baud(v29_rx_state_t *s, const complex_t *sample)
             {
                 /* This is bogus. There are not this many bauds in this section
                    of a real training sequence. */
-                fprintf(stderr, "Training failed (sequence failed)\n");
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (sequence failed)\n");
                 /* Park this modem */
                 s->in_training = TRAINING_STAGE_PARKED;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
@@ -1914,7 +1916,7 @@ static void process_baud(v29_rx_state_t *s, const complex_t *sample)
     case TRAINING_STAGE_TRAIN_ON_CDCD:
         /* Train on the scrambled CDCD section. */
         bit = scrambled_training_bit(s);
-        //fprintf(stderr, "%5d %15.5f, %15.5f     %15.5f, %15.5f\n", s->training_count, z.re, z.im, v29_constellation[cdcd_pos[s->training_cd + bit]].re, v29_constellation[cdcd_pos[s->training_cd + bit]].im);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "%5d %15.5f, %15.5f     %15.5f, %15.5f\n", s->training_count, z.re, z.im, v29_constellation[cdcd_pos[s->training_cd + bit]].re, v29_constellation[cdcd_pos[s->training_cd + bit]].im);
         s->constellation_state = cdcd_pos[s->training_cd + bit];
         target = &v29_constellation[s->constellation_state];
         track_carrier(s, &z, target);
@@ -1930,17 +1932,17 @@ static void process_baud(v29_rx_state_t *s, const complex_t *sample)
     case TRAINING_STAGE_TRAIN_ON_CDCD_AND_TEST:
         /* Continue training on the scrambled CDCD section, but measure the quality of training too. */
         bit = scrambled_training_bit(s);
-        //fprintf(stderr, "%5d %15.5f, %15.5f     %15.5f, %15.5f\n", s->training_count, z.re, z.im, v29_constellation[cdcd_pos[s->training_cd + bit]].re, v29_constellation[cdcd_pos[s->training_cd + bit]].im);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "%5d %15.5f, %15.5f     %15.5f, %15.5f\n", s->training_count, z.re, z.im, v29_constellation[cdcd_pos[s->training_cd + bit]].re, v29_constellation[cdcd_pos[s->training_cd + bit]].im);
         s->constellation_state = cdcd_pos[s->training_cd + bit];
         target = &v29_constellation[s->constellation_state];
         track_carrier(s, &z, target);
         tune_equalizer(s, &z, target);
         /* Measure the training error */
-        zz = complex_sub(&z, &v29_constellation[s->constellation_state]);
+        zz = complex_sub(&z, target);
         s->training_error += power(&zz);
         if (++s->training_count >= V29_TRAINING_SEG_3_LEN)
         {
-            fprintf(stderr, "Training error %f\n", s->training_error);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Training error %f\n", s->training_error);
             if (s->training_error < 100.0)
             {
                 s->training_count = 0;
@@ -1951,7 +1953,7 @@ static void process_baud(v29_rx_state_t *s, const complex_t *sample)
             }
             else
             {
-                fprintf(stderr, "Training failed (convergence failed)\n");
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (convergence failed)\n");
                 /* Park this modem */
                 s->in_training = TRAINING_STAGE_PARKED;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
@@ -1961,7 +1963,7 @@ static void process_baud(v29_rx_state_t *s, const complex_t *sample)
     case TRAINING_STAGE_TEST_ONES:
         /* We are in the test phase, where we check that we can receive reliably.
            We should get a run of 1's, 48 symbols (192 bits at 9600bps) long. */
-        //fprintf(stderr, "%5d %15.5f, %15.5f\n", s->training_count, z.re, z.im);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "%5d %15.5f, %15.5f\n", s->training_count, z.re, z.im);
         decode_baud(s, &z);
         target = &v29_constellation[s->constellation_state];
         /* Measure the training error */
@@ -1972,14 +1974,14 @@ static void process_baud(v29_rx_state_t *s, const complex_t *sample)
             if (s->training_error < 50.0)
             {
                 /* We are up and running */
-                fprintf(stderr, "Training succeeded (constellation mismatch %f)\n", s->training_error);
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded (constellation mismatch %f)\n", s->training_error);
                 s->in_training = TRAINING_STAGE_NORMAL_OPERATION;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_SUCCEEDED);
             }
             else
             {
                 /* Training has failed */
-                fprintf(stderr, "Training failed (constellation mismatch %f)\n", s->training_error);
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (constellation mismatch %f)\n", s->training_error);
                 /* Park this modem */
                 s->in_training = TRAINING_STAGE_PARKED;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
@@ -2149,6 +2151,8 @@ void v29_rx_init(v29_rx_state_t *s, int rate, put_bit_func_t put_bit, void *user
     s->user_data = user_data;
     s->carrier_on_power = power_meter_level(-26);
     s->carrier_off_power = power_meter_level(-31);
+    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
+    span_log_set_protocol(&s->logging, "V.29");
 
     v29_rx_restart(s, rate);
 }

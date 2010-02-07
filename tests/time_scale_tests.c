@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale_tests.c,v 1.2 2004/12/20 14:23:22 steveu Exp $
+ * $Id: time_scale_tests.c,v 1.5 2005/09/01 17:06:45 steveu Exp $
  */
 
 /*! \page time_scale_tests_page Time scaling tests
@@ -34,9 +34,11 @@
 //#define _ISOC99_SOURCE  1
 
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include <tgmath.h>
+#include <math.h>
 #include <audiofile.h>
 #include <tiffio.h>
 

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc_tests.c,v 1.3 2005/01/25 12:54:08 steveu Exp $
+ * $Id: plc_tests.c,v 1.6 2005/09/01 17:06:45 steveu Exp $
  */
 
 /*! \page plc_tests_page Packet loss concealment tests
@@ -37,9 +37,10 @@ on the command line.
 //#define _ISOC99_SOURCE  1
 
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include <tgmath.h>
 #include <tiffio.h>
 
 #include <audiofile.h>

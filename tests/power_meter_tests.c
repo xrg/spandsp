@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter_tests.c,v 1.3 2004/11/05 19:28:50 steveu Exp $
+ * $Id: power_meter_tests.c,v 1.5 2005/09/01 17:06:45 steveu Exp $
  */
 
 #define _ISOC9X_SOURCE  1
@@ -35,9 +35,10 @@
 
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
-#include <math.h>
+#include <memory.h>
+#include <tgmath.h>
 #include <time.h>
 #include <tiffio.h>
 

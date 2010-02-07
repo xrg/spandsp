@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t35.c,v 1.7 2004/11/05 14:48:40 steveu Exp $
+ * $Id: t35.c,v 1.10 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*
@@ -57,7 +57,11 @@
 
 /*! \file */
 
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <inttypes.h>
 #include <ctype.h>
 
 #include "spandsp/telephony.h"
@@ -82,7 +86,7 @@ typedef struct
     const model_data_t *known_models;
 } nsf_data_t;
 
-extern const char *t35_country_codes[256] =
+const char *t35_country_codes[256] =
 {
     "Japan",                                    /* 0x00 */
     "Albania",

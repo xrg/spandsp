@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.10 2004/11/19 14:06:55 steveu Exp $
+ * $Id: adsi_tests.c,v 1.13 2005/09/01 17:06:45 steveu Exp $
  */
 
 /*! \page adsi_tests_page ADSI tests
@@ -31,7 +31,7 @@
 \section adsi_tests_page_sec_2 How does it work?
 */
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -197,7 +197,7 @@ int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg)
 {
     int len;
     
-    len = adsi_add_field(s, msg, 0, 'A', "12345678", 8);
+    len = adsi_add_field(s, msg, 0, 'A', (uint8_t *) "12345678", 8);
     return len;
 }
 #define STANDARD ADSI_STANDARD_CLIP_DTMF
@@ -357,7 +357,7 @@ int main(int argc, char *argv[])
         }
 #endif
         adsi_rx(&rx_adsi, buf, len);
-        adsi_msg_len = adsi_add_field(&tx_adsi, adsi_msg, -1, 0, s, strlen(s));
+        adsi_msg_len = adsi_add_field(&tx_adsi, adsi_msg, -1, 0, (uint8_t *) s, strlen(s));
         adsi_put_message(&tx_adsi, adsi_msg, adsi_msg_len);
     }
 

@@ -23,12 +23,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_filters.c,v 1.3 2004/03/12 16:27:23 steveu Exp $
+ * $Id: complex_filters.c,v 1.5 2005/08/31 19:27:52 steveu Exp $
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 
 #include "spandsp/complex.h"
 #include "spandsp/complex_filters.h"

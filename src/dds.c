@@ -23,12 +23,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds.c,v 1.6 2004/10/16 07:29:58 steveu Exp $
+ * $Id: dds.c,v 1.8 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
 
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <inttypes.h>
 #include <math.h>
 
 #include "spandsp/telephony.h"

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx_tests.c,v 1.2 2004/10/16 15:20:49 steveu Exp $
+ * $Id: super_tone_rx_tests.c,v 1.4 2005/09/01 17:06:45 steveu Exp $
  */
 
 #define	_ISOC9X_SOURCE	1
@@ -40,7 +40,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <time.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <sys/socket.h>
 #include <math.h>
 
@@ -118,24 +118,24 @@ static int parse_tone(super_tone_rx_descriptor_t *desc, int tone_id, super_tone_
             cycles = 1;
             if ((x = xmlGetProp(cur, (const xmlChar *) "freq")))
             {
-                sscanf(x, "%f [%f%%]", &f1, &f_tol);
-                sscanf(x, "%f+%f [%f%%]", &f1, &f2, &f_tol);
+                sscanf((char *) x, "%f [%f%%]", &f1, &f_tol);
+                sscanf((char *) x, "%f+%f [%f%%]", &f1, &f2, &f_tol);
                 printf(" Frequency=%.2f+%.2f [%.2f%%]", f1, f2, f_tol);
             }
             if ((x = xmlGetProp(cur, (const xmlChar *) "level")))
             {
-                if (sscanf(x, "%f+%f", &l1, &l2) < 2)
+                if (sscanf((char *) x, "%f+%f", &l1, &l2) < 2)
                     l2 = l1;
                 printf(" Level=%.2f+%.2f", l1, l2);
             }
             if ((x = xmlGetProp(cur, (const xmlChar *) "length")))
             {
-                sscanf(x, "%f [%f%%]", &length, &length_tol);
+                sscanf((char *) x, "%f [%f%%]", &length, &length_tol);
                 printf(" Length=%.2f [%.2f%%]", length, length_tol);
             }
             if ((x = xmlGetProp(cur, (const xmlChar *) "recognition-length")))
             {
-                sscanf(x, "%f [%f%%]", &recognition_length, &recognition_length_tol);
+                sscanf((char *) x, "%f [%f%%]", &recognition_length, &recognition_length_tol);
                 printf(" Recognition length=%.2f [%.2f%%]", recognition_length, recognition_length_tol);
             }
             if ((x = xmlGetProp(cur, (const xmlChar *) "cycles")))
@@ -143,7 +143,7 @@ static int parse_tone(super_tone_rx_descriptor_t *desc, int tone_id, super_tone_
                 if (strcasecmp(x, "endless") == 0)
                     cycles = 0;
                 else
-                    cycles = atoi(x);
+                    cycles = atoi((char *) x);
                 printf(" Cycles='%d' ", cycles);
             }
             if ((x = xmlGetProp(cur, (const xmlChar *) "recorded-announcement")))
@@ -198,7 +198,7 @@ static void parse_tone_set(super_tone_rx_descriptor_t *desc, xmlDocPtr doc, xmlN
     cur = cur->xmlChildrenNode;
     while (cur)
     {
-        if (strcmp(cur->name, "dial-tone") == 0)
+        if (strcmp((char *) cur->name, "dial-tone") == 0)
         {
             printf("Hit %s\n", cur->name);
             tone_id = super_tone_rx_add_tone(desc);
@@ -206,7 +206,7 @@ static void parse_tone_set(super_tone_rx_descriptor_t *desc, xmlDocPtr doc, xmlN
             parse_tone(desc, tone_id, &dialtone_tree, doc, ns, cur);
             tone_names[tone_id] = "Dial tone";
         }
-        else if (strcmp(cur->name, "ringback-tone") == 0)
+        else if (strcmp((char *) cur->name, "ringback-tone") == 0)
         {
             printf("Hit %s\n", cur->name);
             tone_id = super_tone_rx_add_tone(desc);
@@ -214,7 +214,7 @@ static void parse_tone_set(super_tone_rx_descriptor_t *desc, xmlDocPtr doc, xmlN
             parse_tone(desc, tone_id, &ringback_tree, doc, ns, cur);
             tone_names[tone_id] = "Ringback tone";
         }
-        else if (strcmp(cur->name, "busy-tone") == 0)
+        else if (strcmp((char *) cur->name, "busy-tone") == 0)
         {
             printf("Hit %s\n", cur->name);
             tone_id = super_tone_rx_add_tone(desc);
@@ -222,7 +222,7 @@ static void parse_tone_set(super_tone_rx_descriptor_t *desc, xmlDocPtr doc, xmlN
             parse_tone(desc, tone_id, &busytone_tree, doc, ns, cur);
             tone_names[tone_id] = "Busy tone";
         }
-        else if (strcmp(cur->name, "number-unobtainable-tone") == 0)
+        else if (strcmp((char *) cur->name, "number-unobtainable-tone") == 0)
         {
             printf("Hit %s\n", cur->name);
             tone_id = super_tone_rx_add_tone(desc);
@@ -230,7 +230,7 @@ static void parse_tone_set(super_tone_rx_descriptor_t *desc, xmlDocPtr doc, xmlN
             parse_tone(desc, tone_id, &nutone_tree, doc, ns, cur);
             tone_names[tone_id] = "NU tone";
         }
-        else if (strcmp(cur->name, "congestion-tone") == 0)
+        else if (strcmp((char *) cur->name, "congestion-tone") == 0)
         {
             printf("Hit %s\n", cur->name);
             tone_id = super_tone_rx_add_tone(desc);
@@ -238,7 +238,7 @@ static void parse_tone_set(super_tone_rx_descriptor_t *desc, xmlDocPtr doc, xmlN
             parse_tone(desc, tone_id, &congestiontone_tree, doc, ns, cur);
             tone_names[tone_id] = "Congestion tone";
         }
-        else if (strcmp(cur->name, "waiting-tone") == 0)
+        else if (strcmp((char *) cur->name, "waiting-tone") == 0)
         {
             printf("Hit %s\n", cur->name);
             tone_id = super_tone_rx_add_tone(desc);
@@ -309,7 +309,7 @@ static void get_tone_set(super_tone_rx_descriptor_t *desc, char *tone_file, char
         {
             if ((x = xmlGetProp(cur, (const xmlChar *) "uncode")))
             {
-                if (strcmp(x, set_id) == 0)
+                if (strcmp((char *) x, set_id) == 0)
                     parse_tone_set(desc, doc, ns, cur);
             }
             /*endif*/

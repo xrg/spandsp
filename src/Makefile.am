@@ -33,6 +33,7 @@ libspandsp_la_SOURCES = adsi.c \
                         fsk.c \
                         hdlc.c \
                         ima_adpcm.c \
+                        logging.c \
                         modem_echo.c \
                         oki_adpcm.c \
                         oss.c \
@@ -61,6 +62,7 @@ libspandsp_la_SOURCES = adsi.c \
                         v29rx.c \
                         v29tx.c \
                         v42.c \
+                        v42bis.c \
                         v8.c
 libspandsp_la_LDFLAGS = -version-info @SPANDSP_LT_CURRENT@:@SPANDSP_LT_REVISION@:@SPANDSP_LT_AGE@
 
@@ -81,6 +83,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/g168models.h \
                         spandsp/hdlc.h \
                         spandsp/ima_adpcm.h \
+                        spandsp/logging.h \
                         spandsp/mmx.h \
                         spandsp/modem_echo.h \
                         spandsp/oss.h \
@@ -111,6 +114,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                         spandsp/v29rx.h \
                         spandsp/v29tx.h \
                         spandsp/v42.h \
+                        spandsp/v42bis.h \
                         spandsp/v8.h \
                         spandsp/vector.h \
                         spandsp.h

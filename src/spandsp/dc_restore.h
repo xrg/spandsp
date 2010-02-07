@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dc_restore.h,v 1.5 2005/01/18 14:05:48 steveu Exp $
+ * $Id: dc_restore.h,v 1.7 2005/07/02 07:05:25 steveu Exp $
  */
 
 /*! \file */
@@ -104,7 +104,7 @@ static inline int16_t fsaturate(double damp)
 #ifdef __cplusplus
     return damp;
 #else
-    return lrint(damp);
+    return rint(damp);
 #endif
 }
 /*- End of function --------------------------------------------------------*/

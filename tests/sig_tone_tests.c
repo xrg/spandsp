@@ -23,15 +23,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone_tests.c,v 1.2 2004/10/11 13:27:13 steveu Exp $
+ * $Id: sig_tone_tests.c,v 1.4 2005/09/01 17:06:45 steveu Exp $
  */
 
 #define	_ISOC9X_SOURCE	1
 #define _ISOC99_SOURCE	1
 
+#include <unistd.h>
+#include <stdlib.h>
 #include <stdio.h>
-#include <stdint.h>
-#include <math.h>
+#include <inttypes.h>
+#include <memory.h>
+#include <tgmath.h>
 #include <audiofile.h>
 #include <tiffio.h>
 
@@ -108,7 +111,7 @@ void map_response(sig_tone_state_t *s)
     awgn_state_t noise_source;
     int i;
     int f;
-    int32_t phase_acc;
+    uint32_t phase_acc;
     int32_t phase_rate;
     int32_t scaling;
     double sum;

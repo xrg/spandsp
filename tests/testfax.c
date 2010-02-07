@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: testfax.c,v 1.20 2005/03/03 14:19:01 steveu Exp $
+ * $Id: testfax.c,v 1.22 2005/09/01 17:06:45 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -36,7 +36,7 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include <sys/signal.h>
 #include <sys/select.h>

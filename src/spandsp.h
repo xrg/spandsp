@@ -32,6 +32,7 @@
 #define _SPANDSP_H_
 
 #include <spandsp/telephony.h>
+#include <spandsp/logging.h>
 #include <spandsp/queue.h>
 #include <spandsp/schedule.h>
 #include <spandsp/alaw_ulaw.h>
@@ -71,6 +72,7 @@
 #include <spandsp/v27ter_tx.h>
 #include <spandsp/v8.h>
 #include <spandsp/v42.h>
+#include <spandsp/v42bis.h>
 #include <spandsp/t31.h>
 #include <spandsp/t4.h>
 #include <spandsp/t30.h>

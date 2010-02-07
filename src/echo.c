@@ -28,7 +28,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo.c,v 1.6 2005/03/03 14:18:58 steveu Exp $
+ * $Id: echo.c,v 1.8 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
@@ -77,9 +77,13 @@
    working tap sets. The saved 16 bit values are good enough to also be used as a replacement
    for the 32 bit values. */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <unistd.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 

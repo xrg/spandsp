@@ -24,14 +24,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm.c,v 1.1 2004/11/15 13:47:13 steveu Exp $
+ * $Id: ima_adpcm.c,v 1.3 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <unistd.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 
 #include "spandsp/telephony.h"

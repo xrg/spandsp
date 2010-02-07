@@ -14,7 +14,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.36 2005/01/25 12:54:08 steveu Exp $
+## $Id: Makefile.am,v 1.37 2005/06/09 13:27:11 steveu Exp $
 
 LIBS += $(TESTLIBS)
 
@@ -61,6 +61,7 @@ noinst_PROGRAMS =   adsi_tests \
                     v27ter_tests \
                     v29_tests \
                     v42_tests \
+                    v42bis_tests \
                     v8_tests \
                     testadsi \
                     testfax
@@ -185,6 +186,9 @@ v29_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
 v42_tests_SOURCES = v42_tests.c
 v42_tests_LDADD = -L$(top_builddir)/src -lspandsp
+
+v42bis_tests_SOURCES = v42bis_tests.c
+v42bis_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
 v8_tests_SOURCES = v8_tests.c
 v8_tests_LDADD = -L$(top_builddir)/src -lspandsp

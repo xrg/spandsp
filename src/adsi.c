@@ -23,12 +23,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.18 2005/03/20 04:07:16 steveu Exp $
+ * $Id: adsi.c,v 1.21 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
 
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -470,7 +474,7 @@ int adsi_put_message(adsi_tx_state_t *s, uint8_t *msg, int len)
         if (len >= 128)
             return -1;
         msg[len] = '\0';
-        len = dtmf_put(&(s->dtmftx), msg);
+        len = dtmf_put(&(s->dtmftx), (char *) msg);
         break;
     case ADSI_STANDARD_JCLIP:
         if (len > 128 - 9)

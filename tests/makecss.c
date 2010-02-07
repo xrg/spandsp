@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: makecss.c,v 1.5 2005/01/16 10:52:02 steveu Exp $
+ * $Id: makecss.c,v 1.6 2005/09/01 17:06:45 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,7 +32,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <time.h>
 #include <stdio.h>

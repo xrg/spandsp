@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.h,v 1.8 2005/03/20 04:07:18 steveu Exp $
+ * $Id: hdlc.h,v 1.9 2005/06/26 16:43:58 steveu Exp $
  */
 
 /*! \file */
@@ -129,7 +129,7 @@ typedef struct
 extern "C" {
 #endif
 
-uint32_t crc_itu32_calc(uint8_t *buf, int len);
+uint32_t crc_itu32_calc(const uint8_t *buf, int len);
 
 /*! \brief Append an ITU/CCITT CRC-32 value to a frame.
     \param buf The buffer containing the frame. This must be at least 2 bytes longer than
@@ -146,7 +146,7 @@ int crc_itu32_append(uint8_t *buf, int len);
 */
 int crc_itu32_check(const uint8_t *buf, int len);
 
-uint16_t crc_itu16_calc(uint8_t *buf, int len);
+uint16_t crc_itu16_calc(const uint8_t *buf, int len);
 
 /*! \brief Append an ITU/CCITT CRC-16 value to a frame.
     \param buf The buffer containing the frame. This must be at least 2 bytes longer than

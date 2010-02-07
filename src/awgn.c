@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn.c,v 1.3 2004/03/12 16:27:23 steveu Exp $
+ * $Id: awgn.c,v 1.5 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
@@ -46,9 +46,13 @@
 #define	_ISOC9X_SOURCE	1
 #define _ISOC99_SOURCE	1
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <math.h>
 
 #include "spandsp/dc_restore.h"

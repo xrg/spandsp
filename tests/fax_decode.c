@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_decode.c,v 1.5 2005/03/13 15:58:57 steveu Exp $
+ * $Id: fax_decode.c,v 1.7 2005/09/01 17:06:45 steveu Exp $
  */
 
 #define	_ISOC9X_SOURCE	1
@@ -33,7 +33,7 @@
 #include "config.h"
 #endif
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -107,8 +107,8 @@ void t4_begin(void)
     }
         
     t4_rx_set_rx_encoding(&t4_state, T4_COMPRESSION_ITU_T4_2D);
-    t4_rx_set_row_resolution(&t4_state, T4_RESOLUTION_STANDARD);
-    t4_rx_set_column_resolution(&t4_state, T4_RESOLUTION_FINE);
+    t4_rx_set_row_resolution(&t4_state, T4_X_RESOLUTION_R8);
+    t4_rx_set_column_resolution(&t4_state, T4_Y_RESOLUTION_FINE);
     t4_rx_set_columns(&t4_state, 1728);
 
     t4_rx_start_page(&t4_state);

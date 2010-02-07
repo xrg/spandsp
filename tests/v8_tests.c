@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8_tests.c,v 1.1 2004/07/24 11:46:55 steveu Exp $
+ * $Id: v8_tests.c,v 1.2 2005/09/01 17:06:46 steveu Exp $
  */
 
 #define	_ISOC9X_SOURCE	1
@@ -31,7 +31,7 @@
 
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <math.h>
 #include <fcntl.h>

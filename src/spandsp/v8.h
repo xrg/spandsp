@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.h,v 1.3 2005/01/18 14:05:49 steveu Exp $
+ * $Id: v8.h,v 1.4 2005/05/27 14:27:48 steveu Exp $
  */
  
 /*! \file */
@@ -84,6 +84,8 @@ typedef struct
     int got_cm_jm;
     int got_cj;
     int zero_byte_count;
+    /*! \brief Error and flow logging control */
+    logging_state_t logging;
 } v8_state_t;
 
 #define V8_MOD_V17          (1 << 0)    /* V.17 duplex */

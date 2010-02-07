@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.28 2005/03/20 04:07:17 steveu Exp $
+ * $Id: t4.c,v 1.34 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*
@@ -58,14 +58,19 @@
 
 /*! \file */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <time.h>
-
+#include <memory.h>
+#include <tgmath.h>
 #include <tiffio.h>
 
 #include "spandsp.h"
@@ -484,22 +489,22 @@ static __inline__ void put_eol(t4_state_t *s)
     
 #if 0
     /* Dump the runs of black and white for analysis */
-    printf("Ref ");
+    span_log(&s->logging, SPAN_LOG_DEBUG_2, "Ref ");
     total = 0;
     for (x = s->refruns;  x < s->pb;  x++)
     {
         total += *x;
-        printf("%d ", *x);
+        span_log(&s->logging, SPAN_LOG_DEBUG_2, "%d ", *x);
     }
-    printf(" total = %d\n", total);
-    printf("Cur ");
+    span_log(&s->logging, SPAN_LOG_DEBUG_2, " total = %d\n", total);
+    span_log(&s->logging, SPAN_LOG_DEBUG_2, "Cur ");
     total = 0;
     for (x = s->curruns;  x < s->pa;  x++)
     {
         total += *x;
-        printf("%d ", *x);
+        span_log(&s->logging, SPAN_LOG_DEBUG_2, "%d ", *x);
     }
-    printf("total = %d\n", total);
+    span_log(&s->logging, SPAN_LOG_DEBUG_2, "total = %d\n", total);
 #endif
 
     /* Prepare the buffers for the next row. */
@@ -540,7 +545,7 @@ int t4_rx_end_page(t4_state_t *s)
     {
         if (TIFFWriteScanline(s->tiff_file, s->image_buffer + row*s->bytes_per_row, row, 0) < 0)
         {
-            fprintf(stderr, "%s: Write error at row %d.\n", s->file, row);
+            span_log(&s->logging, SPAN_LOG_WARNING, "%s: Write error at row %d.\n", s->file, row);
             break;
         }
     }
@@ -724,7 +729,7 @@ int t4_rx_putbit(t4_state_t *s, int bit)
             case S_Null:
                 break;
             default:
-                fprintf(stderr, "Unexpected T.4 state %d\n", T4_common_table[bits].state);
+                span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected T.4 state %d\n", T4_common_table[bits].state);
                 break;
             }
             s->bits -= T4_common_table[bits].width;
@@ -897,7 +902,7 @@ int t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
 {
     uint32_t nruns;
 
-    fprintf(stderr, "Start rx document\n");
+    span_log(&s->logging, SPAN_LOG_FLOW, "Start rx document\n");
 
     memset(s, 0, sizeof(*s));
 
@@ -906,7 +911,7 @@ int t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
         return -1;
 
     /* Save the file name for logging reports. */
-    s->file = file;
+    s->file = strdup(file);
     /* Only provide for one form of coding throughout the file, even though the
        coding on the wire could change between pages. */
     switch (output_encoding)
@@ -950,7 +955,7 @@ int t4_rx_start_page(t4_state_t *s)
     uint32_t *bufptr;
     char buf[256 + 1];
 
-    fprintf(stderr, "Start rx page - compression %d\n", s->line_encoding);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Start rx page - compression %d\n", s->line_encoding);
 
     /* Calculate the scanline/tile width. */
     bytes_per_row = s->image_width/8;
@@ -1081,6 +1086,8 @@ int t4_rx_end(t4_state_t *s)
         }
         TIFFClose(s->tiff_file);
         s->tiff_file = NULL;
+        if (s->file)
+            free((char *) s->file);
         s->file = NULL;
     }
     if (s->image_buffer)
@@ -1592,30 +1599,32 @@ static int t4_encode_row(t4_state_t *s, uint8_t *bp)
 }
 /*- End of function --------------------------------------------------------*/
 
-t4_state_t *t4_tx_create(const char *file)
+t4_state_t *t4_tx_create(const char *file, int start_page, int stop_page)
 {
     t4_state_t *s;
     
     s = (t4_state_t *) malloc(sizeof(t4_state_t *));
-    if (!s  ||  t4_tx_init(s, file))
+    if (!s  ||  t4_tx_init(s, file, start_page, stop_page))
         return NULL;
     return s;
 }
 /*- End of function --------------------------------------------------------*/
 
-int t4_tx_init(t4_state_t *s, const char *file)
+int t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page)
 {
     float x_resolution;
     float y_resolution;
     uint16_t res_unit;
     uint32_t parm;
 
-    fprintf(stderr, "Start tx document\n");
+    span_log(&s->logging, SPAN_LOG_FLOW, "Start tx document\n");
     s->tiff_file = TIFFOpen(file, "r");
     if (s->tiff_file == NULL)
         return -1;
 
-    s->file = file;
+    s->file = strdup(file);
+    s->start_page = (start_page >= 0)  ?  start_page  :  0;
+    s->stop_page = (stop_page >= 0)  ?  stop_page : INT_MAX;
     TIFFGetField(s->tiff_file, TIFFTAG_IMAGEWIDTH, &parm);
     s->image_width = parm;
     s->bytes_per_row = (s->image_width + 7)/8;
@@ -1623,13 +1632,15 @@ int t4_tx_init(t4_state_t *s, const char *file)
     TIFFGetField(s->tiff_file, TIFFTAG_YRESOLUTION, &y_resolution);
     TIFFGetField(s->tiff_file, TIFFTAG_RESOLUTIONUNIT, &res_unit);
 
-    if ((res_unit == RESUNIT_CENTIMETER  &&  x_resolution == 160.74)
+    /* Allow a little range for the X resolution in centimeters. The spec doesn't pin down the
+       precise value. The other value should be exact. */
+    if ((res_unit == RESUNIT_CENTIMETER  &&  x_resolution > 158.74  &&  x_resolution < 162.74)
         ||
         (res_unit == RESUNIT_INCH  &&  x_resolution == 408.0))
     {
         s->column_resolution = T4_X_RESOLUTION_R16;
     }
-    else if ((res_unit == RESUNIT_CENTIMETER  &&  x_resolution == 40.19)
+    else if ((res_unit == RESUNIT_CENTIMETER  &&  x_resolution > 38.19  &&  x_resolution < 42.19)
             ||
             (res_unit == RESUNIT_INCH  &&  x_resolution == 102.0))
     {
@@ -1637,10 +1648,11 @@ int t4_tx_init(t4_state_t *s, const char *file)
     }
     else
     {
+        /* Treat everything else as R8. Most FAXes are this resolution anyway. */
         s->column_resolution = T4_X_RESOLUTION_R8;
     }
 
-    if ((res_unit == RESUNIT_CENTIMETER  &&  y_resolution == 154.0)
+    if ((res_unit == RESUNIT_CENTIMETER  &&  y_resolution > 154.0)
         ||
         (res_unit == RESUNIT_INCH  &&  y_resolution == 392.0))
     {
@@ -1669,7 +1681,7 @@ int t4_tx_init(t4_state_t *s, const char *file)
     {
         s->k = s->maxk - 1;
     }
-    s->pages_transferred = 0;
+    s->pages_transferred = s->start_page;
     s->rowbuf = malloc(s->bytes_per_row);
     if (s->rowbuf == NULL)
         return -1;
@@ -1739,7 +1751,9 @@ int t4_tx_start_page(t4_state_t *s)
         0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff
     };
 
-    fprintf(stderr, "Start tx page %d\n", s->pages_transferred);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Start tx page %d\n", s->pages_transferred);
+    if (s->pages_transferred > s->stop_page)
+        return -1;
     if (!TIFFSetDirectory(s->tiff_file, s->pages_transferred))
         return -1;
     s->image_size = 0;
@@ -1821,7 +1835,7 @@ int t4_tx_start_page(t4_state_t *s)
     {
         if ((ok = TIFFReadScanline(s->tiff_file, s->rowbuf, row, 0)) <= 0)
         {
-            fprintf(stderr, "%s: Write error at row %d.\n", s->file, row);
+            span_log(&s->logging, SPAN_LOG_WARNING, "%s: Write error at row %d.\n", s->file, row);
             break;
         }
         if ((ok = t4_encode_row(s, s->rowbuf)) <= 0)
@@ -1891,6 +1905,8 @@ int t4_tx_end(t4_state_t *s)
     {
         TIFFClose(s->tiff_file);
         s->tiff_file = NULL;
+        if (s->file)
+            free((char *) s->file);
         s->file = NULL;
     }
     if (s->image_buffer)
@@ -1985,3 +2001,61 @@ void t4_get_transfer_statistics(t4_state_t *s, t4_stats_t *t)
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/
+#if 0
+uint32_t encode_faxrecvparams(void)
+{
+    uint32_t v;
+
+    /* Check version */
+    v = ((vertical_resolution & 7) << 0)
+      | ((bit_rate & 15) << 3)
+      | ((image_width & 7) << 9)
+      | ((image_length & 3) << 12)
+      | ((data_format & 3) << 14)
+      | ((ec_protocol & 1) << 16)
+      | ((bft_protocol & 1) << 17)
+      | ((min_scan_time & 7) << 18)
+      | (1 << 21);
+    return v;
+}
+
+void decode_faxrecvparams(uint32_t v)
+{
+    /* The format depends of the version field */
+    if ((v >> 21) == 1)
+    {
+        vertical_resolution = (v >> 0) & 7;
+        bit_rate = (v >> 3) & 15;
+        image_width = (v >> 9) & 7;
+        image_length = (v >> 12) & 3;
+        if (image_length == LN_LET)	// force protocol value
+            image_length = LN_A4;
+        data_format = (v >> 14) & 3;
+        ec_protocol = (v >> 16) & 1;
+        bft_protocol = (v >> 17) & 1;
+        min_scan_time = (v >> 18) & 7;
+    }
+    else
+    {
+        /* original version */
+        vertical_resolution = (v >> 0) & 1;
+        bit_rate = (v >> 1) & 7;
+        image_width = (v >> 4) & 7;
+        image_length = (v >> 7) & 3;
+        if (image_length == LN_LET)	// force protocol value
+            image_length = LN_A4;
+        data_format = (v >> 9) & 3;
+        ec_protocol = (v >> 11) & 1;
+        bft_protocol = (v >> 12) & 1;
+        min_scan_time = (v >> 13) & 7;
+    }
+}
+    u_int vr;		// vertical resolution (VR_*)
+    u_int br;		// bit rate (BR_*)
+    u_int wd;		// page width (WD_*)
+    u_int ln;		// page length (LN_*)
+    u_int df;		// data format (DF_*)
+    u_int ec;		// error correction protocol (EC_*)
+    u_int bf;		// binary file transfer protocol (BF_*)
+    u_int st;		// minimum scanline time (ST_*)
+#endif

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: playout_tests.c,v 1.3 2005/02/04 19:19:31 steveu Exp $
+ * $Id: playout_tests.c,v 1.6 2005/09/01 17:06:45 steveu Exp $
  */
 
 /*! \page playout_tests_page Playout (jitter buffering) tests
@@ -36,9 +36,10 @@ how well the playout module copes.
 //#define _ISOC99_SOURCE  1
 
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include <tgmath.h>
 #include <tiffio.h>
 
 #include <audiofile.h>

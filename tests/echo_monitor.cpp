@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo_monitor.cpp,v 1.2 2005/01/18 14:05:50 steveu Exp $
+ * $Id: echo_monitor.cpp,v 1.3 2005/09/03 10:37:56 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,7 +32,7 @@
 
 #if defined(HAVE_FL_FL_H)  &&  defined(HAVE_FL_FL_CARTESIAN_H)
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>

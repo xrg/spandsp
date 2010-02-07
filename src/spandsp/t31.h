@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.11 2005/03/03 14:19:00 steveu Exp $
+ * $Id: t31.h,v 1.12 2005/06/27 17:25:52 steveu Exp $
  */
 
 /*! \file */
@@ -76,7 +76,7 @@ struct t31_state_s
 {
     int country_of_installation;
     char line[256];
-    char hdlc_buf[256];
+    uint8_t hdlc_buf[256];
     int hdlc_len;
     /*! TRUE if DLE prefix just used */
     int dled;

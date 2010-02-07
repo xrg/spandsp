@@ -1,4 +1,4 @@
-/* config-h.in.  Generated from configure.in by autoheader.  */
+/* config-h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define to 1 if you have the <audiofile.h> header file. */
 #undef HAVE_AUDIOFILE_H

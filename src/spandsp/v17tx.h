@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.h,v 1.11 2005/03/03 14:19:00 steveu Exp $
+ * $Id: v17tx.h,v 1.12 2005/05/26 13:52:17 steveu Exp $
  */
 
 /*! \file */
@@ -145,6 +145,8 @@ typedef struct
     int shutdown;
     /*! \brief The get_bit function in use at any instant. */
     get_bit_func_t current_get_bit;
+    /*! \brief Error and flow logging control */
+    logging_state_t logging;
 } v17_tx_state_t;
 
 #ifdef __cplusplus

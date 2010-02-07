@@ -23,18 +23,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.37 2005/03/20 04:07:17 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.40 2005/08/31 19:27:53 steveu Exp $
  */
 
 /*! \file */
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/logging.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/arctan2.h"
 #include "spandsp/complex.h"
@@ -776,7 +777,7 @@ static __inline__ void track_carrier(v27ter_rx_state_t *s, const complex_t *z, c
     
     s->carrier_phase_rate += s->carrier_track_i*zz.im;
     s->carrier_phase += s->carrier_track_p*zz.im;
-    //fprintf(stderr, "Im = %15.5f   f = %15.5f\n", zz.im, s->carrier_phase_rate*8000.0/(65536.0*65536.0));
+    //span_log(&s->logging, SPAN_LOG_FLOW, "Im = %15.5f   f = %15.5f\n", zz.im, s->carrier_phase_rate*8000.0/(65536.0*65536.0));
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -940,17 +941,15 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
 
     if (s->bit_rate == 4800)
     {
-        s->rrc_filter[s->rrc_filter_step].re =
-        s->rrc_filter[s->rrc_filter_step + V27RX_4800_FILTER_STEPS].re = sample->re;
-        s->rrc_filter[s->rrc_filter_step].im =
-        s->rrc_filter[s->rrc_filter_step + V27RX_4800_FILTER_STEPS].im = sample->im;
+        s->rrc_filter[s->rrc_filter_step] =
+        s->rrc_filter[s->rrc_filter_step + V27RX_4800_FILTER_STEPS] = *sample;
         if (++s->rrc_filter_step >= V27RX_4800_FILTER_STEPS)
             s->rrc_filter_step = 0;
         /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
            will fiddle the step to align this with the bits. */
         if ((s->eq_put_step -= 8) > 0)
         {
-            //fprintf(stderr, "Samp, %f, %f, %f, 0, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
+            //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, 0, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
             return;
         }
 
@@ -971,17 +970,15 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
     }
     else
     {
-        s->rrc_filter[s->rrc_filter_step].re =
-        s->rrc_filter[s->rrc_filter_step + V27RX_2400_FILTER_STEPS].re = sample->re;
-        s->rrc_filter[s->rrc_filter_step].im =
-        s->rrc_filter[s->rrc_filter_step + V27RX_2400_FILTER_STEPS].im = sample->im;
+        s->rrc_filter[s->rrc_filter_step] =
+        s->rrc_filter[s->rrc_filter_step + V27RX_2400_FILTER_STEPS] = *sample;
         if (++s->rrc_filter_step >= V27RX_2400_FILTER_STEPS)
             s->rrc_filter_step = 0;
         /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
            will fiddle the step to align this with the bits. */
         if ((s->eq_put_step -= 12) > 0)
         {
-            //fprintf(stderr, "Samp, %f, %f, %f, 0, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
+            //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, 0, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
             return;
         }
 
@@ -1003,17 +1000,16 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
 
     /* Add a sample to the equalizer's circular buffer, but don't calculate anything
        at this time. */
-    s->eq_buf[s->eq_step].re = z.re;
-    s->eq_buf[s->eq_step].im = z.im;
+    s->eq_buf[s->eq_step] = z;
     s->eq_step = (s->eq_step + 1) & V27_EQUALIZER_MASK;
         
     /* On alternate insertions we have a whole baud, and must process it. */
     if ((s->baud_phase ^= 1))
     {
-        //fprintf(stderr, "Samp, %f, %f, %f, -1, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, -1, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
         return;
     }
-    //fprintf(stderr, "Samp, %f, %f, %f, 1, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
+    //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, 1, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
 
     /* Perform a Gardner test for baud alignment */
     p = s->eq_buf[(s->eq_step - 3) & V27_EQUALIZER_MASK].re
@@ -1031,18 +1027,18 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
         /* This integrate and dump approach avoids rapid changes of the equalizer put step.
            Rapid changes, without hysteresis, are bad. They degrade the equalizer performance
            when the true symbol boundary is close to a sample boundary. */
-        //fprintf(stderr, "Hop %d\n", s->gardner_integrate);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "Hop %d\n", s->gardner_integrate);
         s->eq_put_step += (s->gardner_integrate/256);
         s->gardner_total_correction += (s->gardner_integrate/256);
         if (s->qam_report)
             s->qam_report(s->qam_user_data, NULL, NULL, s->gardner_integrate);
         s->gardner_integrate = 0;
     }
-    //fprintf(stderr, "Gardner=%10.5f 0x%X\n", p, s->eq_put_step);
+    //span_log(&s->logging, SPAN_LOG_FLOW, "Gardner=%10.5f 0x%X\n", p, s->eq_put_step);
 
     z = equalizer_get(s);
 
-    //fprintf(stderr, "Equalized symbol - %15.5f %15.5f\n", z.re, z.im);
+    //span_log(&s->logging, SPAN_LOG_FLOW, "Equalized symbol - %15.5f %15.5f\n", z.re, z.im);
     switch (s->in_training)
     {
     case TRAINING_STAGE_NORMAL_OPERATION:
@@ -1095,7 +1091,7 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
                 else
                     s->carrier_phase_rate += 3*(ang/40);
             }
-            fprintf(stderr, "Coarse carrier frequency %7.2f (%d)\n", s->carrier_phase_rate*8000.0/(65536.0*65536.0), s->training_count);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Coarse carrier frequency %7.2f (%d)\n", s->carrier_phase_rate*8000.0/(65536.0*65536.0), s->training_count);
 
             /* Make a step shift in the phase, to pull it into line. We need to rotate the RRC filter
                buffer and the equalizer buffer, as well as the carrier phase, for this to play out
@@ -1150,14 +1146,14 @@ static inline void process_baud(v27ter_rx_state_t *s, const complex_t *sample)
                 (s->bit_rate == 2400  &&  s->training_test_ones == 16))
             {
                 /* We are up and running */
-                //fprintf(stderr, "Training succeeded\n");
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded\n");
                 s->in_training = TRAINING_STAGE_NORMAL_OPERATION;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_SUCCEEDED);
             }
             else
             {
                 /* Training has failed */
-                //fprintf(stderr, "Training failed (only %d 1's)\n", s->training_test_ones);
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (only %d 1's)\n", s->training_test_ones);
                 /* Park this modem */
                 s->in_training = TRAINING_STAGE_PARKED;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
@@ -1195,7 +1191,7 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t *amp, int len)
     {
         sample = amp[i];
         power = power_meter_update(&(s->power), sample);
-        //fprintf(stderr, "Power = %f\n", power_meter_dbm0(&(s->power)));
+        //span_log(&s->logging, SPAN_LOG_FLOW, "Power = %f\n", power_meter_dbm0(&(s->power)));
         if (s->carrier_present)
         {
             /* Look for power below turnoff threshold to turn the carrier off */
@@ -1218,7 +1214,7 @@ int v27ter_rx(v27ter_rx_state_t *s, const int16_t *amp, int len)
         {
             /* Only AGC during the initial training */
             s->agc_scaling = 1.414/sqrt(power);
-            //fprintf(stderr, "AGC %f %f - %d %f %f\n", 3.60/sqrt(power), s->agc_scaling, sample, power_meter_dbm0(&(s->power)), 0.018890*0.1);
+            //span_log(&s->logging, SPAN_LOG_FLOW, "AGC %f %f - %d %f %f\n", 3.60/sqrt(power), s->agc_scaling, sample, power_meter_dbm0(&(s->power)), 0.018890*0.1);
         }
         x = sample*s->agc_scaling;
         /* Shift to baseband */

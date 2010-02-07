@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.11 2005/01/18 14:05:49 steveu Exp $
+ * $Id: t4.h,v 1.14 2005/06/26 16:43:58 steveu Exp $
  */
 
 /*! \file */
@@ -81,6 +81,8 @@ typedef struct
 
     TIFF            *tiff_file;
     const char      *file;
+    int             start_page;
+    int             stop_page;
 
     int             pages_transferred;
     /*! column resolution in pixels per metre */
@@ -94,7 +96,7 @@ typedef struct
     int             longest_bad_row_run;
     int             bad_rows;
 
-    char            *rowbuf;
+    uint8_t         *rowbuf;
     
     int             bit_pos;
     int             bit_ptr;
@@ -152,6 +154,8 @@ typedef struct
     int             min_row_bits;
     /*! \brief The current number of bits in the current encoded row. */
     int             row_bits;
+    /*! \brief Error and flow logging control */
+    logging_state_t logging;
 } t4_state_t;
 
 typedef struct
@@ -286,14 +290,16 @@ void t4_rx_set_model(t4_state_t *s, const char *model);
     \param file The name of the file to be sent.
     \return 0 for success, otherwise -1.
 */
-t4_state_t *t4_tx_create(const char *file);
+t4_state_t *t4_tx_create(const char *file, int start_page, int stop_page);
 
 /*! \brief Prepare for transmission of a document.
     \param s The T.4 context.
     \param file The name of the file to be sent.
+    \param start_page The first page to send. -1 for no restriction.
+    \param stop_page The last page to send. -1 for no restriction.
     \return The T.4 context, or NULL.
 */
-int t4_tx_init(t4_state_t *s, const char *file);
+int t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page);
 
 /*! \brief Prepare to send the next page of the current document.
     \param s The T.4 context.

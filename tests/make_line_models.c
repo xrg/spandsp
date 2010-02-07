@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: make_line_models.c,v 1.6 2005/01/16 10:52:02 steveu Exp $
+ * $Id: make_line_models.c,v 1.8 2005/09/01 17:06:45 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,7 +33,7 @@
 //#define _ISOC9X_SOURCE  1
 //#define _ISOC99_SOURCE  1
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,8 +81,8 @@ struct
     float delay;
 } proakis[] =
 {
-    {   0, 0.00,  2.20},
-    { 200, 0.90,  2.20},
+    {   0, 0.00,  4.80},
+    { 200, 0.90,  3.50},
     { 400, 1.40,  2.20},
     { 600, 1.80,  0.90},
     { 800, 2.00,  0.50},
@@ -100,9 +100,9 @@ struct
     {3200, 0.80,  0.90},
     {3400, 0.55,  1.20},
     {3600, 0.25,  2.20},
-    {3800, 0.05,  2.20},
-    {4000, 0.05,  2.20},
-    {4200, 0.05,  2.20}
+    {3800, 0.05,  3.20},
+    {4000, 0.05,  4.20},
+    {4200, 0.05,  5.20}
 };
 
 #define CPE_TO_CO_ATTENUATION       0       /* In dB */
@@ -113,6 +113,10 @@ struct
 #define CO_TO_CPE_PHASE             5       /* In degrees */
 #define CO_TO_CPE_ATTENUATION       6       /* In dB */
 #define CO_TO_CPE_DELAY             7       /* In us */
+
+/* Terms used, for V.56bis:
+    AD = attenuation distortion
+    EDD = envelope delay distortion */
 
 /* V.56bis EIA LL-1, non-loaded loop */
 
@@ -897,15 +901,14 @@ void generate_proakis(void)
     }
     for (i = 1;  i < FFT_SIZE/2;  i++)
     {
-        f = (float) i/FFT_SIZE;
-        f = f*SAMPLE_RATE;
-        f1 = f/3000.0*3.2/0.2;
+        f = (float) i*SAMPLE_RATE/FFT_SIZE;
+        f1 = f/200.0;
         offset = f1 - floor(f1);
         index = (int) floor(f1);
 
         /* Linear interpolation */
-        amp = ((1.0 - offset)*proakis[index].amp + offset*proakis[index + 1].amp)/2.15;
-        delay = ((1.0 - offset)*proakis[index].delay + offset*proakis[index + 1].delay)/(2.2*4.0);
+        amp = ((1.0 - offset)*proakis[index].amp + offset*proakis[index + 1].amp)/2.3;
+        delay = (1.0 - offset)*proakis[index].delay + offset*proakis[index + 1].delay;
         phase = 2.0*M_PI*f*delay*0.001;
 
         in[i].re = amp*cos(phase);

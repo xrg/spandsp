@@ -26,8 +26,9 @@
  * $Id: fax_tests.c,v 1.17 2004/12/08 14:00:36 steveu Exp $
  */
 
-/*! \page fsk_tests_page FSK modem tests
-\section fsk_tests_page_sec_1 What does it do
+/*! \page fax_tests_page FAX tests
+\section fax_tests_page_sec_1 What does it do?
+\section fax_tests_page_sec_2 How does it work?
 */
 
 //#define _ISOC9X_SOURCE	1
@@ -37,7 +38,7 @@
 #include "config.h"
 #endif
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -54,7 +55,7 @@ void phase_b_handler(t30_state_t *s, void *user_data, int result)
 {
     int i;
     
-    i = (int) user_data;
+    i = (intptr_t) user_data;
     printf("Phase B handler on channel %d - 0x%X\n", i, result);
 }
 /*- End of function --------------------------------------------------------*/
@@ -65,7 +66,7 @@ void phase_d_handler(t30_state_t *s, void *user_data, int result)
     t30_stats_t t;
     char ident[21];
 
-    i = (int) user_data;
+    i = (intptr_t) user_data;
     printf("Phase D handler on channel %d - 0x%X\n", i, result);
     fax_get_transfer_statistics(s, &t);
     printf("Phase D: bit rate %d\n", t.bit_rate);
@@ -87,8 +88,8 @@ void phase_e_handler(t30_state_t *s, void *user_data, int result)
 {
     int i;
     
-    i = (int) user_data;
-    printf("Phase E handler on channel %d\n", i);
+    i = (intptr_t) user_data;
+    printf("Phase E handler on channel %d, result %d\n", i, result);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -149,9 +150,9 @@ int main(int argc, char *argv[])
         {
             fax_set_tx_file(&mc->fax, "itutests.tif");
         }
-        fax_set_phase_b_handler(&mc->fax, phase_b_handler, (void *) mc->chan);
-        fax_set_phase_d_handler(&mc->fax, phase_d_handler, (void *) mc->chan);
-        fax_set_phase_e_handler(&mc->fax, phase_e_handler, (void *) mc->chan);
+        fax_set_phase_b_handler(&mc->fax, phase_b_handler, (void *) (intptr_t) mc->chan);
+        fax_set_phase_d_handler(&mc->fax, phase_d_handler, (void *) (intptr_t) mc->chan);
+        fax_set_phase_e_handler(&mc->fax, phase_e_handler, (void *) (intptr_t) mc->chan);
         mc->fax.verbose = 1;
         memset(mc->amp, 0, sizeof(mc->amp));
     }

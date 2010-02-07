@@ -23,16 +23,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc.c,v 1.4 2005/01/17 13:12:15 steveu Exp $
+ * $Id: plc.c,v 1.7 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+#include <tgmath.h>
 #include <limits.h>
 
 #include "spandsp/telephony.h"

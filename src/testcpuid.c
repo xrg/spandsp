@@ -24,12 +24,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: testcpuid.c,v 1.4 2004/11/30 00:25:10 steveu Exp $
+ * $Id: testcpuid.c,v 1.6 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
 
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <inttypes.h>
 
 /* Make this file just disappear if we are not on an x86 machine */
 #if defined(__i386__) //  ||  defined(__x86_64__)

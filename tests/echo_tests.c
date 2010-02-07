@@ -26,7 +26,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo_tests.c,v 1.7 2005/01/18 14:05:50 steveu Exp $
+ * $Id: echo_tests.c,v 1.8 2005/09/01 17:06:45 steveu Exp $
  */
 
 /*! \page echo_can_tests_page Echo cancellation tests
@@ -81,7 +81,7 @@ cancellor.
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <time.h>
 #include <stdio.h>

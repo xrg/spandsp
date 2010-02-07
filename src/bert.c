@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bert.c,v 1.5 2004/11/05 19:28:50 steveu Exp $
+ * $Id: bert.c,v 1.6 2005/08/31 19:27:52 steveu Exp $
  */
 
 #define	_ISOC9X_SOURCE	1
@@ -33,7 +33,7 @@
 #include "config.h"
 #endif
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

@@ -25,13 +25,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.13 2004/09/25 15:13:16 steveu Exp $
+ * $Id: t4_tests.c,v 1.17 2005/09/01 17:06:45 steveu Exp $
  */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <fcntl.h>
+#include <memory.h>
+#include <tgmath.h>
+#include <math.h>
 
 #include <tiffio.h>
 
@@ -103,8 +106,8 @@ int main(int argc, char* argv[])
         }
         
         t4_rx_set_rx_encoding(&receive_state, T4_COMPRESSION_ITU_T4_2D);
-        t4_rx_set_row_resolution(&receive_state, T4_RESOLUTION_STANDARD);
-        t4_rx_set_column_resolution(&receive_state, T4_RESOLUTION_FINE);
+        t4_rx_set_row_resolution(&receive_state, T4_X_RESOLUTION_R8);
+        t4_rx_set_column_resolution(&receive_state, T4_Y_RESOLUTION_FINE);
         t4_rx_set_columns(&receive_state, XSIZE);
 
         page_no = 1;
@@ -148,7 +151,7 @@ int main(int argc, char* argv[])
     else
     {
         /* Send end gets TIFF from a file, using 1D compression */
-        if (t4_tx_init(&send_state, "t4_tests_send.tif"))
+        if (t4_tx_init(&send_state, "t4_tests_send.tif", -1, -1))
         {
             printf("Failed to init TIFF send\n");
             exit(0);

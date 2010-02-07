@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dc_restore_tests.c,v 1.5 2004/12/08 14:00:35 steveu Exp $
+ * $Id: dc_restore_tests.c,v 1.8 2005/09/01 17:06:45 steveu Exp $
  */
 
 /*! \page dc_restore_tests_page DC restoration tests
@@ -35,9 +35,10 @@
 
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
-#include <math.h>
+#include <memory.h>
+#include <tgmath.h>
 #include <time.h>
 #include <tiffio.h>
 

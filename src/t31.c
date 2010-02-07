@@ -23,12 +23,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.17 2005/01/29 09:12:05 steveu Exp $
+ * $Id: t31.c,v 1.20 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
 
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <inttypes.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -128,14 +132,14 @@ const char *response_codes[] =
 
 static void at_put_response(t31_state_t *s, const char *t)
 {
-    char buf[3];
+    uint8_t buf[3];
     
     buf[0] = s->p.s_regs[3];
     buf[1] = s->p.s_regs[4];
     buf[2] = '\0';
     if (s->p.result_code_format == ASCII_RESULT_CODES)
         s->at_tx_handler(s, s->at_tx_user_data, buf, 2);
-    s->at_tx_handler(s, s->at_tx_user_data, t, strlen(t));
+    s->at_tx_handler(s, s->at_tx_user_data, (uint8_t *) t, strlen(t));
     s->at_tx_handler(s, s->at_tx_user_data, buf, 2);
 }
 /*- End of function --------------------------------------------------------*/
@@ -151,7 +155,7 @@ static void at_put_numeric_response(t31_state_t *s, int val)
 
 static void at_put_response_code(t31_state_t *s, int code)
 {
-    char buf[20];
+    uint8_t buf[20];
 
     switch (s->p.result_code_format)
     {
@@ -159,8 +163,8 @@ static void at_put_response_code(t31_state_t *s, int code)
         at_put_response(s, response_codes[code]);
         break;
     case NUMERIC_RESULT_CODES:
-        snprintf(buf, sizeof(buf), "%d%c", code, s->p.s_regs[3]);
-        s->at_tx_handler(s, s->at_tx_user_data, buf, strlen(buf));
+        snprintf((char *) buf, sizeof(buf), "%d%c", code, s->p.s_regs[3]);
+        s->at_tx_handler(s, s->at_tx_user_data, buf, strlen((char *) buf));
         break;
     default:
         /* No result codes */
@@ -279,7 +283,7 @@ static void hdlc_tx_underflow(void *user_data)
 
 static void hdlc_accept(void *user_data, int ok, const uint8_t *msg, int len)
 {
-    char buf[256];
+    uint8_t buf[256];
     t31_state_t *s;
     int i;
 
@@ -4075,7 +4079,7 @@ static void at_interpreter(t31_state_t *s, const char *cmd, int len)
                     /* The spec says the commands within a command line are executed in order, until
                        an error is found, or the end of the command line is reached. */
                     if (s->p.echo)
-                        s->at_tx_handler(s, s->at_tx_user_data, s->line, strlen(s->line));
+                        s->at_tx_handler(s, s->at_tx_user_data, (uint8_t *) s->line, strlen(s->line));
                     t = s->line + 2;
                     while (t  &&  *t)
                     {

@@ -31,14 +31,14 @@
 #if !defined(_T30_FCF_H_)
 #define _T30_FCF_H_
 
-/* Initial identification */
+/* Initial identification messages */
 /* From the called to the calling terminal. */
 #define T30_DIS     0x80        /* Digital identification signal */
 #define T30_CSI     0x40        /* Called subscriber identification */
 #define T30_NSF     0x20        /* Non-standard facilities */
 
-/* Command to send */
-/* From a calling terminal wishing to be a receiver to a called terminal
+/* Commands to send */
+/* From a calling terminal wishing to be a receiver, to a called terminal
    which is capable of transmitting. */
 #define T30_DTC     0x81        /* Digital transmit command */
 #define T30_CIG     0x41        /* Calling subscriber identification */
@@ -49,7 +49,9 @@
 #define T30_CIA     0xE1        /* Calling subscriber internet address */
 #define T30_ISP     0x11        /* Internet selective polling address */
 
-/* Command to receive */
+/* Commands to receive */
+/* From a calling terminal wishing to be a transmitter, to a called terminal
+   which is capable of receiving. */
 #define T30_DCS     0x83        /* Digital command signal */
 #define T30_TSI     0x43        /* Transmitting subscriber information */
 #define T30_NSS     0x23        /* Non-standard facilities set-up */

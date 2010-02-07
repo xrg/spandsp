@@ -23,13 +23,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_dds.c,v 1.5 2004/10/16 07:29:58 steveu Exp $
+ * $Id: complex_dds.c,v 1.7 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <math.h>
 
 #include "spandsp/telephony.h"

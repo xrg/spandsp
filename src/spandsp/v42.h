@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * lapm.h
+ * v42.h
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,13 +23,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.h,v 1.6 2005/01/18 14:05:49 steveu Exp $
+ * $Id: v42.h,v 1.8 2005/06/04 11:31:49 steveu Exp $
  */
 
 #if !defined(_V42_H_)
 #define _V42_H_
 
-/*! \page V42_page The V.42 modem error correction
+/*! \page V42_page V.42 modem error correction
 \section V42_page_sec_1 What does it do?
 The V.42 specification defines an error correcting protocol for PSTN modems, based on
 HDLC and LAP. This makes it similar to an X.25 link. A special variant of LAP, known
@@ -112,6 +112,8 @@ typedef struct
     queue_t tx_queue;
     
     sp_sched_state_t sched;
+    /*! \brief Error and flow logging control */
+    logging_state_t logging;
 } lapm_state_t;
 
 typedef struct
@@ -136,6 +138,8 @@ typedef struct
 
     /*! V.42 support detection timer */
     int t400_timer;
+    /*! \brief Error and flow logging control */
+    logging_state_t logging;
 } v42_state_t;
 
 /*! Log the raw HDLC frames */
@@ -155,7 +159,7 @@ extern "C" {
     \param showraw TRUE if the raw octets should be dumped
     \param txrx TRUE if tx, FALSE if rx. Used to highlight the packet's direction.
 */
-void lapm_dump(const uint8_t *frame, int len, int showraw, int txrx);
+void lapm_dump(lapm_state_t *s, const uint8_t *frame, int len, int showraw, int txrx);
 
 /*! Accept an HDLC packet
 */

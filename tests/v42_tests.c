@@ -23,16 +23,24 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42_tests.c,v 1.4 2005/01/12 13:39:26 steveu Exp $
+ * $Id: v42_tests.c,v 1.8 2005/09/01 17:06:46 steveu Exp $
  */
+
+/* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 //#define _ISOC9X_SOURCE  1
 //#define _ISOC99_SOURCE  1
 
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
+#include <assert.h>
 #include <tiffio.h>
 
 #include "spandsp.h"
@@ -44,7 +52,7 @@ void v42_status(void *user_data, int status)
 {
     int x;
     
-    x = (int) user_data;
+    x = (intptr_t) user_data;
     printf("Status of %d is %d\n", x, status);
     //if (status == LAPM_DATA)
     //    lapm_tx_iframe((x == 1)  ?  &caller.lapm  :  &answerer.lapm, "ABCDEFGHIJ", 10, 1);
@@ -58,7 +66,7 @@ void v42_frames(void *user_data, const uint8_t *msg, int len)
     int i;
     int x;
     
-    x = (int) user_data;
+    x = (intptr_t) user_data;
     for (i = 0;  i < len;  i++)
     {
         if (msg[i] != (rx_next[x] & 0xFF))

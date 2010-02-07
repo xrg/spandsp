@@ -23,13 +23,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter.c,v 1.5 2005/03/03 14:18:58 steveu Exp $
+ * $Id: power_meter.c,v 1.7 2005/08/31 19:27:52 steveu Exp $
  */
 
 #define	_ISOC9X_SOURCE	1
 #define _ISOC99_SOURCE	1
 
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <inttypes.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>

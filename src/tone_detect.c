@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect.c,v 1.5 2005/01/17 13:12:15 steveu Exp $
+ * $Id: tone_detect.c,v 1.6 2005/08/31 19:27:52 steveu Exp $
  */
  
 /*! \file tone_detect.h */
@@ -37,7 +37,7 @@
 #endif
 
 #include <math.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>

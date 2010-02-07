@@ -23,17 +23,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.c,v 1.1 2004/07/24 11:46:55 steveu Exp $
+ * $Id: v8.c,v 1.5 2005/08/31 19:27:53 steveu Exp $
  */
  
 /*! \file */
 
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <memory.h>
 #include <math.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/logging.h"
 #include "spandsp/queue.h"
 #include "spandsp/biquad.h"
 #include "spandsp/ec_disable_detector.h"
@@ -63,40 +69,40 @@ enum
 #define V8_CI_SYNC      1
 #define V8_CM_SYNC      2
 
-void log_supported_modulations(int modulation_schemes)
+void log_supported_modulations(v8_state_t *s, int modulation_schemes)
 {
     if (modulation_schemes & V8_MOD_V17)
-        fprintf(stderr, "V.17 supported\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.17 supported\n");
     if (modulation_schemes & V8_MOD_V21)
-        fprintf(stderr, "V.21 supported\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.21 supported\n");
     if (modulation_schemes & V8_MOD_V22)
-        fprintf(stderr, "V.22/V.22bis supported\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.22/V.22bis supported\n");
     if (modulation_schemes & V8_MOD_V23HALF)
-        fprintf(stderr, "V.23 half-duplex supported\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.23 half-duplex supported\n");
     if (modulation_schemes & V8_MOD_V23)
-        fprintf(stderr, "V.23 duplex supported\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.23 duplex supported\n");
     if (modulation_schemes & V8_MOD_V26BIS)
-        fprintf(stderr, "V.26bis supported\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.26bis supported\n");
     if (modulation_schemes & V8_MOD_V26TER)
-        fprintf(stderr, "V.26ter supported\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.26ter supported\n");
     if (modulation_schemes & V8_MOD_V27TER)
-        fprintf(stderr, "V.27ter supported\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.27ter supported\n");
     if (modulation_schemes & V8_MOD_V29)
-        fprintf(stderr, "V.29 half-duplex supported\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.29 half-duplex supported\n");
     if (modulation_schemes & V8_MOD_V32)
-        fprintf(stderr, "V.32/V.32bis supported\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.32/V.32bis supported\n");
     if (modulation_schemes & V8_MOD_V34HALF)
-        fprintf(stderr, "V.34 half-duplex supported\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.34 half-duplex supported\n");
     if (modulation_schemes & V8_MOD_V34)
-        fprintf(stderr, "V.34 duplex supported\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.34 duplex supported\n");
     if (modulation_schemes & V8_MOD_V90)
-        fprintf(stderr, "V.90/V.92 supported\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.90/V.92 supported\n");
 }
 
 static void ci_decode(v8_state_t *s)
 {
     if (s->rx_data[0] == 0xC1)
-        fprintf(stderr, "CI: data call\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "CI: data call\n");
 }
 
 static void cm_jm_decode(v8_state_t *s)
@@ -123,7 +129,7 @@ static void cm_jm_decode(v8_state_t *s)
     /* We have a pair of matching CMs or JMs */
     s->got_cm_jm = TRUE;
 
-printf("decoding\n");
+    span_log(&s->logging, SPAN_LOG_FLOW, "Decoding\n");
 
     s->far_end_modulations = 0;
     p = s->cm_jm_data;
@@ -137,31 +143,31 @@ printf("decoding\n");
 
     if (*p == 0x01)
     {
-        fprintf(stderr, "TBS\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "TBS\n");
     }
     else if (*p == 0x21)
     {
-        fprintf(stderr, "H.324\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "H.324\n");
     }
     else if (*p == 0x41)
     {
-        fprintf(stderr, "V.18\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V.18\n");
     }
     else if (*p == 0x61)
     {
-        fprintf(stderr, "T.101\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "T.101\n");
     }
     else if (*p == 0x81)
     {
-        fprintf(stderr, "T.30 Tx\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "T.30 Tx\n");
     }
     else if (*p == 0xA1)
     {
-        fprintf(stderr, "T.30 Rx\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "T.30 Rx\n");
     }
     else if (*p == 0xC1)
     {
-        fprintf(stderr, "V series modem\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "V series modem\n");
         /* Modulation octet */
         p++;
         if ((*p & 0x1F) != 0x05)
@@ -201,13 +207,13 @@ printf("decoding\n");
                 /* Skip any future extensions we do not understand */
                 while  ((*++p & 0x38) == 0x10)
                     /* dummy loop */;
-                log_supported_modulations(s->far_end_modulations);
+                log_supported_modulations(s, s->far_end_modulations);
             }
         }
     }
     else if (*p == 0xE1)
     {
-        fprintf(stderr, "Call function is in extention octet\n");
+        span_log(&s->logging, SPAN_LOG_FLOW, "Call function is in extention octet\n");
     }
 }
 
@@ -246,18 +252,18 @@ static void put_bit(void *user_data, int bit)
         /* Debug */
         if (s->preamble_type == V8_CI_SYNC)
         {
-            fprintf(stderr, "CI: ");
+            span_log(&s->logging, SPAN_LOG_FLOW, "CI: ");
         }
         else if (s->preamble_type == V8_CM_SYNC)
         {
             if (s->caller)
-                fprintf(stderr, "JM: ");
+                span_log(&s->logging, SPAN_LOG_FLOW, "JM: ");
             else
-                fprintf(stderr, "CM: ");
+                span_log(&s->logging, SPAN_LOG_FLOW, "CM: ");
         }
         for (i = 0;  i < s->rx_data_ptr;  i++)
-            fprintf(stderr, " %02x", s->rx_data[i]);
-        fprintf(stderr, "\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, " %02x", s->rx_data[i]);
+        span_log(&s->logging, SPAN_LOG_FLOW, "\n");
         
         /* Decode previous sequence */
         switch (s->preamble_type)
@@ -421,7 +427,7 @@ int v8_tx(v8_state_t *s, int16_t *amp, int max_samples)
 {
     int samples;
 
-    //fprintf(stderr, "v8_tx state %d\n", s->state);
+    //span_log(&s->logging, SPAN_LOG_FLOW, "v8_tx state %d\n", s->state);
     samples = 0;
     switch (s->state)
     {
@@ -449,7 +455,7 @@ int v8_rx(v8_state_t *s, const int16_t *amp, int samples)
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
     };
 
-    //fprintf(stderr, "v8_rx state %d\n", s->state);
+    //span_log(&s->logging, SPAN_LOG_FLOW, "v8_rx state %d\n", s->state);
     residual_samples = 0;
     switch (s->state)
     {

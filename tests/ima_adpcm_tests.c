@@ -24,16 +24,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm_tests.c,v 1.1 2004/12/20 14:30:52 steveu Exp $
+ * $Id: ima_adpcm_tests.c,v 1.3 2005/09/01 17:06:45 steveu Exp $
  */
 
 #define _ISOC9X_SOURCE  1
 #define _ISOC99_SOURCE  1
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <math.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>

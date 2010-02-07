@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk_tests.c,v 1.9 2005/01/18 14:05:50 steveu Exp $
+ * $Id: fsk_tests.c,v 1.11 2005/09/01 17:06:45 steveu Exp $
  */
 
 /*! \page fsk_tests_page FSK modem tests
@@ -38,7 +38,7 @@
 #include "config.h"
 #endif
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

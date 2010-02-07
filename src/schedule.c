@@ -23,12 +23,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule.c,v 1.2 2004/12/31 15:23:01 steveu Exp $
+ * $Id: schedule.c,v 1.5 2005/08/31 19:27:52 steveu Exp $
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
+#include <memory.h>
 #include <sys/time.h>
 
 #include "spandsp/telephony.h"

@@ -23,12 +23,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.c,v 1.5 2005/03/03 14:19:00 steveu Exp $
+ * $Id: line_model.c,v 1.7 2005/09/01 17:06:45 steveu Exp $
  */
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <time.h>
 #include <stdio.h>

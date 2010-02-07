@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_gen_tests.c,v 1.4 2004/03/12 16:27:25 steveu Exp $
+ * $Id: dtmf_gen_tests.c,v 1.5 2005/09/01 17:06:45 steveu Exp $
  */
 
 //#define _ISOC9X_SOURCE	1
@@ -32,7 +32,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <math.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>

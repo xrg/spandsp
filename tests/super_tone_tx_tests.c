@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx_tests.c,v 1.2 2004/10/16 15:20:49 steveu Exp $
+ * $Id: super_tone_tx_tests.c,v 1.4 2005/09/01 17:06:45 steveu Exp $
  */
 
 #define	_ISOC9X_SOURCE	1
@@ -41,7 +41,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <time.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <sys/socket.h>
 #include <math.h>
 
@@ -120,29 +120,29 @@ static int parse_tone(super_tone_tx_step_t **tree, xmlDocPtr doc, xmlNsPtr ns, x
             cycles = 1;
             if ((x = xmlGetProp(cur, (const xmlChar *) "freq")))
             {
-                sscanf(x, "%f [%f%%]", &f1, &f_tol);
-                sscanf(x, "%f+%f [%f%%]", &f1, &f2, &f_tol);
+                sscanf((char *) x, "%f [%f%%]", &f1, &f_tol);
+                sscanf((char *) x, "%f+%f [%f%%]", &f1, &f2, &f_tol);
                 printf("Frequency=%.2f+%.2f [%.2f%%]", f1, f2, f_tol);
             }
             if ((x = xmlGetProp(cur, (const xmlChar *) "level")))
             {
-                if (sscanf(x, "%f+%f", &l1, &l2) < 2)
+                if (sscanf((char *) x, "%f+%f", &l1, &l2) < 2)
                     l2 = l1;
                 printf("Level=%.2f+%.2f", l1, l2);
             }
             if ((x = xmlGetProp(cur, (const xmlChar *) "length")))
             {
-                sscanf(x, "%f [%f%%]", &length, &length_tol);
+                sscanf((char *) x, "%f [%f%%]", &length, &length_tol);
                 printf("Length=%.2f [%.2f%%]", length, length_tol);
             }
             if ((x = xmlGetProp(cur, (const xmlChar *) "recognition-length")))
                 printf("Recognition length='%s'", x);
             if ((x = xmlGetProp(cur, (const xmlChar *) "cycles")))
             {
-                if (strcasecmp(x, "endless") == 0)
+                if (strcasecmp((char *) x, "endless") == 0)
                     cycles = 0;
                 else
-                    cycles = atoi(x);
+                    cycles = atoi((char *) x);
                 printf("Cycles=%d ", cycles);
             }
             if ((x = xmlGetProp(cur, (const xmlChar *) "recorded-announcement")))
@@ -175,7 +175,7 @@ static void parse_tone_set(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur)
     cur = cur->xmlChildrenNode;
     while (cur)
     {
-        if (strcmp(cur->name + strlen(cur->name) - 5, "-tone") == 0)
+        if (strcmp((char *) cur->name + strlen((char *) cur->name) - 5, "-tone") == 0)
         {
             printf("Hit %s\n", cur->name);
             tone_tree = NULL;
@@ -248,7 +248,7 @@ static void get_tone_set(char *tone_file, char *set_id)
         {
             if ((x = xmlGetProp(cur, (const xmlChar *) "uncode")))
             {
-                if (strcmp(x, set_id) == 0)
+                if (strcmp((char *) x, set_id) == 0)
                     parse_tone_set(doc, ns, cur);
                 /*endif*/
             }

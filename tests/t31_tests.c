@@ -29,7 +29,7 @@
 #define	_ISOC9X_SOURCE	1
 #define _ISOC99_SOURCE	1
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -73,7 +73,7 @@ int t31_send_hdlc(t31_state_t *s, uint8_t *t, int len)
     }
     buf[j++] = DLE;
     buf[j++] = ETX;
-    t31_at_rx(s, buf, j);
+    t31_at_rx(s, (char *) buf, j);
 }
 
 int general_test(t31_state_t *s)
@@ -293,7 +293,7 @@ void phase_b_handler(t30_state_t *s, void *user_data, int result)
 {
     int i;
     
-    i = (int) user_data;
+    i = (intptr_t) user_data;
     printf("Phase B handler on channel %d - 0x%X\n", i, result);
 }
 /*- End of function --------------------------------------------------------*/
@@ -304,7 +304,7 @@ void phase_d_handler(t30_state_t *s, void *user_data, int result)
     t30_stats_t t;
     char ident[21];
 
-    i = (int) user_data;
+    i = (intptr_t) user_data;
     printf("Phase D handler on channel %d - 0x%X\n", i, result);
     fax_get_transfer_statistics(s, &t);
     printf("Phase D: bit rate %d\n", t.bit_rate);
@@ -326,7 +326,7 @@ void phase_e_handler(t30_state_t *s, void *user_data, int result)
 {
     int i;
     
-    i = (int) user_data;
+    i = (intptr_t) user_data;
     printf("Phase E handler on channel %d\n", i);
 }
 /*- End of function --------------------------------------------------------*/

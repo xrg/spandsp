@@ -23,20 +23,25 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.17 2005/03/20 04:07:17 steveu Exp $
+ * $Id: v17rx.c,v 1.20 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
 
 /* THIS IS A WORK IN PROGRESS - KIND OF FUNCTIONAL, BUT NOT ROBUST! */
 
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/logging.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/arctan2.h"
 #include "spandsp/complex.h"
@@ -54,7 +59,7 @@
 #define V17_TRAINING_SEG_4A_LEN         15
 #define V17_TRAINING_SEG_4_LEN          48
 
-#define V17_BRIDGE_WORD             0x8880
+#define V17_BRIDGE_WORD                 0x8880
 
 enum
 {
@@ -7057,6 +7062,22 @@ static const float pulseshaper[192][V17RX_FILTER_STEPS] =
 };
 #endif
 
+static const uint8_t v17_14400_back_constellation[12][12] =
+{
+    {0x70, 0x0A, 0x0A, 0x43, 0x50, 0x55, 0x5A, 0x63, 0x00, 0x05, 0x05, 0x73}, 
+    {0x02, 0x70, 0x0F, 0x46, 0x69, 0x6C, 0x5F, 0x66, 0x49, 0x4C, 0x73, 0x0D},
+    {0x02, 0x4B, 0x70, 0x75, 0x1A, 0x23, 0x10, 0x15, 0x7A, 0x73, 0x08, 0x0D},
+    {0x07, 0x4E, 0x79, 0x7C, 0x1F, 0x26, 0x29, 0x2C, 0x7F, 0x76, 0x41, 0x44},
+    {0x60, 0x65, 0x12, 0x2B, 0x30, 0x35, 0x3A, 0x33, 0x18, 0x1D, 0x6A, 0x53},
+    {0x59, 0x5C, 0x17, 0x2E, 0x39, 0x3C, 0x3F, 0x36, 0x21, 0x24, 0x6F, 0x56},
+    {0x52, 0x6B, 0x20, 0x25, 0x32, 0x3B, 0x38, 0x3D, 0x2A, 0x13, 0x58, 0x5D},
+    {0x57, 0x6E, 0x19, 0x1C, 0x37, 0x3E, 0x31, 0x34, 0x2F, 0x16, 0x61, 0x64},
+    {0x40, 0x45, 0x72, 0x7B, 0x28, 0x2D, 0x22, 0x1B, 0x78, 0x7D, 0x4A, 0x03},
+    {0x09, 0x0C, 0x77, 0x7E, 0x11, 0x14, 0x27, 0x1E, 0x71, 0x74, 0x4F, 0x06},
+    {0x09, 0x77, 0x48, 0x4D, 0x62, 0x5B, 0x68, 0x6D, 0x42, 0x0B, 0x4F, 0x09},
+    {0x77, 0x01, 0x01, 0x04, 0x67, 0x5E, 0x51, 0x54, 0x47, 0x0E, 0x0E, 0x4F}
+};
+
 float v17_rx_carrier_frequency(v17_rx_state_t *s)
 {
     return s->carrier_phase_rate*(float) SAMPLE_RATE/(65536.0*65536.0);
@@ -7178,7 +7199,7 @@ static void tune_equalizer(v17_rx_state_t *s, const complex_t *z, const complex_
 
     /* Find the x and y mismatch from the exact constellation position. */
     ez = complex_sub(target, z);
-    //fprintf(stderr, "%f\n", sqrt(ez.re*ez.re + ez.im*ez.im));
+    //span_log(&s->logging, SPAN_LOG_FLOW, "%f\n", sqrt(ez.re*ez.re + ez.im*ez.im));
     /* Use weighting to put more emphasis on getting the close together
        constellation points right. */
     ez.re *= s->eq_delta;
@@ -7209,7 +7230,7 @@ static void track_carrier(v17_rx_state_t *s, const complex_t *z, const complex_t
     
     s->carrier_phase_rate += s->carrier_track_i*zz.im;
     s->carrier_phase += s->carrier_track_p*zz.im;
-    //fprintf(stderr, "Im = %15.5f   f = %15.5f\n", zz.im, s->carrier_phase_rate*8000.0/(65536.0*65536.0));
+    //span_log(&s->logging, SPAN_LOG_FLOW, "Im = %15.5f   f = %15.5f\n", zz.im, s->carrier_phase_rate*8000.0/(65536.0*65536.0));
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -7230,7 +7251,7 @@ static inline void put_bit(v17_rx_state_t *s, int bit)
            buggy modems mean you cannot rely on this. Therefore we don't bother
            testing for ones, but just rely on a constellation mismatch measurement. */
         out_bit = descramble(s, bit);
-        printf("A 1 is really %d\n", out_bit);
+        span_log(&s->logging, SPAN_LOG_FLOW, "A 1 is really %d\n", out_bit);
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -7336,8 +7357,7 @@ static int decode_baud(v17_rx_state_t *s, complex_t *z)
     }
     memcpy(s->distances, new_distances, sizeof(s->distances));
 
-    /* Find the minimum distance to date. This is the start of the path back to
-       the result. */
+    /* Find the minimum distance to date. This is the start of the path back to the result. */
     min = s->distances[0];
     k = 0;
     for (i = 1;  i < 8;  i++)
@@ -7396,17 +7416,15 @@ static void process_baud(v17_rx_state_t *s, const complex_t *sample)
     int32_t ang;
     int constellation_state;
 
-    s->rrc_filter[s->rrc_filter_step].re =
-    s->rrc_filter[s->rrc_filter_step + V17RX_FILTER_STEPS].re = sample->re;
-    s->rrc_filter[s->rrc_filter_step].im =
-    s->rrc_filter[s->rrc_filter_step + V17RX_FILTER_STEPS].im = sample->im;
+    s->rrc_filter[s->rrc_filter_step] =
+    s->rrc_filter[s->rrc_filter_step + V17RX_FILTER_STEPS] = *sample;
     if (++s->rrc_filter_step >= V17RX_FILTER_STEPS)
         s->rrc_filter_step = 0;
     /* Put things into the equalization buffer at T/2 rate. The Gardner algorithm
        will fiddle the step to align this with the bits. */
     if ((s->eq_put_step -= 192) > 0)
     {
-        //fprintf(stderr, "Samp, %f, %f, %f, 0, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "Samp, %f, %f, %f, 0, 0x%X\n", z.re, z.im, sqrt(z.re*z.re + z.im*z.im), s->eq_put_step);
         return;
     }
 
@@ -7427,8 +7445,7 @@ static void process_baud(v17_rx_state_t *s, const complex_t *sample)
 
     /* Add a sample to the equalizer's circular buffer, but don't calculate anything
        at this time. */
-    s->eq_buf[s->eq_step].re = z.re;
-    s->eq_buf[s->eq_step].im = z.im;
+    s->eq_buf[s->eq_step] = z;
     s->eq_step = (s->eq_step + 1) & V17_EQUALIZER_MASK;
 
     /* On alternate insertions we have a whole baud and must process it. */
@@ -7458,7 +7475,7 @@ static void process_baud(v17_rx_state_t *s, const complex_t *sample)
         s->gardner_integrate = 0;
     }
 
-printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_step);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_step);
 
     z = equalizer_get(s);
 
@@ -7547,8 +7564,8 @@ printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_st
                     + (s->angles[j | 0x1] - s->start_angles[1])/i;
                 s->carrier_phase_rate += 3*(ang/20);
             }
-            //fprintf(stderr, "%d %d %d %d %d\n", s->angles[s->training_count & 0xF], s->start_angles[0], s->angles[(s->training_count | 0x1) & 0xF], s->start_angles[1], s->training_count);
-            fprintf(stderr, "Coarse carrier frequency %7.2f (%d)\n", s->carrier_phase_rate*8000.0/(65536.0*65536.0), s->training_count);
+            //span_log(&s->logging, SPAN_LOG_FLOW, "%d %d %d %d %d\n", s->angles[s->training_count & 0xF], s->start_angles[0], s->angles[(s->training_count | 0x1) & 0xF], s->start_angles[1], s->training_count);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Coarse carrier frequency %7.2f (%d)\n", s->carrier_phase_rate*8000.0/(65536.0*65536.0), s->training_count);
 
             /* Make a step shift in the phase, to pull it into line. We need to rotate the RRC filter
                buffer and the equalizer buffer, as well as the carrier phase, for this to play out
@@ -7573,7 +7590,7 @@ printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_st
         {
             /* This is bogus. There are not this many bits in this section
                of a real training sequence. */
-            fprintf(stderr, "Training failed (sequence failed)\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (sequence failed)\n");
             /* Park this modem */
             s->in_training = TRAINING_STAGE_PARKED;
             s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
@@ -7602,7 +7619,7 @@ printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_st
         bit = descramble(s, 1);
         bit = (bit << 1) | descramble(s, 1);
 
-        //fprintf(stderr, "%5d [%15.5f, %15.5f]     [%15.5f, %15.5f]\n", s->training_count, z.re, z.im, cdba[bit].re, cdba[bit].im);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "%5d [%15.5f, %15.5f]     [%15.5f, %15.5f]\n", s->training_count, z.re, z.im, cdba[bit].re, cdba[bit].im);
         target = &cdba[bit];
         track_carrier(s, &z, target);
         tune_equalizer(s, &z, target);
@@ -7611,7 +7628,7 @@ printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_st
         s->training_error += power(&zz);
         if (++s->training_count >= V17_TRAINING_SEG_2_LEN)
         {
-            fprintf(stderr, "Training error %f\n", s->training_error);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Training error %f\n", s->training_error);
             if (s->training_error < 100.0)
             {
                 s->training_count = 0;
@@ -7620,7 +7637,7 @@ printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_st
             }
             else
             {
-                fprintf(stderr, "Training failed (convergence failed)\n");
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (convergence failed)\n");
                 /* Park this modem */
                 s->in_training = TRAINING_STAGE_PARKED;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
@@ -7666,7 +7683,7 @@ printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_st
             {
                 /* This is bogus. There are not this many bits in this section
                    of a real training sequence. */
-                fprintf(stderr, "Training failed (sequence failed)\n");
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (sequence failed)\n");
                 /* Park this modem */
                 s->in_training = TRAINING_STAGE_PARKED;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
@@ -7677,7 +7694,7 @@ printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_st
         /* Short retrain on the scrambled CDBA section, but measure the quality of training too. */
         bit = descramble(s, 1);
         bit = (bit << 1) | descramble(s, 1);
-        //fprintf(stderr, "%5d [%15.5f, %15.5f]     [%15.5f, %15.5f] %d\n", s->training_count, z.re, z.im, cdba[bit].re, cdba[bit].im, arctan2(z.im, z.re));
+        //span_log(&s->logging, SPAN_LOG_FLOW, "%5d [%15.5f, %15.5f]     [%15.5f, %15.5f] %d\n", s->training_count, z.re, z.im, cdba[bit].re, cdba[bit].im, arctan2(z.im, z.re));
         target = &cdba[bit];
         track_carrier(s, &z, target);
         //tune_equalizer(s, &z, target);
@@ -7689,7 +7706,7 @@ printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_st
         }
         if (++s->training_count >= V17_TRAINING_SHORT_SEG_2_LEN)
         {
-            fprintf(stderr, "Short training error %f\n", s->training_error);
+            span_log(&s->logging, SPAN_LOG_FLOW, "Short training error %f\n", s->training_error);
             if (s->training_error < 4000.0)
             {
                 s->training_count = 0;
@@ -7697,7 +7714,7 @@ printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_st
             }
             else
             {
-                fprintf(stderr, "Short training failed (convergence failed)\n");
+                span_log(&s->logging, SPAN_LOG_FLOW, "Short training failed (convergence failed)\n");
                 /* Park this modem */
                 s->in_training = TRAINING_STAGE_PARKED;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
@@ -7706,7 +7723,7 @@ printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_st
         break;
     case TRAINING_STAGE_TCM_WINDUP:
         /* We need to wait 15 bauds while the trellis fills up. */
-        //fprintf(stderr, "%5d %15.5f, %15.5f\n", s->training_count, z.re, z.im);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "%5d %15.5f, %15.5f\n", s->training_count, z.re, z.im);
         constellation_state = decode_baud(s, &z);
         target = &s->constellation[constellation_state];
         /* Measure the training error */
@@ -7724,7 +7741,7 @@ printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_st
     case TRAINING_STAGE_TEST_ONES:
         /* We are in the test phase, where we check that we can receive reliably.
            We should get a run of 1's, 48 symbols long. */
-        //fprintf(stderr, "%5d %15.5f, %15.5f\n", s->training_count, z.re, z.im);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "%5d %15.5f, %15.5f\n", s->training_count, z.re, z.im);
         constellation_state = decode_baud(s, &z);
         target = &s->constellation[constellation_state];
         /* Measure the training error */
@@ -7735,7 +7752,7 @@ printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_st
             if (s->training_error < 25.0)
             {
                 /* We are up and running */
-                fprintf(stderr, "Training succeeded (constellation mismatch %f)\n", s->training_error);
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded (constellation mismatch %f)\n", s->training_error);
                 s->in_training = TRAINING_STAGE_NORMAL_OPERATION;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_SUCCEEDED);
                 equalizer_save(s);
@@ -7744,7 +7761,7 @@ printf("Gardtest %d %d %d\n", fred++, s->gardner_total_correction, s->gardner_st
             else
             {
                 /* Training has failed */
-                fprintf(stderr, "Training failed (constellation mismatch %f)\n", s->training_error);
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training failed (constellation mismatch %f)\n", s->training_error);
                 /* Park this modem */
                 s->in_training = TRAINING_STAGE_PARKED;
                 s->put_bit(s->user_data, PUTBIT_TRAINING_FAILED);
@@ -7877,7 +7894,7 @@ int v17_rx_restart(v17_rx_state_t *s, int rate, int short_train)
     s->distances[0] = 0;
     s->trellis_ptr = 14;
 
-printf("Phase rates %f %f\n", s->carrier_phase_rate*(float) SAMPLE_RATE/(65536.0*65536.0), s->carrier_phase_rate_save*(float) SAMPLE_RATE/(65536.0*65536.0));
+    span_log(&s->logging, SPAN_LOG_FLOW, "Phase rates %f %f\n", s->carrier_phase_rate*(float) SAMPLE_RATE/(65536.0*65536.0), s->carrier_phase_rate_save*(float) SAMPLE_RATE/(65536.0*65536.0));
     if (s->short_train)
         s->carrier_phase_rate = s->carrier_phase_rate_save;
     else

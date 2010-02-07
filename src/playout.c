@@ -30,10 +30,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: playout.c,v 1.3 2005/02/04 19:19:30 steveu Exp $
+ * $Id: playout.c,v 1.6 2005/08/31 19:27:52 steveu Exp $
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>

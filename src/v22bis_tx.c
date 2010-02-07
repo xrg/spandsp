@@ -23,20 +23,25 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.9 2005/03/20 04:07:17 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.12 2005/08/31 19:27:53 steveu Exp $
  */
 
 /*! \file */
 
 /* THIS IS A WORK IN PROGRESS - NOT YET FUNCTIONAL! */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/logging.h"
 #include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/power_meter.h"
@@ -251,13 +256,13 @@ static complex_t training_get(v22bis_state_t *s)
                 if (s->bit_rate == 2400)
                 {
                     /* Try to establish at 2400bps */
-fprintf(stderr, "+++ [%s] starting unscrambled 0011 at 1200\n", (s->caller)  ?  "caller"  :  "answerer");
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ [%s] starting unscrambled 0011 at 1200\n", (s->caller)  ?  "caller"  :  "answerer");
                     s->tx_training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_0011;
                 }
                 else
                 {
                     /* Only try at 1200bps */
-fprintf(stderr, "+++ [%s] starting scrambled ones at 1200 (A)\n", (s->caller)  ?  "caller"  :  "answerer");
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ [%s] starting scrambled ones at 1200 (A)\n", (s->caller)  ?  "caller"  :  "answerer");
                     s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
                 }
                 s->tx_training_count = 0;
@@ -269,7 +274,7 @@ fprintf(stderr, "+++ [%s] starting scrambled ones at 1200 (A)\n", (s->caller)  ?
             if (++s->tx_training_count >= ms_to_symbols(75))
             {
                 /* Inital 75ms of silence is over */
-fprintf(stderr, "+++ [%s] starting unscrambled ones at 1200\n", (s->caller)  ?  "caller"  :  "answerer");
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ [%s] starting unscrambled ones at 1200\n", (s->caller)  ?  "caller"  :  "answerer");
                 s->tx_training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_ONES;
                 s->tx_training_count = 0;
             }
@@ -283,7 +288,7 @@ fprintf(stderr, "+++ [%s] starting unscrambled ones at 1200\n", (s->caller)  ?  
         if (s->detected_unscrambled_0011_ending)
         {
             /* We are going to work at 2400bps */
-fprintf(stderr, "+++ [%s] [2400] starting unscrambled 0011 at 1200\n", (s->caller)  ?  "caller"  :  "answerer");
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ [%s] [2400] starting unscrambled 0011 at 1200\n", (s->caller)  ?  "caller"  :  "answerer");
             s->bit_rate = 2400;
             s->tx_training = V22BIS_TRAINING_STAGE_UNSCRAMBLED_0011;
             s->tx_training_count = 0;
@@ -292,7 +297,7 @@ fprintf(stderr, "+++ [%s] [2400] starting unscrambled 0011 at 1200\n", (s->calle
         if (s->detected_scrambled_ones_or_zeros_at_1200bps)
         {
             /* We are going to work at 1200bps */
-fprintf(stderr, "+++ [%s] [1200] starting scrambled ones at 1200 (B)\n", (s->caller)  ?  "caller"  :  "answerer");
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ [%s] [1200] starting scrambled ones at 1200 (B)\n", (s->caller)  ?  "caller"  :  "answerer");
             s->bit_rate = 1200;
             s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
             s->tx_training_count = 0;
@@ -306,7 +311,7 @@ fprintf(stderr, "+++ [%s] [1200] starting scrambled ones at 1200 (B)\n", (s->cal
         z = v22bis_constellation[(s->tx_constellation_state << 2) | 1];
         if (++s->tx_training_count >= ms_to_symbols(100))
         {
-fprintf(stderr, "+++ [%s] starting scrambled ones at 1200 (C)\n", (s->caller)  ?  "caller"  :  "answerer");
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ [%s] starting scrambled ones at 1200 (C)\n", (s->caller)  ?  "caller"  :  "answerer");
             s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_1200;
             s->tx_training_count = 0;
         }
@@ -324,7 +329,7 @@ fprintf(stderr, "+++ [%s] starting scrambled ones at 1200 (C)\n", (s->caller)  ?
                 /* Continue for a further 600+-10ms */
                 if (++s->tx_training_count >= ms_to_symbols(600))
                 {
-fprintf(stderr, "+++ [%s] starting scrambled ones at 2400 (A)\n", (s->caller)  ?  "caller"  :  "answerer");
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ [%s] starting scrambled ones at 2400 (A)\n", (s->caller)  ?  "caller"  :  "answerer");
                     s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_2400;
                     s->tx_training_count = 0;
                 }
@@ -336,14 +341,14 @@ fprintf(stderr, "+++ [%s] starting scrambled ones at 2400 (A)\n", (s->caller)  ?
                     /* Continue for a further 756+-10ms */
                     if (++s->tx_training_count >= ms_to_symbols(756))
                     {
-fprintf(stderr, "+++ [%s] starting scrambled ones at 2400 (B)\n", (s->caller)  ?  "caller"  :  "answerer");
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ [%s] starting scrambled ones at 2400 (B)\n", (s->caller)  ?  "caller"  :  "answerer");
                         s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_2400;
                         s->tx_training_count = 0;
                     }
                 }
                 else
                 {
-fprintf(stderr, "+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
                     s->tx_training = V22BIS_TRAINING_STAGE_NORMAL_OPERATION;
                     s->tx_training_count = 0;
                     s->current_get_bit = s->get_bit;
@@ -356,7 +361,7 @@ fprintf(stderr, "+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
             {
                 if (++s->tx_training_count >= ms_to_symbols(500))
                 {
-fprintf(stderr, "+++ [%s] starting scrambled ones at 2400 (C)\n", (s->caller)  ?  "caller"  :  "answerer");
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ [%s] starting scrambled ones at 2400 (C)\n", (s->caller)  ?  "caller"  :  "answerer");
                     s->tx_training = V22BIS_TRAINING_STAGE_SCRAMBLED_ONES_AT_2400;
                     s->tx_training_count = 0;
                 }
@@ -365,7 +370,7 @@ fprintf(stderr, "+++ [%s] starting scrambled ones at 2400 (C)\n", (s->caller)  ?
             {
                 if (++s->tx_training_count >= ms_to_symbols(756))
                 {
-fprintf(stderr, "+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
                     s->tx_training = 0;
                     s->tx_training_count = 0;
                 }
@@ -383,7 +388,7 @@ fprintf(stderr, "+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
         if (++s->tx_training_count >= ms_to_symbols(200))
         {
             /* We have completed training. Now handle some real work. */
-fprintf(stderr, "+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
+span_log(&s->logging, SPAN_LOG_FLOW, "+++ [%s] finished\n", (s->caller)  ?  "caller"  :  "answerer");
             s->tx_training = 0;
             s->tx_training_count = 0;
             s->current_get_bit = s->get_bit;
@@ -435,6 +440,7 @@ static complex_t getbaud(v22bis_state_t *s)
 int v22bis_tx(v22bis_state_t *s, int16_t *amp, int len)
 {
     complex_t x;
+    complex_t y;
     complex_t z;
     int i;
     int sample;
@@ -491,17 +497,17 @@ int v22bis_tx(v22bis_state_t *s, int16_t *amp, int len)
         if (++s->tx_rrc_filter_step >= V22BIS_TX_FILTER_STEPS)
             s->tx_rrc_filter_step = 0;
         /* Root raised cosine pulse shaping at baseband */
-        x.re = pulseshaper[V22BIS_TX_FILTER_STEPS >> 1]*s->tx_rrc_filter[(V22BIS_TX_FILTER_STEPS >> 1) + s->tx_rrc_filter_step].re;
-        x.im = pulseshaper[V22BIS_TX_FILTER_STEPS >> 1]*s->tx_rrc_filter[(V22BIS_TX_FILTER_STEPS >> 1) + s->tx_rrc_filter_step].im;
+        y.re = pulseshaper[V22BIS_TX_FILTER_STEPS >> 1]*s->tx_rrc_filter[(V22BIS_TX_FILTER_STEPS >> 1) + s->tx_rrc_filter_step].re;
+        y.im = pulseshaper[V22BIS_TX_FILTER_STEPS >> 1]*s->tx_rrc_filter[(V22BIS_TX_FILTER_STEPS >> 1) + s->tx_rrc_filter_step].im;
         for (i = 0;  i < (V22BIS_TX_FILTER_STEPS >> 1);  i++)
         {
-            x.re += pulseshaper[i]*(s->tx_rrc_filter[s->tx_rrc_filter_step + i].re + s->tx_rrc_filter[V22BIS_TX_FILTER_STEPS - 1 + s->tx_rrc_filter_step - i].re);
-            x.im += pulseshaper[i]*(s->tx_rrc_filter[s->tx_rrc_filter_step + i].im + s->tx_rrc_filter[V22BIS_TX_FILTER_STEPS - 1 + s->tx_rrc_filter_step - i].im);
+            y.re += pulseshaper[i]*(s->tx_rrc_filter[s->tx_rrc_filter_step + i].re + s->tx_rrc_filter[V22BIS_TX_FILTER_STEPS - 1 + s->tx_rrc_filter_step - i].re);
+            y.im += pulseshaper[i]*(s->tx_rrc_filter[s->tx_rrc_filter_step + i].im + s->tx_rrc_filter[V22BIS_TX_FILTER_STEPS - 1 + s->tx_rrc_filter_step - i].im);
         }
         /* Now create and modulate the carrier */
         z = dds_complexf(&(s->tx_carrier_phase), s->tx_carrier_phase_rate);
-        amp[sample] = (int16_t) ((x.re*z.re + x.im*z.im)*s->tx_gain);
-        if (s->guard_phase_rate)
+        amp[sample] = (int16_t) ((y.re*z.re + y.im*z.im)*s->tx_gain);
+        if (s->guard_phase_rate  &&  (x.re != 0.0  ||  y.re != 0.0))
         {
             /* Add the guard tone */
             amp[sample] += dds_modf(&(s->guard_phase), s->guard_phase_rate, s->guard_level, 0);

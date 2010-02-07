@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.5 2005/01/18 14:05:49 steveu Exp $
+ * $Id: v22bis.h,v 1.6 2005/05/26 13:52:17 steveu Exp $
  */
 
 /*! \file */
@@ -186,6 +186,9 @@ typedef struct
     int detected_unscrambled_0011_ending;
     int detected_scrambled_ones_or_zeros_at_1200bps;
     int detected_scrambled_ones_at_2400bps;
+
+    /*! \brief Error and flow logging control */
+    logging_state_t logging;
 } v22bis_state_t;
 
 extern const complex_t v22bis_constellation[16];

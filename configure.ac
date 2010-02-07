@@ -1,4 +1,4 @@
-# configure.in -- Process this file with autoconf to produce configure
+# configure.ac -- Process this file with autoconf to produce configure
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,7 +14,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.in,v 1.15 2005/01/28 23:30:48 steveu Exp $
+# $Id: configure.ac,v 1.1 2005/09/03 10:37:56 steveu Exp $
 
 # @start 1
 
@@ -83,34 +83,44 @@ AC_HEADER_SYS_WAIT
 AC_HEADER_TIME
 
 # Check for header files.
-AC_CHECK_HEADERS(socket.h)
-AC_CHECK_HEADERS(stdint.h)
-AC_CHECK_HEADERS(unistd.h)
-AC_CHECK_HEADERS(stdlib.h)
-AC_CHECK_HEADERS(string.h)
-AC_CHECK_HEADERS(strings.h)
-AC_CHECK_HEADERS(malloc.h)
-AC_CHECK_HEADERS(float.h)
-AC_CHECK_HEADERS(fcntl.h)
-AC_CHECK_HEADERS(sys/time.h)
-AC_CHECK_HEADERS(sys/select.h)
-AC_CHECK_HEADERS(sys/ioctl.h)
-AC_CHECK_HEADERS(sys/fcntl.h)
-AC_CHECK_HEADERS(linux/soundcard.h)
-AC_CHECK_HEADERS(audiofile.h)
-AC_CHECK_HEADERS(fftw.h)
-AC_CHECK_HEADERS(fftw3.h)
-AC_CHECK_HEADERS(tiffio.h)
-AC_CHECK_HEADERS(pthread.h)
-AC_CHECK_HEADERS(unicall.h)
-AC_CHECK_HEADERS(FL/Fl.H)
-AC_CHECK_HEADERS(FL/Fl_Overlay_Window.H)
-AC_CHECK_HEADERS(FL/Fl_Light_Button.H)
-AC_CHECK_HEADERS(FL/fl_draw.H)
-AC_CHECK_HEADERS(FL/Fl_Cartesian.H, LIBS="$LIBS -lfltk_cartesian -lfltk -lsupc++")
-AC_CHECK_HEADERS(X11/X.h, TESTLIBS="$TESTLIBS -L/usr/X11R6/lib -lXft -lXext -lX11")
+AC_CHECK_HEADERS([socket.h])
+AC_CHECK_HEADERS([stdint.h])
+AC_CHECK_HEADERS([unistd.h])
+AC_CHECK_HEADERS([stdlib.h])
+AC_CHECK_HEADERS([string.h])
+AC_CHECK_HEADERS([strings.h])
+AC_CHECK_HEADERS([malloc.h])
+AC_CHECK_HEADERS([float.h])
+AC_CHECK_HEADERS([fcntl.h])
+AC_CHECK_HEADERS([sys/time.h])
+AC_CHECK_HEADERS([sys/select.h])
+AC_CHECK_HEADERS([sys/ioctl.h])
+AC_CHECK_HEADERS([sys/fcntl.h])
+AC_CHECK_HEADERS([linux/soundcard.h])
+AC_CHECK_HEADERS([audiofile.h])
+AC_CHECK_HEADERS([fftw.h])
+AC_CHECK_HEADERS([fftw3.h])
+AC_CHECK_HEADERS([tiffio.h])
+AC_CHECK_HEADERS([pthread.h])
+AC_CHECK_HEADERS([unicall.h])
+AC_CHECK_HEADERS([X11/X.h])
+
+AC_LANG([C++])
+AC_CHECK_HEADERS([FL/Fl.H])
+AC_CHECK_HEADERS([FL/Fl_Overlay_Window.H])
+AC_CHECK_HEADERS([FL/Fl_Light_Button.H])
+AC_CHECK_HEADERS([FL/fl_draw.H])
+AC_CHECK_HEADERS([FL/Fl_Cartesian.H], [TESTLIBS="$TESTLIBS -lfltk_cartesian -lfltk -lsupc++"], [], [],[[#include <FL/Fl.H>
+]])
+
+AC_LANG([C])
+# X86_64 Linux machines have both 64 bit and 32 bit libraries. We need to choose the right set
+AC_CHECK_FILE([/usr/X11R6/lib64], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib64"], AC_CHECK_FILE([/usr/X11R6/lib], [TESTLIBS="$TESTLIBS -L/usr/X11R6/lib"]))
 
 # Checks for libraries.
+AC_CHECK_LIB([Xft], [XftFontOpen], TESTLIBS="$TESTLIBS -lXft",, $TESTLIBS)
+AC_CHECK_LIB([Xext], [XextCreateExtension], TESTLIBS="$TESTLIBS -lXext",, $TESTLIBS)
+AC_CHECK_LIB([X11], [XOpenDisplay], TESTLIBS="$TESTLIBS -lX11",, $TESTLIBS)
 AC_CHECK_LIB([tiff], [TIFFOpen],,echo "Can't build without libtiff"; exit 1, -lm)
 AC_CHECK_LIB([m], [cos])
 AC_CHECK_LIB([xml2], [xmlParseFile], TESTLIBS="$TESTLIBS -lxml2")

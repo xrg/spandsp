@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.h,v 1.15 2005/03/20 04:07:18 steveu Exp $
+ * $Id: v27ter_rx.h,v 1.16 2005/05/26 13:52:17 steveu Exp $
  */
 
 /*! \file */
@@ -124,6 +124,8 @@ typedef struct
     int32_t start_angles[2];
     /*! \brief History list of phase angles for the coarse carrier aquisition step. */
     int32_t angles[16];
+    /*! \brief Error and flow logging control */
+    logging_state_t logging;
 } v27ter_rx_state_t;
 
 #ifdef __cplusplus

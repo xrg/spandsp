@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.h,v 1.3 2005/01/18 14:05:49 steveu Exp $
+ * $Id: super_tone_tx.h,v 1.4 2005/06/26 16:43:58 steveu Exp $
  */
 
 #if !defined(_SUPER_TONE_TX_H_)
@@ -48,7 +48,7 @@ typedef struct
 {
     int32_t phase_rate[2];
     int gain[2];
-    int32_t phase[2];
+    uint32_t phase[2];
     int current_position;
     int level;
     super_tone_tx_step_t *levels[4];

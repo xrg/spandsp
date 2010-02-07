@@ -29,14 +29,18 @@
 
 /*! \file */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
-
+#include <tgmath.h>
 #include <tiffio.h>
 
 #include "spandsp.h"
@@ -799,6 +803,10 @@ static void disconnect(t30_state_t *s)
 {
     if (s->verbose)
         fprintf(stderr, "Disconnecting\n");
+    /* Make sure any FAX in progress is tidied up. If the tidying up has
+       already happened, repeating it here is harmless. */
+    t4_rx_end(&(s->t4));
+    t4_tx_end(&(s->t4));
     s->timer_t1 = 0;
     s->timer_t2 = 0;
     s->timer_t3 = 0;
@@ -817,9 +825,9 @@ static int start_sending_document(t30_state_t *s)
     }
     if (s->verbose)
         fprintf(stderr, "Start sending document\n");
-    if (t4_tx_init(&(s->t4), s->tx_file))
+    if (t4_tx_init(&(s->t4), s->tx_file, -1, -1))
     {
-       fprintf(stderr, "Cannot open source TIFF file '%s'\n", s->tx_file);
+        fprintf(stderr, "Cannot open source TIFF file '%s'\n", s->tx_file);
         return  FALSE;
     }
     t4_tx_set_tx_encoding(&(s->t4), s->line_encoding);
@@ -2452,6 +2460,16 @@ int fax_init(t30_state_t *s, int calling_party, void *user_data)
     }
 #endif
     return  0;
+}
+/*- End of function --------------------------------------------------------*/
+
+int fax_release(t30_state_t *s)
+{
+    /* Make sure any FAX in progress is tidied up. If the tidying up has
+       already happened, repeating it here is harmless. */
+    t4_rx_end(&(s->t4));
+    t4_tx_end(&(s->t4));
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 

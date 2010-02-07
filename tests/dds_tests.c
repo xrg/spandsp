@@ -23,14 +23,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds_tests.c,v 1.4 2004/10/16 07:29:59 steveu Exp $
+ * $Id: dds_tests.c,v 1.6 2005/09/01 17:06:45 steveu Exp $
  */
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
-#include <math.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <memory.h>
+#include <tgmath.h>
 #include <audiofile.h>
 #include <tiffio.h>
 

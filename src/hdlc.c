@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.c,v 1.10 2005/03/20 04:07:17 steveu Exp $
+ * $Id: hdlc.c,v 1.13 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
@@ -31,7 +31,11 @@
 //#define _ISOC9X_SOURCE  1
 //#define _ISOC99_SOURCE  1
 
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -113,7 +117,7 @@ static const uint32_t crc_itu32_table[] =
     0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
 };
 
-uint32_t crc_itu32_calc(uint8_t *buf, int len)
+uint32_t crc_itu32_calc(const uint8_t *buf, int len)
 {
     uint32_t crc = 0xFFFFFFFF;
 
@@ -186,7 +190,7 @@ static const uint16_t crc_itu16_table[] =
     0x7BC7, 0x6A4E, 0x58D5, 0x495C, 0x3DE3, 0x2C6A, 0x1EF1, 0x0F78
 };
 
-uint16_t crc_itu16_calc(uint8_t *buf, int len)
+uint16_t crc_itu16_calc(const uint8_t *buf, int len)
 {
     uint16_t crc = 0xFFFF;
 

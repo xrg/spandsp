@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29_tests.c,v 1.36 2005/03/28 08:15:21 steveu Exp $
+ * $Id: v29_tests.c,v 1.39 2005/09/01 17:06:46 steveu Exp $
  */
 
 /*! \page v29_tests_page V.29 modem tests
@@ -41,7 +41,7 @@
 #define ENABLE_GUI
 #endif
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -254,6 +254,12 @@ int main(int argc, char *argv[])
             tep = TRUE;
             continue;
         }
+        if (strcmp(argv[i], "-m") == 0)
+        {
+            i++;
+            line_model_no = atoi(argv[i]);
+            continue;
+        }
         if (strcmp(argv[i], "9600") == 0)
             test_bps = 9600;
         else if (strcmp(argv[i], "7200") == 0)
@@ -265,11 +271,6 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Invalid bit rate\n");
             exit(2);
         }
-    }
-    if (argc > i)
-    {
-        line_model_no = atoi(argv[i]);
-        i++;
     }
     filesetup = afNewFileSetup();
     if (filesetup == AF_NULL_FILESETUP)
@@ -368,10 +369,8 @@ int main(int argc, char *argv[])
             printf("smooth power %f\n", power_meter_dbm0(&power_meter));
         }
         v29_rx(&rx, amp, samples);
-        if (block%500 == 0)
-        {
+        if (!decode_test  &&  block%500 == 0)
             printf("Noise level is %d\n", noise_level);
-        }
     }
     if (decode_test)
     {

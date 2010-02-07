@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17_tests.c,v 1.20 2005/03/13 15:58:57 steveu Exp $
+ * $Id: v17_tests.c,v 1.22 2005/09/01 17:06:46 steveu Exp $
  */
 
 /*! \page v17_tests_page V.17 modem tests
@@ -42,7 +42,7 @@
 #define ENABLE_GUI
 #endif
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -252,7 +252,8 @@ int main(int argc, char *argv[])
     
     test_bps = 14400;
     tep = FALSE;
-    line_model_no = 5;
+    line_model_no = 0;
+    decode_test = FALSE;
     for (i = 1;  i < argc;  i++)
     {
         if (strcmp(argv[i], "-d") == 0)
@@ -263,6 +264,12 @@ int main(int argc, char *argv[])
         if (strcmp(argv[i], "-t") == 0)
         {
             tep = TRUE;
+            continue;
+        }
+        if (strcmp(argv[i], "-m") == 0)
+        {
+            i++;
+            line_model_no = atoi(argv[i]);
             continue;
         }
         if (strcmp(argv[i], "14400") == 0)
@@ -278,11 +285,6 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Invalid bit rate\n");
             exit(2);
         }
-    }
-    if (argc > i)
-    {
-        line_model_no = atoi(argv[i]);
-        i++;
     }
     filesetup = afNewFileSetup();
     if (filesetup == AF_NULL_FILESETUP)

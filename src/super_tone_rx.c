@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.c,v 1.2 2004/10/16 15:20:49 steveu Exp $
+ * $Id: super_tone_rx.c,v 1.5 2005/08/31 19:27:52 steveu Exp $
  */
 
 /*! \file */
@@ -39,9 +39,8 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <time.h>
-#include <stdint.h>
-#include <sys/socket.h>
-#include <math.h>
+#include <inttypes.h>
+#include <tgmath.h>
 
 #include "spandsp/telephony.h"
 #include "spandsp/tone_detect.h"

@@ -23,20 +23,25 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.c,v 1.11 2005/03/20 04:07:17 steveu Exp $
+ * $Id: v17tx.c,v 1.13 2005/08/31 19:27:53 steveu Exp $
  */
 
 /*! \file */
 
 /* THIS IS A WORK IN PROGRESS - KIND OF FUNCTIONAL, BUT NOT ROBUST! */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
 #include "spandsp/telephony.h"
+#include "spandsp/logging.h"
 #include "spandsp/complex.h"
 #include "spandsp/dds.h"
 #include "spandsp/power_meter.h"

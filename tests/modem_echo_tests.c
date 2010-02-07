@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo_tests.c,v 1.3 2005/03/03 14:19:00 steveu Exp $
+ * $Id: modem_echo_tests.c,v 1.4 2005/09/01 17:06:45 steveu Exp $
  */
 
 /*! \page modem_echo_can_tests_page Modem echo cancellation tests
@@ -88,7 +88,7 @@ cancellor.
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <time.h>
 #include <stdio.h>

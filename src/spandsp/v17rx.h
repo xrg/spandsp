@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.13 2005/03/20 04:07:18 steveu Exp $
+ * $Id: v17rx.h,v 1.15 2005/06/04 11:31:49 steveu Exp $
  */
 
 /*! \file */
@@ -149,6 +149,62 @@ the number of the previous state. We find the minimum distance amongst the 8 new
 states for each new symbol. We then trace back through the states, until we reach the
 one 16 states ago which leads to the current minimum distance. The bit pattern stored
 there is the error corrected bit pattern for that symbol.
+
+So, what does Trellis coding actually achieve? TCM is easier to understand by looking
+at the V.23bis modem spec. The V.32bis spec. is very similar to V.17, except that it
+is a full duplex modem and has non-TCM options, as well as the TCM ones in V.17.
+
+V32bis defines two options for pumping 9600 bits per second down a phone line - one
+with and one without TCM. Both run at 2400 baud. The non-TCM one uses simple 16 point
+QAM on the raw data. The other takes two out of every four raw bits, and convolutionally
+encodes them to 3. Now we have 5 bits per symbol, and we need 32 point QAM to send the
+data.
+
+The raw error rate from simple decoding of the 32 point QAM is horrible compared to
+decoding the 16 point QAM. If a point decoded from the 32 point QAM is wrong, the likely
+correct choice should be one of the adjacent ones. It is unlikely to have been one that
+is far away across the constellation, unless there was a huge noise spike, interference,
+or something equally nasty. Now, the 32 point symbols do not exist in isolation. There
+was a kind of temporal smearing in the convolutional coding. It created a well defined
+dependency between successive symbols. If we knew for sure what the last few symbols
+were, they would lead us to a limited group of possible values for the current symbol,
+constrained by the behaviour of the convolutional coder. If you look at how the symbols
+were mapped to constellation points, you will see the mapping tries to spread those
+possible symbols as far apart as possible. This will leave only one that is pretty
+close to the received point, which must be the correct choice. However, this assumes
+we know the last few symbols for sure. Since we don't, we have a bit more work to do
+to achieve reliable decoding.
+
+Instead of decoding to the nearest point on the constellation, we decode to a group of
+likely constellation points in the neighbourhood of the received point. We record the
+mismatch for each - that is the distance across the constellation between the received
+point and the group of nearby points. To avoid square roots, recording x2 + y2 can be
+good enough. Symbol by symbol, we record this information. After a few symbols we can
+stand back and look at the recorded information.
+
+For each symbol we have a set of possible symbol values and error metric pairs. The
+dependency between symbols, created by the convolutional coder, means some paths from
+symbol to symbol are possible and some are not. It we trace back through the possible
+symbol to symbol paths, and total up the error metric through those paths, we end up
+with a set of figures of merit (or more accurately figures of demerit, since
+larger == worse) for the likelihood of each path being the correct one. The path with
+the lowest total metric is the most likely, and gives us our final choice for what we
+think the current symbol really is.
+
+That was hard work. It takes considerable computation to do this selection and traceback,
+symbol by symbol. We need to get quite a lot from this. It needs to drive the error rate
+down so far that is compensates for the much higher error rate due to the larger
+constellation, and then buys us some actual benefit. Well in the example we are looking
+at - V.32bis at 9600bps - it works out the error rate from the TCM option is like using
+the non-TCM option with several dB more signal to noise ratio. That's nice. The non-TCM
+option is pretty reasonable on most phone lines, but a better error rate is always a
+good thing. However, V32bis includes a 14,400bps option. That uses 2400 baud, and 6 bit
+symbols. Convolutional encoding increases that to 7 bits per symbol, by taking 2 bits and
+encoding them to 3. This give a 128 point QAM constellation. Again, the difference between
+using this, and using just an uncoded 64 point constellation is equivalent to maybe 5dB of
+extra signal to noise ratio. However, in this case it is the difference between the modem
+working only on the most optimal lines, and being widely usable across most phone lines.
+TCM absolutely transformed the phone line modem business.
 */
 
 #define V17_EQUALIZER_LEN   7  /* this much to the left and this much to the right */
@@ -246,6 +302,8 @@ typedef struct
     /*! \brief Euclidean distances (actually the sqaures of the distances)
                from the last states of the trellis. */
     float distances[8];
+    /*! \brief Error and flow logging control */
+    logging_state_t logging;
 } v17_rx_state_t;
 
 extern const complex_t v17_14400_constellation[128];

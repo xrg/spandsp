@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.h,v 1.2 2005/01/18 14:05:49 steveu Exp $
+ * $Id: sig_tone.h,v 1.3 2005/06/26 16:43:58 steveu Exp $
  */
 
 /*! \file */
@@ -134,7 +134,7 @@ typedef struct
     sig_tone_descriptor_t *desc;
     int32_t phase_rate[2];
     int32_t tone_scaling[2];
-    int32_t phase_acc[2];
+    uint32_t phase_acc[2];
 
     int high_low_timer;
 

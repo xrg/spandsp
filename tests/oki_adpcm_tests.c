@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm_tests.c,v 1.1 2004/07/16 20:55:29 steveu Exp $
+ * $Id: oki_adpcm_tests.c,v 1.2 2005/09/01 17:06:45 steveu Exp $
  */
 
 #define _ISOC9X_SOURCE  1
@@ -33,7 +33,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <math.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
