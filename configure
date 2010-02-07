@@ -30499,6 +30499,10 @@ echo "$as_me:$LINENO: result: $ac_cv_lib_fftw_fftw_create_plan" >&5
 echo "${ECHO_T}$ac_cv_lib_fftw_fftw_create_plan" >&6
 if test $ac_cv_lib_fftw_fftw_create_plan = yes; then
   TESTLIBS="$TESTLIBS -lfftw"
+else
+  { { echo "$as_me:$LINENO: error: \"Can't make tests without FFTW 2 or 3 (does your system require an fftw?-devel package?)\"" >&5
+echo "$as_me: error: \"Can't make tests without FFTW 2 or 3 (does your system require an fftw?-devel package?)\"" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
 fi

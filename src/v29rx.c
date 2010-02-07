@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.157 2009/03/23 14:17:42 steveu Exp $
+ * $Id: v29rx.c,v 1.158 2009/03/24 14:17:36 steveu Exp $
  */
 
 /*! \file */
@@ -121,6 +121,8 @@ static const uint8_t space_map_9600[20][20] =
 };
 
 /* Coefficients for the band edge symbol timing synchroniser (alpha = 0.99) */
+/* low_edge = 2.0f*M_PI*(CARRIER_NOMINAL_FREQ - BAUD_RATE/2.0f)/SAMPLE_RATE; */
+/* high_edge = 2.0f*M_PI*(CARRIER_NOMINAL_FREQ + BAUD_RATE/2.0f)/SAMPLE_RATE; */
 #if defined(SPANDSP_USE_FIXED_POINT)
 #define SYNC_LOW_BAND_EDGE_COEFF_0      ((int)(FP_FACTOR* 1.829281f))   /* 2*alpha*cos(low_edge) */
 #define SYNC_LOW_BAND_EDGE_COEFF_1      ((int)(FP_FACTOR*-0.980100f))   /* -alpha^2 */

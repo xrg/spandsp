@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.136 2009/03/23 14:17:42 steveu Exp $
+ * $Id: v17rx.c,v 1.137 2009/03/24 14:17:36 steveu Exp $
  */
 
 /*! \file */
@@ -106,6 +106,17 @@ enum
 };
 
 /* Coefficients for the band edge symbol timing synchroniser (alpha = 0.99) */
+/* low_edge = 2.0f*M_PI*(CARRIER_NOMINAL_FREQ - BAUD_RATE/2.0f)/SAMPLE_RATE; */
+/* high_edge = 2.0f*M_PI*(CARRIER_NOMINAL_FREQ + BAUD_RATE/2.0f)/SAMPLE_RATE; */
+#if defined(SPANDSP_USE_FIXED_POINTx)
+#define SYNC_LOW_BAND_EDGE_COEFF_0      ((int)(FP_FACTOR* 1.764193f))   /* 2*alpha*cos(low_edge) */
+#define SYNC_LOW_BAND_EDGE_COEFF_1      ((int)(FP_FACTOR*-0.980100f))   /* -alpha^2 */
+#define SYNC_HIGH_BAND_EDGE_COEFF_0     ((int)(FP_FACTOR*-1.400072f))   /* 2*alpha*cos(high_edge) */
+#define SYNC_HIGH_BAND_EDGE_COEFF_1     ((int)(FP_FACTOR*-0.980100f))   /* -alpha^2 */
+#define SYNC_CROSS_CORR_COEFF_A         ((int)(FP_FACTOR*-0.932131f))   /* -alpha^2*sin(freq_diff) */
+#define SYNC_CROSS_CORR_COEFF_B         ((int)(FP_FACTOR* 0.700036f))   /* alpha*sin(high_edge) */
+#define SYNC_CROSS_CORR_COEFF_C         ((int)(FP_FACTOR*-0.449451f))   /* -alpha*sin(low_edge) */
+#else
 #define SYNC_LOW_BAND_EDGE_COEFF_0       1.764193f    /* 2*alpha*cos(low_edge) */
 #define SYNC_LOW_BAND_EDGE_COEFF_1      -0.980100f    /* -alpha^2 */
 #define SYNC_HIGH_BAND_EDGE_COEFF_0     -1.400072f    /* 2*alpha*cos(high_edge) */
@@ -113,6 +124,7 @@ enum
 #define SYNC_CROSS_CORR_COEFF_A         -0.932131f    /* -alpha^2*sin(freq_diff) */
 #define SYNC_CROSS_CORR_COEFF_B          0.700036f    /* alpha*sin(high_edge) */
 #define SYNC_CROSS_CORR_COEFF_C         -0.449451f    /* -alpha*sin(low_edge) */
+#endif
 
 #if defined(SPANDSP_USE_FIXED_POINTx)
 static const int constellation_spacing[4] =

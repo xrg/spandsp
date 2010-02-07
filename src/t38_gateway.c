@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.158 2009/03/23 14:17:42 steveu Exp $
+ * $Id: t38_gateway.c,v 1.159 2009/03/24 14:17:36 steveu Exp $
  */
 
 /*! \file */
@@ -178,6 +178,20 @@ static void set_rx_handler(t38_gateway_state_t *s, span_rx_handler_t *handler, v
         s->audio.modems.rx_handler = handler;
     s->audio.base_rx_handler = handler;
     s->audio.modems.rx_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void set_tx_handler(t38_gateway_state_t *s, span_tx_handler_t *handler, void *user_data)
+{
+    s->audio.modems.tx_handler = handler;
+    s->audio.modems.tx_user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void set_next_tx_handler(t38_gateway_state_t *s, span_tx_handler_t *handler, void *user_data)
+{
+    s->audio.modems.next_tx_handler = handler;
+    s->audio.modems.next_tx_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -348,9 +362,8 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     if (t->next_tx_handler)
     {
         /* There is a handler queued, so that is the next one. */
-        t->tx_handler = t->next_tx_handler;
-        t->tx_user_data = t->next_tx_user_data;
-        t->next_tx_handler = NULL;
+        set_tx_handler(s, t->next_tx_handler, t->next_tx_user_data);
+        set_next_tx_handler(s, NULL, NULL);
         if (t->tx_handler == (span_tx_handler_t *) &(silence_gen)
             ||
             t->tx_handler == (span_tx_handler_t *) &(tone_gen))
@@ -399,27 +412,23 @@ static int set_next_tx_type(t38_gateway_state_t *s)
         t->tx_bit_rate = 0;
         /* Impose 75ms minimum on transmitted silence */
         //silence_gen_set(&t->silence_gen, ms_to_samples(75));
-        t->tx_handler = (span_tx_handler_t *) &(silence_gen);
-        t->tx_user_data = &t->silence_gen;
-        t->next_tx_handler = NULL;
+        set_tx_handler(s, (span_tx_handler_t *) &silence_gen, &t->silence_gen);
+        set_next_tx_handler(s, (span_tx_handler_t *) NULL, NULL);
         set_rx_active(s, TRUE);
         break;
     case T38_IND_CNG:
         t->tx_bit_rate = 0;
         modem_connect_tones_tx_init(&t->connect_tx, MODEM_CONNECT_TONES_FAX_CNG);
-        t->tx_handler = (span_tx_handler_t *) &modem_connect_tones_tx;
-        t->tx_user_data = &t->connect_tx;
+        set_tx_handler(s, (span_tx_handler_t *) &modem_connect_tones_tx, &t->connect_tx);
         silence_gen_set(&t->silence_gen, 0);
-        t->next_tx_handler = (span_tx_handler_t *) &(silence_gen);
-        t->next_tx_user_data = &t->silence_gen;
+        set_next_tx_handler(s, (span_tx_handler_t *) &silence_gen, &t->silence_gen);
         set_rx_active(s, TRUE);
         break;
     case T38_IND_CED:
         t->tx_bit_rate = 0;
         modem_connect_tones_tx_init(&t->connect_tx, MODEM_CONNECT_TONES_FAX_CED);
-        t->tx_handler = (span_tx_handler_t *) &modem_connect_tones_tx;
-        t->tx_user_data = &t->connect_tx;
-        t->next_tx_handler = NULL;
+        set_tx_handler(s, (span_tx_handler_t *) &modem_connect_tones_tx, &t->connect_tx);
+        set_next_tx_handler(s, (span_tx_handler_t *) NULL, NULL);
         set_rx_active(s, TRUE);
         break;
     case T38_IND_V21_PREAMBLE:
@@ -429,10 +438,8 @@ static int set_next_tx_type(t38_gateway_state_t *s)
         silence_gen_alter(&t->silence_gen, ms_to_samples(75));
         u->buf[u->in].len = 0;
         fsk_tx_init(&t->v21_tx, &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &t->hdlc_tx);
-        t->tx_handler = (span_tx_handler_t *) &(silence_gen);
-        t->tx_user_data = &t->silence_gen;
-        t->next_tx_handler = (span_tx_handler_t *) &(fsk_tx);
-        t->next_tx_user_data = &t->v21_tx;
+        set_tx_handler(s, (span_tx_handler_t *) &silence_gen, &t->silence_gen);
+        set_next_tx_handler(s, (span_tx_handler_t *) &fsk_tx, &t->v21_tx);
         set_rx_active(s, TRUE);
         break;
     case T38_IND_V27TER_2400_TRAINING:
@@ -450,10 +457,8 @@ static int set_next_tx_type(t38_gateway_state_t *s)
         silence_gen_alter(&t->silence_gen, ms_to_samples(75));
         v27ter_tx_restart(&t->v27ter_tx, t->tx_bit_rate, t->use_tep);
         v27ter_tx_set_get_bit(&t->v27ter_tx, get_bit_func, get_bit_user_data);
-        t->tx_handler = (span_tx_handler_t *) &(silence_gen);
-        t->tx_user_data = &t->silence_gen;
-        t->next_tx_handler = (span_tx_handler_t *) &(v27ter_tx);
-        t->next_tx_user_data = &t->v27ter_tx;
+        set_tx_handler(s, (span_tx_handler_t *) &silence_gen, &t->silence_gen);
+        set_next_tx_handler(s, (span_tx_handler_t *) &v27ter_tx, &t->v27ter_tx);
         set_rx_active(s, TRUE);
         break;
     case T38_IND_V29_7200_TRAINING:
@@ -471,10 +476,8 @@ static int set_next_tx_type(t38_gateway_state_t *s)
         silence_gen_alter(&t->silence_gen, ms_to_samples(75));
         v29_tx_restart(&t->v29_tx, t->tx_bit_rate, t->use_tep);
         v29_tx_set_get_bit(&t->v29_tx, get_bit_func, get_bit_user_data);
-        t->tx_handler = (span_tx_handler_t *) &(silence_gen);
-        t->tx_user_data = &t->silence_gen;
-        t->next_tx_handler = (span_tx_handler_t *) &(v29_tx);
-        t->next_tx_user_data = &t->v29_tx;
+        set_tx_handler(s, (span_tx_handler_t *) &silence_gen, &t->silence_gen);
+        set_next_tx_handler(s, (span_tx_handler_t *) &v29_tx, &t->v29_tx);
         set_rx_active(s, TRUE);
         break;
     case T38_IND_V17_7200_SHORT_TRAINING:
@@ -521,10 +524,8 @@ static int set_next_tx_type(t38_gateway_state_t *s)
         silence_gen_alter(&t->silence_gen, ms_to_samples(75));
         v17_tx_restart(&t->v17_tx, t->tx_bit_rate, t->use_tep, short_train);
         v17_tx_set_get_bit(&t->v17_tx, get_bit_func, get_bit_user_data);
-        t->tx_handler = (span_tx_handler_t *) &(silence_gen);
-        t->tx_user_data = &t->silence_gen;
-        t->next_tx_handler = (span_tx_handler_t *) &(v17_tx);
-        t->next_tx_user_data = &t->v17_tx;
+        set_tx_handler(s, (span_tx_handler_t *) &silence_gen, &t->silence_gen);
+        set_next_tx_handler(s, (span_tx_handler_t *) &v17_tx, &t->v17_tx);
         set_rx_active(s, TRUE);
         break;
     case T38_IND_V8_ANSAM:
