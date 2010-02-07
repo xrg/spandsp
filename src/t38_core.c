@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.c,v 1.48 2009/01/19 17:14:10 steveu Exp $
+ * $Id: t38_core.c,v 1.49 2009/01/23 16:07:14 steveu Exp $
  */
 
 /*! \file */
@@ -784,10 +784,11 @@ int t38_core_send_indicator(t38_core_state_t *s, int indicator, int count)
     int delay;
 
     delay = 0;
+    /* Only send an indicator if it represents a change of state. */
     if (s->current_tx_indicator != indicator)
     {
         /* Zero is a valid count, to suppress the transmission of indicators when the
-           transport is TCP. */       
+           transport means they are not needed - e.g. TPKT/TCP. */
         if (count)
         {
             if ((len = t38_encode_indicator(s, buf, indicator)) < 0)
@@ -939,8 +940,9 @@ t38_core_state_t *t38_core_init(t38_core_state_t *s,
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     span_log_set_protocol(&s->logging, "T.38");
 
-    span_log(&s->logging, SPAN_LOG_FLOW, "Start tx document\n");
-    s->data_rate_management_method = 2;
+    /* Set some defaults for the parameters configurable from outside the
+       T.38 domain - e.g. from SDP data. */
+    s->data_rate_management_method = T38_DATA_RATE_MANAGEMENT_TRANSFERRED_TCF;
     s->data_transport_protocol = T38_TRANSPORT_UDPTL;
     s->fill_bit_removal = FALSE;
     s->mmr_transcoding = FALSE;
@@ -950,6 +952,8 @@ t38_core_state_t *t38_core_init(t38_core_state_t *s,
     s->t38_version = 0;
     s->check_sequence_numbers = TRUE;
 
+    /* Set the initial current receive states to something invalid, so the
+       first data received is seen as a change of state. */
     s->current_rx_indicator = -1;
     s->current_rx_data_type = -1;
     s->current_rx_field_type = -1;
@@ -965,6 +969,9 @@ t38_core_state_t *t38_core_init(t38_core_state_t *s,
     s->tx_packet_handler = tx_packet_handler;
     s->tx_packet_user_data = tx_packet_user_data;
 
+    /* We have no initial expectation of the received packet sequence number.
+       They most often start at 0 or 1 for a UDPTL transport, but random
+       starting numbers are possible. */
     s->rx_expected_seq_no = -1;
     return s;
 }

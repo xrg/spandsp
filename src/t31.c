@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.134 2009/01/16 15:13:16 steveu Exp $
+ * $Id: t31.c,v 1.135 2009/01/23 16:07:14 steveu Exp $
  */
 
 /*! \file */
@@ -149,21 +149,22 @@ enum
 enum
 {
     T38_TIMED_STEP_NONE = 0,
-    T38_TIMED_STEP_NON_ECM_MODEM,
-    T38_TIMED_STEP_NON_ECM_MODEM_2,
-    T38_TIMED_STEP_NON_ECM_MODEM_3,
-    T38_TIMED_STEP_NON_ECM_MODEM_4,
-    T38_TIMED_STEP_NON_ECM_MODEM_5,
-    T38_TIMED_STEP_HDLC_MODEM,
-    T38_TIMED_STEP_HDLC_MODEM_2,
-    T38_TIMED_STEP_HDLC_MODEM_3,
-    T38_TIMED_STEP_HDLC_MODEM_4,
-    T38_TIMED_STEP_HDLC_MODEM_5,
-    T38_TIMED_STEP_CED,
-    T38_TIMED_STEP_CED_2,
-    T38_TIMED_STEP_CNG,
-    T38_TIMED_STEP_CNG_2,
-    T38_TIMED_STEP_PAUSE
+    T38_TIMED_STEP_NON_ECM_MODEM = 0x10,
+    T38_TIMED_STEP_NON_ECM_MODEM_2 = 0x11,
+    T38_TIMED_STEP_NON_ECM_MODEM_3 = 0x12,
+    T38_TIMED_STEP_NON_ECM_MODEM_4 = 0x13,
+    T38_TIMED_STEP_NON_ECM_MODEM_5 = 0x14,
+    T38_TIMED_STEP_HDLC_MODEM = 0x20,
+    T38_TIMED_STEP_HDLC_MODEM_2 = 0x21,
+    T38_TIMED_STEP_HDLC_MODEM_3 = 0x22,
+    T38_TIMED_STEP_HDLC_MODEM_4 = 0x23,
+    T38_TIMED_STEP_HDLC_MODEM_5 = 0x24,
+    T38_TIMED_STEP_CED = 0x30,
+    T38_TIMED_STEP_CED_2 = 0x31,
+    T38_TIMED_STEP_CED_3 = 0x32,
+    T38_TIMED_STEP_CNG = 0x40,
+    T38_TIMED_STEP_CNG_2 = 0x41,
+    T38_TIMED_STEP_PAUSE = 0x50
 };
 
 static int restart_modem(t31_state_t *s, int new_modem);
@@ -621,15 +622,11 @@ static void send_hdlc(void *user_data, const uint8_t *msg, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-static __inline__ int bits_to_samples(t31_state_t *s, int bits)
+static __inline__ int bits_to_us(t31_state_t *s, int bits)
 {
-    /* This does not handle fractions properly, so they may accumulate. They
-       shouldn't be able to accumulate far enough to be troublesome. */
-    /* TODO: Is the above statement accurate when sending a long string of
-             octets, one per IFP packet, at V.21 rate? */
     if (s->t38_fe.ms_per_tx_chunk == 0)
         return 0;
-    return bits*8000/s->t38_fe.tx_bit_rate;
+    return bits*1000000/s->t38_fe.tx_bit_rate;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -650,47 +647,293 @@ static void set_octets_per_data_packet(t31_state_t *s, int bit_rate)
 }
 /*- End of function --------------------------------------------------------*/
 
+static int stream_non_ecm(t31_state_t *s)
+{
+    t31_t38_front_end_state_t *fe;
+    uint8_t buf[MAX_OCTETS_PER_UNPACED_CHUNK + 50];
+    int delay;
+    int len;
+
+    fe = &s->t38_fe;
+    for (delay = 0;  delay == 0;  )
+    {
+        switch (fe->timed_step)
+        {
+        case T38_TIMED_STEP_NON_ECM_MODEM:
+            /* Create a 75ms silence */
+            if (fe->t38.current_tx_indicator != T38_IND_NO_SIGNAL)
+                delay = t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
+            fe->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_2;
+            fe->next_tx_samples = fe->samples;
+            break;
+        case T38_TIMED_STEP_NON_ECM_MODEM_2:
+            /* Switch on a fast modem, and give the training time to complete */
+            delay = t38_core_send_indicator(&fe->t38, fe->next_tx_indicator, fe->t38.indicator_tx_count);
+            fe->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_3;
+            break;
+        case T38_TIMED_STEP_NON_ECM_MODEM_3:
+            /* Send a chunk of non-ECM image data */
+            /* T.38 says it is OK to send the last of the non-ECM data in the signal end message.
+               However, I think the early versions of T.38 said the signal end message should not
+               contain data. Hopefully, following the current spec will not cause compatibility
+               issues. */
+            len = non_ecm_get_chunk(s, buf, fe->octets_per_data_packet);
+            if (len > 0)
+                bit_reverse(buf, buf, len);
+            if (len < fe->octets_per_data_packet)
+            {
+                /* That's the end of the image data. Do a little padding now */
+                memset(buf + len, 0, fe->octets_per_data_packet - len);
+                fe->non_ecm_trailer_bytes = 3*fe->octets_per_data_packet + len;
+                len = fe->octets_per_data_packet;
+                fe->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_4;
+            }
+            t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_T4_NON_ECM_DATA, buf, len, fe->t38.data_tx_count);
+            delay = bits_to_us(s, 8*len);
+            break;
+        case T38_TIMED_STEP_NON_ECM_MODEM_4:
+            /* This pads the end of the data with some zeros. If we just stop abruptly
+               at the end of the EOLs, some ATAs fail to clean up properly before
+               shutting down their transmit modem, and the last few rows of the image
+               are corrupted. Simply delaying the no-signal message does not help for
+               all implentations. It is usually ignored, which is probably the right
+               thing to do after receiving a message saying the signal has ended. */
+            len = fe->octets_per_data_packet;
+            fe->non_ecm_trailer_bytes -= len;
+            if (fe->non_ecm_trailer_bytes <= 0)
+            {
+                len += fe->non_ecm_trailer_bytes;
+                memset(buf, 0, len);
+                t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_T4_NON_ECM_SIG_END, buf, len, fe->t38.data_end_tx_count);
+                fe->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_5;
+                /* Allow a bit more time than the data will take to play out, to ensure the far ATA does not
+                   cut things short. */
+                delay = bits_to_us(s, 8*len) + 60000;
+                front_end_status(s, T30_FRONT_END_SEND_STEP_COMPLETE);
+                break;
+            }
+            memset(buf, 0, len);
+            t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_T4_NON_ECM_DATA, buf, len, fe->t38.data_tx_count);
+            delay = bits_to_us(s, 8*len);
+            break;
+        case T38_TIMED_STEP_NON_ECM_MODEM_5:
+            /* This should not be needed, since the message above indicates the end of the signal, but it
+               seems like it can improve compatibility with quirky implementations. */
+            delay = t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
+            fe->timed_step = T38_TIMED_STEP_NONE;
+            return delay;
+        }
+    }
+    return delay;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int stream_hdlc(t31_state_t *s)
+{
+    t31_t38_front_end_state_t *fe;
+    uint8_t buf[MAX_OCTETS_PER_UNPACED_CHUNK + 50];
+    t38_data_field_t data_fields[2];
+    int previous;
+    int delay;
+    int i;
+
+    fe = &s->t38_fe;
+    for (delay = 0;  delay == 0;  )
+    {
+        switch (fe->timed_step)
+        {
+        case T38_TIMED_STEP_HDLC_MODEM:
+            /* Create a 75ms silence */
+            if (fe->t38.current_tx_indicator != T38_IND_NO_SIGNAL)
+                delay = t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
+            fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_2;
+            fe->next_tx_samples = fe->samples + ms_to_samples(75);
+            break;
+        case T38_TIMED_STEP_HDLC_MODEM_2:
+            /* Send HDLC preambling */
+            delay = t38_core_send_indicator(&fe->t38, fe->next_tx_indicator, fe->t38.indicator_tx_count);
+            delay += t38_core_send_flags_delay(&fe->t38, fe->next_tx_indicator);
+            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
+            fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_3;
+            break;
+        case T38_TIMED_STEP_HDLC_MODEM_3:
+            /* Send a chunk of HDLC data */
+            if (s->hdlc_tx.len == 0)
+            {
+                /* We don't have a frame ready yet, so wait a little */
+                delay = MS_PER_TX_CHUNK*1000;
+                break;
+            }
+            i = s->hdlc_tx.len - s->hdlc_tx.ptr;
+            if (fe->octets_per_data_packet >= i)
+            {
+                /* The last part of an HDLC frame */
+                if (fe->chunking_modes & T38_CHUNKING_MERGE_FCS_WITH_DATA)
+                {
+                    /* Copy the data, as we might be about to refill the buffer it is in */
+                    memcpy(buf, &s->hdlc_tx.buf[s->hdlc_tx.ptr], i);
+                    data_fields[0].field_type = T38_FIELD_HDLC_DATA;
+                    data_fields[0].field = buf;
+                    data_fields[0].field_len = i;
+
+                    /* Now see about the next HDLC frame. This will tell us whether to send FCS_OK or FCS_OK_SIG_END */
+                    previous = fe->current_tx_data_type;
+                    s->hdlc_tx.ptr = 0;
+                    s->hdlc_tx.len = 0;
+                    front_end_status(s, T30_FRONT_END_SEND_STEP_COMPLETE);
+                    if (s->hdlc_tx.final)
+                    {
+                        data_fields[1].field_type = T38_FIELD_HDLC_FCS_OK_SIG_END;
+                        data_fields[1].field = NULL;
+                        data_fields[1].field_len = 0;
+                        t38_core_send_data_multi_field(&fe->t38, fe->current_tx_data_type, data_fields, 2, fe->t38.data_tx_count);
+                        fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_5;
+                        /* We add a bit of extra time here, as with some implementations
+                           the carrier falling too abruptly causes data loss. */
+                        delay = bits_to_us(s, i*8 + fe->hdlc_tx.extra_bits) + 100000;
+                        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
+                        t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+                    }
+                    else
+                    {
+                        data_fields[1].field_type = T38_FIELD_HDLC_FCS_OK;
+                        data_fields[1].field = NULL;
+                        data_fields[1].field_len = 0;
+                        t38_core_send_data_multi_field(&fe->t38, fe->current_tx_data_type, data_fields, 2, fe->t38.data_tx_count);
+                        fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_3;
+                        delay = bits_to_us(s, i*8 + fe->hdlc_tx.extra_bits);
+                        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
+                    }
+                }
+                else
+                {
+                    t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_HDLC_DATA, &s->hdlc_tx.buf[s->hdlc_tx.ptr], i, fe->t38.data_tx_count);
+                    fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_4;
+                    delay = bits_to_us(s, i*8);
+                }
+                break;
+            }
+            t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_HDLC_DATA, &s->hdlc_tx.buf[s->hdlc_tx.ptr], fe->octets_per_data_packet, fe->t38.data_tx_count);
+            s->hdlc_tx.ptr += fe->octets_per_data_packet;
+            delay = bits_to_us(s, fe->octets_per_data_packet*8);
+            break;
+        case T38_TIMED_STEP_HDLC_MODEM_4:
+            /* End of HDLC frame */
+            previous = fe->current_tx_data_type;
+            s->hdlc_tx.ptr = 0;
+            s->hdlc_tx.len = 0;
+            if (s->hdlc_tx.final)
+            {
+                /* End of transmission */
+                s->hdlc_tx.len = 0;
+                s->hdlc_tx.final = FALSE;
+                t38_core_send_data(&fe->t38, previous, T38_FIELD_HDLC_FCS_OK, NULL, 0, fe->t38.data_tx_count);
+                fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_5;
+                /* We add a bit of extra time here, as with some implementations
+                   the carrier falling too abruptly causes data loss. */
+                delay = bits_to_us(s, fe->hdlc_tx.extra_bits) + 100000;
+                front_end_status(s, T30_FRONT_END_SEND_STEP_COMPLETE);
+                break;
+            }
+            /* Finish the current frame off, and prepare for the next one. */
+            t38_core_send_data(&fe->t38, previous, T38_FIELD_HDLC_FCS_OK, NULL, 0, fe->t38.data_tx_count);
+            fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_3;
+            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
+            /* We should now wait enough time for everything to clear through an analogue modem at the far end. */
+            delay = bits_to_us(s, fe->hdlc_tx.extra_bits);
+            if (s->hdlc_tx.len == 0)
+                span_log(&s->logging, SPAN_LOG_FLOW, "No new frame or end transmission condition.\n");
+            break;
+        case T38_TIMED_STEP_HDLC_MODEM_5:
+            /* Note that some boxes do not like us sending a T38_FIELD_HDLC_SIG_END at this point.
+               A T38_IND_NO_SIGNAL should always be OK. */
+            t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_HDLC_SIG_END, NULL, 0, fe->t38.data_end_tx_count);
+            delay = t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
+            fe->timed_step = T38_TIMED_STEP_NONE;
+            at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
+            t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+            return 0;
+        }
+    }
+    return delay;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int stream_ced(t31_state_t *s)
+{
+    t31_t38_front_end_state_t *fe;
+    int delay;
+
+    fe = &s->t38_fe;
+    for (delay = 0;  delay == 0;  )
+    {
+        switch (fe->timed_step)
+        {
+        case T38_TIMED_STEP_CED:
+            /* It seems common practice to start with a no signal indicator, though
+               this is not a specified requirement. Since we should be sending 200ms
+               of silence, starting the delay with a no signal indication makes sense.
+               We do need a 200ms delay, as that is a specification requirement. */
+            fe->timed_step = T38_TIMED_STEP_CED_2;
+            delay = t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
+            delay = 200000;
+            fe->next_tx_samples = fe->samples;
+            break;
+        case T38_TIMED_STEP_CED_2:
+            /* Initial 200ms delay over. Send the CED indicator */
+            fe->timed_step = T38_TIMED_STEP_CED_3;
+            delay = t38_core_send_indicator(&fe->t38, T38_IND_CED, fe->t38.indicator_tx_count);
+            fe->current_tx_data_type = T38_DATA_NONE;
+            break;
+        case T38_TIMED_STEP_CED_3:
+            /* End of CED */
+            fe->timed_step = T38_TIMED_STEP_NONE;
+            front_end_status(s, T30_FRONT_END_SEND_STEP_COMPLETE);
+            return 0;
+        }
+    }
+    return delay;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int stream_cng(t31_state_t *s)
+{
+    t31_t38_front_end_state_t *fe;
+    int delay;
+
+    fe = &s->t38_fe;
+    for (delay = 0;  delay == 0;  )
+    {
+        switch (fe->timed_step)
+        {
+        case T38_TIMED_STEP_CNG:
+            /* It seems common practice to start with a no signal indicator, though
+               this is not a specified requirement of the T.38 spec. Since we should
+               be sending 200ms of silence, according to T.30, starting that delay with
+               a no signal indication makes sense. */
+            fe->timed_step = T38_TIMED_STEP_CNG_2;
+            delay = t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
+            delay = 200000;
+            fe->next_tx_samples = fe->samples;
+            break;
+        case T38_TIMED_STEP_CNG_2:
+            /* Initial short delay over. Send the CNG indicator. CNG persists until something
+               coming the other way interrupts it, or a long timeout controlled by the T.30 engine
+               expires. */
+            fe->timed_step = T38_TIMED_STEP_NONE;
+            delay = t38_core_send_indicator(&fe->t38, T38_IND_CNG, fe->t38.indicator_tx_count);
+            fe->current_tx_data_type = T38_DATA_NONE;
+            return delay;
+        }
+    }
+    return delay;
+}
+/*- End of function --------------------------------------------------------*/
+
 int t31_t38_send_timeout(t31_state_t *s, int samples)
 {
-    int len;
-    int i;
-    int previous;
-    uint8_t buf[MAX_OCTETS_PER_UNPACED_CHUNK + 50];
     t31_t38_front_end_state_t *fe;
-    t38_data_field_t data_fields[2];
-    /* The times for training, the optional TEP, and the HDLC preamble, for all the modem options, in ms.
-       Note that the preamble for V.21 is 1s+-15%, and for the other modems is 200ms+100ms. */
-    static const struct
-    {
-        int tep;
-        int training;
-        int flags;
-    } startup_time[] =
-    {
-        {   0,    0,    0},     /* T38_IND_NO_SIGNAL */
-        {   0,    0,    0},     /* T38_IND_CNG */
-        {   0,    0,    0},     /* T38_IND_CED */
-        {   0,    0, 1000},     /* T38_IND_V21_PREAMBLE */ /* TODO: 850ms should be OK for this, but it causes trouble with some ATAs. Why? */
-        { 215,  943,  200},     /* T38_IND_V27TER_2400_TRAINING */
-        { 215,  708,  200},     /* T38_IND_V27TER_4800_TRAINING */
-        { 215,  234,  200},     /* T38_IND_V29_7200_TRAINING */
-        { 215,  234,  200},     /* T38_IND_V29_9600_TRAINING */
-        { 215,  142,  200},     /* T38_IND_V17_7200_SHORT_TRAINING */
-        { 215, 1393,  200},     /* T38_IND_V17_7200_LONG_TRAINING */
-        { 215,  142,  200},     /* T38_IND_V17_9600_SHORT_TRAINING */
-        { 215, 1393,  200},     /* T38_IND_V17_9600_LONG_TRAINING */
-        { 215,  142,  200},     /* T38_IND_V17_12000_SHORT_TRAINING */
-        { 215, 1393,  200},     /* T38_IND_V17_12000_LONG_TRAINING */
-        { 215,  142,  200},     /* T38_IND_V17_14400_SHORT_TRAINING */
-        { 215, 1393,  200},     /* T38_IND_V17_14400_LONG_TRAINING */
-        { 215,    0,    0},     /* T38_IND_V8_ANSAM */
-        { 215,    0,    0},     /* T38_IND_V8_SIGNAL */
-        { 215,    0,    0},     /* T38_IND_V34_CNTL_CHANNEL_1200 */
-        { 215,    0,    0},     /* T38_IND_V34_PRI_CHANNEL */
-        { 215,    0,    0},     /* T38_IND_V34_CC_RETRAIN */
-        { 215,    0,    0},     /* T38_IND_V33_12000_TRAINING */
-        { 215,    0,    0}      /* T38_IND_V33_14400_TRAINING */
-    };
+    int delay;
 
     fe = &s->t38_fe;
     if (fe->current_rx_type == T30_MODEM_DONE  ||  fe->current_tx_type == T30_MODEM_DONE)
@@ -710,212 +953,20 @@ int t31_t38_send_timeout(t31_state_t *s, int samples)
     if (fe->ms_per_tx_chunk  &&  fe->samples < fe->next_tx_samples)
         return FALSE;
     /* Its time to send something */
-    switch (fe->timed_step)
+    delay = 0;
+    switch (fe->timed_step & 0xFFF0)
     {
     case T38_TIMED_STEP_NON_ECM_MODEM:
-        /* Create a 75ms silence */
-        if (fe->t38.current_tx_indicator != T38_IND_NO_SIGNAL)
-            t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
-        fe->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_2;
-        fe->next_tx_samples = fe->samples + ms_to_samples(75);
-        break;
-    case T38_TIMED_STEP_NON_ECM_MODEM_2:
-        /* Switch on a fast modem, and give the training time to complete */
-        t38_core_send_indicator(&fe->t38, fe->next_tx_indicator, fe->t38.indicator_tx_count);
-        fe->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_3;
-        fe->next_tx_samples += ms_to_samples(startup_time[fe->next_tx_indicator].training);
-        if (s->audio.modems.use_tep)
-            fe->next_tx_samples += ms_to_samples(startup_time[fe->next_tx_indicator].tep);
-        break;
-    case T38_TIMED_STEP_NON_ECM_MODEM_3:
-        /* Send a chunk of non-ECM image data */
-        /* T.38 says it is OK to send the last of the non-ECM data in the signal end message.
-           However, I think the early versions of T.38 said the signal end message should not
-           contain data. Hopefully, following the current spec will not cause compatibility
-           issues. */
-        len = non_ecm_get_chunk(s, buf, fe->octets_per_data_packet);
-        if (len > 0)
-            bit_reverse(buf, buf, len);
-        if (len < fe->octets_per_data_packet)
-        {
-            /* That's the end of the image data. Do a little padding now */
-            memset(buf + len, 0, fe->octets_per_data_packet - len);
-            fe->non_ecm_trailer_bytes = 3*fe->octets_per_data_packet + len;
-            len = fe->octets_per_data_packet;
-            fe->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_4;
-        }
-        t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_T4_NON_ECM_DATA, buf, len, fe->t38.data_tx_count);
-        fe->next_tx_samples += bits_to_samples(s, 8*len);
-        break;
-    case T38_TIMED_STEP_NON_ECM_MODEM_4:
-        /* This pads the end of the data with some zeros. If we just stop abruptly
-           at the end of the EOLs, some ATAs fail to clean up properly before
-           shutting down their transmit modem, and the last few rows of the image
-           get corrupted. Simply delaying the no-signal message does not help for
-           all implentations. It often appears to be ignored. */
-        len = fe->octets_per_data_packet;
-        fe->non_ecm_trailer_bytes -= len;
-        if (fe->non_ecm_trailer_bytes <= 0)
-        {
-            len += fe->non_ecm_trailer_bytes;
-            memset(buf, 0, len);
-            t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_T4_NON_ECM_SIG_END, buf, len, fe->t38.data_end_tx_count);
-            fe->timed_step = T38_TIMED_STEP_NON_ECM_MODEM_5;
-            /* Allow a bit more time than the data will take to play out, to ensure the far ATA does not
-               cut things short. */
-            fe->next_tx_samples += (bits_to_samples(s, 8*len) + ms_to_samples(60));
-            break;
-        }
-        memset(buf, 0, len);
-        t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_T4_NON_ECM_DATA, buf, len, fe->t38.data_tx_count);
-        fe->next_tx_samples += bits_to_samples(s, 8*len);
-        break;
-    case T38_TIMED_STEP_NON_ECM_MODEM_5:
-        /* This should not be needed, since the message above indicates the end of the signal, but it
-           seems like it can improve compatibility with quirky implementations. */
-        t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
-        fe->timed_step = T38_TIMED_STEP_NONE;
-        front_end_status(s, T30_FRONT_END_SEND_STEP_COMPLETE);
+        delay = stream_non_ecm(s);
         break;
     case T38_TIMED_STEP_HDLC_MODEM:
-        /* Create a 75ms silence */
-        if (fe->t38.current_tx_indicator != T38_IND_NO_SIGNAL)
-            t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
-        fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_2;
-        fe->next_tx_samples = fe->samples + ms_to_samples(75);
-        break;
-    case T38_TIMED_STEP_HDLC_MODEM_2:
-        /* Send HDLC preambling */
-        t38_core_send_indicator(&fe->t38, fe->next_tx_indicator, fe->t38.indicator_tx_count);
-        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
-        fe->next_tx_samples += ms_to_samples(startup_time[fe->next_tx_indicator].training + startup_time[fe->next_tx_indicator].flags);
-        if (s->audio.modems.use_tep)
-            fe->next_tx_samples += ms_to_samples(startup_time[fe->next_tx_indicator].tep);
-        fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_3;
-        break;
-    case T38_TIMED_STEP_HDLC_MODEM_3:
-        /* Send a chunk of HDLC data */
-        if (s->hdlc_tx.len == 0)
-        {
-            /* We don't have a frame ready yet, so wait a little */
-            fe->next_tx_samples += ms_to_samples(MS_PER_TX_CHUNK);
-            break;
-        }
-        i = s->hdlc_tx.len - s->hdlc_tx.ptr;
-        if (fe->octets_per_data_packet >= i)
-        {
-            /* The last part of an HDLC frame */
-            if (fe->chunking_modes & T38_CHUNKING_MERGE_FCS_WITH_DATA)
-            {
-                /* Copy the data, as we might be about to refill the buffer it is in */
-                memcpy(buf, &s->hdlc_tx.buf[s->hdlc_tx.ptr], i);
-                data_fields[0].field_type = T38_FIELD_HDLC_DATA;
-                data_fields[0].field = buf;
-                data_fields[0].field_len = i;
-
-                /* Now see about the next HDLC frame. This will tell us whether to send FCS_OK or FCS_OK_SIG_END */
-                previous = fe->current_tx_data_type;
-                s->hdlc_tx.ptr = 0;
-                s->hdlc_tx.len = 0;
-                if (s->hdlc_tx.final)
-                {
-                    data_fields[1].field_type = T38_FIELD_HDLC_FCS_OK_SIG_END;
-                    fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_5;
-                    /* We add a bit of extra time here, as with some implementations
-                       the carrier falling too abruptly causes data loss. */
-                    fe->next_tx_samples += (bits_to_samples(s, i*8 + fe->hdlc_tx.extra_bits) + ms_to_samples(100));
-                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
-                    t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
-                }
-                else
-                {
-                    data_fields[1].field_type = T38_FIELD_HDLC_FCS_OK;
-                    fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_3;
-                    fe->next_tx_samples += bits_to_samples(s, i*8 + fe->hdlc_tx.extra_bits);
-                    at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
-                }
-                data_fields[1].field = NULL;
-                data_fields[1].field_len = 0;
-                t38_core_send_data_multi_field(&fe->t38, fe->current_tx_data_type, data_fields, 2, fe->t38.data_tx_count);
-            }
-            else
-            {
-                t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_HDLC_DATA, &s->hdlc_tx.buf[s->hdlc_tx.ptr], i, fe->t38.data_tx_count);
-                fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_4;
-                fe->next_tx_samples += bits_to_samples(s, i*8);
-            }
-            break;
-        }
-        t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_HDLC_DATA, &s->hdlc_tx.buf[s->hdlc_tx.ptr], fe->octets_per_data_packet, fe->t38.data_tx_count);
-        s->hdlc_tx.ptr += fe->octets_per_data_packet;
-        fe->next_tx_samples += bits_to_samples(s, fe->octets_per_data_packet*8);
-        break;
-    case T38_TIMED_STEP_HDLC_MODEM_4:
-        /* End of HDLC frame */
-        previous = fe->current_tx_data_type;
-        s->hdlc_tx.ptr = 0;
-        s->hdlc_tx.len = 0;
-        if (s->hdlc_tx.final)
-        {
-            /* End of transmission */
-            s->hdlc_tx.len = 0;
-            s->hdlc_tx.final = FALSE;
-            //t38_core_send_data(&fe->t38, previous, T38_FIELD_HDLC_FCS_OK_SIG_END, NULL, 0, fe->t38.data_end_tx_count);
-            t38_core_send_data(&fe->t38, previous, T38_FIELD_HDLC_FCS_OK, NULL, 0, fe->t38.data_tx_count);
-            fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_5;
-            /* We add a bit of extra time here, as with some implementations
-               the carrier falling too abruptly causes data loss. */
-            fe->next_tx_samples += (bits_to_samples(s, fe->hdlc_tx.extra_bits) + ms_to_samples(100));
-            break;
-        }
-        /* Finish the current frame off, and prepare for the next one. */
-        t38_core_send_data(&fe->t38, previous, T38_FIELD_HDLC_FCS_OK, NULL, 0, fe->t38.data_tx_count);
-        fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_3;
-        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_CONNECT);
-        /* We should now wait enough time for everything to clear through an analogue modem at the far end. */
-        fe->next_tx_samples += bits_to_samples(s, fe->hdlc_tx.extra_bits);
-        if (s->hdlc_tx.len == 0)
-            span_log(&s->logging, SPAN_LOG_FLOW, "No new frame or end transmission condition.\n");
-        break;
-    case T38_TIMED_STEP_HDLC_MODEM_5:
-        /* Note that some boxes do not like us sending a T38_FIELD_HDLC_SIG_END at this point.
-           A T38_IND_NO_SIGNAL should always be OK. */
-        t38_core_send_data(&fe->t38, fe->current_tx_data_type, T38_FIELD_HDLC_SIG_END, NULL, 0, fe->t38.data_end_tx_count);
-        t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
-        fe->timed_step = T38_TIMED_STEP_NONE;
-        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_OK);
-        t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+        delay = stream_hdlc(s);
         break;
     case T38_TIMED_STEP_CED:
-        /* It seems common practice to start with a no signal indicator, though
-           this is not a specified requirement. Since we should be sending 200ms
-           of silence, starting the delay with a no signal indication makes sense.
-           We do need a 200ms delay, as that is a specification requirement. */
-        fe->timed_step = T38_TIMED_STEP_CED_2;
-        fe->next_tx_samples = fe->samples + ms_to_samples(200);
-        t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
-        break;
-    case T38_TIMED_STEP_CED_2:
-        /* Initial 200ms delay over. Send the CED indicator */
-        fe->next_tx_samples = fe->samples + ms_to_samples(3000);
-        fe->timed_step = T38_TIMED_STEP_PAUSE;
-        t38_core_send_indicator(&fe->t38, T38_IND_CED, fe->t38.indicator_tx_count);
-        fe->current_tx_data_type = T38_DATA_NONE;
+        delay = stream_ced(s);
         break;
     case T38_TIMED_STEP_CNG:
-        /* It seems common practice to start with a no signal indicator, though
-           this is not a specified requirement. Since we should be sending 200ms
-           of silence, starting the delay with a no signal indication makes sense.
-           We do need a 200ms delay, as that is a specification requirement. */
-        fe->timed_step = T38_TIMED_STEP_CNG_2;
-        fe->next_tx_samples = fe->samples + ms_to_samples(200);
-        t38_core_send_indicator(&fe->t38, T38_IND_NO_SIGNAL, fe->t38.indicator_tx_count);
-        break;
-    case T38_TIMED_STEP_CNG_2:
-        /* Initial short delay over. Send the CNG indicator */
-        fe->timed_step = T38_TIMED_STEP_NONE;
-        t38_core_send_indicator(&fe->t38, T38_IND_CNG, fe->t38.indicator_tx_count);
-        fe->current_tx_data_type = T38_DATA_NONE;
+        delay = stream_cng(s);
         break;
     case T38_TIMED_STEP_PAUSE:
         /* End of timed pause */
@@ -923,6 +974,7 @@ int t31_t38_send_timeout(t31_state_t *s, int samples)
         front_end_status(s, T30_FRONT_END_SEND_STEP_COMPLETE);
         break;
     }
+    fe->next_tx_samples += us_to_samples(delay);
     return FALSE;
 }
 /*- End of function --------------------------------------------------------*/
@@ -2382,7 +2434,7 @@ static int t31_t38_fe_init(t31_state_t *t,
                  FALSE,
                  NULL,
                  NULL);
-    hdlc_rx_init(&s->hdlc_tx_term,
+    hdlc_rx_init(&s->hdlc_rx_term,
                  FALSE,
                  TRUE,
                  2,

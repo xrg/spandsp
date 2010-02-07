@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.117 2009/01/22 12:17:46 steveu Exp $
+ * $Id: t38_terminal.c,v 1.118 2009/01/23 16:07:14 steveu Exp $
  */
 
 /*! \file */
@@ -533,18 +533,6 @@ static __inline__ int bits_to_us(t38_terminal_state_t *s, int bits)
 }
 /*- End of function --------------------------------------------------------*/
 
-static __inline__ int bits_to_samples(t38_terminal_state_t *s, int bits)
-{
-    /* This does not handle fractions properly, so they may accumulate. They
-       shouldn't be able to accumulate far enough to be troublesome. */
-    /* TODO: Is the above statement accurate when sending a long string of
-             octets, one per IFP packet, at V.21 rate? */
-    if (s->t38_fe.ms_per_tx_chunk == 0  ||  s->t38_fe.tx_bit_rate == 0)
-        return 0;
-    return bits*8000/s->t38_fe.tx_bit_rate;
-}
-/*- End of function --------------------------------------------------------*/
-
 static void set_octets_per_data_packet(t38_terminal_state_t *s, int bit_rate)
 {
     s->t38_fe.tx_bit_rate = bit_rate;
@@ -593,7 +581,8 @@ static int stream_non_ecm(t38_terminal_state_t *s)
                contain data. Hopefully, following the current spec will not cause compatibility
                issues. */
             len = t30_non_ecm_get_chunk(&s->t30, buf, fe->octets_per_data_packet);
-            bit_reverse(buf, buf, len);
+            if (len > 0)
+                bit_reverse(buf, buf, len);
             if (len < fe->octets_per_data_packet)
             {
                 /* That's the end of the image data. Do a little padding now */
@@ -609,8 +598,9 @@ static int stream_non_ecm(t38_terminal_state_t *s)
             /* This pads the end of the data with some zeros. If we just stop abruptly
                at the end of the EOLs, some ATAs fail to clean up properly before
                shutting down their transmit modem, and the last few rows of the image
-               get corrupted. Simply delaying the no-signal message does not help for
-               all implentations. It often appears to be ignored. */
+               are corrupted. Simply delaying the no-signal message does not help for
+               all implentations. It is usually ignored, which is probably the right
+               thing to do after receiving a message saying the signal has ended. */
             len = fe->octets_per_data_packet;
             fe->non_ecm_trailer_bytes -= len;
             if (fe->non_ecm_trailer_bytes <= 0)
@@ -691,21 +681,24 @@ static int stream_hdlc(t38_terminal_state_t *s)
                     if (fe->hdlc_tx.len < 0)
                     {
                         data_fields[1].field_type = T38_FIELD_HDLC_FCS_OK_SIG_END;
+                        data_fields[1].field = NULL;
+                        data_fields[1].field_len = 0;
+                        t38_core_send_data_multi_field(&fe->t38, fe->current_tx_data_type, data_fields, 2, fe->t38.data_tx_count);
                         fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_5;
                         /* We add a bit of extra time here, as with some implementations
                            the carrier falling too abruptly causes data loss. */
-                        delay = (bits_to_us(s, i*8 + fe->hdlc_tx.extra_bits) + ms_to_samples(100));
+                        delay = bits_to_us(s, i*8 + fe->hdlc_tx.extra_bits) + 100000;
                         front_end_status(s, T30_FRONT_END_SEND_STEP_COMPLETE);
                     }
                     else
                     {
                         data_fields[1].field_type = T38_FIELD_HDLC_FCS_OK;
+                        data_fields[1].field = NULL;
+                        data_fields[1].field_len = 0;
+                        t38_core_send_data_multi_field(&fe->t38, fe->current_tx_data_type, data_fields, 2, fe->t38.data_tx_count);
                         fe->timed_step = T38_TIMED_STEP_HDLC_MODEM_3;
                         delay = bits_to_us(s, i*8 + fe->hdlc_tx.extra_bits);
                     }
-                    data_fields[1].field = NULL;
-                    data_fields[1].field_len = 0;
-                    t38_core_send_data_multi_field(&fe->t38, fe->current_tx_data_type, data_fields, 2, fe->t38.data_tx_count);
                 }
                 else
                 {
@@ -788,7 +781,7 @@ static int stream_ced(t38_terminal_state_t *s)
             fe->current_tx_data_type = T38_DATA_NONE;
             break;
         case T38_TIMED_STEP_CED_3:
-            /* End of timed pause */
+            /* End of CED */
             fe->timed_step = T38_TIMED_STEP_NONE;
             front_end_status(s, T30_FRONT_END_SEND_STEP_COMPLETE);
             return 0;

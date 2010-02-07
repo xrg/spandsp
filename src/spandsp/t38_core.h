@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.h,v 1.32 2009/01/19 17:14:10 steveu Exp $
+ * $Id: t38_core.h,v 1.33 2009/01/23 16:07:14 steveu Exp $
  */
 
 /*! \file */
@@ -158,6 +158,13 @@ enum t38_transport_types_e
     T38_TRANSPORT_UDPTL = 0,
     T38_TRANSPORT_RTP,
     T38_TRANSPORT_TCP
+};
+
+/*! T.38 TCF management types */
+enum t38_data_rate_management_types_e
+{
+    T38_DATA_RATE_MANAGEMENT_LOCAL_TCF = 1,
+    T38_DATA_RATE_MANAGEMENT_TRANSFERRED_TCF = 2
 };
 
 #define T38_RX_BUF_LEN  2048

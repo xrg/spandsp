@@ -30,8 +30,8 @@
 
 /* The date and time of the version are in UTC form. */
 
-#define SPANDSP_RELEASE_DATE    20090122
-#define SPANDSP_RELEASE_TIME    122028
+#define SPANDSP_RELEASE_DATE    20090123
+#define SPANDSP_RELEASE_TIME    171319
 
 #endif
 /*- End of file ------------------------------------------------------------*/

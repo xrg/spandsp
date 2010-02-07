@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31_tests.c,v 1.68 2009/01/16 15:13:16 steveu Exp $
+ * $Id: t31_tests.c,v 1.69 2009/01/23 16:07:14 steveu Exp $
  */
 
 /*! \file */
@@ -207,7 +207,7 @@ static int phase_b_handler(t30_state_t *s, void *user_data, int result)
     int i;
     
     i = (int) (intptr_t) user_data;
-    printf("%c: Phase B handler on channel %d - (0x%X) %s\n", i, i, result, t30_frametype(result));
+    printf("%c: Phase B handler on channel %c - (0x%X) %s\n", i, i, result, t30_frametype(result));
     return T30_ERR_OK;
 }
 /*- End of function --------------------------------------------------------*/
@@ -246,7 +246,7 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
     int i;
     
     i = (intptr_t) user_data;
-    printf("Phase E handler on channel %d\n", i);
+    printf("Phase E handler on channel %c\n", i);
     //exit(0);
 }
 /*- End of function --------------------------------------------------------*/
