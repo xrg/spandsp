@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_decode.c,v 1.35 2007/09/15 12:21:39 steveu Exp $
+ * $Id: fax_decode.c,v 1.36 2007/11/07 00:04:12 steveu Exp $
  */
 
 /*! \page fax_decode_page FAX decoder
@@ -546,6 +546,7 @@ int main(int argc, char *argv[])
     fsk_rx_init(&fsk, &preset_fsk_specs[FSK_V21CH2], TRUE, v21_put_bit, NULL);
     v17_rx_init(&v17, 14400, v17_put_bit, NULL);
     v29_rx_init(&v29, 9600, v29_put_bit, NULL);
+    //v29_rx_init(&v29, 7200, v29_put_bit, NULL);
     v27ter_rx_init(&v27ter, 4800, v27ter_put_bit, NULL);
     fsk_rx_signal_cutoff(&fsk, -45.5);
     v17_rx_signal_cutoff(&v17, -45.5);

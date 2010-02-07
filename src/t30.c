@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.207 2007/10/26 15:06:09 steveu Exp $
+ * $Id: t30.c,v 1.208 2007/11/08 03:14:37 steveu Exp $
  */
 
 /*! \file */
@@ -1253,11 +1253,17 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
     {
     case T4_COMPRESSION_ITU_T6:
         set_dcs_bit(s, 31);
+        set_dcs_bits(s, T30_MIN_SCAN_0MS, 21);
         break;
     case T4_COMPRESSION_ITU_T4_2D:
         set_dcs_bit(s, 16);
+        set_dcs_bits(s, s->min_scan_time_code & 0x7, 21);
+        break;
+    case T4_COMPRESSION_ITU_T4_1D:
+        set_dcs_bits(s, s->min_scan_time_code & 0x7, 21);
         break;
     default:
+        set_dcs_bits(s, T30_MIN_SCAN_0MS, 21);
         break;
     }
     /* We have a file to send, so tell the far end to go into receive mode. */
@@ -1392,8 +1398,6 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
         span_log(&s->logging, SPAN_LOG_FLOW, "Image resolution (%d x %d) not acceptable\n", s->x_resolution, s->y_resolution);
         return -1;
     }
-    /* Set the minimum scan time to be used */
-    set_dcs_bits(s, s->min_scan_time_code & 0x7, 21);
     /* Deal with the image width. The X resolution will fall in line with any valid width. */
     /* Low (R4) res widths are not supported in recent versions of T.30 */
     bad = T30_ERR_OK;

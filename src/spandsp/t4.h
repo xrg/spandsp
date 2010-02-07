@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.42 2007/10/29 13:17:33 steveu Exp $
+ * $Id: t4.h,v 1.43 2007/11/07 00:04:12 steveu Exp $
  */
 
 /*! \file */
@@ -121,6 +121,16 @@ typedef enum
         North American Letter (215.9mm x 279.4mm)
         North American Legal (215.9mm x 355.6mm)
         Unlimited
+
+    T.4 does not accurately define the maximum number of scan lines in a page. A wide
+    variety of maximum row counts are used in the real world. It is important not to
+    set our sending limit too high, or a receiving machine might split pages. It is
+    important not to set it too low, or we might clip pages.
+
+    Values seen for standard resolution A4 pages include 1037, 1045, 1109, 1126 and 1143.
+    1109 seems the most-popular.  At fine res 2150, 2196, 2200, 2237, 2252-2262, 2264,
+    2286, and 2394 are used. 2255 seems the most popular. We try to use balanced choices
+    here.
 */
 typedef enum
 {
