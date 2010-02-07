@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.98 2008/11/30 10:17:31 steveu Exp $
+ * $Id: fax_tests.c,v 1.99 2008/12/17 12:46:08 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -62,6 +62,7 @@ struct machine_s
     int16_t amp[SAMPLES_PER_CHUNK];
     int len;
     fax_state_t *fax;
+    awgn_state_t *awgn;
     int done;
     int succeeded;
     char tag[50];
@@ -240,6 +241,9 @@ int main(int argc, char *argv[])
     int reverse_flow;
     int use_page_limits;
     int supported_modems;
+    int signal_level;
+    int noise_level;
+    float signal_scaling;
     time_t start_time;
     time_t end_time;
     char *page_header_info;
@@ -259,8 +263,10 @@ int main(int argc, char *argv[])
     use_transmit_on_idle = TRUE;
     use_receiver_not_ready = FALSE;
     use_page_limits = FALSE;
+    signal_level = 0;
+    noise_level = -99;
     supported_modems = T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17;
-    while ((opt = getopt(argc, argv, "ehH:i:I:lm:prRtTw:")) != -1)
+    while ((opt = getopt(argc, argv, "ehH:i:I:lm:n:prRs:tTw:")) != -1)
     {
         switch (opt)
         {
@@ -285,6 +291,9 @@ int main(int argc, char *argv[])
         case 'm':
             supported_modems = atoi(optarg);
             break;
+        case 'n':
+            noise_level = atoi(optarg);
+            break;
         case 'p':
             polled_mode = TRUE;
             break;
@@ -293,6 +302,9 @@ int main(int argc, char *argv[])
             break;
         case 'R':
             use_receiver_not_ready = TRUE;
+            break;
+        case 's':
+            signal_level = atoi(optarg);
             break;
         case 't':
             use_tep = TRUE;
@@ -342,6 +354,14 @@ int main(int argc, char *argv[])
             mc->fax = fax_init(NULL, (mc->chan & 1)  ?  TRUE  :  FALSE);
         else
             mc->fax = fax_init(NULL, (mc->chan & 1)  ?  FALSE  :  TRUE);
+        mc->awgn = NULL;
+        signal_scaling = 1.0f;
+        if (noise_level > -99)
+        {
+            mc->awgn = awgn_init_dbm0(NULL, 1234567, noise_level);
+            signal_scaling = powf(10.0f, signal_level/20.0f);
+            printf("Signal scaling %f\n", signal_scaling);
+        }
         fax_set_transmit_on_idle(mc->fax, use_transmit_on_idle);
         fax_set_tep_mode(mc->fax, use_tep);
         t30 = fax_get_t30_state(mc->fax);
@@ -450,6 +470,11 @@ int main(int argc, char *argv[])
             else
             {
                 mc->len = fax_tx(mc->fax, mc->amp, SAMPLES_PER_CHUNK);
+                if (mc->awgn)
+                {
+                    for (k = 0;  k < mc->len;  k++)
+                        mc->amp[k] = ((int16_t) (mc->amp[k]*signal_scaling)) + awgn(mc->awgn);
+                }
             }
             mc->total_audio_time += SAMPLES_PER_CHUNK;
             if (!use_transmit_on_idle)

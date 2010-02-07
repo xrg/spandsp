@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.146 2008/11/30 13:44:35 steveu Exp $
+ * $Id: v29rx.c,v 1.147 2008/12/17 12:46:08 steveu Exp $
  */
 
 /*! \file */
@@ -734,7 +734,7 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
         if (++s->training_count >= V29_TRAINING_SEG_3_LEN)
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "Constellation mismatch %f\n", s->training_error);
-            if (s->training_error < 100.0f)
+            if (s->training_error < 48.0f*2.0f)
             {
                 s->training_count = 0;
                 s->training_error = 0.0f;
@@ -775,10 +775,10 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
 #endif
         if (++s->training_count >= V29_TRAINING_SEG_4_LEN)
         {
-            if (s->training_error < 50.0f)
+            if (s->training_error < 48.0f)
             {
                 /* We are up and running */
-                span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded (constellation mismatch %f)\n", s->training_error);
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded at %dbps (constellation mismatch %f)\n", s->bit_rate, s->training_error);
                 report_status_change(s, SIG_STATUS_TRAINING_SUCCEEDED);
                 /* Apply some lag to the carrier off condition, to ensure the last few bits get pushed through
                    the processing. */
