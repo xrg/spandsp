@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.72 2009/09/04 14:38:46 steveu Exp $
+# $Id: configure.ac,v 1.73 2009/10/03 04:37:25 steveu Exp $
 
 # @start 1
 
@@ -107,6 +107,22 @@ else
   CFLAGS=${CFLAGS-"-g -O2"}
   CXXFLAGS=${CXXFLAGS-"-g -O2"}
 fi
+
+AC_DEFUN([REMOVE_FROM_VAR],[
+    new_val=""
+    removed=0
+    for i in $$1; do
+        if test "x$i" != "x$2"; then
+            new_val="$new_val $i"
+        else
+            removed=1
+        fi
+    done
+    if test $removed = "1"; then
+        echo "  removed \"$2\" from $1"
+        $1=$new_val
+    fi
+])
 
 AC_C_CONST
 AC_C_INLINE
@@ -344,6 +360,7 @@ sun)
         COMP_VENDOR_CFLAGS="-native -fast $COMP_VENDOR_CFLAGS"
     fi
     COMP_VENDOR_LDFLAGS=
+    REMOVE_FROM_VAR(CFLAGS, -Xc)
     ;;
 *)
     COMP_VENDOR_CFLAGS="-std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes $COMP_VENDOR_CFLAGS"

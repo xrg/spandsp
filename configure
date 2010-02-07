@@ -20230,6 +20230,8 @@ fi
   CXXFLAGS=${CXXFLAGS-"-g -O2"}
 fi
 
+
+
 echo "$as_me:$LINENO: checking for an ANSI C-conforming const" >&5
 echo $ECHO_N "checking for an ANSI C-conforming const... $ECHO_C" >&6
 if test "${ac_cv_c_const+set}" = set; then
@@ -31125,6 +31127,21 @@ sun)
         COMP_VENDOR_CFLAGS="-native -fast $COMP_VENDOR_CFLAGS"
     fi
     COMP_VENDOR_LDFLAGS=
+
+    new_val=""
+    removed=0
+    for i in $CFLAGS; do
+        if test "x$i" != "x-Xc"; then
+            new_val="$new_val $i"
+        else
+            removed=1
+        fi
+    done
+    if test $removed = "1"; then
+        echo "  removed \"-Xc\" from CFLAGS"
+        CFLAGS=$new_val
+    fi
+
     ;;
 *)
     COMP_VENDOR_CFLAGS="-std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes $COMP_VENDOR_CFLAGS"
