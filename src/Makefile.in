@@ -453,7 +453,8 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/private/v27ter_tx.h \
                          spandsp/private/v29rx.h \
                          spandsp/private/v29tx.h \
-                         spandsp/private/v8.h
+                         spandsp/private/v8.h \
+                         spandsp/expose.h
 
 nodist_include_HEADERS = spandsp.h
 noinst_HEADERS = faxfont.h \

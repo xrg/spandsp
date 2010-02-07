@@ -353,6 +353,7 @@
 <File RelativePath="spandsp/private/v29rx.h"></File>
 <File RelativePath="spandsp/private/v29tx.h"></File>
 <File RelativePath="spandsp/private/v8.h"></File>
+<File RelativePath="spandsp/expose.h"></File>
 <File RelativePath="spandsp.h"></File>
 		</Filter>
 		<Filter

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.61 2008/10/13 13:14:02 steveu Exp $
+ * $Id: t4_tests.c,v 1.62 2008/10/17 18:39:11 steveu Exp $
  */
 
 /*! \file */
@@ -305,6 +305,17 @@ int main(int argc, char *argv[])
                 for (i = 0;  i < 256;  i++)
                 {
                     if (sscanf(&buf[18 + 3*i], "%x", (unsigned int *) &bit) != 1)
+                        break;
+                    if ((end_of_page = t4_rx_put_byte(&receive_state, bit)))
+                        break;
+                }
+            }
+            else if (sscanf(buf, "HDLC:  %x", (unsigned int *) &bit) == 1)
+            {
+                /* Useful for breaking up HDLC decodes of ECM logs */
+                for (i = 0;  i < 256;  i++)
+                {
+                    if (sscanf(&buf[19 + 3*i], "%x", (unsigned int *) &bit) != 1)
                         break;
                     if ((end_of_page = t4_rx_put_byte(&receive_state, bit)))
                         break;

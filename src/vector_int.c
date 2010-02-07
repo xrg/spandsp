@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector_int.c,v 1.17 2008/10/12 07:05:21 steveu Exp $
+ * $Id: vector_int.c,v 1.18 2008/10/17 18:39:11 steveu Exp $
  */
 
 /*! \file */
@@ -638,8 +638,11 @@ int32_t vec_min_maxi16(const int16_t x[], int n, int16_t out[])
         /*endif*/
     }
     /*endfor*/
-    out[0] = max;
-    out[1] = min;
+    if (out)
+    {
+        out[0] = max;
+        out[1] = min;
+    }
     z = abs(min);
     if (z > max)
         return z;

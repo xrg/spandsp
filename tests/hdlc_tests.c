@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc_tests.c,v 1.46 2008/09/07 12:55:13 steveu Exp $
+ * $Id: hdlc_tests.c,v 1.47 2008/10/17 18:39:11 steveu Exp $
  */
 
 /*! \file */
@@ -789,6 +789,8 @@ static void hdlc_tests(void)
 
 static void decode_handler(void *user_data, const uint8_t *pkt, int len, int ok)
 {
+    int i;
+
     if (len < 0)
     {
         /* Special conditions */
@@ -798,6 +800,10 @@ static void decode_handler(void *user_data, const uint8_t *pkt, int len, int ok)
     if (ok)
     {
         printf("Good frame, len = %d\n", len);
+        printf("HDLC:  ");
+        for (i = 0;  i < len;  i++)
+            printf("%02X ", pkt[i]);
+        printf("\n");
     }
     else
     {
@@ -819,7 +825,7 @@ static void decode_bitstream(const char *in_file_name)
         exit(2);
     }
 
-    hdlc_rx_init(&rx, TRUE, TRUE, 2, decode_handler, NULL);
+    hdlc_rx_init(&rx, FALSE, TRUE, 2, decode_handler, NULL);
     while (fgets(buf, 1024, in))
     {
         if (sscanf(buf, "Rx bit %*d - %d", &bit) == 1)

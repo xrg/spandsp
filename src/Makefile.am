@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.108 2008/10/13 14:46:29 steveu Exp $
+## $Id: Makefile.am,v 1.109 2008/10/18 05:32:48 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -219,7 +219,8 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/private/v27ter_tx.h \
                          spandsp/private/v29rx.h \
                          spandsp/private/v29tx.h \
-                         spandsp/private/v8.h
+                         spandsp/private/v8.h \
+                         spandsp/expose.h
 
 nodist_include_HEADERS = spandsp.h
 

@@ -791,6 +791,10 @@ SOURCE=.\spandsp/private/v8.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\spandsp/expose.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\spandsp.h
 # End Source File
 # End Group

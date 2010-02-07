@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_decode.c,v 1.49 2008/10/13 13:14:01 steveu Exp $
+ * $Id: fax_decode.c,v 1.50 2008/10/17 18:39:11 steveu Exp $
  */
 
 /*! \page fax_decode_page FAX decoder
@@ -232,6 +232,7 @@ static void hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
             break;
         case SIG_STATUS_ABORT:
             /* Just ignore these */
+            fprintf(stderr, "HDLC abort\n");
             break;
         default:
             fprintf(stderr, "Unexpected HDLC special length - %d!\n", len);
