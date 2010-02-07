@@ -125,10 +125,6 @@ SOURCE=.\bitstream.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\complex_dds.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\complex_filters.c
 # End Source File
 # Begin Source File
@@ -137,7 +133,15 @@ SOURCE=.\complex_vector_float.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\dds.c
+SOURCE=.\crc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\dds_float.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\dds_int.c
 # End Source File
 # Begin Source File
 
@@ -427,6 +431,10 @@ SOURCE=.\spandsp/bitstream.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\spandsp/crc.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\spandsp/complex.h
 # End Source File
 # Begin Source File
@@ -655,7 +663,7 @@ SOURCE=.\spandsp/vector_int.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\spandsp.h
+SOURCE=.\spandsp/version.h
 # End Source File
 # Begin Source File
 

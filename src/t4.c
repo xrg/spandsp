@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.95 2007/10/13 14:10:20 steveu Exp $
+ * $Id: t4.c,v 1.97 2007/10/14 15:20:12 steveu Exp $
  */
 
 /*
@@ -320,7 +320,7 @@ static __inline__ void add_run_to_row(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-static __inline__ int put_decoded_row(t4_state_t *s)
+static int put_decoded_row(t4_state_t *s)
 {
     static const int msbmask[9] =
     {
@@ -357,6 +357,14 @@ static __inline__ int put_decoded_row(t4_state_t *s)
     }
 #endif
     row_starts_at = s->image_size;
+    /* Make sure there is enough room for another row */
+    if (s->image_size + s->bytes_per_row >= s->image_buffer_size)
+    {
+        if ((t = realloc(s->image_buffer, s->image_buffer_size + 100*s->bytes_per_row)) == NULL)
+            return -1;
+        s->image_buffer_size += 100*s->bytes_per_row;
+        s->image_buffer = t;
+    }
     if (s->row_len == s->image_width)
     {
         STATE_TRACE("%d Good row - %d %s\n", s->image_length, s->row_len, (s->row_is_2d)  ?  "2D"  :  "1D");
@@ -369,13 +377,6 @@ static __inline__ int put_decoded_row(t4_state_t *s)
         /* Convert the runs to a bit image of the row */
         /* White/black/white... runs, always starting with white. That means the first run could be
            zero length. */
-        if (s->image_size + s->bytes_per_row >= s->image_buffer_size)
-        {
-            if ((t = realloc(s->image_buffer, s->image_buffer_size + 100*s->bytes_per_row)) == NULL)
-                return -1;
-            s->image_buffer_size += 100*s->bytes_per_row;
-            s->image_buffer = t;
-        }
         for (x = 0, fudge = 0;  x < s->a_cursor;  x++, fudge ^= 0xFF)
         {
             i = s->cur_runs[x];
@@ -431,13 +432,6 @@ static __inline__ int put_decoded_row(t4_state_t *s)
         if (s->image_size != s->last_row_starts_at)
         {
             /* Copy the previous row over this one */
-            if (s->image_size + s->bytes_per_row >= s->image_buffer_size)
-            {
-                if ((t = realloc(s->image_buffer, s->image_buffer_size + 100*s->bytes_per_row)) == NULL)
-                    return -1;
-                s->image_buffer_size += 100*s->bytes_per_row;
-                s->image_buffer = t;
-            }
             memcpy(s->image_buffer + s->image_size, s->image_buffer + s->last_row_starts_at, s->bytes_per_row);
             s->image_size += s->bytes_per_row;
             s->image_length++;
@@ -696,6 +690,9 @@ int t4_rx_end_page(t4_state_t *s)
                 break;
             }
         }
+        /* Write a blank row to indicate the end of the image. */
+        if (s->row_write_handler(s->row_write_user_data, NULL, 0) < 0)
+            span_log(&s->logging, SPAN_LOG_WARNING, "Write error at row %d.\n", row);
     }
     else
     {
@@ -1704,6 +1701,7 @@ int t4_tx_start_page(t4_state_t *s)
     int row_bufptr;
     int parm;
     int run_space;
+    int len;
     char *t;
     char header[132 + 1];
     uint8_t *bufptr8;
@@ -1787,11 +1785,13 @@ int t4_tx_start_page(t4_state_t *s)
     {
         for (row = 0;  row < s->image_length;  row++)
         {
-            if (s->row_read_handler(s->row_read_user_data, s->row_buf, s->bytes_per_row) <= 0)
+            if ((len = s->row_read_handler(s->row_read_user_data, s->row_buf, s->bytes_per_row)) < 0)
             {
                 span_log(&s->logging, SPAN_LOG_WARNING, "%s: Read error at row %d.\n", s->file, row);
                 break;
             }
+            if (len == 0)
+                break;
             if (t4_encode_row(s))
                 return -1;
         }

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.42 2007/10/13 14:10:20 steveu Exp $
+ * $Id: t4_tests.c,v 1.44 2007/10/14 15:20:12 steveu Exp $
  */
 
 /*! \file */
@@ -176,6 +176,8 @@ static int row_write_handler(void *user_data, const uint8_t buf[], size_t len)
     static int row = 0;
     uint8_t ref[8192];
 
+    if (len == 0)
+        return 0;
     s = t4_test_patterns[row++];
     if (row >= 16)
         row = 0;
@@ -337,7 +339,7 @@ int main(int argc, char *argv[])
             exit(2);
         }
         t4_tx_set_min_row_bits(&send_state, min_row_bits);
-        t4_tx_set_local_ident(&send_state, "852 2666 0542");
+        t4_tx_set_local_ident(&send_state, "111 2222 3333");
 
         /* Receive end puts TIFF to a new file. */
         if (t4_rx_init(&receive_state, OUT_FILE_NAME, T4_COMPRESSION_ITU_T4_2D))
@@ -495,7 +497,7 @@ int main(int argc, char *argv[])
         }
         t4_tx_set_row_read_handler(&send_state, row_read_handler, NULL);
         t4_tx_set_min_row_bits(&send_state, min_row_bits);
-        t4_tx_set_local_ident(&send_state, "852 2666 0542");
+        t4_tx_set_local_ident(&send_state, "111 2222 3333");
 
         /* Receive end puts TIFF to a function. */
         if (t4_rx_init(&receive_state, OUT_FILE_NAME, T4_COMPRESSION_ITU_T4_2D))

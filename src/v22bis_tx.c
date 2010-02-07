@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.36 2007/05/07 13:11:46 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.37 2007/10/14 10:12:46 steveu Exp $
  */
 
 /*! \file */
@@ -1068,6 +1068,8 @@ v22bis_state_t *v22bis_init(v22bis_state_t *s,
             return NULL;
     }
     memset(s, 0, sizeof(*s));
+    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
+    span_log_set_protocol(&s->logging, "V.22bis");
     s->bit_rate = bit_rate;
     s->caller = caller;
 
@@ -1097,8 +1099,6 @@ v22bis_state_t *v22bis_init(v22bis_state_t *s,
         }
     }
     v22bis_tx_power(s, -10.0f);
-    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
-    span_log_set_protocol(&s->logging, "V.22bis");
     v22bis_restart(s, s->bit_rate);
     return s;
 }

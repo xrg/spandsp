@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.108 2007/08/25 14:14:59 steveu Exp $
+ * $Id: v29rx.c,v 1.109 2007/10/14 10:12:46 steveu Exp $
  */
 
 /*! \file */
@@ -876,6 +876,8 @@ v29_rx_state_t *v29_rx_init(v29_rx_state_t *s, int rate, put_bit_func_t put_bit,
     }
 
     memset(s, 0, sizeof(*s));
+    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
+    span_log_set_protocol(&s->logging, "V.29 RX");
     s->put_bit = put_bit;
     s->user_data = user_data;
     /* The V.29 spec says the thresholds should be -31dBm and -26dBm, but that makes little
@@ -884,8 +886,6 @@ v29_rx_state_t *v29_rx_init(v29_rx_state_t *s, int rate, put_bit_func_t put_bit,
        dB ahead of V.29). */
     /* The thresholds should be on at -26dBm0 and off at -31dBm0 */
     v29_rx_signal_cutoff(s, -28.5f);
-    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
-    span_log_set_protocol(&s->logging, "V.29");
 
     v29_rx_restart(s, rate, FALSE);
     return s;

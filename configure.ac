@@ -16,7 +16,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.36 2007/08/13 13:08:18 steveu Exp $
+# $Id: configure.ac,v 1.37 2007/10/14 10:12:46 steveu Exp $
 
 # @start 1
 
@@ -265,7 +265,7 @@ fi
 
 case "${ax_cv_c_compiler_vendor}" in
 gnu)
-    COMP_VENDOR_CFLAGS="-O2 -g -std=gnu99 -ffast-math -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
+    COMP_VENDOR_CFLAGS="-std=gnu99 -ffast-math -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
     if test "$enable_sse" = "yes" ; then
         COMP_VENDOR_CFLAGS="-msse $COMP_VENDOR_CFLAGS"
     fi
@@ -274,7 +274,7 @@ gnu)
     fi
     ;;
 *)
-    COMP_VENDOR_CFLAGS="-O2 -g -std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
+    COMP_VENDOR_CFLAGS="-std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
     ;;
 esac
 

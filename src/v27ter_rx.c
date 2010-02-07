@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.83 2007/09/02 14:25:51 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.84 2007/10/14 10:12:46 steveu Exp $
  */
 
 /*! \file */
@@ -2046,11 +2046,11 @@ v27ter_rx_state_t *v27ter_rx_init(v27ter_rx_state_t *s, int rate, put_bit_func_t
             return NULL;
     }
     memset(s, 0, sizeof(*s));
+    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
+    span_log_set_protocol(&s->logging, "V.27ter RX");
     v27ter_rx_signal_cutoff(s, -45.5f);
     s->put_bit = put_bit;
     s->user_data = user_data;
-    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
-    span_log_set_protocol(&s->logging, "V.27ter");
 
     v27ter_rx_restart(s, rate, FALSE);
     return s;

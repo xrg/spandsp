@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.66 2007/07/20 15:30:50 steveu Exp $
+ * $Id: t38_terminal.c,v 1.68 2007/10/14 15:45:04 steveu Exp $
  */
 
 /*! \file */
@@ -255,6 +255,14 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
     switch (field_type)
     {
     case T38_FIELD_HDLC_DATA:
+        if (s->timeout_rx_samples == 0)
+        {
+            /* HDLC can just start without any signal indicator on some platforms, even when
+               there is zero packet lost. Nasty, but true. Its a good idea to be tolerant of
+               loss, though, so accepting a sudden start of HDLC data is the right thing to do. */
+            s->timeout_rx_samples = s->samples + ms_to_samples(MID_RX_TIMEOUT);
+            t30_front_end_status(&(s->t30_state), T30_FRONT_END_SIGNAL_PRESENT);
+        }
         if (s->rx_len + len <= T38_MAX_HDLC_LEN)
         {
             bit_reverse(s->rx_buf + s->rx_len, buf, len);

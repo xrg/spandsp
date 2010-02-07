@@ -28535,7 +28535,7 @@ fi
 
 case "${ax_cv_c_compiler_vendor}" in
 gnu)
-    COMP_VENDOR_CFLAGS="-O2 -g -std=gnu99 -ffast-math -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
+    COMP_VENDOR_CFLAGS="-std=gnu99 -ffast-math -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
     if test "$enable_sse" = "yes" ; then
         COMP_VENDOR_CFLAGS="-msse $COMP_VENDOR_CFLAGS"
     fi
@@ -28544,7 +28544,7 @@ gnu)
     fi
     ;;
 *)
-    COMP_VENDOR_CFLAGS="-O2 -g -std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
+    COMP_VENDOR_CFLAGS="-std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes"
     ;;
 esac
 

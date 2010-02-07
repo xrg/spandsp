@@ -813,8 +813,8 @@ at_interpreter.lo: at_dictionary_gen$(EXEEXT) at_interpreter_dictionary.h
 at_interpreter_dictionary.h: at_dictionary_gen$(EXEEXT)
 	./at_dictionary_gen$(EXEEXT) >at_interpreter_dictionary.h
 
-at_dictionary_gen$(EXEEXT): at_dictionary_gen.c
-	$(CC_FOR_BUILD) -o ./at_dictionary_gen$(EXEEXT) at_dictionary_gen.c
+at_dictionary_gen$(EXEEXT): at_dictionary_gen.c config.h
+	$(CC_FOR_BUILD) -o $@ $<
 
 $(DSP): msvc/msvcproj.head msvc/msvcproj.foot Makefile.am
 	echo "creating $(DSP)"

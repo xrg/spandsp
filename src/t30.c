@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.200 2007/09/30 11:36:52 steveu Exp $
+ * $Id: t30.c,v 1.201 2007/10/14 15:45:04 steveu Exp $
  */
 
 /*! \file */
@@ -4669,7 +4669,7 @@ void t30_front_end_status(void *user_data, int status)
             break;
         default:
             /* Cancel any receive timeout, and declare that a receive signal is present,
-               since we the front end is explicitly telling us we have seen something. */
+               since the front end is explicitly telling us we have seen something. */
             s->rx_signal_present = TRUE;
             s->timer_t2_t4 = 0;
             break;

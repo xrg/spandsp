@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.90 2007/09/02 07:34:20 steveu Exp $
+ * $Id: v17rx.c,v 1.91 2007/10/14 10:12:46 steveu Exp $
  */
 
 /*! \file */
@@ -280,6 +280,20 @@ static __inline__ void put_bit(v17_rx_state_t *s, int bit)
 }
 /*- End of function --------------------------------------------------------*/
 
+#if defined(SPANDSP_USE_FIXED_POINTx)
+static __inline__ uint32_t dist_sq(const complexi_t *x, const complexi_t *y)
+{
+    return (x->re - y->re)*(x->re - y->re) + (x->im - y->im)*(x->im - y->im);
+}
+/*- End of function --------------------------------------------------------*/
+#else
+static __inline__ float dist_sq(const complexf_t *x, const complexf_t *y)
+{
+    return (x->re - y->re)*(x->re - y->re) + (x->im - y->im)*(x->im - y->im);
+}
+/*- End of function --------------------------------------------------------*/
+#endif
+
 static int decode_baud(v17_rx_state_t *s, complexf_t *z)
 {
     static const int diff_code[16] =
@@ -305,9 +319,18 @@ static int decode_baud(v17_rx_state_t *s, complexf_t *z)
     int im;
     int raw;
     int constellation_state;
+#if defined(SPANDSP_USE_FIXED_POINTx)
+#define DIST_FACTOR 2048       /* Something less than sqrt(0xFFFFFFFF/10)/10 */
+    complexi_t zi;
+    uint32_t distances[8];
+    uint32_t new_distances[8];
+    uint32_t min;
+    complexi_t ci;
+#else
     float distances[8];
     float new_distances[8];
     float min;
+#endif
 
     re = (int) ((z->re + 9.0f)*2.0f);
     if (re > 35)
@@ -322,13 +345,23 @@ static int decode_baud(v17_rx_state_t *s, complexf_t *z)
 
     /* Find a set of 8 candidate constellation positions, that are the closest
        to the target, with different patterns in the last 3 bits. */
-    min = 9999999.0;
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    min = 0xFFFFFFFF;
+    zi = complex_seti(z->re*DIST_FACTOR, z->im*DIST_FACTOR);
+#else
+    min = 9999999.0f;
+#endif
     j = 0;
     for (i = 0;  i < 8;  i++)
     {
         nearest = constel_maps[s->space_map][re][im][i];
-        distances[i] = (s->constellation[nearest].re - z->re)*(s->constellation[nearest].re - z->re)
-                     + (s->constellation[nearest].im - z->im)*(s->constellation[nearest].im - z->im);
+#if defined(SPANDSP_USE_FIXED_POINTx)
+        ci = complex_seti(s->constellation[nearest].re*DIST_FACTOR,
+                          s->constellation[nearest].im*DIST_FACTOR);
+        distances[i] = dist_sq(&ci, &zi);
+#else
+        distances[i] = dist_sq(&s->constellation[nearest], z);
+#endif
         if (min > distances[i])
         {
             min = distances[i];
@@ -363,7 +396,11 @@ static int decode_baud(v17_rx_state_t *s, complexf_t *z)
             }
         }
         /* Use an elementary IIR filter to track the distance to date. */
+#if defined(SPANDSP_USE_FIXED_POINTx)
+        new_distances[i] = s->distances[k << 1]*9/10 + distances[tcm_paths[i][k]]*1/10;
+#else
         new_distances[i] = s->distances[k << 1]*0.9f + distances[tcm_paths[i][k]]*0.1f;
+#endif
         s->full_path_to_past_state_locations[s->trellis_ptr][i] = constel_maps[s->space_map][re][im][tcm_paths[i][k]];
         s->past_state_locations[s->trellis_ptr][i] = k << 1;
     }
@@ -379,7 +416,11 @@ static int decode_baud(v17_rx_state_t *s, complexf_t *z)
                 k = j;
             }
         }
+#if defined(SPANDSP_USE_FIXED_POINTx)
+        new_distances[i] = s->distances[(k << 1) + 1]*9/10 + distances[tcm_paths[i][k]]*1/10;
+#else
         new_distances[i] = s->distances[(k << 1) + 1]*0.9f + distances[tcm_paths[i][k]]*0.1f;
+#endif
         s->full_path_to_past_state_locations[s->trellis_ptr][i] = constel_maps[s->space_map][re][im][tcm_paths[i][k]];
         s->past_state_locations[s->trellis_ptr][i] = (k << 1) + 1;
     }
@@ -1036,7 +1077,11 @@ int v17_rx_restart(v17_rx_state_t *s, int rate, int short_train)
        at a value of zero, and all others start larger. This forces the
        initial paths to merge at the zero states. */
     for (i = 0;  i < 8;  i++)
+#if defined(SPANDSP_USE_FIXED_POINTx)
+        s->distances[i] = 99 * DIST_FACTOR * DIST_FACTOR; // or 0xFFFFFFFF?
+#else
         s->distances[i] = 99.0f;
+#endif
     memset(s->full_path_to_past_state_locations, 0, sizeof(s->full_path_to_past_state_locations));
     memset(s->past_state_locations, 0, sizeof(s->past_state_locations));
     s->distances[0] = 0;
@@ -1090,6 +1135,8 @@ v17_rx_state_t *v17_rx_init(v17_rx_state_t *s, int rate, put_bit_func_t put_bit,
             return NULL;
     }
     memset(s, 0, sizeof(*s));
+    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
+    span_log_set_protocol(&s->logging, "V.17 RX");
     s->put_bit = put_bit;
     s->user_data = user_data;
     s->short_train = FALSE;
@@ -1097,8 +1144,6 @@ v17_rx_state_t *v17_rx_init(v17_rx_state_t *s, int rate, put_bit_func_t put_bit,
     s->agc_scaling = 0.005f/PULSESHAPER_GAIN;
     s->agc_scaling_save = 0.0f;
     s->carrier_phase_rate_save = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
-    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
-    span_log_set_protocol(&s->logging, "V.17");
 
     v17_rx_restart(s, rate, s->short_train);
     return s;

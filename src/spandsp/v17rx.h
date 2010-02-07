@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.41 2007/08/13 13:08:19 steveu Exp $
+ * $Id: v17rx.h,v 1.42 2007/10/14 10:12:46 steveu Exp $
  */
 
 /*! \file */
@@ -340,10 +340,10 @@ typedef struct
     int full_path_to_past_state_locations[V17_TRELLIS_STORAGE_DEPTH][8];
     /*! \brief The trellis. */
     int past_state_locations[V17_TRELLIS_STORAGE_DEPTH][8];
-    /*! \brief Euclidean distances (actually the sqaures of the distances)
+    /*! \brief Euclidean distances (actually the squares of the distances)
                from the last states of the trellis. */
 #if defined(SPANDSP_USE_FIXED_POINTx)
-    int32_t distances[8];
+    uint32_t distances[8];
 #else
     float distances[8];
 #endif

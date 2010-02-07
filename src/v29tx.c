@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.c,v 1.65 2007/08/13 13:08:19 steveu Exp $
+ * $Id: v29tx.c,v 1.66 2007/10/14 10:12:46 steveu Exp $
  */
 
 /*! \file */
@@ -646,6 +646,8 @@ v29_tx_state_t *v29_tx_init(v29_tx_state_t *s, int rate, int tep, get_bit_func_t
             return NULL;
     }
     memset(s, 0, sizeof(*s));
+    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
+    span_log_set_protocol(&s->logging, "V.29 TX");
     s->get_bit = get_bit;
     s->user_data = user_data;
     s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);

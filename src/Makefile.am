@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.76 2007/08/17 00:50:14 steveu Exp $
+## $Id: Makefile.am,v 1.77 2007/10/14 10:12:46 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -196,8 +196,8 @@ at_interpreter.lo: at_dictionary_gen$(EXEEXT) at_interpreter_dictionary.h
 at_interpreter_dictionary.h: at_dictionary_gen$(EXEEXT)
 	./at_dictionary_gen$(EXEEXT) >at_interpreter_dictionary.h
 
-at_dictionary_gen$(EXEEXT): at_dictionary_gen.c
-	$(CC_FOR_BUILD) -o ./at_dictionary_gen$(EXEEXT) at_dictionary_gen.c
+at_dictionary_gen$(EXEEXT): at_dictionary_gen.c config.h
+	$(CC_FOR_BUILD) -o $@ $<
 
 DSP = libspandsp.dsp
 VCPROJ = libspandsp.vcproj

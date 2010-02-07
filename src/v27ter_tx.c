@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.c,v 1.54 2007/08/13 13:08:19 steveu Exp $
+ * $Id: v27ter_tx.c,v 1.55 2007/10/14 10:12:46 steveu Exp $
  */
 
 /*! \file */
@@ -961,6 +961,8 @@ v27ter_tx_state_t *v27ter_tx_init(v27ter_tx_state_t *s, int rate, int tep, get_b
             return NULL;
     }
     memset(s, 0, sizeof(*s));
+    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
+    span_log_set_protocol(&s->logging, "V.27ter TX");
     s->get_bit = get_bit;
     s->user_data = user_data;
     s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
