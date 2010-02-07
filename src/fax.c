@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.94 2009/09/04 14:38:46 steveu Exp $
+ * $Id: fax.c,v 1.96 2009/11/05 12:55:23 steveu Exp $
  */
 
 /*! \file */
@@ -110,12 +110,12 @@ static void fax_send_hdlc(void *user_data, const uint8_t *msg, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void tone_detected(void *user_data, int on, int level, int delay)
+static void tone_detected(void *user_data, int tone, int level, int delay)
 {
     t30_state_t *s;
 
     s = (t30_state_t *) user_data;
-    span_log(&s->logging, SPAN_LOG_FLOW, "FAX tone declared %s (%ddBm0)\n", (on)  ?  "on"  :  "off", level);
+    span_log(&s->logging, SPAN_LOG_FLOW, "%s detected (%ddBm0)\n", modem_connect_tone_to_str(tone), level);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -423,7 +423,7 @@ static void fax_set_rx_type(void *user_data, int type, int bit_rate, int short_t
     switch (type)
     {
     case T30_MODEM_V21:
-        fsk_rx_init(&t->v21_rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, put_bit_user_data);
+        fsk_rx_init(&t->v21_rx, &preset_fsk_specs[FSK_V21CH2], FSK_FRAME_MODE_SYNC, (put_bit_func_t) hdlc_rx_put_bit, put_bit_user_data);
         fsk_rx_signal_cutoff(&t->v21_rx, -45.5f);
         set_rx_handler(s, (span_rx_handler_t *) &fsk_rx, (span_rx_fillin_handler_t *) &fsk_rx_fillin, &t->v21_rx);
         break;
