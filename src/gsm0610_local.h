@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_local.h,v 1.10 2008/04/17 14:26:56 steveu Exp $
+ * $Id: gsm0610_local.h,v 1.11 2008/11/15 14:17:46 steveu Exp $
  */
 
 #if !defined(_GSM0610_LOCAL_H_)
@@ -34,6 +34,8 @@
 #define GSM0610_FRAME_LEN               160
 
 #define	GSM0610_MAGIC                   0xD
+
+#include "spandsp/private/gsm0610.h"
 
 static __inline__ int16_t gsm_add(int16_t a, int16_t b)
 {

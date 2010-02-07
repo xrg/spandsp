@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: gsm0610_tests.c,v 1.20 2008/11/08 16:45:04 steveu Exp $
+ * $Id: gsm0610_tests.c,v 1.21 2008/11/10 13:02:40 steveu Exp $
  */
 
 /*! \file */
@@ -34,9 +34,6 @@ Two sets of tests are performed:
       the specification.
     - A generally audio quality test, consisting of compressing and decompressing a speeech
       file for audible comparison.
-
-The speech file should be recorded at 16 bits/sample, 8000 samples/second, and named
-"pre_gsm0610.wav".
 
 \section gsm0610_tests_page_sec_2 How is it used?
 To perform the tests in the GSM 06.10 specification you need to obtain the test data files from the

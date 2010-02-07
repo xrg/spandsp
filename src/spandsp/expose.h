@@ -23,12 +23,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: expose.h,v 1.1 2008/10/18 05:32:48 steveu Exp $
+ * $Id: expose.h,v 1.4 2008/11/15 14:43:08 steveu Exp $
  */
 
 /*! \file */
 
-/* TRY TO ONLY INCLUDE THIS IF YOU REAKKY REALLY HAVE TO */
+/* TRY TO ONLY INCLUDE THIS IF YOU REALLY REALLY HAVE TO */
 
 #if !defined(_SPANDSP_EXPOSE_H_)
 #define _SPANDSP_EXPOSE_H_
@@ -37,6 +37,8 @@
 #include <spandsp/private/dtmf.h>
 #include <spandsp/private/g722.h>
 #include <spandsp/private/g726.h>
+#include <spandsp/private/gsm0610.h>
+#include <spandsp/private/time_scale.h>
 #include <spandsp/private/fsk.h>
 #include <spandsp/private/v29rx.h>
 #include <spandsp/private/v29tx.h>
@@ -55,6 +57,8 @@
 #include <spandsp/private/t38_terminal.h>
 #include <spandsp/private/t31.h>
 #include <spandsp/private/v8.h>
+#include <spandsp/private/v42.h>
+#include <spandsp/private/v42bis.h>
 #include <spandsp/private/adsi.h>
 
 #endif

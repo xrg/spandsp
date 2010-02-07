@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.c,v 1.24 2008/09/19 14:02:05 steveu Exp $
+ * $Id: time_scale.c,v 1.25 2008/11/15 14:27:29 steveu Exp $
  */
 
 /*! \file */
@@ -49,6 +49,8 @@
 #include "spandsp/telephony.h"
 #include "spandsp/time_scale.h"
 #include "spandsp/saturated.h"
+
+#include "spandsp/private/time_scale.h"
 
 /*
     Time scaling for speech, based on the Pointer Interval Controlled
