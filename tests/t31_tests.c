@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31_tests.c,v 1.58 2008/05/13 13:17:26 steveu Exp $
+ * $Id: t31_tests.c,v 1.59 2008/07/24 13:55:24 steveu Exp $
  */
 
 /*! \file */
@@ -95,7 +95,7 @@ static const struct command_response_s fax_send_test_seq[] =
     RESPONSE("\r\nOK\r\n"),
     EXCHANGE("AT+FRH=3\r", "\r\nCONNECT\r\n"),
     //<DIS frame data>
-    RESPONSE("\xFF\x13\x80\x00\xEE\xF8\x80\x80\x89\x80\x80\x80\x18\x18\xB9\x10\x03"),
+    RESPONSE("\xFF\x13\x80\x00\xEE\xF8\x80\x80\x91\x80\x80\x80\x18\x78\x57\x10\x03"),
     RESPONSE("\r\nOK\r\n"),
     //EXCHANGE("AT+FRH=3\r", "\r\nNO CARRIER\r\n"),
     EXCHANGE("AT+FTH=3\r", "\r\nCONNECT\r\n"),
@@ -124,7 +124,8 @@ static const struct command_response_s fax_send_test_seq[] =
     EXCHANGE("\xFF\x13\x2E\x10\x03", "\r\nOK\r\n"),
     EXCHANGE("AT+FRH=3\r", "\r\nCONNECT\r\n"),
     //<MCF frame data>
-    EXCHANGE("\xFF\x13\x8C\x10\x03", "\r\nOK\r\n"),
+    RESPONSE("\xFF\x13\x8C\xA2\xF1\x10\x03"),
+    RESPONSE("\r\nOK\r\n"),
     EXCHANGE("AT+FTH=3\r", "\r\nCONNECT\r\n"),
     // <DCN frame data>
     EXCHANGE("\xFF\x13\xFB\x10\x03", "\r\nOK\r\n"),
@@ -373,34 +374,39 @@ static int t38_tests(int use_gui, int test_sending)
     int fast_send;
     int fast_blocks;
     uint8_t fast_buf[1000];
+    t30_state_t *t30;
 
     if (t31_init(&t31_state, at_tx_handler, NULL, modem_call_control, NULL, NULL, NULL) == NULL)
     {
-        fprintf(stderr, "    Cannot start the FAX modem\n");
+        fprintf(stderr, "    Cannot start the T.31 FAX modem\n");
         exit(2);
     }
+    span_log_set_level(&t31_state.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);
+    span_log_set_tag(&t31_state.logging, "T.31");
+
 
     if (t38_terminal_init(&t38_state, TRUE, tx_packet_handler, &t31_state) == NULL)
     {
         fprintf(stderr, "Cannot start the T.38 channel\n");
         exit(2);
     }
+    t30 = t38_terminal_get_t30_state(&t38_state);
     span_log_set_level(&t38_state.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
-    span_log_set_tag(&t38_state.logging, "T.38-A");
-    span_log_set_level(&t38_state.t38.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
-    span_log_set_tag(&t38_state.t38.logging, "T.38-A");
-    span_log_set_level(&t38_state.t30_state.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
-    span_log_set_tag(&t38_state.t30_state.logging, "T.38-A");
+    span_log_set_tag(&t38_state.logging, "T.38");
+    span_log_set_level(&t38_state.t38_fe.t38.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
+    span_log_set_tag(&t38_state.t38_fe.t38.logging, "T.38-A");
+    span_log_set_level(&t30->logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
+    span_log_set_tag(&t30->logging, "T.38");
 
-    t30_set_tx_ident(&t38_state.t30_state, "11111111");
-    t30_set_tx_nsf(&t38_state.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
-    t30_set_tx_file(&t38_state.t30_state, INPUT_FILE_NAME, -1, -1);
-    t30_set_phase_b_handler(&t38_state.t30_state, phase_b_handler, (void *) (intptr_t) 'A');
-    t30_set_phase_d_handler(&t38_state.t30_state, phase_d_handler, (void *) (intptr_t) 'A');
-    t30_set_phase_e_handler(&t38_state.t30_state, phase_e_handler, (void *) (intptr_t) 'A');
-    //t30_set_ecm_capability(&t38_state.t30_state, use_ecm);
+    t30_set_tx_ident(t30, "11111111");
+    t30_set_tx_nsf(t30, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
+    t30_set_tx_file(t30, INPUT_FILE_NAME, -1, -1);
+    t30_set_phase_b_handler(t30, phase_b_handler, (void *) (intptr_t) 'A');
+    t30_set_phase_d_handler(t30, phase_d_handler, (void *) (intptr_t) 'A');
+    t30_set_phase_e_handler(t30, phase_e_handler, (void *) (intptr_t) 'A');
+    //t30_set_ecm_capability(t30, use_ecm);
     //if (use_ecm)
-    //    t30_set_supported_compressions(&t38_state.t30_state, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
+    //    t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
 
     fast_send = FALSE;
     fast_blocks = 0;
@@ -495,6 +501,7 @@ static int t30_tests(int log_audio, int test_sending)
     int fast_send;
     int fast_blocks;
     uint8_t fast_buf[1000];
+    t30_state_t *t30;
 
     filesetup = AF_NULL_FILESETUP;
     wave_handle = AF_NULL_FILEHANDLE;
@@ -528,40 +535,42 @@ static int t30_tests(int log_audio, int test_sending)
         }
     }
 
+    if (t31_init(&t31_state, at_tx_handler, NULL, modem_call_control, NULL, NULL, NULL) == NULL)
+    {
+        fprintf(stderr, "    Cannot start the T.31 FAX modem\n");
+        exit(2);
+    }
+    span_log_set_level(&t31_state.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);
+    span_log_set_tag(&t31_state.logging, "T.31");
+
     if (test_sending)
     {
         fax_init(&fax_state, FALSE);
-        t30_set_rx_file(&fax_state.t30_state, OUTPUT_FILE_NAME, -1);
+        t30 = fax_get_t30_state(&fax_state);
+        t30_set_rx_file(t30, OUTPUT_FILE_NAME, -1);
         fax_test_seq = fax_send_test_seq;
         countdown = 0;
     }
     else
     {
         fax_init(&fax_state, TRUE);
-        t30_set_tx_file(&fax_state.t30_state, INPUT_FILE_NAME, -1, -1);
+        t30 = fax_get_t30_state(&fax_state);
+        t30_set_tx_file(t30, INPUT_FILE_NAME, -1, -1);
         fax_test_seq = fax_receive_test_seq;
         countdown = 250;
     }
     
-    t30_set_tx_ident(&fax_state.t30_state, "11111111");
-    t30_set_phase_b_handler(&fax_state.t30_state, phase_b_handler, (void *) 0);
-    t30_set_phase_d_handler(&fax_state.t30_state, phase_d_handler, (void *) 0);
-    t30_set_phase_e_handler(&fax_state.t30_state, phase_e_handler, (void *) 0);
+    t30_set_tx_ident(t30, "11111111");
+    t30_set_supported_modems(t30, T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
+    t30_set_phase_b_handler(t30, phase_b_handler, (void *) 0);
+    t30_set_phase_d_handler(t30, phase_d_handler, (void *) 0);
+    t30_set_phase_e_handler(t30, phase_e_handler, (void *) 0);
     memset(t30_amp, 0, sizeof(t30_amp));
     
-    span_log_set_level(&fax_state.t30_state.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);
-    span_log_set_tag(&fax_state.t30_state.logging, "YYY");
+    span_log_set_level(&t30->logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);
+    span_log_set_tag(&t30->logging, "FAX");
     span_log_set_level(&fax_state.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);
-    span_log_set_tag(&fax_state.logging, "YYY");
-
-    if (t31_init(&t31_state, at_tx_handler, NULL, modem_call_control, NULL, NULL, NULL) == NULL)
-    {
-        fprintf(stderr, "    Cannot start the FAX modem\n");
-        exit(2);
-    }
-
-    span_log_set_level(&t31_state.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_FLOW);
-    span_log_set_tag(&t31_state.logging, "XXX");
+    span_log_set_tag(&fax_state.logging, "FAX");
 
     fast_send = FALSE;
     fast_blocks = 0;

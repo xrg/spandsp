@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.c,v 1.29 2008/06/29 03:24:15 steveu Exp $
+ * $Id: at_interpreter.c,v 1.30 2008/07/24 13:55:23 steveu Exp $
  */
 
 /*! \file */
@@ -108,9 +108,11 @@ static const char *revision = VERSION;
 #define DLE 0x10
 #define SUB 0x1A
 
+/* BEWARE: right now this must match up with a list in the T.31 code. */
 enum
 {
-    T31_FLUSH,
+    T31_NONE = -1,
+    T31_FLUSH = 0,
     T31_SILENCE_TX,
     T31_SILENCE_RX,
     T31_CED_TONE,

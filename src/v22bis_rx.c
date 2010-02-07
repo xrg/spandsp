@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.39 2008/07/02 14:48:26 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.40 2008/07/25 13:56:54 steveu Exp $
  */
 
 /*! \file */
@@ -712,7 +712,7 @@ int v22bis_rx_restart(v22bis_state_t *s, int bit_rate)
 }
 /*- End of function --------------------------------------------------------*/
 
-void v22bis_set_qam_report_handler(v22bis_state_t *s, qam_report_handler_t *handler, void *user_data)
+void v22bis_set_qam_report_handler(v22bis_state_t *s, qam_report_handler_t handler, void *user_data)
 {
     s->rx.qam_report = handler;
     s->rx.qam_user_data = user_data;

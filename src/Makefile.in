@@ -345,6 +345,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/dtmf.h \
                          spandsp/echo.h \
                          spandsp/fax.h \
+                         spandsp/fax_modems.h \
                          spandsp/fir.h \
                          spandsp/fsk.h \
                          spandsp/g168models.h \

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tsb85_tests.c,v 1.6 2008/07/22 13:48:16 steveu Exp $
+ * $Id: tsb85_tests.c,v 1.8 2008/07/25 13:56:54 steveu Exp $
  */
 
 /*! \file */
@@ -566,7 +566,7 @@ static int next_step(faxtester_state_t *s)
         else if (strcasecmp((const char *) type, "TCF") == 0)
         {
             if (value)
-                i = atoi(value);
+                i = atoi((const char *) value);
             else
                 i = 450;
             memset(image, 0, i);
@@ -605,7 +605,7 @@ static int next_step(faxtester_state_t *s)
             if (bad_rows)
             {
                 printf("We need to corrupt the image\n");
-                corrupt_image(image, len, bad_rows);
+                corrupt_image(image, len, (const char *) bad_rows);
             }
             t4_tx_end(&t4_state);
             faxtester_set_image_buffer(s, image, len);
@@ -632,6 +632,7 @@ static void exchange(faxtester_state_t *s)
     const char *input_tiff_file_name;
     const char *output_tiff_file_name;
     int log_audio;
+    t30_state_t *t30;
 
     log_audio = TRUE;
     input_tiff_file_name = INPUT_TIFF_FILE_NAME;
@@ -663,28 +664,29 @@ static void exchange(faxtester_state_t *s)
     faxtester_set_front_end_step_complete_handler(&state, faxtester_front_end_step_complete_handler, NULL);
 
     fax_init(&fax, FALSE);
+    t30 = fax_get_t30_state(&fax);
     fax_set_transmit_on_idle(&fax, TRUE);
     fax_set_tep_mode(&fax, TRUE);
-    t30_set_tx_ident(&fax.t30_state, "1234567890");
-    t30_set_tx_sub_address(&fax.t30_state, "Sub-address");
-    t30_set_tx_sender_ident(&fax.t30_state, "Sender ID");
-    t30_set_tx_password(&fax.t30_state, "Password");
-    t30_set_tx_polled_sub_address(&fax.t30_state, "Polled sub-address");
-    t30_set_tx_selective_polling_address(&fax.t30_state, "Sel polling address");
-    t30_set_tx_nsf(&fax.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
-    t30_set_ecm_capability(&fax.t30_state, TRUE);
-    t30_set_supported_t30_features(&fax.t30_state,
+    t30_set_tx_ident(t30, "1234567890");
+    t30_set_tx_sub_address(t30, "Sub-address");
+    t30_set_tx_sender_ident(t30, "Sender ID");
+    t30_set_tx_password(t30, "Password");
+    t30_set_tx_polled_sub_address(t30, "Polled sub-address");
+    t30_set_tx_selective_polling_address(t30, "Sel polling address");
+    t30_set_tx_nsf(t30, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
+    t30_set_ecm_capability(t30, TRUE);
+    t30_set_supported_t30_features(t30,
                                    T30_SUPPORT_IDENTIFICATION
                                  | T30_SUPPORT_SELECTIVE_POLLING
                                  | T30_SUPPORT_SUB_ADDRESSING);
-    t30_set_supported_image_sizes(&fax.t30_state,
+    t30_set_supported_image_sizes(t30,
                                   T30_SUPPORT_US_LETTER_LENGTH
                                 | T30_SUPPORT_US_LEGAL_LENGTH
                                 | T30_SUPPORT_UNLIMITED_LENGTH
                                 | T30_SUPPORT_215MM_WIDTH
                                 | T30_SUPPORT_255MM_WIDTH
                                 | T30_SUPPORT_303MM_WIDTH);
-    t30_set_supported_resolutions(&fax.t30_state,
+    t30_set_supported_resolutions(t30,
                                   T30_SUPPORT_STANDARD_RESOLUTION
                                 | T30_SUPPORT_FINE_RESOLUTION
                                 | T30_SUPPORT_SUPERFINE_RESOLUTION
@@ -697,20 +699,20 @@ static void exchange(faxtester_state_t *s)
                                 | T30_SUPPORT_300_600_RESOLUTION
                                 | T30_SUPPORT_400_800_RESOLUTION
                                 | T30_SUPPORT_600_1200_RESOLUTION);
-    t30_set_supported_modems(&fax.t30_state, T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
-    t30_set_supported_compressions(&fax.t30_state, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
-    t30_set_phase_b_handler(&fax.t30_state, phase_b_handler, (void *) (intptr_t) 1);
-    t30_set_phase_d_handler(&fax.t30_state, phase_d_handler, (void *) (intptr_t) 1);
-    t30_set_phase_e_handler(&fax.t30_state, phase_e_handler, (void *) (intptr_t) 1);
-    t30_set_real_time_frame_handler(&fax.t30_state, t30_real_time_frame_handler, (void *) (intptr_t) 1);
-    t30_set_document_handler(&fax.t30_state, document_handler, (void *) (intptr_t) 1);
-    t30_set_rx_file(&fax.t30_state, output_tiff_file_name, -1);
-    //t30_set_tx_file(&fax.t30_state, input_tiff_file_name, -1, -1);
+    t30_set_supported_modems(t30, T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
+    t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
+    t30_set_phase_b_handler(t30, phase_b_handler, (void *) (intptr_t) 1);
+    t30_set_phase_d_handler(t30, phase_d_handler, (void *) (intptr_t) 1);
+    t30_set_phase_e_handler(t30, phase_e_handler, (void *) (intptr_t) 1);
+    t30_set_real_time_frame_handler(t30, t30_real_time_frame_handler, (void *) (intptr_t) 1);
+    t30_set_document_handler(t30, document_handler, (void *) (intptr_t) 1);
+    t30_set_rx_file(t30, output_tiff_file_name, -1);
+    //t30_set_tx_file(t30, input_tiff_file_name, -1, -1);
 
-    span_log_set_level(&fax.t30_state.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
-    span_log_set_tag(&fax.t30_state.logging, "A");
-    span_log_set_level(&fax.v29_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
-    span_log_set_tag(&fax.v29_rx.logging, "A");
+    span_log_set_level(&t30->logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+    span_log_set_tag(&t30->logging, "A");
+    span_log_set_level(&fax.fe.modems.v29_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+    span_log_set_tag(&fax.fe.modems.v29_rx.logging, "A");
     span_log_set_level(&fax.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
     span_log_set_tag(&fax.logging, "A");
 
@@ -727,8 +729,8 @@ static void exchange(faxtester_state_t *s)
         }
 
         total_audio_time += SAMPLES_PER_CHUNK;
-        span_log_bump_samples(&fax.t30_state.logging, len);
-        span_log_bump_samples(&fax.v29_rx.logging, len);
+        span_log_bump_samples(&fax.t30.logging, len);
+        span_log_bump_samples(&fax.fe.modems.v29_rx.logging, len);
         span_log_bump_samples(&fax.logging, len);
                 
         len = faxtester_tx(s, amp, 160);

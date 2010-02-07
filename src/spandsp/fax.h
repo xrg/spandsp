@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.h,v 1.30 2008/04/17 14:27:00 steveu Exp $
+ * $Id: fax.h,v 1.32 2008/07/25 13:56:54 steveu Exp $
  */
 
 /*! \file */
@@ -42,17 +42,21 @@ typedef struct fax_state_s fax_state_t;
 typedef void (fax_flush_handler_t)(fax_state_t *s, void *user_data, int which);
 
 /*!
-    Analogue line T.30 FAX channel descriptor. This defines the state of a single working
-    instance of an analogue line soft-FAX machine.
+    Analogue FAX front end channel descriptor. This defines the state of a single working
+    instance of an analogue line FAX front end.
 */
-struct fax_state_s
+typedef struct
 {
-    /* This must be kept the first thing in the structure, so it can be pointed
-       to reliably as the structures change over time. */
-    t30_state_t t30_state;
-
     /*! TRUE is talker echo protection should be sent for the image modems */
     int use_tep;
+
+    /*! If TRUE, transmit silence when there is nothing else to transmit. If FALSE return only
+        the actual generated audio. Note that this only affects untimed silences. Timed silences
+        (e.g. the 75ms silence between V.21 and a high speed modem) will alway be transmitted as
+        silent audio. */
+    int transmit_on_idle;
+
+    fax_modems_t modems;
 
     fax_flush_handler_t *flush_handler;
     void *flush_user_data;
@@ -67,51 +71,9 @@ struct fax_state_s
     /*! The transmit signal handler to be used when the current one has finished sending. */
     span_tx_handler_t *next_tx_handler;
     void *next_tx_user_data;
-    
+
     /*! If TRUE, transmission is in progress */
     int transmit;
-
-    /*! If TRUE, transmit silence when there is nothing else to transmit. If FALSE return only
-        the actual generated audio. Note that this only affects untimed silences. Timed silences
-        (e.g. the 75ms silence between V.21 and a high speed modem) will alway be transmitted as
-        silent audio. */
-    int transmit_on_idle;
-
-    /*! \brief A tone generator context used to generate supervisory tones during
-               FAX handling. */
-    tone_gen_state_t tone_gen;
-    /*! \brief An HDLC context used when receiving HDLC over V.21 messages. */
-    hdlc_rx_state_t hdlcrx;
-    /*! \brief An HDLC context used when transmitting HDLC over V.21 messages. */
-    hdlc_tx_state_t hdlctx;
-    /*! \brief A V.21 FSK modem context used when transmitting HDLC over V.21
-               messages. */
-    fsk_tx_state_t v21_tx;
-    /*! \brief A V.21 FSK modem context used when receiving HDLC over V.21
-               messages. */
-    fsk_rx_state_t v21_rx;
-    /*! \brief A V.17 modem context used when sending FAXes at 7200bps, 9600bps
-               12000bps or 14400bps*/
-    v17_tx_state_t v17_tx;
-    /*! \brief A V.29 modem context used when receiving FAXes at 7200bps, 9600bps
-               12000bps or 14400bps*/
-    v17_rx_state_t v17_rx;
-    /*! \brief A V.27ter modem context used when sending FAXes at 2400bps or
-               4800bps */
-    v27ter_tx_state_t v27ter_tx;
-    /*! \brief A V.27ter modem context used when receiving FAXes at 2400bps or
-               4800bps */
-    v27ter_rx_state_t v27ter_rx;
-    /*! \brief A V.29 modem context used when sending FAXes at 7200bps or
-               9600bps */
-    v29_tx_state_t v29_tx;
-    /*! \brief A V.29 modem context used when receiving FAXes at 7200bps or
-               9600bps */
-    v29_rx_state_t v29_rx;
-    /*! \brief Used to insert timed silences. */
-    silence_gen_state_t silence_gen;
-    /*! \brief */
-    dc_restore_state_t dc_restore;
 
     /*! \brief TRUE is the short training sequence should be used. */
     int short_train;
@@ -125,6 +87,22 @@ struct fax_state_s
     int fax_audio_rx_log;
     /*! \brief Audio logging file handle for transmitted audio. */
     int fax_audio_tx_log;
+} fax_modem_front_end_state_t;
+
+/*!
+    Analogue line T.30 FAX channel descriptor. This defines the state of a single working
+    instance of an analogue line soft-FAX machine.
+*/
+struct fax_state_s
+{
+    /* This must be kept the first thing in the structure, so it can be pointed
+       to reliably as the structures change over time. */
+    /*! \brief The T.30 back-end */
+    t30_state_t t30;
+    
+    /*! \brief The analogue modem front-end */
+    fax_modem_front_end_state_t fe;
+
     /*! \brief Error and flow logging control */
     logging_state_t logging;
 };
@@ -171,6 +149,13 @@ void fax_set_transmit_on_idle(fax_state_t *s, int transmit_on_idle);
     \param use_tep TRUE if TEP should be sent.
 */
 void fax_set_tep_mode(fax_state_t *s, int use_tep);
+
+/*! Get a pointer to the T.30 engine associated with a FAX context.
+    \brief Get a pointer to the T.30 engine associated with a FAX context.
+    \param s The FAX context.
+    \return A pointer to the T.30 context, or NULL.
+*/
+t30_state_t *fax_get_t30_state(fax_state_t *s);
 
 /*! Initialise a FAX context.
     \brief Initialise a FAX context.

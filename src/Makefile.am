@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.96 2008/07/10 13:34:00 steveu Exp $
+## $Id: Makefile.am,v 1.97 2008/07/25 13:56:54 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -124,6 +124,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/dtmf.h \
                          spandsp/echo.h \
                          spandsp/fax.h \
+                         spandsp/fax_modems.h \
                          spandsp/fir.h \
                          spandsp/fsk.h \
                          spandsp/g168models.h \

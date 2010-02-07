@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.c,v 1.28 2008/07/02 14:48:26 steveu Exp $
+ * $Id: super_tone_rx.c,v 1.29 2008/07/25 13:56:54 steveu Exp $
  */
 
 /*! \file */
@@ -419,6 +419,7 @@ int super_tone_rx(super_tone_rx_state_t *s, const int16_t amp[], int samples)
     float xamp;
 #endif
 
+    x = 0;
     for (sample = 0;  sample < samples;  sample += x)
     {
         for (i = 0;  i < s->desc->monitored_frequencies;  i++)

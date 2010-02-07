@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.89 2008/06/28 02:14:26 steveu Exp $
+ * $Id: fax_tests.c,v 1.91 2008/07/25 13:56:54 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -237,6 +237,7 @@ int main(int argc, char *argv[])
     time_t end_time;
     char *page_header_info;
     int opt;
+    t30_state_t *t30;
 
     log_audio = FALSE;
     input_tiff_file_name = INPUT_TIFF_FILE_NAME;
@@ -346,30 +347,31 @@ int main(int argc, char *argv[])
             fax_init(&mc->fax, (mc->chan & 1)  ?  FALSE  :  TRUE);
         fax_set_transmit_on_idle(&mc->fax, use_transmit_on_idle);
         fax_set_tep_mode(&mc->fax, use_tep);
-        t30_set_tx_ident(&mc->fax.t30_state, buf);
-        t30_set_tx_sub_address(&mc->fax.t30_state, "Sub-address");
-        t30_set_tx_sender_ident(&mc->fax.t30_state, "Sender ID");
-        t30_set_tx_password(&mc->fax.t30_state, "Password");
-        t30_set_tx_polled_sub_address(&mc->fax.t30_state, "Polled sub-address");
-        t30_set_tx_selective_polling_address(&mc->fax.t30_state, "Sel polling address");
-        t30_set_tx_page_header_info(&mc->fax.t30_state, page_header_info);
-        t30_set_tx_nsf(&mc->fax.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
-        t30_set_ecm_capability(&mc->fax.t30_state, use_ecm);
-        t30_set_supported_t30_features(&mc->fax.t30_state,
+        t30 = fax_get_t30_state(&mc->fax);
+        t30_set_tx_ident(t30, buf);
+        t30_set_tx_sub_address(t30, "Sub-address");
+        t30_set_tx_sender_ident(t30, "Sender ID");
+        t30_set_tx_password(t30, "Password");
+        t30_set_tx_polled_sub_address(t30, "Polled sub-address");
+        t30_set_tx_selective_polling_address(t30, "Selective polling address");
+        t30_set_tx_page_header_info(t30, page_header_info);
+        t30_set_tx_nsf(t30, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
+        t30_set_ecm_capability(t30, use_ecm);
+        t30_set_supported_t30_features(t30,
                                        T30_SUPPORT_IDENTIFICATION
                                      | T30_SUPPORT_SELECTIVE_POLLING
                                      | T30_SUPPORT_SUB_ADDRESSING);
 
         if ((mc->chan & 1))
-            mc->fax.t30_state.local_min_scan_time_code = 4;
-        t30_set_supported_image_sizes(&mc->fax.t30_state,
+            t30->local_min_scan_time_code = 4;
+        t30_set_supported_image_sizes(t30,
                                       T30_SUPPORT_US_LETTER_LENGTH
                                     | T30_SUPPORT_US_LEGAL_LENGTH
                                     | T30_SUPPORT_UNLIMITED_LENGTH
                                     | T30_SUPPORT_215MM_WIDTH
                                     | T30_SUPPORT_255MM_WIDTH
                                     | T30_SUPPORT_303MM_WIDTH);
-        t30_set_supported_resolutions(&mc->fax.t30_state,
+        t30_set_supported_resolutions(t30,
                                       T30_SUPPORT_STANDARD_RESOLUTION
                                     | T30_SUPPORT_FINE_RESOLUTION
                                     | T30_SUPPORT_SUPERFINE_RESOLUTION
@@ -382,22 +384,22 @@ int main(int argc, char *argv[])
                                     | T30_SUPPORT_300_600_RESOLUTION
                                     | T30_SUPPORT_400_800_RESOLUTION
                                     | T30_SUPPORT_600_1200_RESOLUTION);
-        t30_set_supported_modems(&mc->fax.t30_state, supported_modems);
+        t30_set_supported_modems(t30, supported_modems);
         if (use_ecm)
-            t30_set_supported_compressions(&mc->fax.t30_state, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
+            t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
         if ((mc->chan & 1))
         {
             if (polled_mode)
             {
                 if (use_page_limits)
-                    t30_set_tx_file(&mc->fax.t30_state, input_tiff_file_name, 3, 6);
+                    t30_set_tx_file(t30, input_tiff_file_name, 3, 6);
                 else
-                    t30_set_tx_file(&mc->fax.t30_state, input_tiff_file_name, -1, -1);
+                    t30_set_tx_file(t30, input_tiff_file_name, -1, -1);
             }
             else
             {
                 sprintf(buf, "fax_tests_%d.tif", (mc->chan + 1)/2);
-                t30_set_rx_file(&mc->fax.t30_state, buf, -1);
+                t30_set_rx_file(t30, buf, -1);
             }
         }
         else
@@ -405,26 +407,26 @@ int main(int argc, char *argv[])
             if (polled_mode)
             {
                 sprintf(buf, "fax_tests_%d.tif", (mc->chan + 1)/2);
-                t30_set_rx_file(&mc->fax.t30_state, buf, -1);
+                t30_set_rx_file(t30, buf, -1);
             }
             else
             {
                 if (use_page_limits)
-                    t30_set_tx_file(&mc->fax.t30_state, input_tiff_file_name, 3, 6);
+                    t30_set_tx_file(t30, input_tiff_file_name, 3, 6);
                 else
-                    t30_set_tx_file(&mc->fax.t30_state, input_tiff_file_name, -1, -1);
+                    t30_set_tx_file(t30, input_tiff_file_name, -1, -1);
             }
         }
-        t30_set_phase_b_handler(&mc->fax.t30_state, phase_b_handler, (void *) (intptr_t) mc->chan);
-        t30_set_phase_d_handler(&mc->fax.t30_state, phase_d_handler, (void *) (intptr_t) mc->chan);
-        t30_set_phase_e_handler(&mc->fax.t30_state, phase_e_handler, (void *) (intptr_t) mc->chan);
-        t30_set_real_time_frame_handler(&mc->fax.t30_state, real_time_frame_handler, (void *) (intptr_t) mc->chan);
-        t30_set_document_handler(&mc->fax.t30_state, document_handler, (void *) (intptr_t) mc->chan);
+        t30_set_phase_b_handler(t30, phase_b_handler, (void *) (intptr_t) mc->chan);
+        t30_set_phase_d_handler(t30, phase_d_handler, (void *) (intptr_t) mc->chan);
+        t30_set_phase_e_handler(t30, phase_e_handler, (void *) (intptr_t) mc->chan);
+        t30_set_real_time_frame_handler(t30, real_time_frame_handler, (void *) (intptr_t) mc->chan);
+        t30_set_document_handler(t30, document_handler, (void *) (intptr_t) mc->chan);
         sprintf(mc->tag, "FAX-%d", j + 1);
-        span_log_set_level(&mc->fax.t30_state.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
-        span_log_set_tag(&mc->fax.t30_state.logging, mc->tag);
-        span_log_set_level(&mc->fax.v29_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
-        span_log_set_tag(&mc->fax.v29_rx.logging, mc->tag);
+        span_log_set_level(&t30->logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+        span_log_set_tag(&t30->logging, mc->tag);
+        span_log_set_level(&mc->fax.fe.modems.v29_rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+        span_log_set_tag(&mc->fax.fe.modems.v29_rx.logging, mc->tag);
         span_log_set_level(&mc->fax.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
         span_log_set_tag(&mc->fax.logging, mc->tag);
         memset(mc->amp, 0, sizeof(mc->amp));
@@ -461,8 +463,8 @@ int main(int argc, char *argv[])
                     mc->len = SAMPLES_PER_CHUNK;
                 }
             }
-            span_log_bump_samples(&mc->fax.t30_state.logging, mc->len);
-            span_log_bump_samples(&mc->fax.v29_rx.logging, mc->len);
+            span_log_bump_samples(&mc->fax.t30.logging, mc->len);
+            span_log_bump_samples(&mc->fax.fe.modems.v29_rx.logging, mc->len);
             span_log_bump_samples(&mc->fax.logging, mc->len);
 
             if (log_audio)
@@ -475,7 +477,7 @@ int main(int argc, char *argv[])
             if (use_line_hits)
             {
                 /* TODO: This applies very crude line hits. improve it */
-                if (mc->fax.t30_state.state == 22)
+                if (mc->fax.t30.state == 22)
                 {
                     if (++mc->error_delay == 100)
                     {
@@ -486,7 +488,7 @@ int main(int argc, char *argv[])
                     }
                 }    
             }
-            if (mc->fax.t30_state.state == t30_state_to_wreck)
+            if (mc->fax.t30.state == t30_state_to_wreck)
                 memset(machines[j ^ 1].amp, 0, sizeof(int16_t)*SAMPLES_PER_CHUNK);
             if (fax_rx(&mc->fax, machines[j ^ 1].amp, SAMPLES_PER_CHUNK))
                 break;

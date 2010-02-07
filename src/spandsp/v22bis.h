@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.29 2008/07/16 14:23:48 steveu Exp $
+ * $Id: v22bis.h,v 1.30 2008/07/25 13:56:54 steveu Exp $
  */
 
 /*! \file */
@@ -255,7 +255,7 @@ float v22bis_rx_signal_power(v22bis_state_t *s);
     \param s The modem context.
     \param handler The handler routine.
     \param user_data An opaque pointer passed to the handler routine. */
-void v22bis_set_qam_report_handler(v22bis_state_t *s, qam_report_handler_t *handler, void *user_data);
+void v22bis_set_qam_report_handler(v22bis_state_t *s, qam_report_handler_t handler, void *user_data);
 
 /*! Generate a block of V.22bis modem audio samples.
     \brief Generate a block of V.22bis modem audio samples.

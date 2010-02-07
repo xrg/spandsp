@@ -475,6 +475,10 @@ SOURCE=.\spandsp/fax.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\spandsp/fax_modems.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\spandsp/fir.h
 # End Source File
 # Begin Source File

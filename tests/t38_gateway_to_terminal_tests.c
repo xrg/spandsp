@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_to_terminal_tests.c,v 1.58 2008/06/16 13:35:48 steveu Exp $
+ * $Id: t38_gateway_to_terminal_tests.c,v 1.59 2008/07/24 13:55:24 steveu Exp $
  */
 
 /*! \file */
@@ -237,6 +237,7 @@ int main(int argc, char *argv[])
     int supported_modems;
     int use_gui;
     int opt;
+    t30_state_t *t30;
 
     log_audio = FALSE;
     t38_version = 1;
@@ -342,22 +343,23 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Cannot start FAX\n");
         exit(2);
     }
+    t30 = fax_get_t30_state(&fax_state_a);
     fax_set_transmit_on_idle(&fax_state_a, use_transmit_on_idle);
     fax_set_tep_mode(&fax_state_a, use_tep);
-    t30_set_supported_modems(&(fax_state_a.t30_state), supported_modems);
-    t30_set_tx_ident(&fax_state_a.t30_state, "11111111");
-    t30_set_tx_nsf(&fax_state_a.t30_state, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
-    t30_set_tx_file(&fax_state_a.t30_state, input_file_name, -1, -1);
-    t30_set_phase_b_handler(&fax_state_a.t30_state, phase_b_handler, (void *) (intptr_t) 'A');
-    t30_set_phase_d_handler(&fax_state_a.t30_state, phase_d_handler, (void *) (intptr_t) 'A');
-    t30_set_phase_e_handler(&fax_state_a.t30_state, phase_e_handler, (void *) (intptr_t) 'A');
-    t30_set_ecm_capability(&fax_state_a.t30_state, use_ecm);
+    t30_set_supported_modems(t30, supported_modems);
+    t30_set_tx_ident(t30, "11111111");
+    t30_set_tx_nsf(t30, (const uint8_t *) "\x50\x00\x00\x00Spandsp\x00", 12);
+    t30_set_tx_file(t30, input_file_name, -1, -1);
+    t30_set_phase_b_handler(t30, phase_b_handler, (void *) (intptr_t) 'A');
+    t30_set_phase_d_handler(t30, phase_d_handler, (void *) (intptr_t) 'A');
+    t30_set_phase_e_handler(t30, phase_e_handler, (void *) (intptr_t) 'A');
+    t30_set_ecm_capability(t30, use_ecm);
     if (use_ecm)
-        t30_set_supported_compressions(&fax_state_a.t30_state, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
+        t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
     span_log_set_level(&fax_state_a.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&fax_state_a.logging, "FAX-A ");
-    span_log_set_level(&fax_state_a.t30_state.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
-    span_log_set_tag(&fax_state_a.t30_state.logging, "FAX-A ");
+    span_log_set_level(&t30->logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
+    span_log_set_tag(&t30->logging, "FAX-A ");
     memset(t30_amp_a, 0, sizeof(t30_amp_a));
 
     if (t38_gateway_init(&t38_state_a, tx_packet_handler_a, &t38_state_b) == NULL)
@@ -366,12 +368,12 @@ int main(int argc, char *argv[])
         exit(2);
     }
     t38_gateway_set_transmit_on_idle(&t38_state_a, use_transmit_on_idle);
-    t38_set_t38_version(&t38_state_a.t38, t38_version);
+    t38_set_t38_version(&t38_state_a.t38x.t38, t38_version);
     t38_gateway_set_ecm_capability(&t38_state_a, use_ecm);
     span_log_set_level(&t38_state_a.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t38_state_a.logging, "T.38-A");
-    span_log_set_level(&t38_state_a.t38.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
-    span_log_set_tag(&t38_state_a.t38.logging, "T.38-A");
+    span_log_set_level(&t38_state_a.t38x.t38.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
+    span_log_set_tag(&t38_state_a.t38x.t38.logging, "T.38-A");
     memset(t38_amp_a, 0, sizeof(t38_amp_a));
 
     if (t38_terminal_init(&t38_state_b, FALSE, tx_packet_handler_b, &t38_state_a) == NULL)
@@ -379,23 +381,24 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Cannot start the T.38 channel\n");
         exit(2);
     }
-    t38_set_t38_version(&t38_state_b.t38, t38_version);
+    t30 = t38_terminal_get_t30_state(&t38_state_b);
+    t38_set_t38_version(&t38_state_b.t38_fe.t38, t38_version);
     span_log_set_level(&t38_state_b.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t38_state_b.logging, "T.38-B");
-    span_log_set_level(&t38_state_b.t38.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
-    span_log_set_tag(&t38_state_b.t38.logging, "T.38-B");
-    span_log_set_level(&t38_state_b.t30_state.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
-    span_log_set_tag(&t38_state_b.t30_state.logging, "T.38-B");
+    span_log_set_level(&t38_state_b.t38_fe.t38.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
+    span_log_set_tag(&t38_state_b.t38_fe.t38.logging, "T.38-B");
+    span_log_set_level(&t30->logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
+    span_log_set_tag(&t30->logging, "T.38-B");
 
-    t30_set_supported_modems(&(t38_state_b.t30_state), supported_modems);
-    t30_set_tx_ident(&t38_state_b.t30_state, "22222222");
-    t30_set_rx_file(&t38_state_b.t30_state, OUTPUT_FILE_NAME, -1);
-    t30_set_phase_b_handler(&t38_state_b.t30_state, phase_b_handler, (void *) (intptr_t) 'B');
-    t30_set_phase_d_handler(&t38_state_b.t30_state, phase_d_handler, (void *) (intptr_t) 'B');
-    t30_set_phase_e_handler(&t38_state_b.t30_state, phase_e_handler, (void *) (intptr_t) 'B');
-    t30_set_ecm_capability(&t38_state_b.t30_state, use_ecm);
+    t30_set_supported_modems(t30, supported_modems);
+    t30_set_tx_ident(t30, "22222222");
+    t30_set_rx_file(t30, OUTPUT_FILE_NAME, -1);
+    t30_set_phase_b_handler(t30, phase_b_handler, (void *) (intptr_t) 'B');
+    t30_set_phase_d_handler(t30, phase_d_handler, (void *) (intptr_t) 'B');
+    t30_set_phase_e_handler(t30, phase_e_handler, (void *) (intptr_t) 'B');
+    t30_set_ecm_capability(t30, use_ecm);
     if (use_ecm)
-        t30_set_supported_compressions(&t38_state_b.t30_state, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
+        t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
 
 #if defined(ENABLE_GUI)
     if (use_gui)
@@ -404,12 +407,12 @@ int main(int argc, char *argv[])
     for (;;)
     {
         span_log_bump_samples(&fax_state_a.logging, SAMPLES_PER_CHUNK);
-        span_log_bump_samples(&fax_state_a.t30_state.logging, SAMPLES_PER_CHUNK);
+        span_log_bump_samples(&fax_state_a.t30.logging, SAMPLES_PER_CHUNK);
         span_log_bump_samples(&t38_state_a.logging, SAMPLES_PER_CHUNK);
-        span_log_bump_samples(&t38_state_a.t38.logging, SAMPLES_PER_CHUNK);
+        span_log_bump_samples(&t38_state_a.t38x.t38.logging, SAMPLES_PER_CHUNK);
         span_log_bump_samples(&t38_state_b.logging, SAMPLES_PER_CHUNK);
-        span_log_bump_samples(&t38_state_b.t38.logging, SAMPLES_PER_CHUNK);
-        span_log_bump_samples(&t38_state_b.t30_state.logging, SAMPLES_PER_CHUNK);
+        span_log_bump_samples(&t38_state_b.t38_fe.t38.logging, SAMPLES_PER_CHUNK);
+        span_log_bump_samples(&t38_state_b.t30.logging, SAMPLES_PER_CHUNK);
         memset(out_amp, 0, sizeof(out_amp));
 
         t38_terminal_send_timeout(&t38_state_b, SAMPLES_PER_CHUNK);
@@ -464,7 +467,7 @@ int main(int argc, char *argv[])
             if (use_gui)
                 media_monitor_rx(seq_no, tx_when, rx_when);
 #endif
-            t38_core_rx_ifp_packet(&t38_state_b.t38, msg, msg_len, seq_no);
+            t38_core_rx_ifp_packet(&t38_state_b.t38_fe.t38, msg, msg_len, seq_no);
         }
         while ((msg_len = g1050_get(path_b_to_a, msg, 1024, when, &seq_no, &tx_when, &rx_when)) >= 0)
         {
@@ -472,7 +475,7 @@ int main(int argc, char *argv[])
             if (use_gui)
                 media_monitor_rx(seq_no, tx_when, rx_when);
 #endif
-            t38_core_rx_ifp_packet(&t38_state_a.t38, msg, msg_len, seq_no);
+            t38_core_rx_ifp_packet(&t38_state_a.t38x.t38, msg, msg_len, seq_no);
         }
         if (log_audio)
         {

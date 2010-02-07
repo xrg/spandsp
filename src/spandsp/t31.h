@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.47 2008/04/17 14:27:00 steveu Exp $
+ * $Id: t31.h,v 1.50 2008/07/25 13:56:54 steveu Exp $
  */
 
 /*! \file */
@@ -45,16 +45,25 @@ typedef int (t31_modem_control_handler_t)(t31_state_t *s, void *user_data, int o
 #define T31_TX_BUF_LEN          (4096)
 #define T31_TX_BUF_HIGH_TIDE    (4096 - 1024)
 #define T31_TX_BUF_LOW_TIDE     (1024)
+#define T31_MAX_HDLC_LEN        284
+#define T31_T38_MAX_HDLC_LEN    260
 
 /*!
-    T.31 descriptor. This defines the working state for a single instance of
-    a T.31 FAX modem.
+    Analogue FAX front end channel descriptor. This defines the state of a single working
+    instance of an analogue line FAX front end.
 */
-struct t31_state_s
+typedef struct
 {
-    at_state_t at_state;
-    t31_modem_control_handler_t *modem_control_handler;
-    void *modem_control_user_data;
+    /*! TRUE is talker echo protection should be sent for the image modems */
+    int use_tep;
+
+    /*! If TRUE, transmit silence when there is nothing else to transmit. If FALSE return only
+        the actual generated audio. Note that this only affects untimed silences. Timed silences
+        (e.g. the 75ms silence between V.21 and a high speed modem) will alway be transmitted as
+        silent audio. */
+    int transmit_on_idle;
+
+    fax_modems_t modems;
 
     /*! The current receive signal handler */
     span_rx_handler_t *rx_handler;
@@ -67,86 +76,41 @@ struct t31_state_s
     span_tx_handler_t *next_tx_handler;
     void *next_tx_user_data;
 
-    /*! If TRUE, transmit silence when there is nothing else to transmit. If FALSE return only
-        the actual generated audio. Note that this only affects untimed silences. Timed silences
-        (e.g. the 75ms silence between V.21 and a high speed modem) will alway be transmitted as
-        silent audio. */
-    int transmit_on_idle;
-
-    /*! \brief Use talker echo protection when transmitting. */
-    int use_tep;    
-
-    uint8_t hdlc_tx_buf[256];
-    int hdlc_tx_len;
-    int hdlc_tx_ptr;
-    /*! TRUE if DLE prefix just used */
-    int dled;
-    uint8_t tx_data[T31_TX_BUF_LEN];
-    /*! \brief The number of bytes stored in transmit buffer. */
-    int tx_in_bytes;
-    /*! \brief The number of bytes sent from the transmit buffer. */
-    int tx_out_bytes;
-    int tx_holding;
-    int tx_data_started;
+    /*! \brief No of data bits in current_byte. */
     int bit_no;
+    /*! \brief The current data byte in progress. */
     int current_byte;
 
-    /*! \brief The current bit rate for the FAX fast message transfer modem. */
-    int bit_rate;
-    int rx_message_received;
-
-    /*! \brief A tone generator context used to generate supervisory tones during
-               FAX handling. */
-    tone_gen_state_t tone_gen;
-    /*! \brief An HDLC context used when receiving HDLC over V.21 messages. */
-    hdlc_rx_state_t hdlcrx;
-    /*! \brief An HDLC context used when transmitting HDLC over V.21 messages. */
-    hdlc_tx_state_t hdlctx;
-    /*! \brief A V.21 FSK modem context used when transmitting HDLC over V.21
-               messages. */
-    fsk_tx_state_t v21_tx;
-    /*! \brief A V.21 FSK modem context used when receiving HDLC over V.21
-               messages. */
-    fsk_rx_state_t v21_rx;
-
-    /*! \brief A V.17 modem context used when sending FAXes at 7200bps, 9600bps
-               12000bps or 14400bps*/
-    v17_tx_state_t v17_tx;
-    /*! \brief A V.29 modem context used when receiving FAXes at 7200bps, 9600bps
-               12000bps or 14400bps*/
-    v17_rx_state_t v17_rx;
-
-    /*! \brief A V.27ter modem context used when sending FAXes at 2400bps or
-               4800bps */
-    v27ter_tx_state_t v27ter_tx;
-    /*! \brief A V.27ter modem context used when receiving FAXes at 2400bps or
-               4800bps */
-    v27ter_rx_state_t v27ter_rx;
-
-    /*! \brief A V.29 modem context used when sending FAXes at 7200bps or
-               9600bps */
-    v29_tx_state_t v29_tx;
-    /*! \brief A V.29 modem context used when receiving FAXes at 7200bps or
-               9600bps */
-    v29_rx_state_t v29_rx;
-
-    /*! \brief Used to insert timed silences. */
-    silence_gen_state_t silence_gen;
-
-    /*! \brief Rx power meter, use to detect silence */
+    /*! \brief Rx power meter, used to detect silence. */
     power_meter_t rx_power;
+    /*! \brief Last sample, used for an elementary HPF for the power meter. */
     int16_t last_sample;
+    /*! \brief The current silence threshold. */
     int32_t silence_threshold_power;
-    
+
+    /*! \brief Samples of silence heard */
+    int silence_heard;
+} t31_audio_front_end_state_t;
+
+/*!
+    Analogue FAX front end channel descriptor. This defines the state of a single working
+    instance of an analogue line FAX front end.
+*/
+typedef struct
+{
     t38_core_state_t t38;
-    int rx_signal_present;
-    /*! \brief The next queued tramsit indicator */
-    int next_tx_indicator;
-    /*! \brief The current T.38 data type being transmitted */
-    int current_tx_data_type;
+
+    /*! \brief The number of octets to send in each image packet (non-ECM or ECM) at the current
+               rate and the current specified packet interval. */
+    int octets_per_data_packet;
+
+    int timed_step;
 
     int ms_per_tx_chunk;
     int merge_tx_fields;
+
+    /*! \brief TRUE is there has been some T.38 data missed */
+    int missing_data;
 
     /*! \brief The number of times an indicator packet will be sent. Numbers greater than one
                will increase reliability for UDP transmission. Zero is valid, to suppress all
@@ -157,42 +121,87 @@ struct t31_state_s
                greater than one will increase reliability for UDP transmission. Zero is not valid. */
     int data_end_tx_count;
 
-    /*! \brief A "sample" count, used to time events */
-    int32_t samples;
-    int32_t next_tx_samples;
-    int32_t timeout_rx_samples;
+    /*! \brief The current T.38 data type being transmitted */
+    int current_tx_data_type;
+    /*! \brief The next queued tramsit indicator */
+    int next_tx_indicator;
 
-	/*! \brief Samples of silence heard */
-    int silence_heard;
-	/*! \brief Samples of silence awaited */
-    int silence_awaited;
-    /*! \brief Samples elapsed in the current call */
-    int64_t call_samples;
-    int64_t dte_data_timeout;
-    int modem;
-    int short_train;
-    int hdlc_final;
-    int data_final;
-    queue_state_t *rx_queue;
+    int trailer_bytes;
 
-    uint8_t hdlc_rx_buf[256];
-    int hdlc_rx_len;
-    
-    int t38_mode;
-    int timed_step;
-    int current_tx_data;
+    struct
+    {
+        uint8_t buf[T31_T38_MAX_HDLC_LEN];
+        int len;
+    } hdlc_rx;
 
     int current_rx_type;
     int current_tx_type;
 
-    int trailer_bytes;
+    int32_t next_tx_samples;
+    int32_t timeout_rx_samples;
+    /*! \brief A "sample" count, used to time events */
+    int32_t samples;
+} t31_t38_front_end_state_t;
 
-    /*! \brief TRUE is there has been some T.38 data missed */
-    int missing_data;
+/*!
+    T.31 descriptor. This defines the working state for a single instance of
+    a T.31 FAX modem.
+*/
+struct t31_state_s
+{
+    at_state_t at_state;
+    t31_modem_control_handler_t *modem_control_handler;
+    void *modem_control_user_data;
 
-    /*! \brief The number of octets to send in each image packet (non-ECM or ECM) at the current
-               rate and the current specified packet interval. */
-    int octets_per_data_packet;
+    t31_audio_front_end_state_t audio;
+    t31_t38_front_end_state_t t38_fe;
+    /*! TRUE if working in T.38 mode. */
+    int t38_mode;
+
+    /*! HDLC buffer, for composing an HDLC frame from the computer to the channel. */
+    struct
+    {
+        uint8_t buf[T31_MAX_HDLC_LEN];
+        int len;
+        int ptr;
+        /*! \brief TRUE when the end of HDLC data from the computer has been detected. */
+        int final;
+    } hdlc_tx;
+    /*! Buffer for data from the computer to the channel. */
+    struct
+    {
+        uint8_t data[T31_TX_BUF_LEN];
+        /*! \brief The number of bytes stored in transmit buffer. */
+        int in_bytes;
+        /*! \brief The number of bytes sent from the transmit buffer. */
+        int out_bytes;
+        /*! \brief TRUE if the flow of real data has started. */
+        int data_started;
+        /*! \brief TRUE if holding up further data into the buffer, for flow control. */
+        int holding;
+        /*! \brief TRUE when the end of non-ECM data from the computer has been detected. */
+        int final;
+    } tx;
+
+    /*! TRUE if DLE prefix just used */
+    int dled;
+
+	/*! \brief Samples of silence awaited, as specified in a "wait for silence" command */
+    int silence_awaited;
+
+    /*! \brief The current bit rate for the FAX fast message transfer modem. */
+    int bit_rate;
+    int rx_message_received;
+
+    /*! \brief Samples elapsed in the current call */
+    int64_t call_samples;
+    int64_t dte_data_timeout;
+
+    /*! \brief The currently queued modem type. */
+    int modem;
+    /*! \brief TRUE when short training mode has been selected by the computer. */
+    int short_train;
+    queue_state_t *rx_queue;
 
     /*! \brief Error and flow logging control */
     logging_state_t logging;
