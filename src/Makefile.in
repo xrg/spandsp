@@ -406,7 +406,8 @@ noinst_HEADERS = faxfont.h \
                         t30_local.h \
                         t4_states.h \
                         v17rx_constellation_maps.h \
-                        v17tx_constellation_maps.h
+                        v17tx_constellation_maps.h \
+                        v29tx_constellation_maps.h
 
 make_modem_filter_SOURCES = make_modem_filter.c \
                             filter_tools.c

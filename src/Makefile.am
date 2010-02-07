@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.95 2008/07/01 03:27:51 steveu Exp $
+## $Id: Makefile.am,v 1.96 2008/07/10 13:34:00 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -186,7 +186,8 @@ noinst_HEADERS =        faxfont.h \
                         t30_local.h \
                         t4_states.h \
                         v17rx_constellation_maps.h \
-                        v17tx_constellation_maps.h
+                        v17tx_constellation_maps.h \
+                        v29tx_constellation_maps.h
 
 noinst_PROGRAMS = make_at_dictionary \
                   make_modem_filter

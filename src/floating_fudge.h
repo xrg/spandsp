@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: floating_fudge.h,v 1.2 2008/07/02 14:51:34 steveu Exp $
+ * $Id: floating_fudge.h,v 1.4 2008/07/10 15:46:10 steveu Exp $
  */
 
 #if !defined(_FLOATING_FUDGE_H_)
@@ -179,7 +179,6 @@ static __inline__ float log10f(float x)
  */
 
 #if defined(__CYGWIN__)
-
     /*
      *    CYGWIN has lrint and lrintf functions, but they are slow and buggy:
      *        http://sourceware.org/ml/cygwin/2005-06/msg00153.html
@@ -188,20 +187,7 @@ static __inline__ float log10f(float x)
      *    These replacement functions (pulled from the Public Domain MinGW
      *    math.h header) replace the native versions.
      */
-
-    #undef HAVE_LRINT
-    #undef HAVE_LRINTF
-    #undef HAVE_LLRINT
-    #undef HAVE_LLRINTF
-    #define HAVE_LRINT_REPLACEMENT 1
-
-    #undef lrint
-    #undef lrintf
-
-    #define lrint       double2long
-    #define lrintf      float2long
-
-    static __inline__ long int double2long(double in)
+    static __inline__ long int lrint(double x)
     {
         long int retval;
 
@@ -209,14 +195,14 @@ static __inline__ float log10f(float x)
         (
             "fistpl %0"
             : "=m" (retval)
-            : "t" (in)
+            : "t" (x)
             : "st"
         );
 
         return retval;
     }
 
-    static __inline__ long int float2long(float in)
+    static __inline__ long int lrintf(float x)
     {
         long int retval;
 
@@ -224,100 +210,217 @@ static __inline__ float log10f(float x)
         (
             "fistpl %0"
             : "=m" (retval)
-            : "t" (in)
+            : "t" (x)
             : "st"
         );
         return retval;
     }
 
+    static __inline__ long int lfastrint(double x)
+    {
+        long int retval;
+
+        __asm__ __volatile__
+        (
+            "fistpl %0"
+            : "=m" (retval)
+            : "t" (x)
+            : "st"
+        );
+
+        return retval;
+    }
+
+    static __inline__ long int lfastrintf(float x)
+    {
+        long int retval;
+
+        __asm__ __volatile__
+        (
+            "fistpl %0"
+            : "=m" (retval)
+            : "t" (x)
+            : "st"
+        );
+        return retval;
+    }
 #elif defined(HAVE_LRINT)  &&  defined(HAVE_LRINTF)
 
-    /* There is nothing special to do here. The system's lrint() and lrintf()
-       functions should work OK, without any tampering. */
+#if defined(__i386__)
+    /* These routines are guaranteed fast on an i386 machine. Using the built in
+       lrint() and lrintf() should be similar, but they may not always be enabled.
+       Sometimes, especially with "-O0", you might get slow calls to routines. */
+    static __inline__ long int lfastrint(double x)
+    {
+        long int retval;
 
-    #undef HAVE_LRINT_REPLACEMENT
+        __asm__ __volatile__
+        (
+            "fistpl %0"
+            : "=m" (retval)
+            : "t" (x)
+            : "st"
+        );
+
+        return retval;
+    }
+
+    static __inline__ long int lfastrintf(float x)
+    {
+        long int retval;
+
+        __asm__ __volatile__
+        (
+            "fistpl %0"
+            : "=m" (retval)
+            : "t" (x)
+            : "st"
+        );
+        return retval;
+    }
+#elif defined(__x86_64__)
+    /* On an x86_64 machine, the fastest thing seems to be a pure assignment from a
+       double or float to an int. It looks like the design on the x86_64 took account
+       of the default behaviour specified for C. */
+    static __inline__ long int lfastrint(double x)
+    {
+        return (long int) (x);
+    }
+
+    static __inline__ long int lfastrintf(float x)
+    {
+        return (long int) (x);
+    }
+#elif defined(__ppc__)  ||   defined(__powerpc__)
+    static __inline__ long int lfastrint(register double x)
+    {
+        int res[2];
+
+        __asm__ __volatile__
+        (
+            "fctiw %1, %1\n\t"
+            "stfd %1, %0"
+            : "=m" (res)    /* Output */
+            : "f" (x)       /* Input */
+            : "memory"
+        );
+
+        return res[1];
+    }
+
+    static __inline__ long int lfastrintf(register float x)
+    {
+        int res[2];
+
+        __asm__ __volatile__
+        (
+            "fctiw %1, %1\n\t"
+            "stfd %1, %0"
+            : "=m" (res)    /* Output */
+            : "f" (x)       /* Input */
+            : "memory"
+        );
+
+        return res[1];
+    }
+#endif
 
 #elif defined(WIN32)  ||  defined(_WIN32)
     /*
-     *    Win32 doesn't seem to have these functions.
+     *    Win32 doesn't seem to have the lrint() and lrintf() functions.
      *    Therefore implement inline versions of these functions here.
      */
-
-    #define HAVE_LRINT_REPLACEMENT 1
-
-    __inline long int lrint(double flt)
+    __inline long int lrint(double x)
     {
-        int intgr;
+        long int i;
 
         _asm
         {
-            fld flt
-            fistp intgr
+            fld x
+            fistp i
         };
-        return intgr;
+        return i;
     }
 
-    __inline long int lrintf(float flt)
+    __inline long int lrintf(float x)
     {
-        int intgr;
+        long int i;
 
         _asm
         {
-            fld flt
-            fistp intgr
+            fld x
+            fistp i
         };
-        return intgr;
+        return ir;
     }
 
+    __inline long int lfastrint(double x)
+    {
+        long int i;
+
+        _asm
+        {
+            fld x
+            fistp i
+        };
+        return i;
+    }
+
+    __inline long int lfastrintf(float x)
+    {
+        long int i;
+
+        _asm
+        {
+            fld x
+            fistp i
+        };
+        return i;
+    }
+#elif defined(WIN64)  ||  defined(_WIN64)
+    /*
+     *    Win64 machines will do best with a simple assignment.
+     */
+    __inline long int lfastrint(double x)
+    {
+        return (long int) (x);
+    }
+
+    __inline long int lfastrintf(float x)
+    {
+        return (long int) (x);
+    }
 #elif defined(__MWERKS__)  &&  defined(macintosh)
-
     /* This MacOS 9 solution was provided by Stephane Letz */
 
-    #define HAVE_LRINT_REPLACEMENT 1
-
-    #undef lrint
-    #undef lrintf
-
-    #define lrint       double2long
-    #define lrintf      float2long
-
-    int __inline__ float2long(register float in)
+    long int __inline__ lfastrint(register double x)
     {
         long int res[2];
 
         asm
         {
-            fctiw in, in
-            stfd in, res
+            fctiw x, x
+            stfd x, res
         }
         return res[1];
     }
 
-    int __inline__ double2long(register double in)
+    long int __inline__ lfastrintf(register float x)
     {
         long int res[2];
 
         asm
         {
-            fctiw in, in
-            stfd in, res
+            fctiw x, x
+            stfd x, res
         }
         return res[1];
     }
 
 #elif defined(__MACH__)  &&  defined(__APPLE__)  &&  (defined(__ppc__)  ||  defined(__powerpc__))
-
     /* For Apple Mac OS/X - do recent versions still need this? */
 
-    #define HAVE_LRINT_REPLACEMENT 1
-
-    #undef lrint
-    #undef lrintf
-
-    #define lrint       double2long
-    #define lrintf      float2long
-
-    static __inline__ long int float2int(register float in)
+    static __inline__ long int lfastrint(register double x)
     {
         int res[2];
 
@@ -326,14 +429,14 @@ static __inline__ float log10f(float x)
             "fctiw %1, %1\n\t"
             "stfd %1, %0"
             : "=m" (res)    /* Output */
-            : "f" (in)      /* Input */
+            : "f" (x)       /* Input */
             : "memory"
         );
 
         return res[1];
     }
 
-    static __inline__ long int double2long(register double in)
+    static __inline__ long int lfastrintf(register float x)
     {
         int res[2];
 
@@ -342,15 +445,13 @@ static __inline__ float log10f(float x)
             "fctiw %1, %1\n\t"
             "stfd %1, %0"
             : "=m" (res)    /* Output */
-            : "f" (in)      /* Input */
+            : "f" (x)       /* Input */
             : "memory"
         );
 
         return res[1];
     }
-
 #else
-
     /* There is nothing else to do, but use a simple casting operation, instead of a real
        rint() type function. Since we are only trying to use rint() to speed up conversions,
        the accuracy issues related to changing the rounding scheme are of little concern
@@ -361,14 +462,12 @@ static __inline__ float log10f(float x)
         #warning "Replacing these functions with a simple C cast."
     #endif
 
-    #define HAVE_LRINT_REPLACEMENT 1
-
-    static __inline__ long int lrint(double x)
+    static __inline__ long int lfastrint(double x)
     {
         return (long int) (x);
     }
 
-    static __inline__ long int lrintf(float x)
+    static __inline__ long int lfastrintf(float x)
     {
         return (long int) (x);
     }

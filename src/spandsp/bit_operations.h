@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bit_operations.h,v 1.21 2008/04/17 14:26:59 steveu Exp $
+ * $Id: bit_operations.h,v 1.22 2008/07/10 13:43:40 steveu Exp $
  */
 
 /*! \file */
@@ -41,7 +41,7 @@ extern "C"
 static __inline__ int top_bit(unsigned int bits)
 {
     int res;
-    
+
 #if defined(__i386__)  ||  defined(__x86_64__)
     __asm__ (" xorl %[res],%[res];\n"
              " decl %[res];\n"

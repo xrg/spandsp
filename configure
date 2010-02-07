@@ -22787,6 +22787,8 @@ if test "${ac_cv_c99_lrintf+set}" = set; then
   $as_echo_n "(cached) " >&6
 else
 
+lrintf_save_CFLAGS=$CFLAGS
+CFLAGS="-lm"
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -22842,6 +22844,9 @@ rm -rf conftest.dSYM
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext conftest.$ac_ext
 
+CFLAGS=$lrintf_save_CFLAGS
+
+
 fi
 { $as_echo "$as_me:$LINENO: result: $ac_cv_c99_lrintf" >&5
 $as_echo "$ac_cv_c99_lrintf" >&6; }
@@ -22860,6 +22865,8 @@ if test "${ac_cv_c99_llrint+set}" = set; then
   $as_echo_n "(cached) " >&6
 else
 
+llrint_save_CFLAGS=$CFLAGS
+CFLAGS="-lm"
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -22915,6 +22922,9 @@ rm -rf conftest.dSYM
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext conftest.$ac_ext
 
+CFLAGS=$llrint_save_CFLAGS
+
+
 fi
 { $as_echo "$as_me:$LINENO: result: $ac_cv_c99_llrint" >&5
 $as_echo "$ac_cv_c99_llrint" >&6; }
@@ -22933,6 +22943,8 @@ if test "${ac_cv_c99_llrintf+set}" = set; then
   $as_echo_n "(cached) " >&6
 else
 
+llrintf_save_CFLAGS=$CFLAGS
+CFLAGS="-lm"
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -22987,6 +22999,9 @@ fi
 rm -rf conftest.dSYM
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext conftest.$ac_ext
+
+CFLAGS=$llrintf_save_CFLAGS
+
 
 fi
 { $as_echo "$as_me:$LINENO: result: $ac_cv_c99_llrintf" >&5
@@ -31688,7 +31703,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile doc/Makefile doc/doxygen src/Makefile src/spandsp.h spandsp-sim/Makefile test-data/Makefile test-data/itu/Makefile test-data/itu/fax/Makefile test-data/local/Makefile tests/Makefile spandsp.spec"
+ac_config_files="$ac_config_files Makefile doc/Makefile doc/doxygen src/Makefile src/spandsp.h spandsp-sim/Makefile test-data/Makefile test-data/etsi/Makefile test-data/etsi/fax/Makefile test-data/itu/Makefile test-data/itu/fax/Makefile test-data/local/Makefile tests/Makefile spandsp.spec"
 
 
 cat >confcache <<\_ACEOF
@@ -32357,6 +32372,8 @@ do
     "src/spandsp.h") CONFIG_FILES="$CONFIG_FILES src/spandsp.h" ;;
     "spandsp-sim/Makefile") CONFIG_FILES="$CONFIG_FILES spandsp-sim/Makefile" ;;
     "test-data/Makefile") CONFIG_FILES="$CONFIG_FILES test-data/Makefile" ;;
+    "test-data/etsi/Makefile") CONFIG_FILES="$CONFIG_FILES test-data/etsi/Makefile" ;;
+    "test-data/etsi/fax/Makefile") CONFIG_FILES="$CONFIG_FILES test-data/etsi/fax/Makefile" ;;
     "test-data/itu/Makefile") CONFIG_FILES="$CONFIG_FILES test-data/itu/Makefile" ;;
     "test-data/itu/fax/Makefile") CONFIG_FILES="$CONFIG_FILES test-data/itu/fax/Makefile" ;;
     "test-data/local/Makefile") CONFIG_FILES="$CONFIG_FILES test-data/local/Makefile" ;;

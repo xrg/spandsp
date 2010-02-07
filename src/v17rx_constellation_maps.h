@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx_constellation_maps.h,v 1.5 2008/05/02 14:26:38 steveu Exp $
+ * $Id: v17rx_constellation_maps.h,v 1.6 2008/07/10 13:34:00 steveu Exp $
  */
 
 /* The following table maps the 8 soft-decisions associated with every possible point in the
@@ -5510,7 +5510,7 @@ static const uint8_t constel_maps[4][36][36][8] =
             {0x08, 0x09, 0x02, 0x0b, 0x0c, 0x05, 0x0e, 0x07},
             {0x08, 0x09, 0x02, 0x0b, 0x0c, 0x0d, 0x0e, 0x07}
         }
-    },
+    }
 };
 
 /*- End of file ------------------------------------------------------------*/

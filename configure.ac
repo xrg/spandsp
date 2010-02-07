@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.55 2008/07/02 14:48:25 steveu Exp $
+# $Id: configure.ac,v 1.56 2008/07/10 12:44:54 steveu Exp $
 
 # @start 1
 
@@ -358,6 +358,8 @@ AC_CONFIG_FILES([Makefile
                  src/spandsp.h
                  spandsp-sim/Makefile
                  test-data/Makefile
+                 test-data/etsi/Makefile
+                 test-data/etsi/fax/Makefile
                  test-data/itu/Makefile
                  test-data/itu/fax/Makefile
                  test-data/local/Makefile

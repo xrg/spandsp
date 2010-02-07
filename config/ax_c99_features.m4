@@ -84,6 +84,8 @@ AC_DEFUN([AX_C99_FUNC_LRINTF],
 [AC_CACHE_CHECK(for lrintf,
   ac_cv_c99_lrintf,
 [
+lrintf_save_CFLAGS=$CFLAGS
+CFLAGS="-lm"
 AC_TRY_LINK([
 #define _ISOC9X_SOURCE  1
 #define _ISOC99_SOURCE  1
@@ -92,6 +94,9 @@ AC_TRY_LINK([
 
 #include <math.h>
 ], if (!lrintf(3.14159)) lrintf(2.7183);, ac_cv_c99_lrintf=yes, ac_cv_c99_lrintf=no)
+
+CFLAGS=$lrintf_save_CFLAGS
+
 ])
 
 if test "$ac_cv_c99_lrintf" = yes; then
@@ -116,6 +121,8 @@ AC_DEFUN([AX_C99_FUNC_LLRINT],
 [AC_CACHE_CHECK(for llrint,
   ac_cv_c99_llrint,
 [
+llrint_save_CFLAGS=$CFLAGS
+CFLAGS="-lm"
 AC_TRY_LINK([
 #define ISOC9X_SOURCE   1
 #define _ISOC99_SOURCE  1
@@ -124,6 +131,9 @@ AC_TRY_LINK([
 
 #include <math.h>
 ], long long int x ; x = llrint(3.14159) ;, ac_cv_c99_llrint=yes, ac_cv_c99_llrint=no)
+
+CFLAGS=$llrint_save_CFLAGS
+
 ])
 
 if test "$ac_cv_c99_llrint" = yes; then
@@ -149,6 +159,8 @@ AC_DEFUN([AX_C99_FUNC_LLRINTF],
 [AC_CACHE_CHECK(for llrintf,
   ac_cv_c99_llrintf,
 [
+llrintf_save_CFLAGS=$CFLAGS
+CFLAGS="-lm"
 AC_TRY_LINK([
 #define _ISOC9X_SOURCE  1
 #define _ISOC99_SOURCE  1
@@ -157,6 +169,9 @@ AC_TRY_LINK([
 
 #include <math.h>
 ], long long int x ; x = llrintf(3.14159) ;, ac_cv_c99_llrintf=yes, ac_cv_c99_llrintf=no)
+
+CFLAGS=$llrintf_save_CFLAGS
+
 ])
 
 if test "$ac_cv_c99_llrintf" = yes; then

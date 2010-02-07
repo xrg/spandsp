@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.c,v 1.74 2008/07/02 14:48:26 steveu Exp $
+ * $Id: v29tx.c,v 1.75 2008/07/10 13:39:42 steveu Exp $
  */
 
 /*! \file */
@@ -54,6 +54,11 @@
 
 #include "spandsp/v29tx.h"
 
+#if defined(SPANDSP_USE_FIXED_POINT)
+#define SPANDSP_USE_FIXED_POINTx
+#endif
+
+#include "v29tx_constellation_maps.h"
 #if defined(SPANDSP_USE_FIXED_POINT)
 #include "v29tx_fixed_rrc.h"
 #else
@@ -110,83 +115,6 @@ static __inline__ complexf_t getbaud(v29_tx_state_t *s)
     {
         0, 2, 6, 4
     };
-#if defined(SPANDSP_USE_FIXED_POINT)
-    static const complexi16_t constellation[16] =
-    {
-        { 3,  0},           /*   0deg low  */
-        { 1,  1},           /*  45deg low  */
-        { 0,  3},           /*  90deg low  */
-        {-1,  1},           /* 135deg low  */
-        {-3,  0},           /* 180deg low  */
-        {-1, -1},           /* 225deg low  */
-        { 0, -3},           /* 270deg low  */
-        { 1, -1},           /* 315deg low  */
-        { 5,  0},           /*   0deg high */
-        { 3,  3},           /*  45deg high */
-        { 0,  5},           /*  90deg high */
-        {-3,  3},           /* 135deg high */
-        {-5,  0},           /* 180deg high */
-        {-3, -3},           /* 225deg high */
-        { 0, -5},           /* 270deg high */
-        { 3, -3}            /* 315deg high */
-    };
-    static const complexi16_t abab[6] =
-    {
-        { 3, -3},           /* 315deg high 9600 */
-        {-3,  0},           /* 180deg low       */
-        { 1, -1},           /* 315deg low 7200  */
-        {-3,  0},           /* 180deg low       */
-        { 0, -3},           /* 270deg low 4800  */
-        {-3,  0}            /* 180deg low       */
-    };
-    static const complexi16_t cdcd[6] =
-    {
-        { 3,  0},           /*   0deg low 9600  */
-        {-3,  3},           /* 135deg high      */
-        { 3,  0},           /*   0deg low 7200  */
-        {-1,  1},           /* 135deg low       */
-        { 3,  0},           /*   0deg low 4800  */
-        { 0,  3}            /*  90deg low       */
-    };
-#else
-    static const complexf_t constellation[16] =
-    {
-        { 3.0f,  0.0f},     /*   0deg low  */
-        { 1.0f,  1.0f},     /*  45deg low  */
-        { 0.0f,  3.0f},     /*  90deg low  */
-        {-1.0f,  1.0f},     /* 135deg low  */
-        {-3.0f,  0.0f},     /* 180deg low  */
-        {-1.0f, -1.0f},     /* 225deg low  */
-        { 0.0f, -3.0f},     /* 270deg low  */
-        { 1.0f, -1.0f},     /* 315deg low  */
-        { 5.0f,  0.0f},     /*   0deg high */
-        { 3.0f,  3.0f},     /*  45deg high */
-        { 0.0f,  5.0f},     /*  90deg high */
-        {-3.0f,  3.0f},     /* 135deg high */
-        {-5.0f,  0.0f},     /* 180deg high */
-        {-3.0f, -3.0f},     /* 225deg high */
-        { 0.0f, -5.0f},     /* 270deg high */
-        { 3.0f, -3.0f}      /* 315deg high */
-    };
-    static const complexf_t abab[6] =
-    {
-        { 3.0f, -3.0f},     /* 315deg high 9600 */
-        {-3.0f,  0.0f},     /* 180deg low       */
-        { 1.0f, -1.0f},     /* 315deg low 7200  */
-        {-3.0f,  0.0f},     /* 180deg low       */
-        { 0.0f, -3.0f},     /* 270deg low 4800  */
-        {-3.0f,  0.0f}      /* 180deg low       */
-    };
-    static const complexf_t cdcd[6] =
-    {
-        { 3.0f,  0.0f},     /*   0deg low 9600  */
-        {-3.0f,  3.0f},     /* 135deg high      */
-        { 3.0f,  0.0f},     /*   0deg low 7200  */
-        {-1.0f,  1.0f},     /* 135deg low       */
-        { 3.0f,  0.0f},     /*   0deg low 4800  */
-        { 0.0f,  3.0f}      /*  90deg low       */
-    };
-#endif
     int bits;
     int amp;
     int bit;
@@ -201,7 +129,7 @@ static __inline__ complexf_t getbaud(v29_tx_state_t *s)
                 if (s->training_step <= V29_TRAINING_SEG_1)
                 {
                     /* Optional segment: Unmodulated carrier (talker echo protection) */
-                    return constellation[0];
+                    return v29_9600_constellation[0];
                 }
                 if (s->training_step <= V29_TRAINING_SEG_2)
                 {
@@ -213,14 +141,14 @@ static __inline__ complexf_t getbaud(v29_tx_state_t *s)
 #endif
                 }
                 /* Segment 2: ABAB... */
-                return abab[(s->training_step & 1) + s->training_offset];
+                return v29_abab_constellation[(s->training_step & 1) + s->training_offset];
             }
             /* Segment 3: CDCD... */
             /* Apply the 1 + x^-6 + x^-7 training scrambler */
             bit = s->training_scramble_reg & 1;
             s->training_scramble_reg >>= 1;
             s->training_scramble_reg |= (((bit ^ s->training_scramble_reg) & 1) << 6);
-            return cdcd[bit + s->training_offset];
+            return v29_cdcd_constellation[bit + s->training_offset];
         }
         /* We should be in the block of test ones, or shutdown ones, if we get here. */
         /* There is no graceful shutdown procedure defined for V.29. Just
@@ -254,7 +182,7 @@ static __inline__ complexf_t getbaud(v29_tx_state_t *s)
         bits = phase_steps_9600[bits];
     }
     s->constellation_state = (s->constellation_state + bits) & 7;
-    return constellation[amp | s->constellation_state];
+    return v29_9600_constellation[amp | s->constellation_state];
 }
 /*- End of function --------------------------------------------------------*/
 

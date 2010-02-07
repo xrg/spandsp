@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.120 2008/07/02 14:48:26 steveu Exp $
+ * $Id: v29rx.c,v 1.121 2008/07/10 13:34:01 steveu Exp $
  */
 
 /*! \file */
@@ -56,6 +56,7 @@
 
 #include "spandsp/v29rx.h"
 
+#include "v29tx_constellation_maps.h"
 #if defined(SPANDSP_USE_FIXED_POINT)
 #include "v29rx_fixed_rrc.h"
 #else
@@ -81,30 +82,6 @@ enum
     TRAINING_STAGE_TRAIN_ON_CDCD_AND_TEST,
     TRAINING_STAGE_TEST_ONES,
     TRAINING_STAGE_PARKED
-};
-
-#if defined(SPANDSP_USE_FIXED_POINTy)
-static const complexi16_t v29_constellation[16] =
-#else
-static const complexf_t v29_constellation[16] =
-#endif
-{
-    { 3,  0},       /*   0deg low  */
-    { 1,  1},       /*  45deg low  */
-    { 0,  3},       /*  90deg low  */
-    {-1,  1},       /* 135deg low  */
-    {-3,  0},       /* 180deg low  */
-    {-1, -1},       /* 225deg low  */
-    { 0, -3},       /* 270deg low  */
-    { 1, -1},       /* 315deg low  */
-    { 5,  0},       /*   0deg high */
-    { 3,  3},       /*  45deg high */
-    { 0,  5},       /*  90deg high */
-    {-3,  3},       /* 135deg high */
-    {-5,  0},       /* 180deg high */
-    {-3, -3},       /* 225deg high */
-    { 0, -5},       /* 270deg high */
-    { 3, -3}        /* 315deg high */
 };
 
 static const uint8_t space_map_9600[20][20] =
@@ -407,14 +384,14 @@ static void decode_baud(v29_rx_state_t *s, complexf_t *z)
         put_bit(s, raw_bits >> 1);
         break;
     }
-    track_carrier(s, z, &v29_constellation[nearest]);
+    track_carrier(s, z, &v29_9600_constellation[nearest]);
     if (--s->eq_skip <= 0)
     {
         /* Once we are in the data the equalization should not need updating.
            However, the line characteristics may slowly drift. We, therefore,
            tune up on the occassional sample, keeping the compute down. */
         s->eq_skip = 10;
-        tune_equalizer(s, z, &v29_constellation[nearest]);
+        tune_equalizer(s, z, &v29_9600_constellation[nearest]);
     }
     s->constellation_state = nearest;
 }
@@ -490,7 +467,7 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
     case TRAINING_STAGE_NORMAL_OPERATION:
         /* Normal operation. */
         decode_baud(s, &z);
-        target = &v29_constellation[s->constellation_state];
+        target = &v29_9600_constellation[s->constellation_state];
         break;
     case TRAINING_STAGE_SYMBOL_ACQUISITION:
         /* Allow time for symbol synchronisation to settle the symbol timing. */
@@ -574,9 +551,9 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
     case TRAINING_STAGE_TRAIN_ON_CDCD:
         /* Train on the scrambled CDCD section. */
         bit = scrambled_training_bit(s);
-        //span_log(&s->logging, SPAN_LOG_FLOW, "%5d %15.5f, %15.5f     %15.5f, %15.5f\n", s->training_count, z.re, z.im, v29_constellation[cdcd_pos[s->training_cd + bit]].re, v29_constellation[cdcd_pos[s->training_cd + bit]].im);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "%5d %15.5f, %15.5f     %15.5f, %15.5f\n", s->training_count, z.re, z.im, v29_9600_constellation[cdcd_pos[s->training_cd + bit]].re, v29_9600_constellation[cdcd_pos[s->training_cd + bit]].im);
         s->constellation_state = cdcd_pos[s->training_cd + bit];
-        target = &v29_constellation[s->constellation_state];
+        target = &v29_9600_constellation[s->constellation_state];
         track_carrier(s, &z, target);
         tune_equalizer(s, &z, target);
         if (++s->training_count >= V29_TRAINING_SEG_3_LEN - 48)
@@ -590,9 +567,9 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
     case TRAINING_STAGE_TRAIN_ON_CDCD_AND_TEST:
         /* Continue training on the scrambled CDCD section, but measure the quality of training too. */
         bit = scrambled_training_bit(s);
-        //span_log(&s->logging, SPAN_LOG_FLOW, "%5d %15.5f, %15.5f     %15.5f, %15.5f\n", s->training_count, z.re, z.im, v29_constellation[cdcd_pos[s->training_cd + bit]].re, v29_constellation[cdcd_pos[s->training_cd + bit]].im);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "%5d %15.5f, %15.5f     %15.5f, %15.5f\n", s->training_count, z.re, z.im, v29_9600_constellation[cdcd_pos[s->training_cd + bit]].re, v29_9600_constellation[cdcd_pos[s->training_cd + bit]].im);
         s->constellation_state = cdcd_pos[s->training_cd + bit];
-        target = &v29_constellation[s->constellation_state];
+        target = &v29_9600_constellation[s->constellation_state];
         track_carrier(s, &z, target);
         tune_equalizer(s, &z, target);
         /* Measure the training error */
@@ -622,7 +599,7 @@ static void process_half_baud(v29_rx_state_t *s, complexf_t *sample)
            We should get a run of 1's, 48 symbols (192 bits at 9600bps) long. */
         //span_log(&s->logging, SPAN_LOG_FLOW, "%5d %15.5f, %15.5f\n", s->training_count, z.re, z.im);
         decode_baud(s, &z);
-        target = &v29_constellation[s->constellation_state];
+        target = &v29_9600_constellation[s->constellation_state];
         /* Measure the training error */
         zz = complex_subf(&z, target);
         s->training_error += powerf(&zz);
