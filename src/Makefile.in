@@ -268,12 +268,16 @@ EXTRA_DIST = floating_fudge.h \
              libspandsp.sln \
              libspandsp.vcproj \
              msvc/config.h \
+             msvc/getopt.c \
              msvc/gettimeofday.c \
              msvc/inttypes.h \
              msvc/tgmath.h \
              msvc/unistd.h \
              msvc/spandsp.h \
              msvc/sys/time.h \
+             msvc/make_at_dictionary.vcproj \
+             msvc/make_headers.bat \
+             msvc/make_modem_filter.vcproj \
              msvc/msvcproj.head \
              msvc/msvcproj.foot \
              msvc/vc8proj.head \
