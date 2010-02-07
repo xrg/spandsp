@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.3 2009/04/16 12:11:54 steveu Exp $
+ * $Id: v22bis.h,v 1.4 2009/04/17 14:37:53 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_V22BIS_H_)
@@ -44,6 +44,10 @@ struct v22bis_state_s
     get_bit_func_t get_bit;
     /*! \brief A user specified opaque pointer passed to the callback routines. */
     void *user_data;
+    /*! \brief The callback function used to report modem status changes. */
+    modem_rx_status_func_t status_handler;
+    /*! \brief A user specified opaque pointer passed to the status function. */
+    void *status_user_data;
 
     /* RECEIVE SECTION */
     struct

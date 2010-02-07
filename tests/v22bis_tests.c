@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tests.c,v 1.56 2009/04/15 14:21:42 steveu Exp $
+ * $Id: v22bis_tests.c,v 1.58 2009/04/17 14:37:53 steveu Exp $
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
@@ -134,7 +134,7 @@ static void v22bis_putbit(void *user_data, int bit)
         return;
     }
 
-    //printf("Rx bit 0 - %d\n", bit);
+    //printf("Rx bit %p - %d\n", user_data, bit);
     bert_put_bit(&s->bert_rx, bit);
 }
 /*- End of function --------------------------------------------------------*/
@@ -172,7 +172,8 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
         fpower = (constel->re - target->re)*(constel->re - target->re)
                + (constel->im - target->im)*(constel->im - target->im);
         s->smooth_power = 0.95f*s->smooth_power + 0.05f*fpower;
-        printf("%8d [%8.4f, %8.4f] [%8.4f, %8.4f] %2x %8.4f %8.4f\n",
+
+        printf("%8d [%8.4f, %8.4f] [%8.4f, %8.4f] %2x %8.4f %8.4f %8.4f\n",
                s->symbol_no,
                constel->re,
                constel->im,
@@ -180,7 +181,8 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
                target->im,
                symbol,
                fpower,
-               s->smooth_power);
+               s->smooth_power,
+               v22bis_rx_signal_power(s->v22bis));
         s->symbol_no++;
     }
     else
@@ -332,7 +334,7 @@ int main(int argc, char *argv[])
             }
         }
 
-#if 1
+#if 0
         both_ways_line_model(model, 
                              model_amp[0],
                              amp[0],

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.38 2009/04/14 16:04:54 steveu Exp $
+ * $Id: v22bis.h,v 1.39 2009/04/17 14:37:53 steveu Exp $
  */
 
 /*! \file */
@@ -125,6 +125,11 @@ SPAN_DECLARE(float) v22bis_symbol_timing_correction(v22bis_state_t *s);
     \return The signal power, in dBm0. */
 SPAN_DECLARE(float) v22bis_rx_signal_power(v22bis_state_t *s);
 
+/*! Set the power level at which the carrier detection will cut in
+    \param s The modem context.
+    \param cutoff The signal cutoff power, in dBm0. */
+SPAN_DECLARE(void) v22bis_rx_signal_cutoff(v22bis_state_t *s, float cutoff);
+
 /*! Set a handler routine to process QAM status reports
     \param s The modem context.
     \param handler The handler routine.
@@ -202,6 +207,13 @@ SPAN_DECLARE(void) v22bis_set_get_bit(v22bis_state_t *s, get_bit_func_t get_bit,
     \param put_bit The callback routine used to process the data received.
     \param user_data An opaque pointer. */
 SPAN_DECLARE(void) v22bis_set_put_bit(v22bis_state_t *s, put_bit_func_t put_bit, void *user_data);
+
+/*! Change the modem status report function associated with a V.22bis modem receive context.
+    \brief Change the modem status report function associated with a V.22bis modem receive context.
+    \param s The modem context.
+    \param handler The callback routine used to report modem status changes.
+    \param user_data An opaque pointer. */
+SPAN_DECLARE(void) v22bis_set_modem_status_handler(v22bis_state_t *s, modem_rx_status_func_t handler, void *user_data);
 
 #if defined(__cplusplus)
 }

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.159 2009/04/12 04:20:01 steveu Exp $
+ * $Id: v29rx.c,v 1.160 2009/04/17 14:37:52 steveu Exp $
  */
 
 /*! \file */
@@ -162,7 +162,7 @@ SPAN_DECLARE(float) v29_rx_symbol_timing_correction(v29_rx_state_t *s)
 
 SPAN_DECLARE(float) v29_rx_signal_power(v29_rx_state_t *s)
 {
-    return power_meter_current_dbm0(&s->power);
+    return power_meter_current_dbm0(&s->power) + 3.98f;
 }
 /*- End of function --------------------------------------------------------*/
 

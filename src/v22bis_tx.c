@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.54 2009/04/16 12:11:54 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.56 2009/04/17 14:37:52 steveu Exp $
  */
 
 /*! \file */
@@ -61,7 +61,7 @@
 #include "spandsp/private/logging.h"
 #include "spandsp/private/v22bis.h"
 
-#if defined(SPANDSP_USE_FIXED_POINT)
+#if defined(SPANDSP_USE_FIXED_POINTx)
 #include "v22bis_tx_fixed_rrc.h"
 #else
 #include "v22bis_tx_floating_rrc.h"
@@ -262,19 +262,19 @@ static const int phase_steps[4] =
 const complexf_t v22bis_constellation[16] =
 {
     { 1.0f,  1.0f},
-    { 3.0f,  1.0f},
+    { 3.0f,  1.0f},     /* 1200bps 00 */
     { 1.0f,  3.0f},
     { 3.0f,  3.0f},
     {-1.0f,  1.0f},
-    {-1.0f,  3.0f},
+    {-1.0f,  3.0f},     /* 1200bps 01 */
     {-3.0f,  1.0f},
     {-3.0f,  3.0f},
     {-1.0f, -1.0f},
-    {-3.0f, -1.0f},
+    {-3.0f, -1.0f},     /* 1200bps 10 */
     {-1.0f, -3.0f},
     {-3.0f, -3.0f},
     { 1.0f, -1.0f},
-    { 1.0f, -3.0f},
+    { 1.0f, -3.0f},     /* 1200bps 11 */
     { 3.0f, -1.0f},
     { 3.0f, -3.0f}
 };
@@ -358,7 +358,10 @@ static complexf_t training_get(v22bis_state_t *s)
         if (++s->tx.training_count >= ms_to_symbols(100))
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting S11 after U0011\n");
-            s->tx.training = V22BIS_TX_TRAINING_STAGE_S11;
+            if (s->caller)
+                s->tx.training = V22BIS_TX_TRAINING_STAGE_S11;
+            else
+                s->tx.training = V22BIS_TX_TRAINING_STAGE_TIMED_S11;
             s->tx.training_count = 0;
         }
         break;
@@ -376,7 +379,7 @@ static complexf_t training_get(v22bis_state_t *s)
                 }
                 else
                 {
-                    span_log(&s->logging, SPAN_LOG_FLOW, "+++ normal operation (1200)\n");
+                    span_log(&s->logging, SPAN_LOG_FLOW, "+++ Tx normal operation (1200)\n");
                     s->tx.training = V22BIS_TX_TRAINING_STAGE_NORMAL_OPERATION;
                     s->tx.training_count = 0;
                     s->tx.current_get_bit = s->get_bit;
@@ -398,11 +401,11 @@ static complexf_t training_get(v22bis_state_t *s)
         s->tx.constellation_state = (s->tx.constellation_state + phase_steps[bits]) & 3;
         bits = scramble(s, 1);
         bits = (bits << 1) | scramble(s, 1);
-        z = v22bis_constellation[(s->tx.constellation_state << 2) | 0x01];
+        z = v22bis_constellation[(s->tx.constellation_state << 2) | bits];
         if (++s->tx.training_count >= ms_to_symbols(200))
         {
             /* We have completed training. Now handle some real work. */
-            span_log(&s->logging, SPAN_LOG_FLOW, "+++ normal operation (2400)\n");
+            span_log(&s->logging, SPAN_LOG_FLOW, "+++ Tx normal operation (2400)\n");
             s->tx.training = V22BIS_TX_TRAINING_STAGE_NORMAL_OPERATION;
             s->tx.training_count = 0;
             s->tx.current_get_bit = s->get_bit;
@@ -499,8 +502,26 @@ SPAN_DECLARE(void) v22bis_tx_power(v22bis_state_t *s, float power)
 {
     float l;
 
-    l = 1.6f*powf(10.0f, (power - DBM0_MAX_POWER)/20.0f);
-    s->tx.gain = l*32768.0f/(TX_PULSESHAPER_GAIN*3.0f);
+    if (s->tx.guard_phase_rate == dds_phase_ratef(550.0f))
+    {
+        l = 1.6f*powf(10.0f, (power - 1.0f - DBM0_MAX_POWER)/20.0f);
+        s->tx.gain = l*32768.0f/(TX_PULSESHAPER_GAIN*3.0f);
+        l = powf(10.0f, (power - 1.0f - 3.0f - DBM0_MAX_POWER)/20.0f);
+        s->tx.guard_level = l*32768.0f;
+    }
+    else if(s->tx.guard_phase_rate == dds_phase_ratef(1800.0f))
+    {
+        l = 1.6f*powf(10.0f, (power - 1.0f - 1.0f - DBM0_MAX_POWER)/20.0f);
+        s->tx.gain = l*32768.0f/(TX_PULSESHAPER_GAIN*3.0f);
+        l = powf(10.0f, (power - 1.0f - 6.0f - DBM0_MAX_POWER)/20.0f);
+        s->tx.guard_level = l*32768.0f;
+    }
+    else
+    {
+        l = 1.6f*powf(10.0f, (power - DBM0_MAX_POWER)/20.0f);
+        s->tx.gain = l*32768.0f/(TX_PULSESHAPER_GAIN*3.0f);
+        s->tx.guard_level = 0;
+    }
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -537,6 +558,13 @@ SPAN_DECLARE(void) v22bis_set_put_bit(v22bis_state_t *s, put_bit_func_t put_bit,
 {
     s->put_bit = put_bit;
     s->user_data = user_data;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(void) v22bis_set_modem_status_handler(v22bis_state_t *s, modem_tx_status_func_t handler, void *user_data)
+{
+    s->status_handler = handler;
+    s->status_user_data = user_data;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -586,21 +614,20 @@ SPAN_DECLARE(v22bis_state_t *) v22bis_init(v22bis_state_t *s,
     else
     {
         s->tx.carrier_phase_rate = dds_phase_ratef(2400.0f);
-        if (guard != V22BIS_GUARD_TONE_NONE)
+        switch (guard)
         {
-            if (guard == V22BIS_GUARD_TONE_550HZ)
-            {
-                s->tx.guard_phase_rate = dds_phase_ratef(550.0f);
-                s->tx.guard_level = 1500.0f;
-            }
-            else
-            {
-                s->tx.guard_phase_rate = dds_phase_ratef(1800.0f);
-                s->tx.guard_level = 1000.0f;
-            }
+        case V22BIS_GUARD_TONE_550HZ:
+            s->tx.guard_phase_rate = dds_phase_ratef(550.0f);
+            break;
+        case V22BIS_GUARD_TONE_1800HZ:
+            s->tx.guard_phase_rate = dds_phase_ratef(1800.0f);
+            break;
+        default:
+            s->tx.guard_phase_rate = 0;
+            break;
         }
     }
-    v22bis_tx_power(s, -10.0f);
+    v22bis_tx_power(s, -14.0f);
     v22bis_restart(s, s->bit_rate);
     return s;
 }

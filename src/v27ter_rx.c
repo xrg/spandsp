@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.121 2009/04/12 04:20:01 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.122 2009/04/17 14:37:52 steveu Exp $
  */
 
 /*! \file */
@@ -155,7 +155,7 @@ SPAN_DECLARE(float) v27ter_rx_symbol_timing_correction(v27ter_rx_state_t *s)
 
 SPAN_DECLARE(float) v27ter_rx_signal_power(v27ter_rx_state_t *s)
 {
-    return power_meter_current_dbm0(&s->power);
+    return power_meter_current_dbm0(&s->power) + 3.98f;
 }
 /*- End of function --------------------------------------------------------*/
 
