@@ -22,10 +22,10 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.51 2009/02/10 13:06:46 steveu Exp $
+ * $Id: dtmf.c,v 1.52 2009/04/11 18:11:19 steveu Exp $
  */
  
-/*! \file dtmf.h */
+/*! \file spandsp/dtmf.h */
 
 #if defined(HAVE_CONFIG_H)
 #include "config.h"

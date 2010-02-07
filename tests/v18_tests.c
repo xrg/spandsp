@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v18_tests.c,v 1.2 2009/04/02 13:43:49 steveu Exp $
+ * $Id: v18_tests.c,v 1.5 2009/04/11 18:11:19 steveu Exp $
  */
 
 /*! \page v18_tests_page V.18 tests
@@ -53,17 +53,24 @@
 #define FALSE 0
 #define TRUE (!FALSE)
 
-#define SAMPLES_PER_CHUNK   160
-
 #define OUTPUT_FILE_NAME    "v18.wav"
+
+#define SAMPLES_PER_CHUNK   160
 
 int log_audio = FALSE;
 AFfilehandle outhandle = NULL;
 
+char *decode_test_file = NULL;
+
+int good_message_received;
+
 #if 1
 static void put_text_msg(void *user_data, const uint8_t *msg, int len)
 {
-    printf("Received %d bytes\n", len);
+    if (strcmp((const char *) msg, "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG 0123456789#$*()"))
+        printf("%s\n", msg);
+    else
+        good_message_received = TRUE;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -72,7 +79,6 @@ static void basic_tests(int mode)
     int16_t amp[SAMPLES_PER_CHUNK];
     int outframes;
     int len;
-    int text_msg_len;
     int push;
     int i;
     v18_state_t *v18_a;
@@ -82,8 +88,10 @@ static void basic_tests(int mode)
     v18_a = v18_init(NULL, TRUE, mode, put_text_msg, NULL);
     v18_b = v18_init(NULL, FALSE, mode, put_text_msg, NULL);
 
-   /* Fake an OK condition for the first message test */
+    /* Fake an OK condition for the first message test */
+    good_message_received = TRUE;
     push = 0;
+    v18_put(v18_a, "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()", -1);
     for (i = 0;  i < 100000;  i++)
     {
         if (push == 0)
@@ -97,7 +105,13 @@ static void basic_tests(int mode)
             /* Push a little silence through, to flush things out */
             if (--push == 0)
             {
-                text_msg_len = v18_put(v18_a, "This is a test", -1);
+                if (!good_message_received)
+                {
+                    printf("No message received\n");
+                    exit(2);
+                }
+                good_message_received = FALSE;
+                v18_put(v18_a, "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()", -1);
             }
         }
         if (len < SAMPLES_PER_CHUNK)
@@ -125,11 +139,27 @@ static void basic_tests(int mode)
 /*- End of function --------------------------------------------------------*/
 #endif
 
-static void tdd_mode_tests(void)
+static int test_x_01(void)
 {
-    const char *t;
+    /* III.5.4.5.1 Baudot carrier timing and receiver disabling */
+    printf("Test not yet implemented\n");
+    return 1;
+}
+/*- End of function --------------------------------------------------------*/
 
-    t = "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()";
+static int test_x_02(void)
+{
+    /* III.5.4.5.2 Baudot bit rate confirmation */
+    printf("Test not yet implemented\n");
+    return 1;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int test_x_03(void)
+{
+    /* III.5.4.5.3 Baudot probe bit rate confirmation */
+    printf("Test not yet implemented\n");
+    return 1;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -144,7 +174,7 @@ static int test_x_04(void)
     int yy;
     v18_state_t *v18_state;
 
-    /* Check the character encode/decode cycle */
+    /* III.5.4.5.4 5 Bit to T.50 character conversion */
     v18_state = v18_init(NULL, TRUE, V18_MODE_5BIT_45, NULL, NULL);
     s = "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()";
     printf("Original:\n%s\n", s);
@@ -182,6 +212,7 @@ static int test_x_06(void)
     int len;
     int i;
 
+    /* III.5.4.5.6 DTMF character conversion */
     for (i = 0;  i < 127;  i++)
         msg[i] = i + 1;
     msg[127] = '\0';
@@ -208,6 +239,51 @@ static int test_unimplemented(void)
 {
     printf("Test not yet implemented\n");
     return 1;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void put_v18_msg(void *user_data, const uint8_t *msg, int len)
+{
+    char buf[1024];
+    
+    memcpy(buf, msg, len);
+    buf[len] = '\0';
+    printf("Received (%d bytes) '%s'\n", len, buf);
+}
+/*- End of function --------------------------------------------------------*/
+
+static int decode_test_data_file(int mode, const char *filename)
+{
+    v18_state_t *v18_state;
+    int16_t amp[SAMPLES_PER_CHUNK];
+    AFfilehandle inhandle;
+    int len;
+
+    printf("Decoding as '%s'\n", v18_mode_to_str(mode));
+    /* We will decode the audio from a wave file. */
+    if ((inhandle = afOpenFile_telephony_read(decode_test_file, 1)) == AF_NULL_FILEHANDLE)
+    {
+        fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
+        exit(2);
+    }
+    v18_state = v18_init(NULL, FALSE, mode, put_v18_msg, NULL);
+    for (;;)
+    {
+        len = afReadFrames(inhandle,
+                           AF_DEFAULT_TRACK,
+                           amp,
+                           SAMPLES_PER_CHUNK);
+        if (len == 0)
+            break;
+        v18_rx(v18_state, amp, len);
+    }
+    if (afCloseFile(inhandle) != 0)
+    {
+        fprintf(stderr, "    Cannot close wave file '%s'\n", decode_test_file);
+        exit(2);
+    }
+    v18_free(v18_state);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -297,9 +373,9 @@ const struct
     {"MON-23a to d    5.3         Automode Monitor 980Hz Calling Tone Discrimination", test_unimplemented},
 
     {"III.3.2.5 ITU-T V.18 annexes tests", NULL},
-    {"X-01            A.1         Baudot carrier timing and receiver disabling", test_unimplemented},
-    {"X-02            A.2         Baudot bit rate confirmation", test_unimplemented},
-    {"X-03            A.3         Baudot probe bit rate confirmation", test_unimplemented},
+    {"X-01            A.1         Baudot carrier timing and receiver disabling", test_x_01},
+    {"X-02            A.2         Baudot bit rate confirmation", test_x_02},
+    {"X-03            A.3         Baudot probe bit rate confirmation", test_x_03},
     {"X-04            A.4         5 Bit to T.50 Character Conversion", test_x_04},
     {"X-05            B.1         DTMF receiver disabling", test_unimplemented},
     {"X-06            B.2         DTMF character conversion", test_x_06},
@@ -319,10 +395,50 @@ int main(int argc, char *argv[])
     int res;
     int hit;
     const char *match;
+    int test_standard;
+    int opt;
 
     match = NULL;
-    if (argc > 1)
-        match = argv[1];
+    test_standard = -1;
+    while ((opt = getopt(argc, argv, "d:ls:")) != -1)
+    {
+        switch (opt)
+        {
+        case 'd':
+            decode_test_file = optarg;
+            break;
+        case 'l':
+            log_audio = TRUE;
+            break;
+        case 's':
+            test_standard = atoi(optarg);
+            break;
+        default:
+            //usage();
+            exit(2);
+            break;
+        }
+    }
+    if (decode_test_file)
+    {
+        decode_test_data_file(test_standard, decode_test_file);
+        exit(0);
+    }
+    argc -= optind;
+    argv += optind;
+    if (argc > 0)
+        match = argv[0];
+
+    outhandle = AF_NULL_FILEHANDLE;
+    if (log_audio)
+    {
+        if ((outhandle = afOpenFile_telephony_write(OUTPUT_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
+        {
+            fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
+            exit(2);
+        }
+    }
+
     hit = FALSE;
     for (i = 0;  test_list[i].title[0];  i++)
     {
@@ -359,6 +475,14 @@ int main(int argc, char *argv[])
         exit(2);
     }
     basic_tests(V18_MODE_5BIT_45);
+    if (log_audio)
+    {
+        if (afCloseFile(outhandle) != 0)
+        {
+            fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
+            exit(2);
+        }
+    }
     printf("Tests passed\n");
     return 0;
 

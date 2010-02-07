@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.54 2009/04/02 13:43:49 steveu Exp $
+ * $Id: adsi_tests.c,v 1.55 2009/04/11 15:16:14 steveu Exp $
  */
 
 /*! \page adsi_tests_page ADSI tests
@@ -58,9 +58,9 @@ tests, these tests do not include line modelling.
 #include "spandsp.h"
 #include "spandsp-sim.h"
 
-#define OUT_FILE_NAME   "adsi.wav"
+#define OUTPUT_FILE_NAME    "adsi.wav"
 
-#define BLOCK_LEN       160
+#define BLOCK_LEN           160
 
 #define MITEL_DIR                   "../test-data/mitel/"
 #define BELLCORE_DIR                "../test-data/bellcore/"
@@ -642,7 +642,7 @@ static void basic_tests(int standard)
         adsi_tx_set_preamble(tx_adsi, 50, 20, 5, -1);
     rx_adsi = adsi_rx_init(NULL, standard, put_adsi_msg, NULL);
 
-   /* Fake an OK condition for the first message test */
+    /* Fake an OK condition for the first message test */
     good_message_received = TRUE;
     push = 0;
     for (i = 0;  i < 100000;  i++)
@@ -837,9 +837,9 @@ int main(int argc, char *argv[])
     {
         if (log_audio)
         {
-            if ((outhandle = afOpenFile_telephony_write(OUT_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
+            if ((outhandle = afOpenFile_telephony_write(OUTPUT_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
             {
-                fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
+                fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
                 exit(2);
             }
         }
@@ -866,7 +866,7 @@ int main(int argc, char *argv[])
         {
             if (afCloseFile(outhandle) != 0)
             {
-                fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
+                fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
                 exit(2);
             }
         }

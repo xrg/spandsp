@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: lpc10.h,v 1.1 2008/11/30 05:43:37 steveu Exp $
+ * $Id: lpc10.h,v 1.2 2009/04/11 18:11:19 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_LPC10_H_)
@@ -99,46 +99,75 @@ struct lpc10_encode_state_s
 */
 struct lpc10_decode_state_s
 {
+    /*! \brief */
     int error_correction;
 
     /* State used by function decode */
+    /*! \brief */
     int32_t iptold;     /* Initial value 60 */
+    /*! \brief */
     int first;          /* Initial value TRUE */
+    /*! \brief */
     int32_t ivp2h;
+    /*! \brief */
     int32_t iovoic;
+    /*! \brief */
     int32_t iavgp;      /* Initial value 60 */
+    /*! \brief */
     int32_t erate;
+    /*! \brief */
     int32_t drc[10][3];
+    /*! \brief */
     int32_t dpit[3];
+    /*! \brief */
     int32_t drms[3];
 
     /* State used by function synths */
+    /*! \brief */
     float buf[LPC10_SAMPLES_PER_FRAME*2];
+    /*! \brief */
     int32_t buflen;     /* Initial value LPC10_SAMPLES_PER_FRAME */
 
     /* State used by function pitsyn */
+    /*! \brief */
     int32_t ivoico;     /* No initial value necessary as long as first_pitsyn is initially TRUE_ */
+    /*! \brief */
     int32_t ipito;      /* No initial value necessary as long as first_pitsyn is initially TRUE_ */
+    /*! \brief */
     float rmso;         /* Initial value 1.0f */
+    /*! \brief */
     float rco[10];      /* No initial value necessary as long as first_pitsyn is initially TRUE_ */
+    /*! \brief */
     int32_t jsamp;      /* Nno initial value necessary as long as first_pitsyn is initially TRUE_ */
+    /*! \brief */
     int first_pitsyn;   /* Initial value TRUE */
 
     /* State used by function bsynz */
+    /*! \brief */
     int32_t ipo;
+    /*! \brief */
     float exc[166];
+    /*! \brief */
     float exc2[166];
+    /*! \brief */
     float lpi[3];
+    /*! \brief */
     float hpi[3];
+    /*! \brief */
     float rmso_bsynz;
 
     /* State used by function random */
+    /*! \brief */
     int32_t j;
+    /*! \brief */
     int32_t k;
+    /*! \brief */
     int16_t y[5];
 
     /* State used by function deemp */
+    /*! \brief */
     float dei[2];
+    /*! \brief */
     float deo[3];
 };
 

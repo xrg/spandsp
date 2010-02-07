@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v18.h,v 1.2 2009/04/02 13:43:49 steveu Exp $
+ * $Id: v18.h,v 1.4 2009/04/11 15:16:14 steveu Exp $
  */
  
 #if !defined(_SPANDSP_PRIVATE_V18_H_)
@@ -54,8 +54,8 @@ struct v18_state_s
     dtmf_rx_state_t dtmfrx;
     int baudot_rx_shift;
     int consecutive_ones;
-    uint8_t msg[256];
-    int msg_len;
+    uint8_t rx_msg[256 + 1];
+    int rx_msg_len;
     int bit_pos;
     int in_progress;
 

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v18.c,v 1.2 2009/04/02 13:43:49 steveu Exp $
+ * $Id: v18.c,v 1.4 2009/04/11 15:16:14 steveu Exp $
  */
  
 /*! \file */
@@ -545,7 +545,7 @@ SPAN_DECLARE(uint8_t) v18_decode_baudot(v18_state_t *s, uint8_t ch)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void v18_rx_dtmf(void *user_data, const char *digits, int len)
+static void v18_rx_dtmf(void *user_data, const char digits[], int len)
 {
     v18_state_t *s;
 
@@ -560,12 +560,17 @@ static int v18_tdd_get_async_byte(void *user_data)
     
     s = (v18_state_t *) user_data;
     if ((ch = queue_read_byte(&s->queue.queue)) >= 0)
+    {
+        int space;
+        int cont;
+        space = queue_free_space(&s->queue.queue);
+        cont = queue_contents(&s->queue.queue);
         return ch;
+    }
     if (s->tx_signal_on)
     {
         /* The FSK should now be switched off. */
         s->tx_signal_on = FALSE;
-        s->msg_len = 0;
     }
     return 0x1F;
 }
@@ -577,7 +582,7 @@ static void v18_tdd_put_async_byte(void *user_data, int byte)
     uint8_t octet;
     
     s = (v18_state_t *) user_data;
-    //printf("Rx bit %x\n", bit);
+    //printf("Rx byte %x\n", byte);
     if (byte < 0)
     {
         /* Special conditions */
@@ -588,14 +593,15 @@ static void v18_tdd_put_async_byte(void *user_data, int byte)
             s->consecutive_ones = 0;
             s->bit_pos = 0;
             s->in_progress = 0;
-            s->msg_len = 0;
+            s->rx_msg_len = 0;
             break;
         case SIG_STATUS_CARRIER_DOWN:
-            if (s->msg_len > 0)
+            if (s->rx_msg_len > 0)
             {
                 /* Whatever we have to date constitutes the message */
-                s->put_msg(s->user_data, s->msg, s->msg_len);
-                s->msg_len = 0;
+                s->rx_msg[s->rx_msg_len] = '\0';
+                s->put_msg(s->user_data, s->rx_msg, s->rx_msg_len);
+                s->rx_msg_len = 0;
             }
             break;
         default:
@@ -605,11 +611,12 @@ static void v18_tdd_put_async_byte(void *user_data, int byte)
         return;
     }
     if ((octet = v18_decode_baudot(s, (uint8_t) (byte & 0x1F))))
-        s->msg[s->msg_len++] = octet;
-    if (s->msg_len >= 256)
+        s->rx_msg[s->rx_msg_len++] = octet;
+    if (s->rx_msg_len >= 256)
     {
-        s->put_msg(s->user_data, s->msg, s->msg_len);
-        s->msg_len = 0;
+        s->rx_msg[s->rx_msg_len] = '\0';
+        s->put_msg(s->user_data, s->rx_msg, s->rx_msg_len);
+        s->rx_msg_len = 0;
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -650,7 +657,7 @@ SPAN_DECLARE(int) v18_rx(v18_state_t *s, const int16_t amp[], int len)
         /* Apply a message timeout. */
         s->in_progress -= len;
         if (s->in_progress <= 0)
-            s->msg_len = 0;
+            s->rx_msg_len = 0;
         dtmf_rx(&(s->dtmfrx), amp, len);
         break;
     default:
@@ -663,7 +670,10 @@ SPAN_DECLARE(int) v18_rx(v18_state_t *s, const int16_t amp[], int len)
 
 SPAN_DECLARE(int) v18_put(v18_state_t *s, const char msg[], int len)
 {
-    size_t space;
+    char buf[256 + 1];
+    int x;
+    int n;
+    int i;
 
     /* This returns the number of characters that would not fit in the buffer.
        The buffer will only be loaded if the whole string of digits will fit,
@@ -673,10 +683,28 @@ SPAN_DECLARE(int) v18_put(v18_state_t *s, const char msg[], int len)
         if ((len = strlen(msg)) == 0)
             return 0;
     }
-    if ((space = queue_free_space(&s->queue.queue)) < (size_t) len)
-        return len - (int) space;
-    if (queue_write(&s->queue.queue, (const uint8_t *) msg, len) >= 0)
-        return 0;
+    switch (s->mode)
+    {
+    case V18_MODE_5BIT_45:
+    case V18_MODE_5BIT_50:
+        for (i = 0;  i < len;  i++)
+        {
+            n = 0;
+            if ((x = v18_encode_baudot(s, msg[i])))
+            {
+                if ((x & 0x3E0))
+                    buf[n++] = (uint8_t) ((x >> 5) & 0x1F);
+                buf[n++] = (uint8_t) (x & 0x1F);
+                /* TODO: Deal with out of space condition */
+                if (queue_write(&s->queue.queue, (const uint8_t *) buf, n) < 0)
+                    return 0;
+                s->tx_signal_on = TRUE;
+            }
+        }
+        break;
+    case V18_MODE_DTMF:
+        break;
+    }
     return -1;
 }
 /*- End of function --------------------------------------------------------*/
@@ -714,7 +742,7 @@ SPAN_DECLARE(v18_state_t *) v18_init(v18_state_t *s,
         /* TDD uses 5 bit data, no parity and 1.5 stop bits. We scan for the first stop bit, and
            ride over the fraction. */
         fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_WEITBRECHT], 7, v18_tdd_put_async_byte, s);
-        s->baudot_rx_shift = 2;
+        s->baudot_rx_shift = 0;
         break;
     case V18_MODE_5BIT_50:
         fsk_tx_init(&(s->fsktx), &preset_fsk_specs[FSK_WEITBRECHT50], async_tx_get_bit, &(s->asynctx));
@@ -724,7 +752,7 @@ SPAN_DECLARE(v18_state_t *) v18_init(v18_state_t *s,
         /* TDD uses 5 bit data, no parity and 1.5 stop bits. We scan for the first stop bit, and
            ride over the fraction. */
         fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_WEITBRECHT50], 7, v18_tdd_put_async_byte, s);
-        s->baudot_rx_shift = 2;
+        s->baudot_rx_shift = 0;
         break;
     case V18_MODE_DTMF:
         dtmf_tx_init(&(s->dtmftx));
@@ -763,6 +791,8 @@ SPAN_DECLARE(const char *) v18_mode_to_str(int mode)
 {
     switch (mode)
     {
+    case V18_MODE_NONE:
+        return "None";
     case V18_MODE_5BIT_45:
         return "Weitbrecht TDD (45.45bps)";
     case V18_MODE_5BIT_50:
