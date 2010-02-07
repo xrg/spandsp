@@ -187,7 +187,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\at_interpreter.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\awgn.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\bell_r2_mf.c"
 				>
 			</File>
 			<File
@@ -203,11 +211,23 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\dds.c"
+				RelativePath=".\src\complex_vector_float.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\ec_disable_tone.c"
+				RelativePath=".\src\crc.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\dds_float.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\dds_int.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\dtmf.c"
 				>
 			</File>
 			<File
@@ -239,6 +259,34 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\gsm0610_decode.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\gsm0610_encode.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\gsm0610_long_term.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\gsm0610_lpc.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\gsm0610_preprocess.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\gsm0610_rpe.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\gsm0610_short_term.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\hdlc.c"
 				>
 			</File>
@@ -248,6 +296,30 @@
 			</File>
 			<File
 				RelativePath=".\src\logging.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lpc10_analyse.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lpc10_decode.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lpc10_encode.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lpc10_placev.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lpc10_voicing.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\modem_connect_tones.c"
 				>
 			</File>
 			<File
@@ -295,7 +367,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\t30_api.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\t30.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\t30_logging.c"
 				>
 			</File>
 			<File
@@ -307,11 +387,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\t38_gateway.c"
+				RelativePath=".\src\t38_core.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\t38_ifppacket.c"
+				RelativePath=".\src\t38_gateway.c"
 				>
 			</File>
 			<File
@@ -371,15 +451,23 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\v42.c"
-				>
-			</File>
-			<File
 				RelativePath=".\src\v42bis.c"
 				>
 			</File>
 			<File
+				RelativePath=".\src\v42.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\v8.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\vector_float.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\vector_int.c"
 				>
 			</File>
 		</Filter>
@@ -393,10 +481,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\spandsp\alaw_ulaw.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\spandsp\arctan2.h"
 				>
 			</File>
@@ -405,7 +489,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\spandsp\at_interpreter.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\spandsp\awgn.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\spandsp\bell_r2_mf.h"
 				>
 			</File>
 			<File
@@ -417,11 +509,27 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\spandsp\complex.h"
+				RelativePath=".\src\spandsp\bit_operations.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\spandsp\bitstream.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\spandsp\complex_filters.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\spandsp\complex.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\spandsp\complex_vector_float.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\spandsp\crc.h"
 				>
 			</File>
 			<File
@@ -433,11 +541,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\spandsp\ec_disable_detector.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\spandsp\ec_disable_tone.h"
+				RelativePath=".\src\spandsp\dtmf.h"
 				>
 			</File>
 			<File
@@ -465,6 +569,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\spandsp\g711.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\spandsp\g722.h"
 				>
 			</File>
@@ -489,6 +597,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\spandsp\lpc10.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\spandsp\modem_connect_tones.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\spandsp\modem_echo.h"
 				>
 			</File>
@@ -498,10 +614,6 @@
 			</File>
 			<File
 				RelativePath=".\src\spandsp\oki_adpcm.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\spandsp\oss.h"
 				>
 			</File>
 			<File
@@ -529,6 +641,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\spandsp\silence_gen.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\spandsp.h"
 				>
 			</File>
@@ -541,11 +657,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\spandsp\t30.h"
+				RelativePath=".\src\spandsp\t30_api.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\spandsp\t30_fcf.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\spandsp\t30.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\spandsp\t30_logging.h"
 				>
 			</File>
 			<File
@@ -557,7 +681,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\spandsp\t38.h"
+				RelativePath=".\src\spandsp\t38_core.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\spandsp\t38_gateway.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\spandsp\t38_terminal.h"
 				>
 			</File>
 			<File
@@ -629,11 +761,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\spandsp\v42.h"
+				RelativePath=".\src\spandsp\v42bis.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\spandsp\v42bis.h"
+				RelativePath=".\src\spandsp\v42.h"
 				>
 			</File>
 			<File
@@ -641,7 +773,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\spandsp\vector.h"
+				RelativePath=".\src\spandsp\vector_float.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\spandsp\vector_int.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\spandsp\version.h"
 				>
 			</File>
 		</Filter>
