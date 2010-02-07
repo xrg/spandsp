@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: noise.c,v 1.23 2008/07/02 14:48:25 steveu Exp $
+ * $Id: noise.c,v 1.24 2008/08/17 14:18:11 steveu Exp $
  */
 
 /*! \file */
@@ -106,7 +106,7 @@ noise_state_t *noise_init_dbov(noise_state_t *s, int seed, float level, int clas
         /* Allow for the gain of the filter */
         rms *= 1.043f;
     }
-    s->rms = (int32_t) (rms*sqrtf(12.0f/quality));
+    s->rms = (int32_t) (rms*sqrtf(12.0f/s->quality));
     s->class_of_noise = class_of_noise;
     return s;
 }

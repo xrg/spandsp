@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_to_terminal_tests.c,v 1.59 2008/07/24 13:55:24 steveu Exp $
+ * $Id: t38_gateway_to_terminal_tests.c,v 1.60 2008/08/16 15:24:16 steveu Exp $
  */
 
 /*! \file */
@@ -225,7 +225,6 @@ int main(int argc, char *argv[])
     int use_tep;
     int feedback_audio;
     int use_transmit_on_idle;
-    AFfilesetup filesetup;
     AFfilehandle wave_handle;
     const char *input_file_name;
     int i;
@@ -304,22 +303,10 @@ int main(int argc, char *argv[])
     if (use_ecm)
         printf("Using ECM\n");
 
-    filesetup = AF_NULL_FILESETUP;
     wave_handle = AF_NULL_FILEHANDLE;
     if (log_audio)
     {
-        if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
-        {
-            fprintf(stderr, "    Failed to create file setup\n");
-            exit(2);
-        }
-        afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-        afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-        afInitFileFormat(filesetup, AF_FILE_WAVE);
-        afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
-
-        wave_handle = afOpenFile(OUTPUT_FILE_NAME_WAVE, "w", filesetup);
-        if (wave_handle == AF_NULL_FILEHANDLE)
+        if ((wave_handle = afOpenFile_telephony_write(OUTPUT_FILE_NAME_WAVE, 2)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
             exit(2);
@@ -500,7 +487,6 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
             exit(2);
         }
-        afFreeFileSetup(filesetup);
     }
     if (!succeeded[0]  ||  !succeeded[1])
     {

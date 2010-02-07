@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g711_tests.c,v 1.12 2008/05/13 13:17:25 steveu Exp $
+ * $Id: g711_tests.c,v 1.14 2008/08/16 15:24:15 steveu Exp $
  */
 
 /*! \page g711_tests_page A-law and u-law conversion tests
@@ -42,6 +42,7 @@
 #include <audiofile.h>
 
 #include "spandsp.h"
+#include "spandsp-sim.h"
 
 #define OUT_FILE_NAME   "g711.wav"
 
@@ -55,7 +56,6 @@ const uint8_t ulaw_1khz_sine[] = {0x1E, 0x0B, 0x0B, 0x1E, 0x9E, 0x8B, 0x8B, 0x9E
 int main(int argc, char *argv[])
 {
     AFfilehandle outhandle;
-    AFfilesetup filesetup;
     power_meter_t power_meter;
     int outframes;
     int i;
@@ -73,17 +73,7 @@ int main(int argc, char *argv[])
     g711_state_t *transcode;
     g711_state_t *decode;
     
-    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
-    {
-        fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
-    }
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
-
-    if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile_telephony_write(OUT_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
@@ -326,7 +316,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
-    afFreeFileSetup(filesetup);
 
     printf("Tests passed.\n");
     return 0;

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm_tests.c,v 1.31 2008/05/13 13:17:26 steveu Exp $
+ * $Id: oki_adpcm_tests.c,v 1.34 2008/08/29 09:28:13 steveu Exp $
  */
 
 /*! \file */
@@ -53,6 +53,7 @@ compression may be tested.
 #include <audiofile.h>
 
 #include "spandsp.h"
+#include "spandsp-sim.h"
 
 #define IN_FILE_NAME    "../test-data/local/short_nb_voice.wav"
 #define OUT_FILE_NAME   "post_oki_adpcm.wav"
@@ -64,7 +65,6 @@ int main(int argc, char *argv[])
     int i;
     AFfilehandle inhandle;
     AFfilehandle outhandle;
-    AFfilesetup filesetup;
     int frames;
     int dec_frames;
     int outframes;
@@ -113,38 +113,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    if ((inhandle = afOpenFile(in_file_name, "r", 0)) == AF_NULL_FILEHANDLE)
+    if ((inhandle = afOpenFile_telephony_read(in_file_name, 1)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot open wave file '%s'\n", in_file_name);
         exit(2);
     }
-    if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
-    {
-        fprintf(stderr, "    Unexpected frame size in wave file '%s'\n", in_file_name);
-        exit(2);
-    }
-    if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
-    {
-        fprintf(stderr, "    Unexpected sample rate in wave file '%s'\n", in_file_name);
-        exit(2);
-    }
-    if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
-    {
-        fprintf(stderr, "    Unexpected number of channels in wave file '%s'\n", in_file_name);
-        exit(2);
-    }
-    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
-    {
-        fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
-    }
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
-
-    outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile_telephony_write(OUT_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
@@ -211,7 +185,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
-    afFreeFileSetup(filesetup);
     oki_adpcm_release(oki_enc_state);
     oki_adpcm_release(oki_dec_state);
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8_tests.c,v 1.25 2008/05/13 13:17:27 steveu Exp $
+ * $Id: v8_tests.c,v 1.28 2008/08/29 09:28:13 steveu Exp $
  */
 
 /*! \page v8_tests_page V.8 tests
@@ -41,6 +41,7 @@
 #include <audiofile.h>
 
 #include "spandsp.h"
+#include "spandsp-sim.h"
 
 #define FALSE 0
 #define TRUE (!FALSE)
@@ -92,10 +93,8 @@ int main(int argc, char *argv[])
     int answerer_available_modulations;
     AFfilehandle inhandle;
     AFfilehandle outhandle;
-    AFfilesetup filesetup;
     int opt;
     char *decode_test_file;
-    float x;
     
     decode_test_file = NULL;
     while ((opt = getopt(argc, argv, "d:")) != -1)
@@ -143,16 +142,7 @@ int main(int argc, char *argv[])
     
     if (decode_test_file == NULL)
     {
-        if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
-        {
-            fprintf(stderr, "    Failed to create file setup\n");
-            exit(2);
-        }
-        afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-        afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-        afInitFileFormat(filesetup, AF_FILE_WAVE);
-        afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
-        if ((outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
+        if ((outhandle = afOpenFile_telephony_write(OUTPUT_FILE_NAME, 2)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
             exit(2);
@@ -202,7 +192,6 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
             exit(2);
         }
-        afFreeFileSetup(filesetup);
         
         v8_release(&v8_caller);
         v8_release(&v8_answerer);
@@ -220,35 +209,19 @@ int main(int argc, char *argv[])
         v8_init(&v8_answerer, FALSE, answerer_available_modulations, handler, (void *) "answerer");
         span_log_set_level(&v8_answerer.logging, SPAN_LOG_FLOW | SPAN_LOG_SHOW_TAG);
         span_log_set_tag(&v8_answerer.logging, "decoder");
-        if ((inhandle = afOpenFile(decode_test_file, "r", 0)) == AF_NULL_FILEHANDLE)
+        if ((inhandle = afOpenFile_telephony_read(decode_test_file, 1)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot open speech file '%s'\n", decode_test_file);
             exit (2);
         }
         /*endif*/
-        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
-        {
-            fprintf(stderr, "    Unexpected frame size in speech file '%s'\n", decode_test_file);
-            exit (2);
-        }
-        /*endif*/
-        if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
-        {
-            fprintf(stderr, "    Unexpected sample rate in speech file '%s'\n", decode_test_file);
-            exit(2);
-        }
-        /*endif*/
-        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
-        {
-            fprintf(stderr, "    Unexpected number of channels in speech file '%s'\n", decode_test_file);
-            exit(2);
-        }
-        /*endif*/
+
         while ((samples = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, SAMPLES_PER_CHUNK)))
         {
             remnant = v8_rx(&v8_answerer, amp, samples);
         }
         /*endwhile*/
+
         v8_release(&v8_answerer);
         if (afCloseFile(inhandle) != 0)
         {

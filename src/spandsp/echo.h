@@ -2,15 +2,12 @@
  * SpanDSP - a series of DSP components for telephony
  *
  * echo.h - An echo cancellor, suitable for electrical and acoustic
- *	    cancellation. This code does not currently comply with
- *	    any relevant standards (e.g. G.164/5/7/8).
+ *	        cancellation. This code does not currently comply with
+ *	        any relevant standards (e.g. G.164/5/7/8).
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
  * Copyright (C) 2001 Steve Underwood
- *
- * Based on a bit from here, a bit from there, eye of toad,
- * ear of bat, etc - plus, of course, my own 2 cents.
  *
  * All rights reserved.
  *
@@ -27,7 +24,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo.h,v 1.13 2008/04/17 14:27:00 steveu Exp $
+ * $Id: echo.h,v 1.15 2008/08/29 10:02:47 steveu Exp $
  */
 
 /*! \file */
@@ -119,13 +116,18 @@ minor burden.
 
 #include "fir.h"
 
-#define NONUPDATE_DWELL_TIME	600 	/* 600 samples, or 75ms */
-
 /* Mask bits for the adaption mode */
-#define ECHO_CAN_USE_NLP            0x01
-#define ECHO_CAN_USE_SUPPRESSOR     0x02
-#define ECHO_CAN_USE_CNG            0x04
-#define ECHO_CAN_USE_ADAPTION       0x08
+enum
+{
+    ECHO_CAN_USE_ADAPTION = 0x01,
+    ECHO_CAN_USE_NLP = 0x02,
+    ECHO_CAN_USE_CNG = 0x04,
+    ECHO_CAN_USE_CLIP = 0x08,
+    ECHO_CAN_USE_SUPPRESSOR = 0x10,
+    ECHO_CAN_USE_TX_HPF = 0x20,
+    ECHO_CAN_USE_RX_HPF = 0x40,
+    ECHO_CAN_DISABLE = 0x80,
+};
 
 /*!
     G.168 echo canceller descriptor. This defines the working state for a line
@@ -140,12 +142,6 @@ typedef struct
     int rx_power_threshold;
     int nonupdate_dwell;
 
-    fir16_state_t fir_state;
-    /*! Echo FIR taps (16 bit version) */
-    int16_t *fir_taps16[4];
-    /*! Echo FIR taps (32 bit version) */
-    int32_t *fir_taps32;
-
     int curr_pos;
 	
     int taps;
@@ -158,11 +154,7 @@ typedef struct
     int32_t supp2;
     int vad;
     int cng;
-    /* Parameters for the Hoth noise generator */
-    int cng_level;
-    int cng_rndnum;
-    int cng_filter;
-    
+
     int16_t geigel_max;
     int geigel_lag;
     int dtd_onset;
@@ -175,6 +167,24 @@ typedef struct
     int32_t last_acf[28];
     int narrowband_count;
     int narrowband_score;
+
+    fir16_state_t fir_state;
+    /*! Echo FIR taps (16 bit version) */
+    int16_t *fir_taps16[4];
+    /*! Echo FIR taps (32 bit version) */
+    int32_t *fir_taps32;
+
+    /* DC and near DC blocking filter states */
+    int32_t tx_hpf[2];
+    int32_t rx_hpf[2];
+   
+    /* Parameters for the optional Hoth noise generator */
+    int cng_level;
+    int cng_rndnum;
+    int cng_filter;
+    
+    /* Snapshot sample of coeffs used for development */
+    int16_t *snapshot;       
 } echo_can_state_t;
 
 #if defined(__cplusplus)
@@ -211,6 +221,15 @@ void echo_can_adaption_mode(echo_can_state_t *ec, int adaption_mode);
     \return The clean (echo cancelled) received sample.
 */
 int16_t echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t rx);
+
+/*! Process to high pass filter the tx signal.
+    \param ec The echo canceller context.
+    \param tx The transmitted auio sample.
+    \return The HP filtered transmit sample, send this to your D/A.
+*/
+int16_t echo_can_hpf_tx(echo_can_state_t *ec, int16_t tx);
+
+void echo_can_snapshot(echo_can_state_t *ec);
 
 #if defined(__cplusplus)
 }

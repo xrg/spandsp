@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29_tests.c,v 1.99 2008/07/16 17:01:49 steveu Exp $
+ * $Id: v29_tests.c,v 1.102 2008/08/29 09:28:13 steveu Exp $
  */
 
 /*! \page v29_tests_page V.29 modem tests
@@ -272,7 +272,6 @@ int main(int argc, char *argv[])
     int16_t amp[BLOCK_LEN];
     AFfilehandle inhandle;
     AFfilehandle outhandle;
-    AFfilesetup filesetup;
     int outframes;
     int samples;
     int tep;
@@ -285,7 +284,6 @@ int main(int argc, char *argv[])
     int log_audio;
     int channel_codec;
     int rbs_pattern;
-    float x;
     int opt;
     
     channel_codec = MUNGE_CODEC_NONE;
@@ -363,19 +361,9 @@ int main(int argc, char *argv[])
     inhandle = NULL;
     outhandle = NULL;
 
-    filesetup = AF_NULL_FILESETUP;
     if (log_audio)
     {
-        if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
-        {
-            fprintf(stderr, "    Failed to create file setup\n");
-            exit(2);
-        }
-        afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-        afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-        afInitFileFormat(filesetup, AF_FILE_WAVE);
-        afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
-        if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
+        if ((outhandle = afOpenFile_telephony_write(OUT_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
             exit(2);
@@ -385,24 +373,9 @@ int main(int argc, char *argv[])
     if (decode_test_file)
     {
         /* We will decode the audio from a wave file. */
-        if ((inhandle = afOpenFile(decode_test_file, "r", NULL)) == AF_NULL_FILEHANDLE)
+        if ((inhandle = afOpenFile_telephony_read(decode_test_file, 1)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
-            exit(2);
-        }
-        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0f)
-        {
-            printf("    Unexpected frame size in speech file '%s'\n", decode_test_file);
-            exit(2);
-        }
-        if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
-        {
-            printf("    Unexpected sample rate in speech file '%s'\n", decode_test_file);
-            exit(2);
-        }
-        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0f)
-        {
-            printf("    Unexpected number of channels in speech file '%s'\n", decode_test_file);
             exit(2);
         }
     }
@@ -557,7 +530,6 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
             exit(2);
         }
-        afFreeFileSetup(filesetup);
     }
     return  0;
 }

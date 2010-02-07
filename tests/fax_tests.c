@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.93 2008/08/14 14:06:05 steveu Exp $
+ * $Id: fax_tests.c,v 1.95 2008/08/29 09:28:13 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -42,6 +42,7 @@
 #include <audiofile.h>
 
 #include "spandsp.h"
+#include "spandsp-sim.h"
 
 #define SAMPLES_PER_CHUNK       160
 
@@ -210,7 +211,6 @@ static int document_handler(t30_state_t *s, void *user_data, int event)
 
 int main(int argc, char *argv[])
 {
-    AFfilesetup filesetup;
     AFfilehandle wave_handle;
     AFfilehandle input_wave_handle;
     int i;
@@ -305,28 +305,17 @@ int main(int argc, char *argv[])
     input_wave_handle = AF_NULL_FILEHANDLE;
     if (input_audio_file_name)
     {
-        if ((input_wave_handle = afOpenFile(input_audio_file_name, "r", NULL)) == AF_NULL_FILEHANDLE)
+        if ((input_wave_handle = afOpenFile_telephony_read(input_audio_file_name, 1)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot open wave file '%s'\n", input_audio_file_name);
             exit(2);
         }
     }
 
-    filesetup = AF_NULL_FILESETUP;
     wave_handle = AF_NULL_FILEHANDLE;
     if (log_audio)
     {
-        if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
-        {
-            fprintf(stderr, "    Failed to create file setup\n");
-            exit(2);
-        }
-        afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-        afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-        afInitFileFormat(filesetup, AF_FILE_WAVE);
-        afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
-
-        if ((wave_handle = afOpenFile(OUTPUT_FILE_NAME_WAVE, "w", filesetup)) == AF_NULL_FILEHANDLE)
+        if ((wave_handle = afOpenFile_telephony_write(OUTPUT_FILE_NAME_WAVE, 2)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
             exit(2);
@@ -519,7 +508,6 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
             exit(2);
         }
-        afFreeFileSetup(filesetup);
     }
     if (input_audio_file_name)
     {
@@ -528,7 +516,6 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot close wave file '%s'\n", input_audio_file_name);
             exit(2);
         }
-        afFreeFileSetup(filesetup);
     }
     printf("Total audio time = %ds (wall time %ds)\n", machines[0].total_audio_time/8000, (int) (end_time - start_time));
     return  0;

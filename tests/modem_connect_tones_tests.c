@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones_tests.c,v 1.23 2008/08/13 00:11:30 steveu Exp $
+ * $Id: modem_connect_tones_tests.c,v 1.27 2008/08/29 09:28:13 steveu Exp $
  */
 
 /*! \page modem_connect_tones_tests_page Modem connect tones tests
@@ -42,6 +42,7 @@ These tests...
 #include <audiofile.h>
 
 #include "spandsp.h"
+#include "spandsp-sim.h"
 
 #define SAMPLES_PER_CHUNK           160
 
@@ -180,14 +181,12 @@ int main(int argc, char *argv[])
     awgn_state_t chan_noise_source;
     AFfilehandle inhandle;
     AFfilehandle outhandle;
-    AFfilesetup filesetup;
     int outframes;
     int frames;
     int samples;
     int hit;
     int false_hit;
     int false_miss;
-    float x;
     tone_gen_descriptor_t tone_desc;
     tone_gen_state_t tone_tx;
     power_meter_t power_state;
@@ -258,17 +257,7 @@ int main(int argc, char *argv[])
     if (decode_test_file == NULL  &&  test_list == 0)
         test_list = 0xFFFFFFFF;
 
-    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
-    {
-        fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
-    }
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
-
-    if ((outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile_telephony_write(OUTPUT_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
@@ -930,28 +919,10 @@ int main(int argc, char *argv[])
         hits = 0;
         for (j = 0;  bellcore_files[j][0];  j++)
         {
-            if ((inhandle = afOpenFile(bellcore_files[j], "r", 0)) == AF_NULL_FILEHANDLE)
+            if ((inhandle = afOpenFile_telephony_read(bellcore_files[j], 1)) == AF_NULL_FILEHANDLE)
             {
                 fprintf(stderr, "    Cannot open speech file '%s'\n", bellcore_files[j]);
                 exit (2);
-            }
-            /*endif*/
-            if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
-            {
-                fprintf(stderr, "    Unexpected frame size in speech file '%s'\n", bellcore_files[j]);
-                exit (2);
-            }
-            /*endif*/
-            if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
-            {
-                fprintf(stderr, "    Unexpected sample rate in speech file '%s'\n", bellcore_files[j]);
-                exit(2);
-            }
-            /*endif*/
-            if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
-            {
-                fprintf(stderr, "    Unexpected number of channels in speech file '%s'\n", bellcore_files[j]);
-                exit(2);
             }
             /*endif*/
 
@@ -1015,28 +986,10 @@ int main(int argc, char *argv[])
         modem_connect_tones_rx_init(&ced_rx, MODEM_CONNECT_TONES_FAX_CED_OR_PREAMBLE, ced_detected, NULL);
         modem_connect_tones_rx_init(&ans_pr_rx, MODEM_CONNECT_TONES_ANS_PR, ec_dis_detected, NULL);
         hits = 0;
-        if ((inhandle = afOpenFile(decode_test_file, "r", 0)) == AF_NULL_FILEHANDLE)
+        if ((inhandle = afOpenFile_telephony_read(decode_test_file, 1)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot open speech file '%s'\n", decode_test_file);
             exit (2);
-        }
-        /*endif*/
-        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
-        {
-            fprintf(stderr, "    Unexpected frame size in speech file '%s'\n", decode_test_file);
-            exit (2);
-        }
-        /*endif*/
-        if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
-        {
-            fprintf(stderr, "    Unexpected sample rate in speech file '%s'\n", decode_test_file);
-            exit(2);
-        }
-        /*endif*/
-        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
-        {
-            fprintf(stderr, "    Unexpected number of channels in speech file '%s'\n", decode_test_file);
-            exit(2);
         }
         /*endif*/
 

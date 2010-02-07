@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.261 2008/08/14 14:06:05 steveu Exp $
+ * $Id: t30.c,v 1.262 2008/08/17 16:25:52 steveu Exp $
  */
 
 /*! \file */
@@ -926,6 +926,7 @@ static int send_isp_frame(t30_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
+#if 0
 static int send_csa_frame(t30_state_t *s)
 {
 #if 0
@@ -938,6 +939,7 @@ static int send_csa_frame(t30_state_t *s)
     return FALSE;
 }
 /*- End of function --------------------------------------------------------*/
+#endif
 
 static int send_pps_frame(t30_state_t *s)
 {

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: test_utils.h,v 1.3 2008/04/17 18:03:23 steveu Exp $
+ * $Id: test_utils.h,v 1.5 2008/08/29 09:28:13 steveu Exp $
  */
 
 /*! \file */
@@ -55,11 +55,19 @@ void complexify_release(complexify_state_t *s);
 
 complexf_t complexify(complexify_state_t *s, int16_t amp);
 
+void fft(complex_t data[], int len);
+
+void ifft(complex_t data[], int len);
+
 codec_munge_state_t *codec_munge_init(int codec, int info);
 
 void codec_munge_release(codec_munge_state_t *s);
 
 void codec_munge(codec_munge_state_t *s, int16_t amp[], int len);
+
+AFfilehandle afOpenFile_telephony_read(const char *name, int channels);
+
+AFfilehandle afOpenFile_telephony_write(const char *name, int channels);
 
 #ifdef __cplusplus
 }

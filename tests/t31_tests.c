@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31_tests.c,v 1.59 2008/07/24 13:55:24 steveu Exp $
+ * $Id: t31_tests.c,v 1.62 2008/08/29 09:28:13 steveu Exp $
  */
 
 /*! \file */
@@ -495,7 +495,6 @@ static int t30_tests(int log_audio, int test_sending)
     int16_t out_amp[2*SAMPLES_PER_CHUNK];
     int t30_len;
     int t31_len;
-    AFfilesetup filesetup;
     AFfilehandle wave_handle;
     AFfilehandle in_handle;
     int fast_send;
@@ -503,20 +502,10 @@ static int t30_tests(int log_audio, int test_sending)
     uint8_t fast_buf[1000];
     t30_state_t *t30;
 
-    filesetup = AF_NULL_FILESETUP;
     wave_handle = AF_NULL_FILEHANDLE;
     if (log_audio)
     {
-        if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
-        {
-            fprintf(stderr, "    Failed to create file setup\n");
-            exit(2);
-        }
-        afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-        afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-        afInitFileFormat(filesetup, AF_FILE_WAVE);
-        afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
-        if ((wave_handle = afOpenFile(OUTPUT_WAVE_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
+        if ((wave_handle = afOpenFile_telephony_write(OUTPUT_WAVE_FILE_NAME, 2)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_WAVE_FILE_NAME);
             exit(2);
@@ -528,7 +517,7 @@ static int t30_tests(int log_audio, int test_sending)
     in_handle = NULL;
     if (decode_test_file)
     {
-        if ((in_handle = afOpenFile(decode_test_file, "r", NULL)) == AF_NULL_FILEHANDLE)
+        if ((in_handle = afOpenFile_telephony_read(decode_test_file, 1)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot create wave file '%s'\n", decode_test_file);
             exit(2);
@@ -681,7 +670,6 @@ static int t30_tests(int log_audio, int test_sending)
             fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_WAVE_FILE_NAME);
             exit(2);
         }
-        afFreeFileSetup(filesetup);
     }
     return 0;
 }

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk_tests.c,v 1.45 2008/07/16 17:01:49 steveu Exp $
+ * $Id: fsk_tests.c,v 1.48 2008/08/29 09:28:13 steveu Exp $
  */
 
 /*! \page fsk_tests_page FSK modem tests
@@ -219,7 +219,6 @@ int main(int argc, char *argv[])
     int16_t out_amp[2*BLOCK_LEN];
     AFfilehandle inhandle;
     AFfilehandle outhandle;
-    AFfilesetup filesetup;
     int outframes;    
     int i;
     int j;
@@ -295,21 +294,11 @@ int main(int argc, char *argv[])
     if (modem_under_test_2 >= 0)
         printf("Modem channel 2 is '%s'\n", preset_fsk_specs[modem_under_test_2].name);
 
-    filesetup = AF_NULL_FILESETUP;
     outhandle = AF_NULL_FILEHANDLE;
 
     if (log_audio)
     {
-        if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
-        {
-            fprintf(stderr, "    Failed to create file setup\n");
-            exit(2);
-        }
-        afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-        afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-        afInitFileFormat(filesetup, AF_FILE_WAVE);
-        afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
-        if ((outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
+        if ((outhandle = afOpenFile_telephony_write(OUTPUT_FILE_NAME, 2)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
             exit(2);
@@ -328,7 +317,7 @@ int main(int argc, char *argv[])
 
     if (decode_test_file)
     {
-        if ((inhandle = afOpenFile(decode_test_file, "r", NULL)) == AF_NULL_FILEHANDLE)
+        if ((inhandle = afOpenFile_telephony_read(decode_test_file, 1)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
             exit(2);
@@ -569,7 +558,6 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
             exit(2);
         }
-        afFreeFileSetup(filesetup);
     }
     return  0;
 }

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter_tests.c,v 1.17 2008/06/29 03:28:48 steveu Exp $
+ * $Id: at_interpreter_tests.c,v 1.18 2008/08/17 16:25:52 steveu Exp $
  */
 
 /*! \file */
@@ -405,6 +405,7 @@ static int at_send(at_state_t *s, const char *t)
 }
 /*- End of function --------------------------------------------------------*/
 
+#if 0
 static int at_send_at(at_state_t *s, const char *t)
 {
     uint8_t buf[500];
@@ -440,6 +441,7 @@ static int at_send_hdlc(at_state_t *s, uint8_t *t, int len)
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
+#endif
 
 static int general_test(at_state_t *s)
 {

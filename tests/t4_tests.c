@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.57 2008/05/03 07:37:06 steveu Exp $
+ * $Id: t4_tests.c,v 1.58 2008/08/17 16:25:52 steveu Exp $
  */
 
 /*! \file */
@@ -133,6 +133,7 @@ static void display_page_stats(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
+#if 0
 static int row_read_handler(void *user_data, uint8_t buf[], size_t len)
 {
     int i;
@@ -190,6 +191,7 @@ static int row_write_handler(void *user_data, const uint8_t buf[], size_t len)
     return len;
 }
 /*- End of function --------------------------------------------------------*/
+#endif
 
 int main(int argc, char *argv[])
 {

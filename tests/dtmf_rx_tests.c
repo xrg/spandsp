@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf_rx_tests.c,v 1.39 2008/06/13 14:46:52 steveu Exp $
+ * $Id: dtmf_rx_tests.c,v 1.42 2008/08/29 09:28:13 steveu Exp $
  */
 
 /*
@@ -621,7 +621,6 @@ static void mitel_cm7291_side_2_and_bellcore_tests(void)
     char buf[128 + 1];
     AFfilehandle inhandle;
     int frames;
-    float x;
     dtmf_rx_state_t dtmf_state;
 
     dtmf_rx_init(&dtmf_state, NULL, NULL);
@@ -638,24 +637,9 @@ static void mitel_cm7291_side_2_and_bellcore_tests(void)
     memset(hit_types, '\0', sizeof(hit_types));
     for (j = 0;  bellcore_files[j][0];  j++)
     {
-        if ((inhandle = afOpenFile(bellcore_files[j], "r", 0)) == AF_NULL_FILEHANDLE)
+        if ((inhandle = afOpenFile_telephony_read(bellcore_files[j], 1)) == AF_NULL_FILEHANDLE)
         {
             printf("    Cannot open speech file '%s'\n", bellcore_files[j]);
-            exit(2);
-        }
-        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
-        {
-            printf("    Unexpected frame size in speech file '%s'\n", bellcore_files[j]);
-            exit(2);
-        }
-        if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
-        {
-            printf("    Unexpected sample rate in speech file '%s'\n", bellcore_files[j]);
-            exit(2);
-        }
-        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
-        {
-            printf("    Unexpected number of channels in speech file '%s'\n", bellcore_files[j]);
             exit(2);
         }
         hits = 0;
@@ -829,7 +813,7 @@ static void decode_test(const char *test_file)
 
     /* We will decode the audio from a wave file. */
     
-    if ((inhandle = afOpenFile(decode_test_file, "r", NULL)) == AF_NULL_FILEHANDLE)
+    if ((inhandle = afOpenFile_telephony_read(decode_test_file, 1)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
         exit(2);

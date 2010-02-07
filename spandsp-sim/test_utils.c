@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: test_utils.c,v 1.6 2008/07/02 14:48:25 steveu Exp $
+ * $Id: test_utils.c,v 1.8 2008/08/29 09:28:13 steveu Exp $
  */
 
 /*! \file */
@@ -49,6 +49,8 @@
 #include "spandsp.h"
 #include "spandsp-sim.h"
 
+#define MAX_FFT_LEN     8192
+
 struct codec_munge_state_s
 {
     int munging_codec;
@@ -63,6 +65,11 @@ struct complexify_state_s
     float history[128];
     int ptr;
 };
+
+static complex_t circle[MAX_FFT_LEN/2];
+static int circle_init = FALSE;
+static complex_t icircle[MAX_FFT_LEN/2];
+static int icircle_init = FALSE;
 
 complexify_state_t *complexify_init(void)
 {
@@ -138,6 +145,118 @@ complexf_t complexify(complexify_state_t *s, int16_t amp)
     if (++s->ptr >= 128)
         s->ptr = 0;
     return res;
+}
+/*- End of function --------------------------------------------------------*/
+
+static __inline__ complex_t expj(double theta)
+{
+    return complex_set(cos(theta), sin(theta));
+}
+/*- End of function --------------------------------------------------------*/
+
+static void fftx(complex_t data[], complex_t temp[], int n)
+{
+    int i;
+    int h;
+    int p;
+    int t;
+    int i2;
+    complex_t wkt;
+
+    if (n > 1)
+    {
+        h = n/2;
+        for (i = 0;  i < h;  i++)
+        {
+            i2 = i*2;
+            temp[i] = data[i2];         /* Even */
+            temp[h + i] = data[i2 + 1]; /* Odd */
+        }
+        fftx(&temp[0], &data[0], h);
+        fftx(&temp[h], &data[h], h);
+        p = 0;
+        t = MAX_FFT_LEN/n;
+        for (i = 0;  i < h;  i++)
+        {
+            wkt = complex_mul(&circle[p], &temp[h + i]);
+            data[i] = complex_add(&temp[i], &wkt);
+            data[h + i] = complex_sub(&temp[i], &wkt);
+            p += t;
+        }
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
+static void ifftx(complex_t data[], complex_t temp[], int n)
+{
+    int i;
+    int h;
+    int p;
+    int t;
+    int i2;
+    complex_t wkt;
+
+    if (n > 1)
+    {
+        h = n/2;
+        for (i = 0;  i < h;  i++)
+        {
+            i2 = i*2;
+            temp[i] = data[i2];         /* Even */
+            temp[h + i] = data[i2 + 1]; /* Odd */
+        }
+        fftx(&temp[0], &data[0], h);
+        fftx(&temp[h], &data[h], h);
+        p = 0;
+        t = MAX_FFT_LEN/n;
+        for (i = 0;  i < h;  i++)
+        {
+            wkt = complex_mul(&icircle[p], &temp[h + i]);
+            data[i] = complex_add(&temp[i], &wkt);
+            data[h + i] = complex_sub(&temp[i], &wkt);
+            p += t;
+        }
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
+void fft(complex_t data[], int len)
+{
+    int i;
+    double x;
+    complex_t temp[MAX_FFT_LEN];
+
+    /* A very slow and clunky FFT, that's just fine for tests. */
+    if (!circle_init)
+    {
+        for (i = 0;  i < MAX_FFT_LEN/2;  i++)
+        {
+            x = -(2.0*3.1415926535*i)/(double) MAX_FFT_LEN;
+            circle[i] = expj(x);
+        }
+        circle_init = TRUE;
+    }
+    fftx(data, temp, len);
+}
+/*- End of function --------------------------------------------------------*/
+
+void ifft(complex_t data[], int len)
+{
+    int i;
+    double x;
+    complex_t temp[MAX_FFT_LEN];
+
+    /* A very slow and clunky FFT, that's just fine for tests. */
+    if (!icircle_init)
+    {
+        for (i = 0;  i < MAX_FFT_LEN/2;  i++)
+        {
+            x = (2.0*3.1415926535*i)/(double) MAX_FFT_LEN;
+            icircle[i] = expj(x);
+        }
+        icircle_init = TRUE;
+    }
+    ifftx(data, temp, len);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -228,6 +347,62 @@ void codec_munge(codec_munge_state_t *s, int16_t amp[], int len)
         }
         break;
     }
+}
+/*- End of function --------------------------------------------------------*/
+
+AFfilehandle afOpenFile_telephony_read(const char *name, int channels)
+{
+    float x;
+    AFfilehandle handle;
+
+    if ((handle = afOpenFile(name, "r", 0)) == AF_NULL_FILEHANDLE)
+    {
+        fprintf(stderr, "    Cannot open wave file '%s'\n", name);
+        exit(2);
+    }
+    if ((x = afGetFrameSize(handle, AF_DEFAULT_TRACK, 1)) != 2.0)
+    {
+        fprintf(stderr, "    Unexpected frame size in wave file '%s'\n", name);
+        exit(2);
+    }
+    if ((x = afGetRate(handle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
+    {
+        printf("    Unexpected sample rate in wave file '%s'\n", name);
+        exit(2);
+    }
+    if ((x = afGetChannels(handle, AF_DEFAULT_TRACK)) != (float) channels)
+    {
+        printf("    Unexpected number of channels in wave file '%s'\n", name);
+        exit(2);
+    }
+
+    return handle;
+}
+/*- End of function --------------------------------------------------------*/
+
+AFfilehandle afOpenFile_telephony_write(const char *name, int channels)
+{
+    AFfilesetup setup;
+    AFfilehandle handle;
+
+    if ((setup = afNewFileSetup()) == AF_NULL_FILESETUP)
+    {
+        fprintf(stderr, "    %s: Failed to create file setup\n", name);
+        exit(2);
+    }
+    afInitSampleFormat(setup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
+    afInitRate(setup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
+    afInitFileFormat(setup, AF_FILE_WAVE);
+    afInitChannels(setup, AF_DEFAULT_TRACK, channels);
+
+    if ((handle = afOpenFile(name, "w", setup)) == AF_NULL_FILEHANDLE)
+    {
+        fprintf(stderr, "    Failed to open result file\n");
+        exit(2);
+    }
+    afFreeFileSetup(setup);
+
+    return handle;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

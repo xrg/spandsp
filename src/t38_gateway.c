@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.138 2008/08/14 14:06:05 steveu Exp $
+ * $Id: t38_gateway.c,v 1.139 2008/08/17 16:25:52 steveu Exp $
  */
 
 /*! \file */
@@ -493,6 +493,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     case T38_IND_V17_12000_LONG_TRAINING:
     case T38_IND_V17_14400_SHORT_TRAINING:
     case T38_IND_V17_14400_LONG_TRAINING:
+        short_train = FALSE;
         switch (indicator)
         {
         case T38_IND_V17_7200_SHORT_TRAINING:
@@ -500,7 +501,6 @@ static int set_next_tx_type(t38_gateway_state_t *s)
             t->tx_bit_rate = 7200;
             break;
         case T38_IND_V17_7200_LONG_TRAINING:
-            short_train = FALSE;
             t->tx_bit_rate = 7200;
             break;
         case T38_IND_V17_9600_SHORT_TRAINING:
@@ -508,7 +508,6 @@ static int set_next_tx_type(t38_gateway_state_t *s)
             t->tx_bit_rate = 9600;
             break;
         case T38_IND_V17_9600_LONG_TRAINING:
-            short_train = FALSE;
             t->tx_bit_rate = 9600;
             break;
         case T38_IND_V17_12000_SHORT_TRAINING:
@@ -516,7 +515,6 @@ static int set_next_tx_type(t38_gateway_state_t *s)
             t->tx_bit_rate = 12000;
             break;
         case T38_IND_V17_12000_LONG_TRAINING:
-            short_train = FALSE;
             t->tx_bit_rate = 12000;
             break;
         case T38_IND_V17_14400_SHORT_TRAINING:
@@ -524,7 +522,6 @@ static int set_next_tx_type(t38_gateway_state_t *s)
             t->tx_bit_rate = 14400;
             break;
         case T38_IND_V17_14400_LONG_TRAINING:
-            short_train = FALSE;
             t->tx_bit_rate = 14400;
             break;
         }

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: gsm0610_tests.c,v 1.16 2008/05/13 13:17:25 steveu Exp $
+ * $Id: gsm0610_tests.c,v 1.19 2008/08/29 09:28:13 steveu Exp $
  */
 
 /*! \file */
@@ -129,6 +129,7 @@ will be compressed to GSM 06.10 data, decompressed, and the resulting audio stor
 #include <audiofile.h>
 
 #include "spandsp.h"
+#include "spandsp-sim.h"
 
 #define BLOCK_LEN       160
 
@@ -518,10 +519,8 @@ int main(int argc, char *argv[])
 {
     AFfilehandle inhandle;
     AFfilehandle outhandle;
-    AFfilesetup filesetup;
     int frames;
     int outframes;
-    float x;
     int16_t pre_amp[HIST_LEN];
     int16_t post_amp[HIST_LEN];
     uint8_t gsm0610_data[HIST_LEN];
@@ -573,37 +572,12 @@ int main(int argc, char *argv[])
     }
     else
     {
-        if ((inhandle = afOpenFile(IN_FILE_NAME, "r", 0)) == AF_NULL_FILEHANDLE)
+        if ((inhandle = afOpenFile_telephony_read(IN_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot open wave file '%s'\n", IN_FILE_NAME);
             exit(2);
         }
-        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
-        {
-            fprintf(stderr, "    Unexpected frame size in wave file '%s'\n", IN_FILE_NAME);
-            exit(2);
-        }
-        if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
-        {
-            fprintf(stderr, "    Unexpected sample rate in wave file '%s'\n", IN_FILE_NAME);
-            exit(2);
-        }
-        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
-        {
-            fprintf(stderr, "    Unexpected number of channels in wave file '%s'\n", IN_FILE_NAME);
-            exit(2);
-        }
-        if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
-        {
-            fprintf(stderr, "    Failed to create file setup\n");
-            exit(2);
-        }
-        afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-        afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-        afInitFileFormat(filesetup, AF_FILE_WAVE);
-        afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
-    
-        if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
+        if ((outhandle = afOpenFile_telephony_write(OUT_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
         {
             fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
             exit(2);
@@ -638,7 +612,6 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
             exit(2);
         }
-        afFreeFileSetup(filesetup);
         gsm0610_release(gsm0610_enc_state);
         gsm0610_release(gsm0610_dec_state);
     }

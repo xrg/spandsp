@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_tests.c,v 1.60 2008/07/24 13:55:24 steveu Exp $
+ * $Id: t38_terminal_tests.c,v 1.61 2008/08/16 14:59:50 steveu Exp $
  */
 
 /*! \file */
@@ -58,6 +58,7 @@ These tests exercise the path
 #include <arpa/inet.h>
 #include <sys/select.h>
 #include <sys/time.h>
+#include <audiofile.h>
 
 #include "spandsp.h"
 #include "spandsp-sim.h"

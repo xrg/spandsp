@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx_tests.c,v 1.22 2008/05/13 13:17:26 steveu Exp $
+ * $Id: super_tone_tx_tests.c,v 1.23 2008/08/16 15:24:16 steveu Exp $
  */
 
 /*! \file */
@@ -57,11 +57,11 @@
 #endif
 
 #include "spandsp.h"
+#include "spandsp-sim.h"
 
 #define OUT_FILE_NAME   "super_tone.wav"
 
 AFfilehandle outhandle;
-AFfilesetup filesetup;
 
 super_tone_tx_step_t *tone_tree = NULL;
 
@@ -282,17 +282,7 @@ static void get_tone_set(const char *tone_file, const char *set_id)
 
 int main(int argc, char *argv[])
 {
-    if ((filesetup = afNewFileSetup ()) == AF_NULL_FILESETUP)
-    {
-    	fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
-    }
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, 8000.0);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
-
-    if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile_telephony_write(OUT_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot open audio file '%s'\n", OUT_FILE_NAME);
         exit(2);
@@ -305,7 +295,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot close audio file '%s'\n", OUT_FILE_NAME);
         exit(2);
     }
-    afFreeFileSetup(filesetup);
     printf("Done\n");
     return 0;
 }

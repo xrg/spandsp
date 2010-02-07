@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.c,v 1.23 2008/07/29 14:15:21 steveu Exp $
+ * $Id: sig_tone.c,v 1.24 2008/08/17 16:25:52 steveu Exp $
  */
 
 /*! \file */
@@ -407,6 +407,7 @@ int sig_tone_rx(sig_tone_rx_state_t *s, int16_t amp[], int len)
         if (s->signaling_state_duration < 0xFFFF)
             s->signaling_state_duration++;
         /*endif*/
+        notched_signal = 0;
         for (j = 0;  j < s->desc->tones;  j++)
         {
             /* The notch filter is two cascaded biquads. */

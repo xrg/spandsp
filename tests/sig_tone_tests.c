@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone_tests.c,v 1.22 2008/07/29 14:15:21 steveu Exp $
+ * $Id: sig_tone_tests.c,v 1.23 2008/08/16 14:59:50 steveu Exp $
  */
 
 /*! \file */
@@ -168,7 +168,6 @@ int main(int argc, char *argv[])
     int16_t amp[SAMPLES_PER_CHUNK];
     int16_t out_amp[2*SAMPLES_PER_CHUNK];
     AFfilehandle outhandle;
-    AFfilesetup filesetup;
     int outframes;
     int i;
     int type;
@@ -179,18 +178,7 @@ int main(int argc, char *argv[])
     awgn_state_t noise_source;
     codec_munge_state_t *munge;
 
-    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
-    {
-        fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
-    }
-    /*endif*/
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
-
-    if ((outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup)) == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile_telephony_write(OUT_FILE_NAME, 2)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
         exit(2);
@@ -268,7 +256,6 @@ int main(int argc, char *argv[])
         exit(2);
     }
     /*endif*/
-    afFreeFileSetup(filesetup);
     
     printf("Tests completed.\n");
     return  0;

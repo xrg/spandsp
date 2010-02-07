@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: r2_mf_tx_tests.c,v 1.11 2008/05/13 13:17:26 steveu Exp $
+ * $Id: r2_mf_tx_tests.c,v 1.13 2008/08/16 15:24:16 steveu Exp $
  */
 
 /*! \file */
@@ -47,6 +47,7 @@
 #include <audiofile.h>
 
 #include "spandsp.h"
+#include "spandsp-sim.h"
 
 #define OUTPUT_FILE_NAME    "r2_mf.wav"
 
@@ -56,25 +57,11 @@ int main(int argc, char *argv[])
     int16_t amp[1000];
     int len;
     AFfilehandle outhandle;
-    AFfilesetup filesetup;
     int outframes;
     int digit;
     const char *digits = "0123456789BCDEF";
 
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
-    {
-        fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
-    }
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, 8000.0);
-    //afInitCompression(filesetup, AF_DEFAULT_TRACK, AF_COMPRESSION_G711_ALAW);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
-
-    outhandle = afOpenFile(OUTPUT_FILE_NAME, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
+    if ((outhandle = afOpenFile_telephony_write(OUTPUT_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot open wave file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
@@ -135,7 +122,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
         exit (2);
     }
-    afFreeFileSetup(filesetup);
 
     return  0;
 }

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo_tests.c,v 1.28 2008/05/13 13:17:26 steveu Exp $
+ * $Id: modem_echo_tests.c,v 1.30 2008/08/29 09:28:13 steveu Exp $
  */
 
 /*! \page modem_echo_can_tests_page Line echo cancellation for modems tests
@@ -94,6 +94,7 @@ cancellor.
 
 #include "spandsp.h"
 #include "spandsp/g168models.h"
+#include "spandsp-sim.h"
 #if defined(ENABLE_GUI)
 #include "echo_monitor.h"
 #endif
@@ -148,27 +149,10 @@ static inline void put_residue(int16_t tx, int16_t residue)
 
 static void signal_load(signal_source_t *sig, const char *name)
 {
-    float x;
-
     sig->name = name;
-    if ((sig->handle = afOpenFile(sig->name, "r", 0)) == AF_NULL_FILEHANDLE)
+    if ((sig->handle = afOpenFile_telephony_read(sig->name, 1)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Cannot open sound file '%s'\n", sig->name);
-        exit(2);
-    }
-    if ((x = afGetFrameSize(sig->handle, AF_DEFAULT_TRACK, 1)) != 2.0)
-    {
-        fprintf(stderr, "    Unexpected frame size in wave file '%s'\n", sig->name);
-        exit(2);
-    }
-    if ((x = afGetRate(sig->handle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
-    {
-        printf("    Unexpected sample rate in wave file '%s'\n", sig->name);
-        exit(2);
-    }
-    if ((x = afGetChannels(sig->handle, AF_DEFAULT_TRACK)) != 1.0)
-    {
-        printf("    Unexpected number of channels in wave file '%s'\n", sig->name);
         exit(2);
     }
     sig->max = afReadFrames(sig->handle, AF_DEFAULT_TRACK, sig->signal, 8000);
@@ -207,7 +191,7 @@ static int16_t signal_amp(signal_source_t *sig)
 }
 /*- End of function --------------------------------------------------------*/
 
-static inline int16_t codec_munge(int16_t amp)
+static inline int16_t codec_munger(int16_t amp)
 {
     if (do_codec_munge)
         return alaw_to_linear(linear_to_alaw(amp));
@@ -255,13 +239,13 @@ static int16_t channel_model(int16_t local, int16_t far)
 
     /* The local tx signal will have gone through an A-law munging before
        it reached the line's analogue area where the echo occurs. */
-    echo = fir32(&line_model, codec_munge(local/8));
+    echo = fir32(&line_model, codec_munger(local/8));
     /* The far end signal will have been through an A-law munging, although
        this should not affect things. */
-    rx = echo + codec_munge(far);
+    rx = echo + codec_munger(far);
     /* This mixed echo and far end signal will have been through an A-law munging when it came back into
        the digital network. */
-    rx = codec_munge(rx);
+    rx = codec_munger(rx);
     return  rx;
 }
 /*- End of function --------------------------------------------------------*/
@@ -278,7 +262,6 @@ int main(int argc, char *argv[])
     int local_cur;
     int far_cur;
     int result_cur;
-    AFfilesetup filesetup;
     int line_model_no;
     time_t now;
     power_meter_t power_before;
@@ -308,19 +291,7 @@ int main(int argc, char *argv[])
 
     signal_load(&local_css, "sound_c1_8k.wav");
 
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
-    {
-        fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
-    }
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
-
-    resulthandle = afOpenFile("modem_echo.wav", "w", filesetup);
-    if (resulthandle == AF_NULL_FILEHANDLE)
+    if ((resulthandle = afOpenFile_telephony_write("modem_echo.wav", 2)) == AF_NULL_FILEHANDLE)
     {
         fprintf(stderr, "    Failed to open result file\n");
         exit(2);
@@ -420,7 +391,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    Cannot close speech file '%s'\n", "result_sound.wav");
         exit(2);
     }
-    afFreeFileSetup(filesetup);
 
 #if defined(ENABLE_GUI)
     if (use_gui)
