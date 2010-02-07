@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.c,v 1.12 2009/06/01 16:27:12 steveu Exp $
+ * $Id: line_model.c,v 1.13 2009/09/22 13:11:04 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -225,7 +225,7 @@ static float calc_near_line_filter(one_way_line_model_state_t *s, float v)
     s->near_buf_ptr = p;
     
     /* Apply the filter */
-    sum = 0;
+    sum = 0.0f;
     for (j = 0;  j < s->near_filter_len;  j++)
     {
         sum += s->near_filter[j]*s->near_buf[p];
@@ -254,7 +254,7 @@ static float calc_far_line_filter(one_way_line_model_state_t *s, float v)
     s->far_buf_ptr = p;
     
     /* Apply the filter */
-    sum = 0;
+    sum = 0.0f;
     for (j = 0;  j < s->far_filter_len;  j++)
     {
         sum += s->far_filter[j]*s->far_buf[p];

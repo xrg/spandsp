@@ -60,8 +60,8 @@ noinst_PROGRAMS = adsi_tests$(EXEEXT) async_tests$(EXEEXT) \
 	r2_mf_tx_tests$(EXEEXT) rfc2198_sim_tests$(EXEEXT) \
 	schedule_tests$(EXEEXT) sig_tone_tests$(EXEEXT) \
 	super_tone_rx_tests$(EXEEXT) super_tone_tx_tests$(EXEEXT) \
-	t4_tests$(EXEEXT) t31_tests$(EXEEXT) t38_core_tests$(EXEEXT) \
-	t38_gateway_tests$(EXEEXT) \
+	swept_tone_tests$(EXEEXT) t4_tests$(EXEEXT) t31_tests$(EXEEXT) \
+	t38_core_tests$(EXEEXT) t38_gateway_tests$(EXEEXT) \
 	t38_gateway_to_terminal_tests$(EXEEXT) \
 	t38_non_ecm_buffer_tests$(EXEEXT) t38_terminal_tests$(EXEEXT) \
 	t38_terminal_to_gateway_tests$(EXEEXT) \
@@ -240,6 +240,9 @@ super_tone_rx_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_super_tone_tx_tests_OBJECTS = super_tone_tx_tests.$(OBJEXT)
 super_tone_tx_tests_OBJECTS = $(am_super_tone_tx_tests_OBJECTS)
 super_tone_tx_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_swept_tone_tests_OBJECTS = swept_tone_tests.$(OBJEXT)
+swept_tone_tests_OBJECTS = $(am_swept_tone_tests_OBJECTS)
+swept_tone_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_t31_tests_OBJECTS = t31_tests.$(OBJEXT) fax_utils.$(OBJEXT) \
 	media_monitor.$(OBJEXT)
 t31_tests_OBJECTS = $(am_t31_tests_OBJECTS)
@@ -371,8 +374,8 @@ SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(r2_mf_tx_tests_SOURCES) $(rfc2198_sim_tests_SOURCES) \
 	$(schedule_tests_SOURCES) $(sig_tone_tests_SOURCES) \
 	$(super_tone_rx_tests_SOURCES) $(super_tone_tx_tests_SOURCES) \
-	$(t31_tests_SOURCES) $(t38_core_tests_SOURCES) \
-	$(t38_gateway_tests_SOURCES) \
+	$(swept_tone_tests_SOURCES) $(t31_tests_SOURCES) \
+	$(t38_core_tests_SOURCES) $(t38_gateway_tests_SOURCES) \
 	$(t38_gateway_to_terminal_tests_SOURCES) \
 	$(t38_non_ecm_buffer_tests_SOURCES) \
 	$(t38_terminal_tests_SOURCES) \
@@ -409,8 +412,8 @@ DIST_SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(r2_mf_tx_tests_SOURCES) $(rfc2198_sim_tests_SOURCES) \
 	$(schedule_tests_SOURCES) $(sig_tone_tests_SOURCES) \
 	$(super_tone_rx_tests_SOURCES) $(super_tone_tx_tests_SOURCES) \
-	$(t31_tests_SOURCES) $(t38_core_tests_SOURCES) \
-	$(t38_gateway_tests_SOURCES) \
+	$(swept_tone_tests_SOURCES) $(t31_tests_SOURCES) \
+	$(t38_core_tests_SOURCES) $(t38_gateway_tests_SOURCES) \
 	$(t38_gateway_to_terminal_tests_SOURCES) \
 	$(t38_non_ecm_buffer_tests_SOURCES) \
 	$(t38_terminal_tests_SOURCES) \
@@ -697,6 +700,8 @@ super_tone_rx_tests_SOURCES = super_tone_rx_tests.c
 super_tone_rx_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 super_tone_tx_tests_SOURCES = super_tone_tx_tests.c
 super_tone_tx_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
+swept_tone_tests_SOURCES = swept_tone_tests.c
+swept_tone_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 t4_tests_SOURCES = t4_tests.c
 t4_tests_LDADD = $(LIBDIR) -lspandsp
 t31_tests_SOURCES = t31_tests.c fax_utils.c media_monitor.cpp
@@ -926,6 +931,9 @@ super_tone_rx_tests$(EXEEXT): $(super_tone_rx_tests_OBJECTS) $(super_tone_rx_tes
 super_tone_tx_tests$(EXEEXT): $(super_tone_tx_tests_OBJECTS) $(super_tone_tx_tests_DEPENDENCIES) 
 	@rm -f super_tone_tx_tests$(EXEEXT)
 	$(LINK) $(super_tone_tx_tests_LDFLAGS) $(super_tone_tx_tests_OBJECTS) $(super_tone_tx_tests_LDADD) $(LIBS)
+swept_tone_tests$(EXEEXT): $(swept_tone_tests_OBJECTS) $(swept_tone_tests_DEPENDENCIES) 
+	@rm -f swept_tone_tests$(EXEEXT)
+	$(LINK) $(swept_tone_tests_LDFLAGS) $(swept_tone_tests_OBJECTS) $(swept_tone_tests_LDADD) $(LIBS)
 t31_tests$(EXEEXT): $(t31_tests_OBJECTS) $(t31_tests_DEPENDENCIES) 
 	@rm -f t31_tests$(EXEEXT)
 	$(CXXLINK) $(t31_tests_LDFLAGS) $(t31_tests_OBJECTS) $(t31_tests_LDADD) $(LIBS)
@@ -1058,6 +1066,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sig_tone_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/super_tone_rx_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/super_tone_tx_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/swept_tone_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t31_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_core_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t38_gateway_tests.Po@am__quote@

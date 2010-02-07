@@ -80,13 +80,13 @@ am_libspandsp_la_OBJECTS = adsi.lo async.lo at_interpreter.lo awgn.lo \
 	lpc10_placev.lo lpc10_voicing.lo modem_echo.lo \
 	modem_connect_tones.lo noise.lo oki_adpcm.lo playout.lo plc.lo \
 	power_meter.lo queue.lo schedule.lo sig_tone.lo silence_gen.lo \
-	super_tone_rx.lo super_tone_tx.lo t4.lo t30.lo t30_api.lo \
-	t30_logging.lo t31.lo t35.lo t38_core.lo t38_gateway.lo \
-	t38_non_ecm_buffer.lo t38_terminal.lo testcpuid.lo \
-	time_scale.lo tone_detect.lo tone_generate.lo v17rx.lo \
-	v17tx.lo v18.lo v22bis_rx.lo v22bis_tx.lo v27ter_rx.lo \
-	v27ter_tx.lo v29rx.lo v29tx.lo v42.lo v42bis.lo v8.lo \
-	vector_float.lo vector_int.lo
+	super_tone_rx.lo super_tone_tx.lo swept_tone.lo t4.lo t30.lo \
+	t30_api.lo t30_logging.lo t31.lo t35.lo t38_core.lo \
+	t38_gateway.lo t38_non_ecm_buffer.lo t38_terminal.lo \
+	testcpuid.lo time_scale.lo tone_detect.lo tone_generate.lo \
+	v17rx.lo v17tx.lo v18.lo v22bis_rx.lo v22bis_tx.lo \
+	v27ter_rx.lo v27ter_tx.lo v29rx.lo v29tx.lo v42.lo v42bis.lo \
+	v8.lo vector_float.lo vector_int.lo
 libspandsp_la_OBJECTS = $(am_libspandsp_la_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
 make_at_dictionary_SOURCES = make_at_dictionary.c
@@ -347,6 +347,7 @@ libspandsp_la_SOURCES = adsi.c \
                         silence_gen.c \
                         super_tone_rx.c \
                         super_tone_tx.c \
+                        swept_tone.c \
                         t4.c \
                         t30.c \
                         t30_api.c \
@@ -424,6 +425,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/silence_gen.h \
                          spandsp/super_tone_rx.h \
                          spandsp/super_tone_tx.h \
+                         spandsp/swept_tone.h \
                          spandsp/t4.h \
                          spandsp/t30.h \
                          spandsp/t30_api.h \
@@ -462,6 +464,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/private/bert.h \
                          spandsp/private/bitstream.h \
                          spandsp/private/dtmf.h \
+                         spandsp/private/echo.h \
                          spandsp/private/fax.h \
                          spandsp/private/fax_modems.h \
                          spandsp/private/fsk.h \
@@ -474,6 +477,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/private/logging.h \
                          spandsp/private/lpc10.h \
                          spandsp/private/modem_connect_tones.h \
+                         spandsp/private/modem_echo.h \
                          spandsp/private/noise.h \
                          spandsp/private/oki_adpcm.h \
                          spandsp/private/queue.h \
@@ -482,6 +486,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/private/silence_gen.h \
                          spandsp/private/super_tone_rx.h \
                          spandsp/private/super_tone_tx.h \
+                         spandsp/private/swept_tone.h \
                          spandsp/private/t30.h \
                          spandsp/private/t31.h \
                          spandsp/private/t38_core.h \
@@ -683,6 +688,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/silence_gen.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/super_tone_rx.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/super_tone_tx.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/swept_tone.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t30.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t30_api.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t30_logging.Plo@am__quote@

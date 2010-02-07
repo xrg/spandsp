@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.302 2009/09/20 13:42:29 steveu Exp $
+ * $Id: t30.c,v 1.303 2009/09/21 15:51:18 steveu Exp $
  */
 
 /*! \file */
@@ -1957,30 +1957,19 @@ static int start_receiving_document(t30_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void unexpected_frame(t30_state_t *s, const uint8_t *msg, int len)
-{
-    span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected %s received in state %d\n", t30_frametype(msg[2]), s->state);
-    switch (s->state)
-    {
-    case T30_STATE_F_DOC_ECM:
-    case T30_STATE_F_DOC_NON_ECM:
-        s->current_status = T30_ERR_RX_INVALCMD;
-        break;
-    }
-}
-/*- End of function --------------------------------------------------------*/
-
 static void unexpected_non_final_frame(t30_state_t *s, const uint8_t *msg, int len)
 {
     span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected %s frame in state %d\n", t30_frametype(msg[2]), s->state);
-    s->current_status = T30_ERR_UNEXPECTED;
+    if (s->current_status == T30_ERR_OK)
+        s->current_status = T30_ERR_UNEXPECTED;
 }
 /*- End of function --------------------------------------------------------*/
 
 static void unexpected_final_frame(t30_state_t *s, const uint8_t *msg, int len)
 {
-    span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected %s received in state %d\n", t30_frametype(msg[2]), s->state);
-    s->current_status = T30_ERR_UNEXPECTED;
+    span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected %s frame in state %d\n", t30_frametype(msg[2]), s->state);
+    if (s->current_status == T30_ERR_OK)
+        s->current_status = T30_ERR_UNEXPECTED;
     send_dcn(s);
 }
 /*- End of function --------------------------------------------------------*/
@@ -1988,7 +1977,8 @@ static void unexpected_final_frame(t30_state_t *s, const uint8_t *msg, int len)
 static void unexpected_frame_length(t30_state_t *s, const uint8_t *msg, int len)
 {
     span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected %s frame length - %d\n", t30_frametype(msg[0]), len);
-    s->current_status = T30_ERR_UNEXPECTED;
+    if (s->current_status == T30_ERR_OK)
+        s->current_status = T30_ERR_UNEXPECTED;
     send_dcn(s);
 }
 /*- End of function --------------------------------------------------------*/
@@ -3012,6 +3002,7 @@ static void process_state_f_doc_non_ecm(t30_state_t *s, const uint8_t *msg, int 
         break;
     default:
         /* We don't know what to do with this. */
+        s->current_status = T30_ERR_RX_INVALCMD;
         unexpected_final_frame(s, msg, len);
         break;
     }
@@ -3210,6 +3201,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
         break;
     default:
         /* We don't know what to do with this. */
+        s->current_status = T30_ERR_RX_INVALCMD;
         unexpected_final_frame(s, msg, len);
         break;
     }
@@ -3304,6 +3296,7 @@ static void process_state_f_doc_and_post_doc_ecm(t30_state_t *s, const uint8_t *
         break;
     default:
         /* We don't know what to do with this. */
+        s->current_status = T30_ERR_RX_INVALCMD;
         unexpected_final_frame(s, msg, len);
         break;
     }
@@ -3716,6 +3709,7 @@ static void process_state_ii_q(t30_state_t *s, const uint8_t *msg, int len)
         break;
     default:
         /* We don't know what to do with this. */
+        s->current_status = T30_ERR_TX_INVALRSP;
         unexpected_final_frame(s, msg, len);
         break;
     }
@@ -4387,7 +4381,7 @@ static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
             }
             else
             {
-                unexpected_frame(s, msg, len);
+                unexpected_non_final_frame(s, msg, len);
             }
             break;
         case (T30_SEP & 0xFE):
@@ -4399,7 +4393,7 @@ static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
             }
             else
             {
-                unexpected_frame(s, msg, len);
+                unexpected_non_final_frame(s, msg, len);
             }
             break;
         case (T30_PSA & 0xFE):
@@ -4410,7 +4404,7 @@ static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
             }
             else
             {
-                unexpected_frame(s, msg, len);
+                unexpected_non_final_frame(s, msg, len);
             }
             break;
         case (T30_CIA & 0xFE):
@@ -4421,7 +4415,7 @@ static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
             }
             else
             {
-                unexpected_frame(s, msg, len);
+                unexpected_non_final_frame(s, msg, len);
             }
             break;
         case (T30_ISP & 0xFE):
@@ -4432,7 +4426,7 @@ static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
             }
             else
             {
-                unexpected_frame(s, msg, len);
+                unexpected_non_final_frame(s, msg, len);
             }
             break;
         case (T30_TSI & 0xFE):
