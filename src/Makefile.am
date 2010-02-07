@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.124 2009/02/14 15:21:14 steveu Exp $
+## $Id: Makefile.am,v 1.126 2009/02/21 05:39:08 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -26,24 +26,36 @@ MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = floating_fudge.h \
              spandsp/version.h.in \
              libspandsp.dsp \
-             libspandsp.sln \
-             libspandsp.vcproj \
+             libspandsp.2005.sln \
+             libspandsp.2008.sln \
+             libspandsp.2005.vcproj \
+             libspandsp.2008.vcproj \
+             libtiff.2005.vcproj \
+             libtiff.2008.vcproj \
              msvc/config.h \
+             msvc/Download_TIFF.2005.vcproj \
+             msvc/Download_TIFF.2008.vcproj \
              msvc/getopt.c \
              msvc/gettimeofday.c \
              msvc/inttypes.h \
-             msvc/tgmath.h \
-             msvc/unistd.h \
+             msvc/make_at_dictionary.2005.vcproj \
+             msvc/make_at_dictionary.2008.vcproj \
+             msvc/make_modem_filter.2005.vcproj \
+             msvc/make_modem_filter.2008.vcproj \
              msvc/spandsp.h \
-             msvc/sys/time.h \
-             msvc/make_at_dictionary.vcproj \
-             msvc/make_headers.bat \
-             msvc/make_modem_filter.vcproj \
+             msvc/unistd.h \
+             msvc/tgmath.h \
              msvc/msvcproj.head \
              msvc/msvcproj.foot \
+             msvc/util.vbs \
              msvc/vc8proj.head \
              msvc/vc8proj.foot \
+             msvc/vc9proj.head \
+             msvc/vc9proj.foot \
+             msvc/sys/time.h \
+             msvc/tiff/cleancount \
              spandsp/private/README
+
 INCLUDES = -I$(top_builddir)
 
 lib_LTLIBRARIES = libspandsp.la
@@ -398,13 +410,15 @@ v29tx_floating_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.29 -t >v29tx_floating_rrc.h
 
 DSP = libspandsp.dsp
-VCPROJ = libspandsp.vcproj
+VCPROJ8 = libspandsp.2005.vcproj
+VCPROJ9 = libspandsp.2008.vcproj
 
 WIN32SOURCES = $(libspandsp_la_SOURCES) .\\msvc\\gettimeofday.c
 WIN32HEADERS = $(nobase_include_HEADERS) spandsp.h
 
 DSPOUT = | awk '{printf("%s\r\n", $$0)}' >> $(DSP)
-VCPROJOUT = | awk '{printf("%s\r\n", $$0)}' >> $(VCPROJ)
+VCPROJOUT8 = | awk '{printf("%s\r\n", $$0)}' >> $(VCPROJ8)
+VCPROJOUT9 = | awk '{printf("%s\r\n", $$0)}' >> $(VCPROJ9)
 
 $(DSP): msvc/msvcproj.head msvc/msvcproj.foot Makefile.am
 	echo "creating $(DSP)"
@@ -427,17 +441,29 @@ $(DSP): msvc/msvcproj.head msvc/msvcproj.foot Makefile.am
 	echo "# End Group" $(DSPOUT); \
 	cat $(srcdir)/msvc/msvcproj.foot $(DSPOUT) )
 
-$(VCPROJ): msvc/vc8proj.head msvc/vc8proj.foot Makefile.am
-	echo "creating $(VCPROJ)"
-	@(cp $(srcdir)/msvc/vc8proj.head $(VCPROJ); \
+$(VCPROJ8): msvc/vc8proj.head msvc/vc8proj.foot Makefile.am
+	echo "creating $(VCPROJ8)"
+	@(cp $(srcdir)/msvc/vc8proj.head $(VCPROJ8); \
 	for file in $(WIN32SOURCES); do \
-		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT); \
+		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT8); \
 	done; \
-	echo "</Filter><Filter  Name=\"Header Files\">" $(VCPROJOUT); \
+	echo "</Filter><Filter  Name=\"Header Files\">" $(VCPROJOUT8); \
 	for file in $(WIN32HEADERS); do \
-		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT); \
+		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT8); \
 	done; \
-	cat $(srcdir)/msvc/vc8proj.foot $(VCPROJOUT) )
+	cat $(srcdir)/msvc/vc8proj.foot $(VCPROJOUT8) )
+
+$(VCPROJ9): msvc/vc9proj.head msvc/vc9proj.foot Makefile.am
+	echo "creating $(VCPROJ9)"
+	@(cp $(srcdir)/msvc/vc9proj.head $(VCPROJ9); \
+	for file in $(WIN32SOURCES); do \
+		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT9); \
+	done; \
+	echo "</Filter><Filter  Name=\"Header Files\">" $(VCPROJOUT9); \
+	for file in $(WIN32HEADERS); do \
+		echo "<File RelativePath=\""$$file"\"></File>" $(VCPROJOUT9); \
+	done; \
+	cat $(srcdir)/msvc/vc9proj.foot $(VCPROJOUT9) )
 
 $(srcdir)/msvc/spandsp.h: spandsp.h.in
 	echo "creating $(srcdir)/msvc/spandsp.h"
