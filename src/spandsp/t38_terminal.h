@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * t38_terminal.h - An implementation of T.38, less the packet exchange part
+ * t38_terminal.h - T.38 termination, less the packet exchange part
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.20 2007/10/18 15:08:06 steveu Exp $
+ * $Id: t38_terminal.h,v 1.21 2007/10/30 12:47:23 steveu Exp $
  */
 
 /*! \file */

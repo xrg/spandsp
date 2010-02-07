@@ -1,11 +1,11 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * t38_gateway.h - An implementation of T.38, less the packet exchange part
+ * t38_gateway.h - A T.38, less the packet exchange part
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
- * Copyright (C) 2005 Steve Underwood
+ * Copyright (C) 2005, 2006, 2007 Steve Underwood
  *
  * All rights reserved.
  *
@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.33 2007/10/28 15:05:38 steveu Exp $
+ * $Id: t38_gateway.h,v 1.34 2007/10/30 12:47:23 steveu Exp $
  */
 
 /*! \file */
@@ -205,10 +205,16 @@ typedef struct
     /*! \brief TRUE if we need to corrupt the HDLC frame in progress, so the receiver cannot
                interpret it. */
     int corrupt_the_frame_from_t38;
-    
+
+    /*! \brief The currently select receiver type */
     int current_rx_type;
+    /*! \brief The currently select transmitter type */
     int current_tx_type;
 
+    /*! \brief Audio logging file handles */
+    int fax_audio_rx_log;
+    int fax_audio_tx_log;
+    /*! \brief Error and flow logging control */
     logging_state_t logging;
 } t38_gateway_state_t;
 

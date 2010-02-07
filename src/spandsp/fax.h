@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.h,v 1.24 2007/05/15 13:22:43 steveu Exp $
+ * $Id: fax.h,v 1.25 2007/10/30 12:47:23 steveu Exp $
  */
 
 /*! \file */
@@ -117,14 +117,14 @@ struct fax_state_s
     /*! \brief TRUE is the short training sequence should be used. */
     int short_train;
 
-    /*! The currently select receiver type */
+    /*! \brief The currently select receiver type */
     int current_rx_type;
-    /*! The currently select transmitter type */
+    /*! \brief The currently select transmitter type */
     int current_tx_type;
 
     int first_tx_hdlc_frame;
 
-    /*! Audio logging file handles */
+    /*! \brief Audio logging file handles */
     int fax_audio_rx_log;
     int fax_audio_tx_log;
     /*! \brief Error and flow logging control */

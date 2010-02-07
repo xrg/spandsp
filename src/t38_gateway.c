@@ -1,11 +1,12 @@
+//#define LOG_FAX_AUDIO
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * t38_gateway.c - An implementation of a T.38 gateway, less the packet exchange part
+ * t38_gateway.c - A T.38 gateway, less the packet exchange part
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
- * Copyright (C) 2005, 2006 Steve Underwood
+ * Copyright (C) 2005, 2006, 2007 Steve Underwood
  *
  * All rights reserved.
  *
@@ -22,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.97 2007/10/29 13:17:33 steveu Exp $
+ * $Id: t38_gateway.c,v 1.99 2007/10/30 12:47:23 steveu Exp $
  */
 
 /*! \file */
@@ -44,6 +45,9 @@
 #include <math.h>
 #endif
 #include <assert.h>
+#if defined(LOG_FAX_AUDIO)
+#include <unistd.h>
+#endif
 #include <tiffio.h>
 
 #include "spandsp/telephony.h"
@@ -623,7 +627,7 @@ static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int l
         /* Successful training means we should change to short training */
         s->image_data_mode = TRUE;
         s->tcf_in_progress = FALSE;
-        span_log(&s->logging, SPAN_LOG_FLOW, "CFR - short = %d, ECM = %d\n", s->image_data_mode, s->ecm_mode);
+        span_log(&s->logging, SPAN_LOG_FLOW, "CFR - image mode = %d, ECM = %d\n", s->image_data_mode, s->ecm_mode);
         if (!from_modem)
             restart_rx_modem(s);
         break;
@@ -1225,9 +1229,10 @@ static void non_ecm_put_bit(void *user_data, int bit)
     {
         /* Drop any extra zero bits when we already have enough for an EOL symbol. */
         /* The snag here is that if we just look for 11 bits, a line ending with
-           a code that has trailing bits will cause problems. The longest run of
+           a code that has trailing zero bits will cause problems. The longest run of
            trailing zeros for any code is 3, so we need to look for at least 14 zeros
-           if we don't want to actually analyse the compressed data in depth. */
+           if we don't want to actually analyse the compressed data in depth. This means
+           we do not strip every fill bit, but we strip most of them. */
         if ((s->non_ecm_rx_bit_stream & 0x3FFF) == 0  &&  bit == 0)
             return;
     }
@@ -1568,7 +1573,7 @@ static int restart_rx_modem(t38_gateway_state_t *s)
     put_bit_func_t put_bit_func;
     void *put_bit_user_data;
 
-    span_log(&s->logging, SPAN_LOG_FLOW, "Restart rx modem - modem = %d, short = %d, ECM = %d\n", s->fast_modem, s->image_data_mode,  s->ecm_mode);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Restart rx modem - modem = %d, image mode = %d, ECM = %d\n", s->fast_modem, s->image_data_mode, s->ecm_mode);
 
     hdlc_rx_init(&(s->hdlcrx), FALSE, TRUE, 5, NULL, s);
     s->crc = 0xFFFF;
@@ -1628,6 +1633,10 @@ int t38_gateway_rx(t38_gateway_state_t *s, int16_t amp[], int len)
 {
     int i;
 
+#if defined(LOG_FAX_AUDIO)
+    if (s->fax_audio_rx_log >= 0)
+        write(s->fax_audio_rx_log, amp, len*sizeof(int16_t));
+#endif
     if (s->samples_to_timeout > 0)
     {
         if ((s->samples_to_timeout -= len) <= 0)
@@ -1653,7 +1662,11 @@ int t38_gateway_rx(t38_gateway_state_t *s, int16_t amp[], int len)
 int t38_gateway_tx(t38_gateway_state_t *s, int16_t amp[], int max_len)
 {
     int len;
-
+#if defined(LOG_FAX_AUDIO)
+    int required_len;
+    
+    required_len = max_len;
+#endif
     if ((len = s->tx_handler(s->tx_user_data, amp, max_len)) < max_len)
     {
         if (set_next_tx_type(s))
@@ -1676,6 +1689,14 @@ int t38_gateway_tx(t38_gateway_state_t *s, int16_t amp[], int max_len)
             len = max_len;        
         }
     }
+#if defined(LOG_FAX_AUDIO)
+    if (s->fax_audio_tx_log >= 0)
+    {
+        if (len < required_len)
+            memset(amp + len, 0, (required_len - len)*sizeof(int16_t));
+        write(s->fax_audio_tx_log, amp, required_len*sizeof(int16_t));
+    }
+#endif
     return len;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1753,6 +1774,36 @@ t38_gateway_state_t *t38_gateway_init(t38_gateway_state_t *s,
     t38_gateway_set_nsx_suppression(s, TRUE);
     s->ecm_allowed = FALSE;
     restart_rx_modem(s);
+#if defined(LOG_FAX_AUDIO)
+    {
+        char buf[100 + 1];
+        struct tm *tm;
+        time_t now;
+
+        time(&now);
+        tm = localtime(&now);
+        sprintf(buf,
+                "/tmp/t38-rx-audio-%p-%02d%02d%02d%02d%02d%02d",
+                s,
+                tm->tm_year%100,
+                tm->tm_mon + 1,
+                tm->tm_mday,
+                tm->tm_hour,
+                tm->tm_min,
+                tm->tm_sec);
+        s->fax_audio_rx_log = open(buf, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+        sprintf(buf,
+                "/tmp/t38-tx-audio-%p-%02d%02d%02d%02d%02d%02d",
+                s,
+                tm->tm_year%100,
+                tm->tm_mon + 1,
+                tm->tm_mday,
+                tm->tm_hour,
+                tm->tm_min,
+                tm->tm_sec);
+        s->fax_audio_tx_log = open(buf, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+    }
+#endif
     return s;
 }
 /*- End of function --------------------------------------------------------*/

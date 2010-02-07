@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.59 2007/10/24 13:32:06 steveu Exp $
+ * $Id: fax.c,v 1.60 2007/10/30 12:47:23 steveu Exp $
  */
 
 /*! \file */
@@ -48,7 +48,6 @@
 #if defined(LOG_FAX_AUDIO)
 #include <unistd.h>
 #endif
-
 #include <tiffio.h>
 
 #include "spandsp/telephony.h"
@@ -579,7 +578,7 @@ fax_state_t *fax_init(fax_state_t *s, int calling_party)
         time(&now);
         tm = localtime(&now);
         sprintf(buf,
-                "/tmp/fax-rx-audio-%x-%02d%02d%02d%02d%02d%02d",
+                "/tmp/fax-rx-audio-%p-%02d%02d%02d%02d%02d%02d",
                 s,
                 tm->tm_year%100,
                 tm->tm_mon + 1,
@@ -589,7 +588,7 @@ fax_state_t *fax_init(fax_state_t *s, int calling_party)
                 tm->tm_sec);
         s->fax_audio_rx_log = open(buf, O_CREAT | O_TRUNC | O_WRONLY, 0666);
         sprintf(buf,
-                "/tmp/fax-tx-audio-%x-%02d%02d%02d%02d%02d%02d",
+                "/tmp/fax-tx-audio-%p-%02d%02d%02d%02d%02d%02d",
                 s,
                 tm->tm_year%100,
                 tm->tm_mon + 1,
