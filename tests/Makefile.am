@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.114 2009/04/26 08:25:37 steveu Exp $
+## $Id: Makefile.am,v 1.115 2009/05/16 03:34:45 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -247,7 +247,7 @@ plc_tests_SOURCES = plc_tests.c
 plc_tests_LDADD = $(LIBDIR) -lspandsp
 
 power_meter_tests_SOURCES = power_meter_tests.c
-power_meter_tests_LDADD = $(LIBDIR) -lspandsp
+power_meter_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
 queue_tests_SOURCES = queue_tests.c
 queue_tests_LDADD = $(LIBDIR) -lspandsp

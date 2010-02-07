@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.c,v 1.8 2009/02/03 16:28:39 steveu Exp $
+ * $Id: line_model.c,v 1.9 2009/05/16 03:34:45 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -486,8 +486,9 @@ one_way_line_model_state_t *one_way_line_model_init(int model, float noise, int 
     s->far_filter = models[model];
     s->far_filter_len = 129;
 
-    awgn_init_dbm0(&s->near_noise, 1234567, noise);
-    awgn_init_dbm0(&s->far_noise, 1234567, noise);
+    /* Put half the noise in each analogue section */
+    awgn_init_dbm0(&s->near_noise, 1234567, noise - 3.02f);
+    awgn_init_dbm0(&s->far_noise, 1234567, noise - 3.02f);
     
     s->dc_offset = 0.0f;
     s->mains_interference = 0;
@@ -536,11 +537,12 @@ both_ways_line_model_state_t *both_ways_line_model_init(int model1,
     s->line2.far_filter = models[model2];
     s->line2.far_filter_len = 129;
 
-    awgn_init_dbm0(&s->line1.near_noise, 1234567, noise1);
-    awgn_init_dbm0(&s->line2.near_noise, 7654321, noise2);
+    /* Put half the noise in each analogue section */
+    awgn_init_dbm0(&s->line1.near_noise, 1234567, noise1 - 3.02f);
+    awgn_init_dbm0(&s->line2.near_noise, 7654321, noise2 - 3.02f);
 
-    awgn_init_dbm0(&s->line1.far_noise, 1234567, noise1);
-    awgn_init_dbm0(&s->line2.far_noise, 7654321, noise2);
+    awgn_init_dbm0(&s->line1.far_noise, 1234567, noise1 - 3.02f);
+    awgn_init_dbm0(&s->line2.far_noise, 7654321, noise2 - 3.02f);
 
     s->line1.dc_offset = 0.0f;
     s->line2.dc_offset = 0.0f;
@@ -549,10 +551,10 @@ both_ways_line_model_state_t *both_ways_line_model_init(int model1,
 
     /* Echos */
     echo_level = -15; /* in dB */
-    s->line1.near_co_hybrid_echo = pow(10, echo_level/20.0);
-    s->line2.near_co_hybrid_echo = pow(10, echo_level/20.0);
-    s->line1.near_cpe_hybrid_echo = pow(10, echo_level/20.0);
-    s->line2.near_cpe_hybrid_echo = pow(10, echo_level/20.0);
+    s->line1.near_co_hybrid_echo = pow(10, echo_level/20.0f);
+    s->line2.near_co_hybrid_echo = pow(10, echo_level/20.0f);
+    s->line1.near_cpe_hybrid_echo = pow(10, echo_level/20.0f);
+    s->line2.near_cpe_hybrid_echo = pow(10, echo_level/20.0f);
     
     return s;
 }

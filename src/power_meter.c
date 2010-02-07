@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter.c,v 1.28 2009/02/10 13:06:46 steveu Exp $
+ * $Id: power_meter.c,v 1.29 2009/05/16 03:34:45 steveu Exp $
  */
 
 /*! \file */
@@ -122,7 +122,7 @@ SPAN_DECLARE(int32_t) power_meter_current(power_meter_t *s)
 SPAN_DECLARE(float) power_meter_current_dbm0(power_meter_t *s)
 {
     if (s->reading <= 0)
-        return FLT_MIN;
+        return -96.329f + DBM0_MAX_POWER;
     /* This is based on A-law, but u-law is only 0.03dB different, so don't worry. */
     return log10f((float) s->reading/(32767.0f*32767.0f))*10.0f + DBM0_MAX_POWER;
 }
@@ -131,7 +131,7 @@ SPAN_DECLARE(float) power_meter_current_dbm0(power_meter_t *s)
 SPAN_DECLARE(float) power_meter_current_dbov(power_meter_t *s)
 {
     if (s->reading <= 0)
-        return FLT_MIN;
+        return -96.329f;
     return log10f((float) s->reading/(32767.0f*32767.0f))*10.0f;
 }
 /*- End of function --------------------------------------------------------*/
