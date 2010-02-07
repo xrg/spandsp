@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.c,v 1.20 2007/11/30 12:20:34 steveu Exp $
+ * $Id: super_tone_rx.c,v 1.21 2007/12/13 11:31:31 steveu Exp $
  */
 
 /*! \file */
@@ -47,6 +47,8 @@
 
 #include "spandsp/telephony.h"
 #include "spandsp/complex.h"
+#include "spandsp/vector_float.h"
+#include "spandsp/complex_vector_float.h"
 #include "spandsp/tone_detect.h"
 #include "spandsp/tone_generate.h"
 #include "spandsp/super_tone_rx.h"

@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo.h,v 1.8 2007/04/05 19:20:49 steveu Exp $
+ * $Id: modem_echo.h,v 1.9 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \file */
@@ -101,6 +101,11 @@ typedef struct
     int curr_pos;
 } modem_echo_can_state_t;
 
+#if defined(__cplusplus)
+extern "C"
+{
+#endif
+
 /*! Create a modem echo canceller context.
     \param len The length of the canceller, in samples.
     eturn The new canceller context, or NULL if the canceller could not be created.
@@ -130,6 +135,10 @@ void modem_echo_can_adaption_mode(modem_echo_can_state_t *ec, int adapt);
     eturn The clean (echo cancelled) received sample.
 */
 int16_t modem_echo_can_update(modem_echo_can_state_t *ec, int16_t tx, int16_t rx);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc_tests.c,v 1.38 2007/11/10 11:14:58 steveu Exp $
+ * $Id: hdlc_tests.c,v 1.39 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \file */
@@ -705,6 +705,7 @@ static int test_hdlc_abort_handling(void)
 }
 /*- End of function --------------------------------------------------------*/
 
+#if 0
 static int test_hdlc_octet_count_handling(void)
 {
     int i;
@@ -776,6 +777,7 @@ static int test_hdlc_octet_count_handling(void)
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
+#endif
 
 int main(int argc, char *argv[])
 {

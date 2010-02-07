@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.h,v 1.12 2007/11/30 12:20:36 steveu Exp $
+ * $Id: time_scale.h,v 1.13 2007/12/13 11:31:33 steveu Exp $
  */
 
 #if !defined(_SPANDSP_TIME_SCALE_H_)
@@ -51,6 +51,7 @@ on streams, and allows multiple streams to be processed concurrently.
 #define TIME_SCALE_MAX_PITCH    250
 #define TIME_SCALE_BUF_LEN      (2*SAMPLE_RATE/TIME_SCALE_MIN_PITCH)
 
+/*! Audio time scaling descriptor. */
 typedef struct
 {
     double rate;

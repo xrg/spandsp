@@ -22,10 +22,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.c,v 1.19 2007/11/30 12:20:33 steveu Exp $
+ * $Id: bell_r2_mf.c,v 1.20 2007/12/13 11:31:31 steveu Exp $
  */
 
-/*! \file bell_r2_mf.h */
+/*! \file */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -191,18 +191,22 @@ static char socotel_mf_tone_codes[] = "1234567890ABCDEFG";
 #define BELL_MF_THRESHOLD           (1.6e9f/65536.0f)
 #define BELL_MF_TWIST               4.0f    /* 6dB */
 #define BELL_MF_RELATIVE_PEAK       12.6f   /* 11dB */
+#define BELL_MF_SAMPLES_PER_BLOCK   120
 
 #define R2_MF_THRESHOLD             (5.0e8f/4096.0f)
 #define R2_MF_TWIST                 5.0f    /* 7dB */
 #define R2_MF_RELATIVE_PEAK         12.6f   /* 11dB */
+#define R2_MF_SAMPLES_PER_BLOCK     133
 #else
 #define BELL_MF_THRESHOLD           1.6e9f
 #define BELL_MF_TWIST               4.0f    /* 6dB */
 #define BELL_MF_RELATIVE_PEAK       12.6f   /* 11dB */
+#define BELL_MF_SAMPLES_PER_BLOCK   120
 
 #define R2_MF_THRESHOLD             5.0e8f
 #define R2_MF_TWIST                 5.0f    /* 7dB */
 #define R2_MF_RELATIVE_PEAK         12.6f   /* 11dB */
+#define R2_MF_SAMPLES_PER_BLOCK     133
 #endif
 
 static goertzel_descriptor_t bell_mf_detect_desc[6];
@@ -453,8 +457,8 @@ int bell_mf_rx(bell_mf_rx_state_t *s, const int16_t amp[], int samples)
     hit = 0;
     for (sample = 0;  sample < samples;  sample = limit)
     {
-        if ((samples - sample) >= (120 - s->current_sample))
-            limit = sample + (120 - s->current_sample);
+        if ((samples - sample) >= (BELL_MF_SAMPLES_PER_BLOCK - s->current_sample))
+            limit = sample + (BELL_MF_SAMPLES_PER_BLOCK - s->current_sample);
         else
             limit = samples;
         for (j = sample;  j < limit;  j++)
@@ -516,7 +520,7 @@ int bell_mf_rx(bell_mf_rx_state_t *s, const int16_t amp[], int samples)
 #endif
         }
         s->current_sample += (limit - sample);
-        if (s->current_sample < 120)
+        if (s->current_sample < BELL_MF_SAMPLES_PER_BLOCK)
             continue;
 
         /* We are at the end of an MF detection block */
@@ -669,7 +673,7 @@ bell_mf_rx_state_t *bell_mf_rx_init(bell_mf_rx_state_t *s,
     if (!initialised)
     {
         for (i = 0;  i < 6;  i++)
-            make_goertzel_descriptor(&bell_mf_detect_desc[i], bell_mf_frequencies[i], 120);
+            make_goertzel_descriptor(&bell_mf_detect_desc[i], bell_mf_frequencies[i], BELL_MF_SAMPLES_PER_BLOCK);
         initialised = TRUE;
     }
     s->callback = callback;
@@ -721,8 +725,8 @@ int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t amp[], int samples)
     hit_char = 0;
     for (sample = 0;  sample < samples;  sample = limit)
     {
-        if ((samples - sample) >= (s->samples - s->current_sample))
-            limit = sample + (s->samples - s->current_sample);
+        if ((samples - sample) >= (R2_MF_SAMPLES_PER_BLOCK - s->current_sample))
+            limit = sample + (R2_MF_SAMPLES_PER_BLOCK - s->current_sample);
         else
             limit = samples;
         for (j = sample;  j < limit;  j++)
@@ -784,7 +788,7 @@ int r2_mf_rx(r2_mf_rx_state_t *s, const int16_t amp[], int samples)
 #endif
         }
         s->current_sample += (limit - sample);
-        if (s->current_sample < s->samples)
+        if (s->current_sample < R2_MF_SAMPLES_PER_BLOCK)
             continue;
 
         /* We are at the end of an MF detection block */
@@ -892,8 +896,8 @@ r2_mf_rx_state_t *r2_mf_rx_init(r2_mf_rx_state_t *s, int fwd)
     {
         for (i = 0;  i < 6;  i++)
         {
-            make_goertzel_descriptor(&mf_fwd_detect_desc[i], r2_mf_fwd_frequencies[i], 133);
-            make_goertzel_descriptor(&mf_back_detect_desc[i], r2_mf_back_frequencies[i], 133);
+            make_goertzel_descriptor(&mf_fwd_detect_desc[i], r2_mf_fwd_frequencies[i], R2_MF_SAMPLES_PER_BLOCK);
+            make_goertzel_descriptor(&mf_back_detect_desc[i], r2_mf_back_frequencies[i], R2_MF_SAMPLES_PER_BLOCK);
         }
         initialised = TRUE;
     }
@@ -907,7 +911,6 @@ r2_mf_rx_state_t *r2_mf_rx_init(r2_mf_rx_state_t *s, int fwd)
         for (i = 0;  i < 6;  i++)
             goertzel_init(&s->out[i], &mf_back_detect_desc[i]);
     }
-    s->samples = 133;
     s->current_sample = 0;
     return s;
 }

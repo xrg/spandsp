@@ -48,7 +48,7 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.h,v 1.17 2007/12/10 11:07:03 steveu Exp $
+ * $Id: g726.h,v 1.18 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*! \file */
@@ -108,7 +108,7 @@ typedef struct g726_state_s
     int ext_coding;
     /*! The number of bits per sample */
     unsigned int bits_per_sample;
-    /*! One fo the G.726_PACKING_xxx options */
+    /*! One of the G.726_PACKING_xxx options */
     int packing;
 
     /*! Locked or steady state step size multiplier. */
@@ -137,9 +137,12 @@ typedef struct g726_state_s
     /*! Delayed tone detect */
     int td;
     
+    /*! \brief The bit stream processing context. */
     bitstream_state_t bs;
 
+    /*! \brief The current encoder function. */
     g726_encoder_func_t enc_func;
+    /*! \brief The current decoder function. */
     g726_decoder_func_t dec_func;
 } g726_state_t;
 

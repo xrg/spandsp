@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect.h,v 1.36 2007/09/07 13:22:25 steveu Exp $
+ * $Id: tone_detect.h,v 1.37 2007/12/13 11:31:33 steveu Exp $
  */
 
 #if !defined(_SPANDSP_TONE_DETECT_H_)
@@ -77,9 +77,7 @@ goertzel_state_t *goertzel_init(goertzel_state_t *s,
                                 goertzel_descriptor_t *t);
 
 /*! \brief Reset the state of a Goertzel transform.
-    \param s The Goertzel context.
-    \param t The Goertzel descriptor.
-    \return A pointer to the Goertzel state. */
+    \param s The Goertzel context. */
 void goertzel_reset(goertzel_state_t *s);
 
 /*! \brief Update the state of a Goertzel transform.
@@ -162,7 +160,7 @@ complexf_t periodogram_apply(const complexf_t coeffs[], const complexf_t sum[], 
 
 /*! Apply a phase offset, to find the frequency error between periodogram evaluations.
     specified interval.
-    \param offset A point to the expected phase offset.
+    \param phase_offset A point to the expected phase offset.
     \param scale The scaling factor to be used.
     \param last_result A pointer to the previous periodogram result.
     \param result A pointer to the current periodogram result.

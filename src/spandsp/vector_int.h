@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector_int.h,v 1.7 2007/04/08 08:16:18 steveu Exp $
+ * $Id: vector_int.h,v 1.8 2007/12/13 11:31:33 steveu Exp $
  */
 
 #if !defined(_SPANDSP_VECTOR_INT_H_)
@@ -38,8 +38,8 @@ int32_t vec_dot_prodi16(const int16_t x[], const int16_t y[], int n);
 /*! \brief Find the minimum and maximum values in a vector.
     \param x The vector to be searched.
     \param n The number of elements in the vetor.
-    \param result A two element vector. The first will receive the 
-           maximum. The second will receive thw minimum. This parameter
+    \param out A two element vector. The first will receive the 
+           maximum. The second will receive the minimum. This parameter
            may be set to NULL.
     \return The absolute maximum value. Since the range of negative numbers
             exceeds the range of positive one, the returned integer is longer

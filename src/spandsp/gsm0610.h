@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: gsm0610.h,v 1.12 2007/08/21 14:25:54 steveu Exp $
+ * $Id: gsm0610.h,v 1.13 2007/12/13 11:31:32 steveu Exp $
  */
 
 #if !defined(_SPANDSP_GSM0610_H_)
@@ -125,9 +125,9 @@ int gsm0610_set_packing(gsm0610_state_t *s, int packing);
 
 /*! Encode a buffer of linear PCM data to GSM 06.10.
     \param s The GSM 06.10 context.
-    \param ima_data The GSM 06.10 data produced.
+    \param code The GSM 06.10 data produced.
     \param amp The audio sample buffer.
-    \param len The number of samples in the buffer.
+    \param quant The number of samples in the buffer.
     \return The number of bytes of GSM 06.10 data produced. */
 int gsm0610_encode(gsm0610_state_t *s, uint8_t code[], const int16_t amp[], int quant);
 

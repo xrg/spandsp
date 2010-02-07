@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.45 2007/11/26 13:58:06 steveu Exp $
+ * $Id: t4.h,v 1.46 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \file */
@@ -44,6 +44,7 @@ for FAX transmission.
 typedef int (*t4_row_read_handler_t)(void *user_data, uint8_t buf[], size_t len);
 typedef int (*t4_row_write_handler_t)(void *user_data, const uint8_t buf[], size_t len);
 
+/*! Supported compression modes. */
 typedef enum
 {
     T4_COMPRESSION_ITU_T4_1D = 1,
@@ -51,6 +52,7 @@ typedef enum
     T4_COMPRESSION_ITU_T6 = 3
 } t4_image_compression_t;
 
+/*! Supported X resolutions, in pixels per metre. */
 typedef enum
 {
     T4_X_RESOLUTION_R4 = 4016,
@@ -62,6 +64,7 @@ typedef enum
     T4_X_RESOLUTION_1200 = 47244
 } t4_image_x_resolution_t;
 
+/*! Supported Y resolutions, in pixels per metre. */
 typedef enum
 {
     T4_Y_RESOLUTION_STANDARD = 3850,
@@ -202,6 +205,15 @@ typedef struct
     /*! \brief The TIFF G3 FAX options. */
     int output_t4_options;
 
+    /*! \brief Callback function to read a row of pixels from the image source. */
+    t4_row_read_handler_t row_read_handler;
+    /*! \brief Opaque pointer passed to row_read_handler. */
+    void *row_read_user_data;
+    /*! \brief Callback function to write a row of pixels to the image destination. */
+    t4_row_write_handler_t row_write_handler;
+    /*! \brief Opaque pointer passed to row_write_handler. */
+    void *row_write_user_data;
+
     /*! \brief The time at which handling of the current page began. */
     time_t page_start_time;
 
@@ -211,6 +223,7 @@ typedef struct
     int image_size;
     /*! \brief The current size of the image buffer. */
     int image_buffer_size;
+    /*! \brief A point to the image buffer. */
     uint8_t *image_buffer;
 
     /*! \brief The libtiff context for the current TIFF file */
@@ -232,10 +245,10 @@ typedef struct
     int y_resolution;
     /*! \brief Width of the current page, in pixels. */
     int image_width;
+    /*! \brief Length of the current page, in pixels. */
+    int image_length;
     /*! \brief Current pixel row number. */
     int row;
-    /*! \brief Total pixel rows in the current page. */
-    int image_length;
     /*! \brief The current number of consecutive bad rows. */
     int curr_bad_row_run;
     /*! \brief The longest run of consecutive bad rows seen in the current page. */
@@ -243,8 +256,10 @@ typedef struct
     /*! \brief The total number of bad rows in the current page. */
     int bad_rows;
 
-    uint32_t bits_to_date;
-    int bits;
+    /*! \brief Incoming bit buffer for decompression. */
+    uint32_t rx_bitstream;
+    /*! \brief The number of bits currently in rx_bitstream. */
+    int rx_bits;
 
     /*! \brief This variable is set if we are treating the current row as a 2D encoded
                one. */
@@ -286,31 +301,31 @@ typedef struct
     /*! \brief 2D horizontal mode control. */
     int black_white;
 
-    uint32_t data;
-    int data_bits;
+    /*! \brief Encoded data bits buffer. */
+    uint32_t tx_bitstream;
+    /*! \brief The number of bits currently in tx_bitstream. */
+    int tx_bits;
 
     /*! \brief A pointer into the image buffer indicating where the last row begins */
     int last_row_starts_at;
+    /*! \brief A pointer into the image buffer indicating where the current row begins */
     int row_starts_at;
     
     /*! \brief Pointer to the buffer for the current pixel row. */
     uint8_t *row_buf;
     
+    /*! \brief Pointer to the byte containing the next image bit to transmit. */
     int bit_pos;
+    /*! \brief Pointer to the bit within the byte containing the next image bit to transmit. */
     int bit_ptr;
 
-    /*! \brief The maximum contiguous rows that will be 2D encoded. */
+    /*! \brief The current maximum contiguous rows that may be 2D encoded. */
     int max_rows_to_next_1d_row;
     /*! \brief Number of rows left that can be 2D encoded, before a 1D encoded row
                must be used. */
     int rows_to_next_1d_row;
     /*! \brief The current number of bits in the current encoded row. */
     int row_bits;
-
-    t4_row_read_handler_t row_read_handler;
-    void *row_read_user_data;
-    t4_row_write_handler_t row_write_handler;
-    void *row_write_user_data;
 
     /*! \brief Error and flow logging control */
     logging_state_t logging;
@@ -406,7 +421,7 @@ void t4_rx_set_rx_encoding(t4_state_t *s, int encoding);
 
 /*! \brief Set the expected width of the received image, in pixel columns.
     \param s The T.4 context.
-    \param columns The number of pixels across the image. */
+    \param width The number of pixels across the image. */
 void t4_rx_set_image_width(t4_state_t *s, int width);
 
 /*! \brief Set the row-to-row (y) resolution to expect for a received image.

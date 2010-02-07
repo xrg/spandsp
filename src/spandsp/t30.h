@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.88 2007/12/10 11:07:04 steveu Exp $
+ * $Id: t30.h,v 1.89 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \file */
@@ -374,6 +374,7 @@ struct t30_state_s
 {
     /* This must be kept the first thing in the structure, so it can be pointed
        to reliably as the structures change over time. */
+    /*! \brief T.4 context for reading or writing image data. */
     t4_state_t t4;
 
     /*! \brief TRUE if behaving as the calling party */
@@ -483,7 +484,9 @@ struct t30_state_s
 
     /*! \brief A count of the number of bits in the trainability test. */
     int training_test_bits;
+    /*! \brief The current count of consecutive zero bits, during the trainability test. */
     int training_current_zeros;
+    /*! \brief The maximum consecutive zero bits seen to date, during the trainability test. */
     int training_most_zeros;
 
     /*! \brief The current fallback step for the fast message transfer modem. */
@@ -527,10 +530,15 @@ struct t30_state_s
     int line_encoding;
     /*! \brief The image coding being used for output files. */
     int output_encoding;
+    /*! \brief The current DCS message minimum scan time code. */
     uint8_t min_scan_time_code;
+    /*! \brief The X direction resolution of the current image, in pixels per metre. */
     int x_resolution;
+    /*! \brief The Y direction resolution of the current image, in pixels per metre. */
     int y_resolution;
+    /*! \brief The width of the current image, in pixels. */
     t4_image_width_t image_width;
+    /*! \brief Current number of retries of the action in progress. */
     int retries;
     /*! \brief TRUE if error correcting mode is used. */
     int error_correcting_mode;
@@ -547,15 +555,16 @@ struct t30_state_s
     /*! \brief A bit map of the OK ECM frames, constructed as a PPR frame. */
     uint8_t ecm_frame_map[3 + 32];
     
-    /*! \brief The current page number in ECM mode */
+    /*! \brief The current page number, in ECM mode */
     int ecm_page;
-    /*! \brief The current block number in ECM mode */
+    /*! \brief The current block number, in ECM mode */
     int ecm_block;
-    /*! \brief The number of frames in the current block number in ECM mode */
+    /*! \brief The number of frames in the current block number, in ECM mode */
     int ecm_frames;
-    /*! \brief The number of frames in the current burst of image transmission in ECM mode */
-    int ecm_frames_this_burst;
-    int ecm_current_frame;
+    /*! \brief The number of frames sent in the current burst of image transmission, in ECM mode */
+    int ecm_frames_this_tx_burst;
+    /*! \brief The current ECM frame, during ECM transmission. */
+    int ecm_current_tx_frame;
     /*! \brief TRUE if we are at the end of an ECM page to se sent - i.e. there are no more
         partial pages still to come. */
     int ecm_at_page_end;
@@ -582,6 +591,7 @@ struct t30_state_s
     int supported_resolutions;
     /*! \brief A bit mask of the currently supported image sizes. */
     int supported_image_sizes;
+    /*! \brief A bit mask of the currently supported polling features. */
     int supported_polling_features;
     /*! \brief TRUE is T30_FNV message handling is enabled. */
     int support_fnv;
@@ -590,7 +600,11 @@ struct t30_state_s
     /*! \brief TRUE is ECM mode handling is enabled. */
     int ecm_allowed;
     
+    /*! \brief the FCF2 field of the last PPS message we received. */
     int last_pps_fcf2;
+    /*! \brief The number of the first ECM frame which we do not currently received correctly. For
+        a partial page received correctly, this will be one greater than the number of frames it
+        contains. */
     int ecm_first_bad_frame;
 
     /*! \brief A password received from the far end. */
@@ -642,6 +656,12 @@ extern "C"
     \param s The T.30 context.
     \param calling_party TRUE if the context is for a calling party. FALSE if the
            context is for an answering party.
+    \param set_rx_type_handler
+    \param set_rx_type_user_data
+    \param set_tx_type_handler
+    \param set_tx_type_user_data
+    \param send_hdlc_handler
+    \param send_hdlc_user_data
     \return A pointer to the context, or NULL if there was a problem. */
 t30_state_t *t30_init(t30_state_t *s,
                       int calling_party,
@@ -802,14 +822,6 @@ size_t t30_get_received_password(t30_state_t *s, char *password);
     \return the length of the string. */
 size_t t30_get_local_ident(t30_state_t *s, char *id);
 
-/*! Get the local FAX machine identifier associated with a T.30 context.
-    \brief Get the local identifier associated with a T.30 context.
-    \param s The T.30 context.
-    \param id A pointer to a buffer for the identifier. The buffer should
-           be at least 21 bytes long.
-    \return the length of the string. */
-size_t t30_get_local_sub_address(t30_state_t *s, char *sub_address);
-
 /*! Get the remote FAX machine identifier associated with a T.30 context.
     \brief Get the remote identifier associated with a T.30 context.
     \param s The T.30 context.
@@ -911,7 +923,7 @@ int t30_set_supported_compressions(t30_state_t *s, int supported_compressions);
 /*! Specify which resolutions are supported by a T.30 context.
     \brief Specify supported resolutions.
     \param s The T.30 context.
-    \param supported_compressions Bit field list of the supported resolutions.
+    \param supported_resolutions Bit field list of the supported resolutions.
     \return 0 if OK, else -1. */
 int t30_set_supported_resolutions(t30_state_t *s, int supported_resolutions);
 
@@ -934,14 +946,14 @@ int t30_set_ecm_capability(t30_state_t *s, int enabled);
     for T.38.
     \brief Specify minimum bits per non-ECM row.
     \param s The T.30 context.
-    \param bit -1 for no specified minimum, else the number of bits.
+    \param bits -1 for no specified minimum, else the number of bits.
     \return 0 if OK, else -1. */
 int t30_set_min_non_ecm_row_bits(t30_state_t *s, int bits);
 
 /*! Specify the output encoding for TIFF files created during FAX reception.
     \brief Specify the output encoding for TIFF files created during FAX reception.
     \param s The T.30 context.
-    \param encoding. The coding required. The options are T4_COMPRESSION_ITU_T4_1D,
+    \param encoding The coding required. The options are T4_COMPRESSION_ITU_T4_1D,
            T4_COMPRESSION_ITU_T4_2D, T4_COMPRESSION_ITU_T6. T6 is usually the
            densest option, but support for it is broken in a number of software
            packages.
@@ -1001,9 +1013,9 @@ void t30_non_ecm_put_chunk(void *user_data, const uint8_t buf[], int len);
 
 /*! Process a received HDLC frame.
     \brief Process a received HDLC frame.
-    \param s The T.30 context.
+    \param user_data The T.30 context.
     \param msg The HDLC message.
-    \param int The length of the message, in octets.
+    \param len The length of the message, in octets.
     \param ok TRUE if the frame was received without error. */
 void t30_hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok);
 

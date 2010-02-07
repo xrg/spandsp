@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bit_operations.h,v 1.18 2007/04/08 08:16:17 steveu Exp $
+ * $Id: bit_operations.h,v 1.19 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*! \file */
@@ -178,7 +178,7 @@ uint64_t bit_reverse_8bytes(uint64_t data);
 /*! \brief Bit reverse each bytes in a buffer.
     \param to The buffer to place the reversed data in.
     \param from The buffer containing the data to be reversed.
-    \param The length of the data in the buffer. */
+    \param len The length of the data in the buffer. */
 void bit_reverse(uint8_t to[], const uint8_t from[], int len);
 
 /*! \brief Find the number of set bits in a 32 bit word.

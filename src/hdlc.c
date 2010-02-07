@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.c,v 1.53 2007/11/12 13:30:08 steveu Exp $
+ * $Id: hdlc.c,v 1.54 2007/12/13 11:31:31 steveu Exp $
  */
 
 /*! \file */
@@ -120,8 +120,10 @@ static void rx_flag_or_abort(hdlc_rx_state_t *s)
            another flag before proceeding to collect frame octets. */
         if (s->flags_seen < s->framing_ok_threshold)
             s->flags_seen = 0;
+#if !defined(IAXMODEM_STUFF)
         else
             s->flags_seen = s->framing_ok_threshold - 1;
+#endif
         /* An abort starts octet counting */
         octet_set_and_count(s);
     }

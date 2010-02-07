@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.h,v 1.23 2007/06/28 13:10:59 steveu Exp $
+ * $Id: fsk.h,v 1.24 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*! \file */
@@ -210,7 +210,7 @@ float fsk_rx_signal_power(fsk_rx_state_t *s);
 /*! Adjust an FSK modem receive context's carrier detect power threshold.
     \brief Adjust an FSK modem receive context's carrier detect power threshold.
     \param s The modem context.
-    \param power The power level, in dBm0 */
+    \param cutoff The power level, in dBm0 */
 void fsk_rx_signal_cutoff(fsk_rx_state_t *s, float cutoff);
 
 /*! Initialise an FSK modem receive context.

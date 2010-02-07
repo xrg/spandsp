@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.h,v 1.10 2007/11/30 12:20:35 steveu Exp $
+ * $Id: modem_connect_tones.h,v 1.11 2007/12/13 11:31:32 steveu Exp $
  */
  
 /*! \file */
@@ -85,14 +85,18 @@ typedef struct
 */
 typedef struct
 {
+    /*! \brief The tone type being detected. */
     int tone_type;
+    /*! \brief Callback routine, using to report detection of the tone. */
     tone_report_func_t tone_callback;
+    /*! \brief An opaque pointer passed to tone_callback. */
     void *callback_data;
 
     float z1;
     float z2;
     int notch_level;
     int channel_level;
+    /*! \brief TRUE is the tone is currently present in the audio. */
     int tone_present;
     int tone_cycle_duration;
     int good_cycles;
@@ -101,6 +105,7 @@ typedef struct
     fsk_rx_state_t v21rx;
     int one_zero_weight[2];
     int odd_even;
+    /*! \brief TRUE if V.21 HDLC preamble is being detected. */
     int preamble_on;
 } modem_connect_tones_rx_state_t;
 
@@ -117,7 +122,8 @@ modem_connect_tones_tx_state_t *modem_connect_tones_tx_init(modem_connect_tones_
 
 /*! \brief Free an instance of the modem connect tones generator.
     \param s The context.
-    \return 0 for OK, else -1. */
+    \return 0 for OK, else -1.
+*/
 int modem_connect_tones_tx_free(modem_connect_tones_tx_state_t *s);
 
 /*! \brief Generate a block of modem connect tones samples.

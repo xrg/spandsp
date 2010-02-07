@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_filters.h,v 1.9 2007/04/08 08:16:17 steveu Exp $
+ * $Id: complex_filters.h,v 1.10 2007/12/13 11:31:32 steveu Exp $
  */
 
 #if !defined(_SPANDSP_COMPLEX_FILTERS_H_)
@@ -32,6 +32,7 @@ typedef struct filter_s filter_t;
 
 typedef float (*filter_step_func_t)(filter_t *fi, float x);
 
+/*! Filter state */
 typedef struct
 {
     int                 nz;

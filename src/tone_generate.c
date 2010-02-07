@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.c,v 1.38 2007/11/26 17:35:51 steveu Exp $
+ * $Id: tone_generate.c,v 1.39 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*! \file */
@@ -118,7 +118,6 @@ int tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples)
     int samples;
     int limit;
     float xamp;
-    float yamp;
     int i;
 
     if (s->current_section < 0)

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.24 2007/11/30 12:20:35 steveu Exp $
+ * $Id: t38_terminal.h,v 1.25 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \file */
@@ -39,8 +39,12 @@
 /* Make sure the HDLC frame buffers are big enough for ECM frames. */
 #define T38_MAX_HDLC_LEN        260
 
+/*!
+    T.38 terminal state.
+*/
 typedef struct
 {
+    /*! Core T.38 support */
     t38_core_state_t t38;
 
     /*! \brief Use (actually allow time for) talker echo protection when transmitting. */
@@ -48,11 +52,14 @@ typedef struct
 
     /*! \brief HDLC transmit buffer */
     uint8_t tx_buf[T38_MAX_HDLC_LEN];
+    /*! \brief The length of the contents of the HDLC transmit buffer */
     int tx_len;
+    /*! \brief Current pointer within the contents of the HDLC transmit buffer */
     int tx_ptr;
 
     /*! \brief HDLC receive buffer */
     uint8_t rx_buf[T38_MAX_HDLC_LEN];
+    /*! \brief The length of the contents of the HDLC receive buffer */
     int rx_len;
 
     /*! \brief The current transmit step being timed */
@@ -69,9 +76,12 @@ typedef struct
     /*! \brief The T.30 back-end */
     t30_state_t t30_state;
 
+    /*! \brief The current operating mode of the receiver. */
     int current_rx_type;
+    /*! \brief The current operating mode of the transmitter. */
     int current_tx_type;
     
+    /*! \brief Counter for trailing bytes, used to flush the far end's modem */
     int trailer_bytes;
 
     /*! \brief TRUE is there has been some T.38 data missed (i.e. lost packets) */
@@ -81,7 +91,9 @@ typedef struct
                rate and the current specified packet interval. */
     int octets_per_data_packet;
     
+    /*! \brief The time between T.38 transmissions, in ms. */
     int ms_per_tx_chunk;
+    /*! \brief TRUE if multiple data fields should be merged into a single T.38 IFP packet. */
     int merge_tx_fields;
 
     /*! \brief The number of times an indicator packet will be sent. Numbers greater than one
@@ -93,8 +105,9 @@ typedef struct
                greater than one will increase reliability for UDP transmission. Zero is not valid. */
     int data_end_tx_count;
 
-    /*! \brief A "sample" count, used to time events */
+    /*! \brief A "sample" count, used to time events. */
     int32_t samples;
+    /*! \brief The value for samples at the next transmission point. */
     int32_t next_tx_samples;
     int32_t timeout_rx_samples;
 

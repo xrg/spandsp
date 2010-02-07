@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.h,v 1.42 2007/12/08 16:25:17 steveu Exp $
+ * $Id: v27ter_rx.h,v 1.43 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \file */
@@ -96,8 +96,12 @@ typedef struct
     int scrambler_pattern_count;
     /*! \brief The section of the training data we are currently in. */
     int training_stage;
+    /*! \brief The current step in the table of BC constellation positions. */
     int training_bc;
+    /*! \brief A count of how far through the current training step we are. */
     int training_count;
+    /*! \brief A measure of how much mismatch there is between the real constellation,
+        and the decoded symbol positions. */
     float training_error;
     /*! \brief The value of the last signal sample, using the a simple HPF for signal power estimation. */
     int16_t last_sample;
@@ -105,7 +109,9 @@ typedef struct
     int signal_present;
     /*! \brief Whether or not a carrier drop was detected and the signal delivery is pending. */
     int carrier_drop_pending;
+    /*! \brief A count of the current consecutive samples below the carrier off threshold. */
     int low_samples;
+    /*! \brief A highest magnitude sample seen. */
     int16_t high_sample;
     /*! \brief TRUE if the previous trained values are to be reused. */
     int old_train;
@@ -134,14 +140,25 @@ typedef struct
 
     int constellation_state;
 
+    /*! \brief The current delta factor for updating the equalizer coefficients. */
     float eq_delta;
-    /*! \brief The adaptive equalizer coefficients */
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    /*! \brief The adaptive equalizer coefficients. */
+    complexi_t eq_coeff[V27TER_EQUALIZER_PRE_LEN + 1 + V27TER_EQUALIZER_POST_LEN];
+    /*! \brief A saved set of adaptive equalizer coefficients for use after restarts. */
+    complexi_t eq_coeff_save[V27TER_EQUALIZER_PRE_LEN + 1 + V27TER_EQUALIZER_POST_LEN];
+    /*! \brief The equalizer signal buffer. */
+    complexi_t eq_buf[V27TER_EQUALIZER_MASK + 1];
+#else
     complexf_t eq_coeff[V27TER_EQUALIZER_PRE_LEN + 1 + V27TER_EQUALIZER_POST_LEN];
     complexf_t eq_coeff_save[V27TER_EQUALIZER_PRE_LEN + 1 + V27TER_EQUALIZER_POST_LEN];
     complexf_t eq_buf[V27TER_EQUALIZER_MASK + 1];
-    /*! \brief Current offset into equalizer buffer. */
+#endif
+    /*! \brief Current offset into the equalizer buffer. */
     int eq_step;
+    /*! \brief Current write offset into the equalizer buffer. */
     int eq_put_step;
+    /*! \brief Symbol counter to the next equalizer update. */
     int eq_skip;
 
     /*! \brief Integration variable for damping the Gardner algorithm tests. */

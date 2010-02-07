@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.h,v 1.36 2007/08/25 05:10:42 steveu Exp $
+ * $Id: hdlc.h,v 1.37 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*! \file */
@@ -79,10 +79,12 @@ typedef struct
     unsigned int byte_in_progress;
     /*! \brief The current number of bits in byte_in_progress. */
     int num_bits;
+    /*! \brief TRUE if in octet counting mode (e.g. for MTP). */
     int octet_counting_mode;
     /*! \brief Octet count, to achieve the functionality needed for things
                like MTP. */
     int octet_count;
+    /*! \brief The number of octets to be allowed between octet count reports. */
     int octet_count_report_interval;
 
     /*! \brief Buffer for a frame in progress. */
@@ -297,7 +299,7 @@ int hdlc_tx_get_byte(hdlc_tx_state_t *s);
 /*! \brief Get the next sequence of bytes for transmission.
     \param s A pointer to an HDLC transmitter context.
     \param buf The buffer for the data.
-    \param len The number of bytes to get.
+    \param max_len The number of bytes to get.
     \return The number of bytes actually got.
 */
 int hdlc_tx_get(hdlc_tx_state_t *s, uint8_t buf[], size_t max_len);

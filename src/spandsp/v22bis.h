@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.24 2007/12/10 11:07:04 steveu Exp $
+ * $Id: v22bis.h,v 1.25 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \file */
@@ -95,7 +95,10 @@ typedef struct
     int rx_scrambler_pattern_count;
     /*! \brief 0 if receiving user data. A training stage value during training */
     int rx_training;
+    /*! \brief A count of how far through the current training step we are. */
     int rx_training_count;
+    /*! \brief A measure of how much mismatch there is between the real constellation,
+        and the decoded symbol positions. */
     float training_error;
     /*! \brief >0 if a signal above the minimum is present. It may or may not be a V.22bis signal. */
     int signal_present;
@@ -120,12 +123,20 @@ typedef struct
     
     int rx_constellation_state;
 
+    /*! \brief The current delta factor for updating the equalizer coefficients. */
     float eq_delta;
-    /*! \brief The adaptive equalizer coefficients */
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    /*! \brief The adaptive equalizer coefficients. */
+    complexi_t eq_coeff[2*V22BIS_EQUALIZER_LEN + 1];
+    /*! \brief The equalizer signal buffer. */
+    complexi_t eq_buf[V22BIS_EQUALIZER_MASK + 1];
+#else
     complexf_t eq_coeff[2*V22BIS_EQUALIZER_LEN + 1];
     complexf_t eq_buf[V22BIS_EQUALIZER_MASK + 1];
-    /*! \brief Current offset into equalizer buffer. */
+#endif
+    /*! \brief Current offset into the equalizer buffer. */
     int eq_step;
+    /*! \brief Current write offset into the equalizer buffer. */
     int eq_put_step;
 
     /*! \brief Integration variable for damping the Gardner algorithm tests. */
@@ -192,7 +203,7 @@ typedef struct
 
 extern const complexf_t v22bis_constellation[16];
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -200,7 +211,7 @@ extern "C"
 /*! Reinitialise an existing V.22bis modem receive context.
     \brief Reinitialise an existing V.22bis modem receive context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 1200 and 2400.
+    \param bit_rate The bit rate of the modem. Valid values are 1200 and 2400.
     \return 0 for OK, -1 for bad parameter */
 int v22bis_rx_restart(v22bis_state_t *s, int bit_rate);
 
@@ -293,7 +304,7 @@ void v22bis_set_get_bit(v22bis_state_t *s, get_bit_func_t get_bit, void *user_da
     \param user_data An opaque pointer. */
 void v22bis_set_put_bit(v22bis_state_t *s, put_bit_func_t put_bit, void *user_data);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

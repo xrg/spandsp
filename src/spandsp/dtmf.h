@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.h,v 1.16 2007/11/30 12:20:35 steveu Exp $
+ * $Id: dtmf.h,v 1.17 2007/12/13 11:31:32 steveu Exp $
  */
 
 #if !defined(_SPANDSP_DTMF_H_)
@@ -109,14 +109,13 @@ typedef struct
     float reverse_twist;
 
     /*! 350Hz filter state for the optional dialtone filter */
-    float z350_1;
-    float z350_2;
+    float z350[2];
     /*! 440Hz filter state for the optional dialtone filter */
-    float z440_1;
-    float z440_2;
+    float z440[2];
 
-    /*! Tone detector working states */
+    /*! Tone detector working states for the row tones. */
     goertzel_state_t row_out[4];
+    /*! Tone detector working states for the column tones. */
     goertzel_state_t col_out[4];
     /*! The accumlating total energy on the same period over which the Goertzels work. */
     float energy;

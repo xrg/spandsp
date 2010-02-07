@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis.h,v 1.19 2007/04/08 08:16:18 steveu Exp $
+ * $Id: v42bis.h,v 1.20 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \page v42bis_page V.42bis modem data compression
@@ -59,6 +59,9 @@ enum
 typedef void (*v42bis_frame_handler_t)(void *user_data, const uint8_t *pkt, int len);
 typedef void (*v42bis_data_handler_t)(void *user_data, const uint8_t *buf, int len);
 
+/*!
+    V.42bis dictionary node.
+*/
 typedef struct
 {
     /*! \brief The prior code for each defined code. */
@@ -71,6 +74,10 @@ typedef struct
     uint32_t children[8];
 } v42bis_dict_node_t;
 
+/*!
+    V.42bis compression. This defines the working state for a single instance
+    of V.42bis compression.
+*/
 typedef struct
 {
     /*! \brief Compression mode. */
@@ -93,6 +100,7 @@ typedef struct
     /*! \brief TRUE if we are in transparent (i.e. uncompressable) mode */
     int transparent;
     int change_transparency;
+    /*! \brief IIR filter state, used in assessing compressibility. */
     int compressibility_filter;
     int compressibility_persistence;
     
@@ -108,6 +116,10 @@ typedef struct
     uint8_t escape_code;
 } v42bis_compress_state_t;
 
+/*!
+    V.42bis decompression. This defines the working state for a single instance
+    of V.42bis decompression.
+*/
 typedef struct
 {
     /*! \brief Callback function to handle decompressed data. */
@@ -153,7 +165,9 @@ typedef struct
     /*! \brief V.42bis data compression directions. */
     int v42bis_parm_p0;
 
+    /*! \brief Compression state. */
     v42bis_compress_state_t compress;
+    /*! \brief Decompression state. */
     v42bis_decompress_state_t decompress;
     
     /*! \brief Maximum codeword size (bits) */

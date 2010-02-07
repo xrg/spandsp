@@ -26,7 +26,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm.h,v 1.15 2007/04/08 08:16:18 steveu Exp $
+ * $Id: ima_adpcm.h,v 1.16 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*! \file */
@@ -58,8 +58,11 @@ enum
 typedef struct
 {
     int variant;
+    /*! \brief The last state of the ADPCM algorithm. */
     int last;
+    /*! \brief Current index into the step size table. */
     int step_index;
+    /*! \brief The current IMA code byte in progress. */
     uint16_t ima_byte;
     int bits;
 } ima_adpcm_state_t;

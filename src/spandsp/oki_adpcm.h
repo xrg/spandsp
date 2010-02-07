@@ -26,7 +26,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm.h,v 1.16 2007/04/08 08:16:18 steveu Exp $
+ * $Id: oki_adpcm.h,v 1.17 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \file */
@@ -54,13 +54,21 @@ by Bob Edgar. pg 272-276. */
 */
 typedef struct
 {
+    /*! \brief The bit rate - 24000 or 32000. */
     int bit_rate;
+    /*! \brief The last state of the ADPCM algorithm. */
     int16_t last;
+    /*! \brief Current index into the step size table. */
     int16_t step_index;
+    /*! \brief The compressed data byte in progress. */
     uint8_t oki_byte;
+    /*! \brief The signal history for the sample rate converter. */
     int16_t history[32];
+    /*! \brief Pointer into the history buffer. */
     int ptr;
+    /*! \brief Odd/even sample counter. */
     int mark;
+    /*! \brief Phase accumulator for the sample rate converter. */
     int phase;
 } oki_adpcm_state_t;
 

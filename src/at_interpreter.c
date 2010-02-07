@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.c,v 1.20 2007/11/26 13:58:05 steveu Exp $
+ * $Id: at_interpreter.c,v 1.21 2007/12/13 11:31:31 steveu Exp $
  */
 
 /*! \file */
@@ -33,8 +33,6 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-
-#define _GNU_SOURCE
 
 #include <inttypes.h>
 #include <stdlib.h>

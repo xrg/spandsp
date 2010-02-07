@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g711.h,v 1.7 2007/08/25 05:00:30 steveu Exp $
+ * $Id: g711.h,v 1.8 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*! \file */
@@ -242,7 +242,7 @@ static __inline__ int16_t alaw_to_linear(uint8_t alaw)
 uint8_t alaw_to_ulaw(uint8_t alaw);
 
 /*! \brief Transcode from u-law to A-law, using the procedure defined in G.711.
-    \param alaw The u-law sample to transcode.
+    \param ulaw The u-law sample to transcode.
     \return The best matching A-law value.
 */
 uint8_t ulaw_to_alaw(uint8_t ulaw);

@@ -23,14 +23,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_dictionary_gen.c,v 1.7 2006/11/30 15:41:47 steveu Exp $
+ * $Id: at_dictionary_gen.c,v 1.8 2007/12/13 11:31:30 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
-#define _GNU_SOURCE
 
 #include <inttypes.h>
 #include <stdlib.h>

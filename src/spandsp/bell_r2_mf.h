@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.h,v 1.13 2007/11/30 12:20:35 steveu Exp $
+ * $Id: bell_r2_mf.h,v 1.14 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*! \file */
@@ -101,14 +101,8 @@ Note: Above -3dBm the signal starts to clip. We can detect with a little clippin
       point, or have I misunderstood it?
 */
 
+/*! The maximum number of Bell MF digits we can buffer. */
 #define MAX_BELL_MF_DIGITS 128
-
-typedef enum
-{
-    BELL_MF_TONES,
-    R2_MF_TONES,
-    SOCOTEL_TONES
-} mf_tone_types_e;
 
 /*!
     Bell MF generator state descriptor. This defines the state of a single
@@ -116,10 +110,12 @@ typedef enum
 */
 typedef struct
 {
+    /*! The tone generator. */
     tone_gen_state_t tones;
     int current_sample;
-    /* The queue structure MUST be followed immediately by the buffer */
+    /*! The queue structure MUST be followed immediately by the buffer */
     queue_state_t queue;
+    /*! The digits currently buffered for transmission - part of the above queue. */
     char digits[MAX_BELL_MF_DIGITS + 1];
 } bell_mf_tx_state_t;
 
@@ -152,8 +148,11 @@ typedef struct
 */
 typedef struct
 {
+    /*! The tone generator. */
     tone_gen_state_t tone;
+    /*! TRUE if generating forward tones, otherwise generating reverse tones. */
     int fwd;
+    /*! The current digit being generated. */
     int digit;
 } r2_mf_tx_state_t;
 
@@ -166,7 +165,7 @@ typedef struct
     int fwd;
     /*! Tone detector working states */
     goertzel_state_t out[6];
-    int samples;
+    /*! The current sample number within a processing block. */
     int current_sample;
 } r2_mf_rx_state_t;
 
@@ -237,7 +236,7 @@ int bell_mf_rx(bell_mf_rx_state_t *s, const int16_t amp[], int samples);
 
 /*! \brief Get a string of digits from a Bell MF receiver's output buffer.
     \param s The Bell MF receiver context.
-    \param digits The buffer for the received digits.
+    \param buf The buffer for the received digits.
     \param max The maximum  number of digits to be returned,
     \return The number of digits actually returned. */
 size_t bell_mf_rx_get(bell_mf_rx_state_t *s, char *buf, int max);

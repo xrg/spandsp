@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.61 2007/11/30 12:20:33 steveu Exp $
+ * $Id: fax.c,v 1.62 2007/12/13 11:31:31 steveu Exp $
  */
 
 /*! \file */
@@ -82,7 +82,6 @@ static void fax_send_hdlc(void *user_data, const uint8_t *msg, int len)
     s = (fax_state_t *) user_data;
     
     hdlc_tx_frame(&(s->hdlctx), msg, len);
-    s->first_tx_hdlc_frame = FALSE;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -343,7 +342,6 @@ static void fax_set_tx_type(void *user_data, int type, int short_train, int use_
     span_log(&s->logging, SPAN_LOG_FLOW, "Set tx type %d\n", type);
     if (s->current_tx_type == type)
         return;
-    s->first_tx_hdlc_frame = TRUE;
     if (use_hdlc)
     {
         get_bit_func = (get_bit_func_t) hdlc_tx_get_bit;
@@ -557,7 +555,6 @@ fax_state_t *fax_init(fax_state_t *s, int calling_party)
     fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &(s->hdlcrx));
     fsk_rx_signal_cutoff(&(s->v21rx), -45.5);
     hdlc_tx_init(&(s->hdlctx), FALSE, 2, FALSE, hdlc_underflow_handler, &(s->t30_state));
-    s->first_tx_hdlc_frame = TRUE;
     fsk_tx_init(&(s->v21tx), &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &(s->hdlctx));
     v17_rx_init(&(s->v17rx), 14400, t30_non_ecm_put_bit, &(s->t30_state));
     v17_tx_init(&(s->v17tx), 14400, s->use_tep, t30_non_ecm_get_bit, &(s->t30_state));

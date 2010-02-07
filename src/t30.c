@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.221 2007/12/10 11:18:02 steveu Exp $
+ * $Id: t30.c,v 1.222 2007/12/13 11:31:31 steveu Exp $
  */
 
 /*! \file */
@@ -284,6 +284,7 @@ static void repeat_last_command(t30_state_t *s);
 static void disconnect(t30_state_t *s);
 static void decode_20digit_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len);
 static void decode_url_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int len);
+static int set_min_scan_time_code(t30_state_t *s);
 
 #define set_dis_dtc_bit(s,bit) s->dis_dtc_frame[3 + ((bit - 1)/8)] |= (1 << ((bit - 1)%8))
 #define set_dis_dtc_bits(s,val,bit) s->dis_dtc_frame[3 + ((bit - 1)/8)] |= ((val) << ((bit - 1)%8))
@@ -317,7 +318,7 @@ static void rx_start_page(t30_state_t *s)
     s->ecm_page++;
     s->ecm_block = 0;
     s->ecm_frames = -1;
-    s->ecm_frames_this_burst = 0;
+    s->ecm_frames_this_tx_burst = 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -871,28 +872,28 @@ static int send_next_ecm_frame(t30_state_t *s)
     int i;
     uint8_t frame[3];
 
-    if (s->ecm_current_frame < s->ecm_frames)
+    if (s->ecm_current_tx_frame < s->ecm_frames)
     {
         /* Search for the next frame, within the current partial page, which has
            not been tagged as transferred OK. */
-        for (i = s->ecm_current_frame;  i < s->ecm_frames;  i++)
+        for (i = s->ecm_current_tx_frame;  i < s->ecm_frames;  i++)
         {
             if (s->ecm_len[i] >= 0)
             {
                 send_frame(s, s->ecm_data[i], s->ecm_len[i]);
-                s->ecm_current_frame = i + 1;
-                s->ecm_frames_this_burst++;
+                s->ecm_current_tx_frame = i + 1;
+                s->ecm_frames_this_tx_burst++;
                 return 0;
             }
         }
-        s->ecm_current_frame = s->ecm_frames;
+        s->ecm_current_tx_frame = s->ecm_frames;
     }
-    if (s->ecm_current_frame <= s->ecm_frames + 3)
+    if (s->ecm_current_tx_frame <= s->ecm_frames + 3)
     {
         /* We have sent all the FCD frames. Send some RCP frames. Three seems to be
            a popular number, to minimise the risk of a bit error stopping the receiving
            end from recognising the RCP. */
-        s->ecm_current_frame++;
+        s->ecm_current_tx_frame++;
         /* The RCP frame is an odd man out, as its a simple 1 byte control
            frame, but is specified to not have the final bit set. It doesn't
            seem to have the DIS received bit set, either. */
@@ -910,8 +911,8 @@ static int send_next_ecm_frame(t30_state_t *s)
 
 static int send_first_ecm_frame(t30_state_t *s)
 {
-    s->ecm_current_frame = 0;
-    s->ecm_frames_this_burst = 0;
+    s->ecm_current_tx_frame = 0;
+    s->ecm_frames_this_tx_burst = 0;
     return send_next_ecm_frame(s);
 }
 /*- End of function --------------------------------------------------------*/
@@ -1040,7 +1041,7 @@ static int send_pps_frame(t30_state_t *s)
     frame[3] = (s->ecm_at_page_end)  ?  ((uint8_t) (s->next_tx_step | s->dis_received))  :  T30_NULL;
     frame[4] = (uint8_t) (s->ecm_page & 0xFF);
     frame[5] = (uint8_t) (s->ecm_block & 0xFF);
-    frame[6] = (uint8_t) ((s->ecm_frames_this_burst == 0)  ?  0  :  (s->ecm_frames_this_burst - 1));
+    frame[6] = (uint8_t) ((s->ecm_frames_this_tx_burst == 0)  ?  0  :  (s->ecm_frames_this_tx_burst - 1));
     span_log(&s->logging, SPAN_LOG_FLOW, "Sending PPS + %s\n", t30_frametype(frame[3]));
     send_frame(s, frame, 7);
     return frame[3] & 0xFE;
@@ -1220,34 +1221,13 @@ static int prune_dis_dtc(t30_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
+static int build_dcs(t30_state_t *s)
 {
-    uint8_t dis_dtc_frame[T30_MAX_DIS_DTC_DCS_LEN];
     int i;
     int bad;
     
-    if (len < 6)
-    {
-        span_log(&s->logging, SPAN_LOG_FLOW, "Short DIS/DTC frame\n");
-        s->current_status = T30_ERR_INCOMPATIBLE;
-        return -1;
-    }
-
-    /* Make a local copy of the message, padded to the maximum possible length with zeros. This allows
-       us to simply pick out the bits, without worrying about whether they were set from the remote side. */
-    if (len > T30_MAX_DIS_DTC_DCS_LEN)
-    {
-        memcpy(dis_dtc_frame, msg, T30_MAX_DIS_DTC_DCS_LEN);
-    }
-    else
-    {
-        memcpy(dis_dtc_frame, msg, len);
-        if (len < T30_MAX_DIS_DTC_DCS_LEN)
-            memset(dis_dtc_frame + len, 0, T30_MAX_DIS_DTC_DCS_LEN - len);
-    }
-    
-    /* Make a DCS frame based on local issues and a received DIS frame. Negotiate the result
-       based on what both parties can do. */
+    /* Make a DCS frame based on local issues and the latest received DIS/DTC frame. Negotiate
+       the result based on what both parties can do. */
     s->dcs_frame[0] = 0xFF;
     s->dcs_frame[1] = 0x13;
     s->dcs_frame[2] = (uint8_t) (T30_DCS | s->dis_received);
@@ -1463,25 +1443,25 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
     case T4_WIDTH_300_A4:
     case T4_WIDTH_300_B4:
     case T4_WIDTH_300_A3:
-        if (!test_bit(dis_dtc_frame, 42)  &&  !test_bit(dis_dtc_frame, 107))
+        if (!test_bit(s->far_dis_dtc_frame, 42)  &&  !test_bit(s->far_dis_dtc_frame, 107))
             bad = T30_ERR_NOSIZESUPPORT;
         break;
     case T4_WIDTH_R16_A4:
     case T4_WIDTH_R16_B4:
     case T4_WIDTH_R16_A3:
-        if (!test_bit(dis_dtc_frame, 43))
+        if (!test_bit(s->far_dis_dtc_frame, 43))
             bad = T30_ERR_NOSIZESUPPORT;
         break;
     case T4_WIDTH_600_A4:
     case T4_WIDTH_600_B4:
     case T4_WIDTH_600_A3:
-        if (!test_bit(dis_dtc_frame, 105)  &&  !test_bit(dis_dtc_frame, 109))
+        if (!test_bit(s->far_dis_dtc_frame, 105)  &&  !test_bit(s->far_dis_dtc_frame, 109))
             bad = T30_ERR_NOSIZESUPPORT;
         break;
     case T4_WIDTH_1200_A4:
     case T4_WIDTH_1200_B4:
     case T4_WIDTH_1200_A3:
-        if (!test_bit(dis_dtc_frame, 106))
+        if (!test_bit(s->far_dis_dtc_frame, 106))
             bad = T30_ERR_NOSIZESUPPORT;
         break;
     default:
@@ -1498,17 +1478,17 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
     /* Deal with the image length */
     /* If the other end supports unlimited length, then use that. Otherwise, if the other end supports
        B4 use that, as its longer than the default A4 length. */
-    if (test_bit(dis_dtc_frame, 20))
+    if (test_bit(s->far_dis_dtc_frame, 20))
         set_dcs_bit(s, 20);
-    else if (test_bit(dis_dtc_frame, 19))
+    else if (test_bit(s->far_dis_dtc_frame, 19))
         set_dcs_bit(s, 19);
 
     if (s->error_correcting_mode)
         set_dcs_bit(s, 27);
 
-    if ((s->iaf & T30_IAF_MODE_FLOW_CONTROL)  &&  test_bit(dis_dtc_frame, 121))
+    if ((s->iaf & T30_IAF_MODE_FLOW_CONTROL)  &&  test_bit(s->far_dis_dtc_frame, 121))
         set_dcs_bit(s, 121);
-    if ((s->iaf & T30_IAF_MODE_CONTINUOUS_FLOW)  &&  test_bit(dis_dtc_frame, 123))
+    if ((s->iaf & T30_IAF_MODE_CONTINUOUS_FLOW)  &&  test_bit(s->far_dis_dtc_frame, 123))
         set_dcs_bit(s, 123);
     s->dcs_len = 19;
     //t30_decode_dis_dtc_dcs(s, s->dcs_frame, s->dcs_len);
@@ -1540,19 +1520,23 @@ static int prune_dcs(t30_state_t *s)
 
 static int step_fallback_entry(t30_state_t *s)
 {
+    int min_row_bits;
+
     while (fallback_sequence[++s->current_fallback].which)
     {
         if ((fallback_sequence[s->current_fallback].which & s->current_permitted_modems))
-        {
-            /* We need to edit the DCS message we will send */
-            /* Set to required modem rate */
-            s->dcs_frame[4] &= ~(DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3);
-            s->dcs_frame[4] |= fallback_sequence[s->current_fallback].dcs_code;
-            /* TODO: T.4 and the DCS also need the minimum row bits controlled properly. */
-            return s->current_fallback;
-        }
+            break;
     }
-    return -1;
+    if (fallback_sequence[s->current_fallback].which == 0)
+        return -1;
+    /* TODO: This only sets the minimum row time for future pages. It doesn't fix up the
+             current page, though it is benign - fallback will only result in an excessive
+             minimum. */
+    min_row_bits = set_min_scan_time_code(s);
+    t4_tx_set_min_row_bits(&(s->t4), min_row_bits);
+    /* We need to rebuild the DCS message we will send. */
+    build_dcs(s);
+    return s->current_fallback;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1641,7 +1625,7 @@ static void disconnect(t30_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int set_min_scan_time_code(t30_state_t *s, const uint8_t *msg, int len)
+static int set_min_scan_time_code(t30_state_t *s)
 {
     /* Translation between the codes for the minimum scan times the other end needs,
        and the codes for what we say will be used. We need 0 minimum. */
@@ -1651,49 +1635,56 @@ static int set_min_scan_time_code(t30_state_t *s, const uint8_t *msg, int len)
         {T30_MIN_SCAN_20MS, T30_MIN_SCAN_5MS, T30_MIN_SCAN_10MS, T30_MIN_SCAN_10MS, T30_MIN_SCAN_40MS, T30_MIN_SCAN_20MS, T30_MIN_SCAN_5MS,  T30_MIN_SCAN_0MS}, /* fine */
         {T30_MIN_SCAN_10MS, T30_MIN_SCAN_5MS, T30_MIN_SCAN_5MS,  T30_MIN_SCAN_5MS,  T30_MIN_SCAN_20MS, T30_MIN_SCAN_10MS, T30_MIN_SCAN_5MS,  T30_MIN_SCAN_0MS}  /* superfine, when half fine time is selected */
     };
-    int min_bits_field;
-
-    /* Set the minimum scan time bits */
-    if ((s->iaf & T30_IAF_MODE_NO_FILL_BITS)  ||  len <= 5)
-        min_bits_field = T30_MIN_SCAN_0MS;
-    else
-        min_bits_field = (msg[5] >> 4) & 7;
-    switch (s->y_resolution)
-    {
-    case T4_Y_RESOLUTION_SUPERFINE:
-        if (len > 8  &&  (msg[8] & DISBIT1))
-        {
-            s->min_scan_time_code = translate_min_scan_time[((msg[8] & DISBIT6))  ?  2  :  1][min_bits_field];
-            break;
-        }
-        s->current_status = T30_ERR_NORESSUPPORT;
-        span_log(&s->logging, SPAN_LOG_FLOW, "Remote FAX does not support super-fine resolution.\n");
-        return -1;
-    case T4_Y_RESOLUTION_FINE:
-        if (len > 4  &&  (msg[4] & DISBIT7))
-        {
-            s->min_scan_time_code = translate_min_scan_time[1][min_bits_field];
-            break;
-        }
-        s->current_status = T30_ERR_NORESSUPPORT;
-        span_log(&s->logging, SPAN_LOG_FLOW, "Remote FAX does not support fine resolution.\n");
-        return -1;
-    default:
-    case T4_Y_RESOLUTION_STANDARD:
-        s->min_scan_time_code = translate_min_scan_time[0][min_bits_field];
-        break;
-    }
-    return 0;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int start_sending_document(t30_state_t *s, const uint8_t *msg, int len)
-{
     /* Translation between the codes for the minimum scan time we will use, and milliseconds. */
     static const int min_scan_times[8] =
     {
         20, 5, 10, 0, 40, 0, 0, 0
     };
+    int min_bits_field;
+
+    /* Set the minimum scan time bits */
+    if ((s->iaf & T30_IAF_MODE_NO_FILL_BITS))
+        min_bits_field = T30_MIN_SCAN_0MS;
+    else
+        min_bits_field = (s->far_dis_dtc_frame[5] >> 4) & 7;
+    switch (s->y_resolution)
+    {
+    case T4_Y_RESOLUTION_SUPERFINE:
+        if (!test_bit(s->far_dis_dtc_frame, 41))
+        {
+            s->current_status = T30_ERR_NORESSUPPORT;
+            span_log(&s->logging, SPAN_LOG_FLOW, "Remote FAX does not support super-fine resolution.\n");
+            return -1;
+        }
+        s->min_scan_time_code = translate_min_scan_time[(test_bit(s->far_dis_dtc_frame, 46))  ?  2  :  1][min_bits_field];
+        break;
+    case T4_Y_RESOLUTION_FINE:
+        if (!test_bit(s->far_dis_dtc_frame, 15))
+        {
+            s->current_status = T30_ERR_NORESSUPPORT;
+            span_log(&s->logging, SPAN_LOG_FLOW, "Remote FAX does not support fine resolution.\n");
+            return -1;
+        }
+        s->min_scan_time_code = translate_min_scan_time[1][min_bits_field];
+        break;
+    default:
+    case T4_Y_RESOLUTION_STANDARD:
+        s->min_scan_time_code = translate_min_scan_time[0][min_bits_field];
+        break;
+    }
+    if (s->error_correcting_mode)
+    {
+        s->min_scan_time_code = T30_MIN_SCAN_0MS;
+        return 0;
+    }
+    if (s->forced_min_non_ecm_row_bits >= 0)
+        return s->forced_min_non_ecm_row_bits;
+    return fallback_sequence[s->current_fallback].bit_rate*min_scan_times[s->min_scan_time_code]/1000;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int start_sending_document(t30_state_t *s)
+{
     int min_row_bits;
 
     if (s->tx_file[0] == '\0')
@@ -1718,14 +1709,13 @@ static int start_sending_document(t30_state_t *s, const uint8_t *msg, int len)
     s->y_resolution = t4_tx_get_y_resolution(&(s->t4));
     /* The minimum scan time to be used can't be evaluated until we know the Y resolution, and
        must be evaluated before the minimum scan row bits can be evaluated. */
-    if (set_min_scan_time_code(s, msg, len))
+    if ((min_row_bits = set_min_scan_time_code(s)) < 0)
     {
         t4_tx_end(&(s->t4));
         return -1;
     }
-    min_row_bits = fallback_sequence[s->current_fallback].bit_rate*min_scan_times[s->min_scan_time_code]/1000;
     span_log(&s->logging, SPAN_LOG_FLOW, "Minimum bits per row will be %d\n", min_row_bits);
-    t4_tx_set_min_row_bits(&(s->t4), (s->forced_min_non_ecm_row_bits >= 0)  ?  s->forced_min_non_ecm_row_bits  :  min_row_bits);
+    t4_tx_set_min_row_bits(&(s->t4), min_row_bits);
 
     if (t4_tx_start_page(&(s->t4)))
     {
@@ -1897,12 +1887,12 @@ static int process_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
             s->current_status = T30_ERR_RX_INCAPABLE;
             send_dcn(s);
         }
-        if (start_sending_document(s, msg, len))
+        if (start_sending_document(s))
         {
             send_dcn(s);
             return -1;
         }
-        if (build_dcs(s, msg, len))
+        if (build_dcs(s))
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "The far end is incompatible\n", s->tx_file);
             send_dcn(s);
@@ -2090,16 +2080,15 @@ static int send_deferred_pps_response(t30_state_t *s)
     if (s->ecm_first_bad_frame >= s->ecm_frames)
     {
         /* Everything was OK. We can accept the data and move on. */
+        t30_ecm_commit_partial_page(s);
         switch (s->last_pps_fcf2)
         {
         case T30_NULL:
             /* We can confirm this partial page. */
-            t30_ecm_commit_partial_page(s);
             break;
         default:
             /* We can confirm the whole page. */
             s->next_rx_step = s->last_pps_fcf2;
-            t30_ecm_commit_partial_page(s);
             t4_rx_end_page(&(s->t4));
             if (s->phase_d_handler)
                 s->phase_d_handler(s, s->phase_d_user_data, s->last_pps_fcf2);
@@ -5727,6 +5716,7 @@ int t30_restart(t30_state_t *s)
     s->received_password[0] = '\0';
     s->password_required = FALSE;
     s->far_end_detected = FALSE;
+    s->forced_min_non_ecm_row_bits = -1;
     s->timer_t0_t1 = ms_to_samples(DEFAULT_TIMER_T0);
     return 0;
 }

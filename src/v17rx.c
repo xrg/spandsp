@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.95 2007/12/06 13:35:50 steveu Exp $
+ * $Id: v17rx.c,v 1.96 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*! \file */
@@ -763,7 +763,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
         else if (s->training_count >= V17_TRAINING_SEG_2_LEN)
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "Long training error %f\n", s->training_error);
-            if (s->training_error < 20.0f)
+            if (s->training_error < 40.0f)
             {
                 s->training_count = 0;
                 s->training_error = 0.0f;

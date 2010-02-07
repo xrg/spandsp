@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.c,v 1.37 2007/11/30 12:20:35 steveu Exp $
+ * $Id: v42.c,v 1.38 2007/12/13 11:31:32 steveu Exp $
  */
 
 /* THIS IS A WORK IN PROGRESS. IT IS NOT FINISHED. */
@@ -1111,11 +1111,13 @@ void lapm_restart(lapm_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
+#if 0
 static void lapm_init(lapm_state_t *s)
 {
     lapm_restart(s);
 }
 /*- End of function --------------------------------------------------------*/
+#endif
 
 static void negotiation_rx_bit(v42_state_t *s, int new_bit)
 {

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex.h,v 1.13 2007/05/12 12:25:39 steveu Exp $
+ * $Id: complex.h,v 1.14 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*! \file */
@@ -43,7 +43,9 @@ widespread.
 */
 typedef struct
 {
+    /*! \brief Real part. */
     float re;
+    /*! \brief Imaginary part. */
     float im;
 } complexf_t;
 
@@ -52,7 +54,9 @@ typedef struct
 */
 typedef struct
 {
+    /*! \brief Real part. */
     double re;
+    /*! \brief Imaginary part. */
     double im;
 } complex_t;
 
@@ -62,7 +66,9 @@ typedef struct
 */
 typedef struct
 {
+    /*! \brief Real part. */
     long double re;
+    /*! \brief Imaginary part. */
     long double im;
 } complexl_t;
 #endif
@@ -72,7 +78,9 @@ typedef struct
 */
 typedef struct
 {
+    /*! \brief Real part. */
     int re;
+    /*! \brief Imaginary part. */
     int im;
 } complexi_t;
 
@@ -81,7 +89,9 @@ typedef struct
 */
 typedef struct
 {
+    /*! \brief Real part. */
     int16_t re;
+    /*! \brief Imaginary part. */
     int16_t im;
 } complexi16_t;
 
@@ -90,7 +100,9 @@ typedef struct
 */
 typedef struct
 {
+    /*! \brief Real part. */
     int32_t re;
+    /*! \brief Imaginary part. */
     int32_t im;
 } complexi32_t;
 

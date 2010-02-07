@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.h,v 1.10 2007/11/18 08:57:14 steveu Exp $
+ * $Id: super_tone_tx.h,v 1.11 2007/12/13 11:31:33 steveu Exp $
  */
 
 #if !defined(_SPANDSP_SUPER_TONE_TX_H_)
@@ -63,6 +63,11 @@ typedef struct
     int cycles[4];
 } super_tone_tx_state_t;
 
+#if defined(__cplusplus)
+extern "C"
+{
+#endif
+
 super_tone_tx_step_t *super_tone_tx_make_step(super_tone_tx_step_t *s,
                                               float f1,
                                               float l1,
@@ -82,11 +87,15 @@ super_tone_tx_state_t *super_tone_tx_init(super_tone_tx_state_t *s, super_tone_t
 
 /*! Generate a block of audio samples for a supervisory tone pattern.
     \brief Generate a block of audio samples for a supervisory tone pattern.
-    \param tone The supervisory tone context.
+    \param s The supervisory tone context.
     \param amp The audio sample buffer.
     \param max_samples The maximum number of samples to be generated.
     \return The number of samples generated. */
 int super_tone_tx(super_tone_tx_state_t *s, int16_t amp[], int max_samples);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

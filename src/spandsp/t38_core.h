@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.h,v 1.20 2007/06/08 13:49:38 steveu Exp $
+ * $Id: t38_core.h,v 1.21 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \file */
@@ -71,6 +71,7 @@ with zero bits. Again, the number is limited only by need to avoid upsetting the
 step following the non-ECM data.
 */
 
+/*! T.38 indicator types */
 enum t30_indicator_types_e
 {
     T38_IND_NO_SIGNAL = 0,
@@ -98,6 +99,7 @@ enum t30_indicator_types_e
     T38_IND_V33_14400_TRAINING
 };
 
+/*! T.38 data types */
 enum t38_data_types_e
 {
     T38_DATA_NONE = -1,
@@ -118,6 +120,7 @@ enum t38_data_types_e
     T38_DATA_V33_14400
 };
 
+/*! T.38 data field types */
 enum t38_field_types_e
 {
     T38_FIELD_HDLC_DATA = 0,
@@ -134,6 +137,7 @@ enum t38_field_types_e
     T38_FIELD_V34RATE
 };
 
+/*! T.38 field classes */
 enum t38_field_classes_e
 {
     T38_FIELD_CLASS_NONE = 0,
@@ -141,12 +145,14 @@ enum t38_field_classes_e
     T38_FIELD_CLASS_NON_ECM,
 };
 
+/*! T.38 message types */
 enum t38_message_types_e
 {
     T38_TYPE_OF_MSG_T30_INDICATOR = 0,
     T38_TYPE_OF_MSG_T30_DATA
 };
 
+/*! T.38 transport types */
 enum t38_transport_types_e
 {
     T38_TRANSPORT_UDPTL = 0,
@@ -157,6 +163,7 @@ enum t38_transport_types_e
 #define T38_RX_BUF_LEN  2048
 #define T38_TX_BUF_LEN  16384
 
+/*! T.38 data field */
 typedef struct
 {
     int field_type;
@@ -172,9 +179,7 @@ typedef int (t38_rx_indicator_handler_t)(t38_core_state_t *s, void *user_data, i
 typedef int (t38_rx_data_handler_t)(t38_core_state_t *s, void *user_data, int data_type, int field_type, const uint8_t *buf, int len);
 typedef int (t38_rx_missing_handler_t)(t38_core_state_t *s, void *user_data, int rx_seq_no, int expected_seq_no);
 
-#include <sys/time.h>
-
-/*
+/*!
     Core T.38 state, common to all modes of T.38.
 */
 struct t38_core_state_s

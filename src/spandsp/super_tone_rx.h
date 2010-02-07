@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.h,v 1.13 2007/09/01 09:16:57 steveu Exp $
+ * $Id: super_tone_rx.h,v 1.14 2007/12/13 11:31:33 steveu Exp $
  */
 
 #if !defined(_SPANDSP_SUPER_TONE_RX_H_)
@@ -93,6 +93,11 @@ typedef struct
     goertzel_state_t state[];
 } super_tone_rx_state_t;
 
+#if defined(__cplusplus)
+extern "C"
+{
+#endif
+
 /*! Create a new supervisory tone detector descriptor.
     \param desc The supervisory tone set desciptor. If NULL, the routine will allocate space for a
                 descriptor.
@@ -162,6 +167,10 @@ void super_tone_rx_segment_callback(super_tone_rx_state_t *s,
     \return The number of samples processed.
 */
 int super_tone_rx(super_tone_rx_state_t *super, const int16_t amp[], int samples);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

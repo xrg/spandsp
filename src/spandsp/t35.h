@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t35.h,v 1.11 2007/04/08 08:16:18 steveu Exp $
+ * $Id: t35.h,v 1.12 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \file */
@@ -38,6 +38,8 @@
 ???.
 */
 
+/*! A table of the country names associated with each possible value of the T.35 country code
+    selector octet. */
 extern const char *t35_country_codes[256];
 
 #if defined(__cplusplus)

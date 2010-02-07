@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.103 2007/11/30 12:20:34 steveu Exp $
+ * $Id: t38_gateway.c,v 1.104 2007/12/13 11:31:31 steveu Exp $
  */
 
 /*! \file */
@@ -114,11 +114,13 @@ static void add_to_non_ecm_tx_buffer(t38_gateway_state_t *s, const uint8_t *buf,
 static int non_ecm_get_bit(void *user_data);
 static int process_rx_indicator(t38_core_state_t *t, void *user_data, int indicator);
 
+#if 0
 static int dummy_rx(void *user_data, const int16_t amp[], int len)
 {
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
+#endif
 
 static int early_v17_rx(void *user_data, const int16_t amp[], int len)
 {

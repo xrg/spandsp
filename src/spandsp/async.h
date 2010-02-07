@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: async.h,v 1.11 2007/11/26 13:28:59 steveu Exp $
+ * $Id: async.h,v 1.12 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*! \file */
@@ -49,7 +49,7 @@ and decoding must occur before data is fed to this module.
 #if !defined(_SPANDSP_ASYNC_H_)
 #define _SPANDSP_ASYNC_H_
 
-/* Special "bit" values for the put and get bit functions */
+/*! Special "bit" values for the put and get bit functions */
 enum
 {
     /*! \brief The carrier signal has dropped. */
@@ -129,6 +129,7 @@ typedef struct
     int byte_in_progress;
     /*! \brief The current bit position within a partially transmitted character. */
     int bitpos;
+    /*! \brief Parity bit. */
     int parity_bit;
 } async_tx_state_t;
 
@@ -156,9 +157,12 @@ typedef struct
     int byte_in_progress;
     /*! \brief The current bit position within a partially complete character. */
     int bitpos;
+    /*! \brief Parity bit. */
     int parity_bit;
 
+    /*! A count of the number of parity errors seen. */
     int parity_errors;
+    /*! A count of the number of character framing errors seen. */
     int framing_errors;
 } async_rx_state_t;
 

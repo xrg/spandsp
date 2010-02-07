@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: silence_gen.h,v 1.7 2007/04/08 08:16:18 steveu Exp $
+ * $Id: silence_gen.h,v 1.8 2007/12/13 11:31:33 steveu Exp $
  */
 
 #if !defined(_SPANDSP_SILENCE_GEN_H_)
@@ -88,7 +88,7 @@ int silence_gen_generated(silence_gen_state_t *s);
 /*! Initialise a timed silence generator context.
     \brief Initialise a timed silence generator context.
     \param s The silence generator context.
-    \param the initial number of samples to set the silence to.
+    \param silent_samples The initial number of samples to set the silence to.
     \return A pointer to the silence generator context.
 */
 silence_gen_state_t *silence_gen_init(silence_gen_state_t *s, int silent_samples);

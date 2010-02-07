@@ -27,7 +27,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo.h,v 1.10 2007/04/05 19:20:49 steveu Exp $
+ * $Id: echo.h,v 1.11 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*! \file */
@@ -177,6 +177,11 @@ typedef struct
     int narrowband_score;
 } echo_can_state_t;
 
+#if defined(__cplusplus)
+extern "C"
+{
+#endif
+
 /*! Create a voice echo canceller context.
     \param len The length of the canceller, in samples.
     \return The new canceller context, or NULL if the canceller could not be created.
@@ -195,7 +200,7 @@ void echo_can_flush(echo_can_state_t *ec);
 
 /*! Set the adaption mode of a voice echo canceller context.
     \param ec The echo canceller context.
-    \param adapt The mode.
+    \param adaption_mode The mode.
 */
 void echo_can_adaption_mode(echo_can_state_t *ec, int adaption_mode);
 
@@ -206,6 +211,10 @@ void echo_can_adaption_mode(echo_can_state_t *ec, int adaption_mode);
     \return The clean (echo cancelled) received sample.
 */
 int16_t echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t rx);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

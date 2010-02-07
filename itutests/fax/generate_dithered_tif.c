@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: generate_dithered_tif.c,v 1.4 2007/09/30 11:36:52 steveu Exp $
+ * $Id: generate_dithered_tif.c,v 1.5 2007/12/13 11:31:30 steveu Exp $
  */
 
 /*! \file */
@@ -41,8 +41,6 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
-#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <inttypes.h>

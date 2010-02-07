@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule.h,v 1.13 2007/07/09 15:29:50 steveu Exp $
+ * $Id: schedule.h,v 1.14 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \file */
@@ -42,6 +42,7 @@ typedef struct span_sched_state_s span_sched_state_t;
 
 typedef void (*span_sched_callback_func_t)(span_sched_state_t *s, void *user_data);
 
+/*! A scheduled event entry. */
 typedef struct
 {
     uint64_t when;
@@ -49,6 +50,7 @@ typedef struct
     void *user_data;
 } span_sched_t;
 
+/*! A scheduled event queue. */
 struct span_sched_state_s
 {
     uint64_t ticker;

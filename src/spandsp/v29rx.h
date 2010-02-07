@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.h,v 1.50 2007/12/10 11:07:04 steveu Exp $
+ * $Id: v29rx.h,v 1.51 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \file */
@@ -179,7 +179,7 @@ typedef struct
     int carrier_drop_pending;
     /*! \brief A count of the current consecutive samples below the carrier off threshold. */
     int low_samples;
-    /*! \brief A highest sample seen. */
+    /*! \brief A highest magnitude sample seen. */
     int16_t high_sample;
     /*! \brief TRUE if the previous trained values are to be reused. */
     int old_train;
@@ -208,14 +208,25 @@ typedef struct
 
     int constellation_state;
 
+    /*! \brief The current delta factor for updating the equalizer coefficients. */
     float eq_delta;
-    /*! \brief The adaptive equalizer coefficients */
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    /*! \brief The adaptive equalizer coefficients. */
+    complexi_t eq_coeff[V29_EQUALIZER_PRE_LEN + 1 + V29_EQUALIZER_POST_LEN];
+    /*! \brief A saved set of adaptive equalizer coefficients for use after restarts. */
+    complexi_t eq_coeff_save[V29_EQUALIZER_PRE_LEN + 1 + V29_EQUALIZER_POST_LEN];
+    /*! \brief The equalizer signal buffer. */
+    complexi_t eq_buf[V29_EQUALIZER_MASK + 1];
+#else
     complexf_t eq_coeff[V29_EQUALIZER_PRE_LEN + 1 + V29_EQUALIZER_POST_LEN];
     complexf_t eq_coeff_save[V29_EQUALIZER_PRE_LEN + 1 + V29_EQUALIZER_POST_LEN];
     complexf_t eq_buf[V29_EQUALIZER_MASK + 1];
-    /*! \brief Current offset into equalizer buffer. */
+#endif
+    /*! \brief Current offset into the equalizer buffer. */
     int eq_step;
+    /*! \brief Current write offset into the equalizer buffer. */
     int eq_put_step;
+    /*! \brief Symbol counter to the next equalizer update. */
     int eq_skip;
 
     /*! \brief The current half of the baud. */

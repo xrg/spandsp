@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.102 2007/11/26 17:35:51 steveu Exp $
+ * $Id: t4.c,v 1.103 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*
@@ -62,8 +62,6 @@
 #if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
-
-#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -634,18 +632,18 @@ static int put_decoded_row(t4_state_t *s)
         for (x = 0, fudge = 0;  x < s->a_cursor;  x++, fudge ^= 0xFF)
         {
             i = s->cur_runs[x];
-            if (i >= s->data_bits)
+            if (i >= s->tx_bits)
             {
-                s->data = (s->data << s->data_bits) | (msbmask[s->data_bits] & fudge);
-                for (i += (8 - s->data_bits);  i >= 8;  i -= 8)
+                s->tx_bitstream = (s->tx_bitstream << s->tx_bits) | (msbmask[s->tx_bits] & fudge);
+                for (i += (8 - s->tx_bits);  i >= 8;  i -= 8)
                 {
-                    s->data_bits = 8;
-                    s->image_buffer[s->image_size++] = (uint8_t) s->data;
-                    s->data = fudge;
+                    s->tx_bits = 8;
+                    s->image_buffer[s->image_size++] = (uint8_t) s->tx_bitstream;
+                    s->tx_bitstream = fudge;
                 }
             }
-            s->data = (s->data << i) | (msbmask[i] & fudge);
-            s->data_bits -= i;
+            s->tx_bitstream = (s->tx_bitstream << i) | (msbmask[i] & fudge);
+            s->tx_bits -= i;
         }
         s->image_length++;
     }
@@ -762,8 +760,8 @@ int t4_rx_end_page(t4_state_t *s)
         /* ...then the directory entry, and libtiff is happy. */
         TIFFWriteDirectory(s->tiff_file);
     }
-    s->bits = 0;
-    s->bits_to_date = 0;
+    s->rx_bits = 0;
+    s->rx_bitstream = 0;
     s->consecutive_eols = 0;
 
     s->image_size = 0;
@@ -771,39 +769,38 @@ int t4_rx_end_page(t4_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
+static int t4_rx_put_bits(t4_state_t *s, uint32_t bit_string, int quantity)
 {
     int bits;
     int i;
 
     /* We decompress bit by bit, as the data stream is received. We need to
        scan continuously for EOLs, so we might as well work this way. */
-    s->bits_to_date |= (bit_string << s->bits);
-    s->bits += quantity;
-    if (s->bits < 13)
+    s->rx_bitstream |= (bit_string << s->rx_bits);
+    if ((s->rx_bits += quantity) < 13)
         return FALSE;
     if (!s->first_eol_seen)
     {
         /* Do not let anything through to the decoder, until an EOL arrives. For
            T6 coding this condition should have been forced TRUE at the very start. */
-        while ((s->bits_to_date & 0xFFF) != 0x800)
+        while ((s->rx_bitstream & 0xFFF) != 0x800)
         {
-            s->bits_to_date >>= 1;
-            if (--s->bits < 13)
+            s->rx_bitstream >>= 1;
+            if (--s->rx_bits < 13)
                 return FALSE;
         }
         i = (s->line_encoding == T4_COMPRESSION_ITU_T4_1D)  ?  12  :  13;
-        s->bits -= i;
-        s->bits_to_date >>= i;
+        s->rx_bits -= i;
+        s->rx_bitstream >>= i;
         s->first_eol_seen = TRUE;
         return FALSE;
     }
     /* Check if the image has already terminated */
     if (s->consecutive_eols >= 5)
         return TRUE;
-    while (s->bits >= 13)
+    while (s->rx_bits >= 13)
     {
-        if ((s->bits_to_date & 0x0FFF) == 0x0800)
+        if ((s->rx_bitstream & 0x0FFF) == 0x0800)
         {
             STATE_TRACE("EOL\n");
             if (s->row_len == 0)
@@ -821,14 +818,14 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
             }
             if (s->line_encoding == T4_COMPRESSION_ITU_T4_1D)
             {
-                s->bits -= 12;
-                s->bits_to_date >>= 12;
+                s->rx_bits -= 12;
+                s->rx_bitstream >>= 12;
             }
             else
             {
-                s->row_is_2d = !(s->bits_to_date & 0x1000);
-                s->bits -= 13;
-                s->bits_to_date >>= 13;
+                s->row_is_2d = !(s->rx_bitstream & 0x1000);
+                s->rx_bits -= 13;
+                s->rx_bitstream >>= 13;
             }
             s->its_black = FALSE;
             s->black_white = 0;
@@ -838,14 +835,14 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
         }
         if (s->row_is_2d  &&  s->black_white == 0)
         {
-            bits = s->bits_to_date & 0x7F;
+            bits = s->rx_bitstream & 0x7F;
             STATE_TRACE("State %d, %d - ",
                         t4_2d_table[bits].state,
                         t4_2d_table[bits].width);
             if (s->row_len >= s->image_width)
             {
-                s->bits -= t4_2d_table[bits].width;
-                s->bits_to_date >>= t4_2d_table[bits].width;
+                s->rx_bits -= t4_2d_table[bits].width;
+                s->rx_bitstream >>= t4_2d_table[bits].width;
                 continue;
             }
             if (s->a_cursor)
@@ -906,8 +903,8 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
                 STATE_TRACE("Ext %d %d %d 0x%x\n",
                             s->image_width,
                             s->a0,
-                            ((s->bits_to_date >> t4_2d_table[bits].width) & 0x7),
-                            s->bits_to_date);
+                            ((s->rx_bitstream >> t4_2d_table[bits].width) & 0x7),
+                            s->rx_bitstream);
                 /* TODO: The uncompressed option should be implemented. */
                 break;
             case S_Null:
@@ -918,14 +915,14 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
                 span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected T.4 state %d\n", t4_2d_table[bits].state);
                 break;
             }
-            s->bits -= t4_2d_table[bits].width;
-            s->bits_to_date >>= t4_2d_table[bits].width;
+            s->rx_bits -= t4_2d_table[bits].width;
+            s->rx_bitstream >>= t4_2d_table[bits].width;
         }
         else
         {
             if (s->its_black)
             {
-                bits = s->bits_to_date & 0x1FFF;
+                bits = s->rx_bitstream & 0x1FFF;
                 STATE_TRACE("State %d, %d - Black %d %d %d\n",
                             t4_1d_black_table[bits].state,
                             t4_1d_black_table[bits].width,
@@ -955,12 +952,12 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
                     s->black_white = 0;
                     break;
                 }
-                s->bits -= t4_1d_black_table[bits].width;
-                s->bits_to_date >>= t4_1d_black_table[bits].width;
+                s->rx_bits -= t4_1d_black_table[bits].width;
+                s->rx_bitstream >>= t4_1d_black_table[bits].width;
             }
             else
             {
-                bits = s->bits_to_date & 0xFFF;
+                bits = s->rx_bitstream & 0xFFF;
                 STATE_TRACE("State %d, %d - White %d %d %d\n",
                             t4_1d_white_table[bits].state,
                             t4_1d_white_table[bits].width,
@@ -990,8 +987,8 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
                     s->black_white = 0;
                     break;
                 }
-                s->bits -= t4_1d_white_table[bits].width;
-                s->bits_to_date >>= t4_1d_white_table[bits].width;
+                s->rx_bits -= t4_1d_white_table[bits].width;
+                s->rx_bitstream >>= t4_1d_white_table[bits].width;
             }
         }
         if (s->a0 >= s->image_width)
@@ -1135,8 +1132,8 @@ int t4_rx_start_page(t4_state_t *s)
     memset(s->cur_runs, 0, run_space);
     memset(s->ref_runs, 0, run_space);
 
-    s->bits = 0;
-    s->bits_to_date = 0;
+    s->rx_bits = 0;
+    s->rx_bitstream = 0;
 
     s->row_is_2d = (s->line_encoding == T4_COMPRESSION_ITU_T6);
     s->first_eol_seen = (s->line_encoding == T4_COMPRESSION_ITU_T6);
@@ -1146,8 +1143,8 @@ int t4_rx_start_page(t4_state_t *s)
     s->curr_bad_row_run = 0;
     s->image_length = 0;
     s->consecutive_eols = 0;
-    s->data = 0;
-    s->data_bits = 8;
+    s->tx_bitstream = 0;
+    s->tx_bits = 8;
     s->image_size = 0;
     s->last_row_starts_at = 0;
 
@@ -1254,21 +1251,21 @@ static __inline__ int put_encoded_bits(t4_state_t *s, uint32_t bits, int length)
 
     /* We might be called with a large length value, to spew out a mass of zero bits for
        minimum row length padding. */
-    s->data |= (bits << s->data_bits);
-    s->data_bits += length;
+    s->tx_bitstream |= (bits << s->tx_bits);
+    s->tx_bits += length;
     s->row_bits += length;
-    if ((s->image_size + (s->data_bits + 7)/8) >= s->image_buffer_size)
+    if ((s->image_size + (s->tx_bits + 7)/8) >= s->image_buffer_size)
     {
         if ((t = realloc(s->image_buffer, s->image_buffer_size + 100*s->bytes_per_row)) == NULL)
             return -1;
         s->image_buffer = t;
         s->image_buffer_size += 100*s->bytes_per_row;
     }
-    while (s->data_bits >= 8)
+    while (s->tx_bits >= 8)
     {
-        s->image_buffer[s->image_size++] = (uint8_t) (s->data & 0xFF);
-        s->data >>= 8;
-        s->data_bits -= 8;
+        s->image_buffer[s->image_size++] = (uint8_t) (s->tx_bitstream & 0xFF);
+        s->tx_bitstream >>= 8;
+        s->tx_bits -= 8;
     }
     return 0;
 }
@@ -1705,8 +1702,8 @@ int t4_tx_start_page(t4_state_t *s)
     if (!TIFFSetDirectory(s->tiff_file, (tdir_t) s->pages_transferred))
         return -1;
     s->image_size = 0;
-    s->data = 0;
-    s->data_bits = 0;
+    s->tx_bitstream = 0;
+    s->tx_bits = 0;
     s->row_is_2d = (s->line_encoding == T4_COMPRESSION_ITU_T6);
     s->rows_to_next_1d_row = s->max_rows_to_next_1d_row - 1;
 

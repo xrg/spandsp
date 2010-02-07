@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.h,v 1.26 2007/11/30 12:20:35 steveu Exp $
+ * $Id: fax.h,v 1.27 2007/12/13 11:31:32 steveu Exp $
  */
 
 /*! \file */
@@ -64,7 +64,6 @@ struct fax_state_s
     /*! The current transmit signal handler */
     span_tx_handler_t *tx_handler;
     void *tx_user_data;
-    int tx_hdlc_preamble_len;
     /*! The transmit signal handler to be used when the current one has finished sending. */
     span_tx_handler_t *next_tx_handler;
     void *next_tx_user_data;
@@ -122,10 +121,9 @@ struct fax_state_s
     /*! \brief The currently select transmitter type */
     int current_tx_type;
 
-    int first_tx_hdlc_frame;
-
-    /*! \brief Audio logging file handles */
+    /*! \brief Audio logging file handle for received audio. */
     int fax_audio_rx_log;
+    /*! \brief Audio logging file handle for transmitted audio. */
     int fax_audio_tx_log;
     /*! \brief Error and flow logging control */
     logging_state_t logging;

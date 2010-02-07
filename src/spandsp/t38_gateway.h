@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.36 2007/11/30 12:20:35 steveu Exp $
+ * $Id: t38_gateway.h,v 1.37 2007/12/13 11:31:33 steveu Exp $
  */
 
 /*! \file */
@@ -46,8 +46,12 @@ to maximum the tolerance of jitter and packet loss on the IP network.
 /* Make sure the HDLC frame buffers are big enough for ECM frames. */
 #define T38_MAX_HDLC_LEN        260
 
+/*!
+    T.38 gateway state.
+*/
 typedef struct
 {
+    /*! Core T.38 support */
     t38_core_state_t t38;
 
     /*! \brief TRUE if ECM FAX mode is allowed through the gateway. */

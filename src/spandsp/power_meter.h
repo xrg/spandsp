@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter.h,v 1.12 2007/04/10 16:12:20 steveu Exp $
+ * $Id: power_meter.h,v 1.13 2007/12/13 11:31:33 steveu Exp $
  */
 
 #if !defined(_POWER_METER_H_)
@@ -49,12 +49,14 @@ values +/-8031, and this square wave represents 0dBov.  This translates into 6.1
 */
 typedef struct
 {
+    /*! The shift factor, which controls the damping of the power meter. */
     int shift;
 
+    /*! The current power reading. */
     int32_t reading;
 } power_meter_t;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -110,7 +112,7 @@ int32_t power_meter_level_dbm0(float level);
     \return The equivalent power meter reading. */
 int32_t power_meter_level_dbov(float level);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

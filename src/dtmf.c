@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.c,v 1.30 2007/11/30 12:20:33 steveu Exp $
+ * $Id: dtmf.c,v 1.31 2007/12/13 11:31:31 steveu Exp $
  */
  
 /*! \file dtmf.h */
@@ -219,15 +219,15 @@ int dtmf_rx(dtmf_rx_state_t *s, const int16_t amp[], int samples)
                 /* Sharp notches applied at 350Hz and 440Hz - the two common dialtone frequencies.
                    These are rather high Q, to achieve the required narrowness, without using lots of
                    sections. */
-                v1 = 0.98356f*famp + 1.8954426f*s->z350_1 - 0.9691396f*s->z350_2;
-                famp = v1 - 1.9251480f*s->z350_1 + s->z350_2;
-                s->z350_2 = s->z350_1;
-                s->z350_1 = v1;
+                v1 = 0.98356f*famp + 1.8954426f*s->z350[0] - 0.9691396f*s->z350[1];
+                famp = v1 - 1.9251480f*s->z350[0] + s->z350[1];
+                s->z350[1] = s->z350[0];
+                s->z350[0] = v1;
 
-                v1 = 0.98456f*famp + 1.8529543f*s->z440_1 - 0.9691396f*s->z440_2;
-                famp = v1 - 1.8819938f*s->z440_1 + s->z440_2;
-                s->z440_2 = s->z440_1;
-                s->z440_1 = v1;
+                v1 = 0.98456f*famp + 1.8529543f*s->z440[0] - 0.9691396f*s->z440[1];
+                famp = v1 - 1.8819938f*s->z440[0] + s->z440[1];
+                s->z440[1] = s->z440[0];
+                s->z440[0] = v1;
             }
 #if defined(SPANDSP_USE_FIXED_POINT_EXPERIMENTAL)
             famp >>= 8;
@@ -477,10 +477,10 @@ void dtmf_rx_parms(dtmf_rx_state_t *s,
 {
     if (filter_dialtone >= 0)
     {
-        s->z350_1 = 0.0f;
-        s->z350_2 = 0.0f;
-        s->z440_1 = 0.0f;
-        s->z440_2 = 0.0f;
+        s->z350[0] = 0.0f;
+        s->z350[1] = 0.0f;
+        s->z440[0] = 0.0f;
+        s->z440[1] = 0.0f;
         s->filter_dialtone = filter_dialtone;
     }
     if (twist >= 0)
