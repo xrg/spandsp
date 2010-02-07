@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * complex_vector_float.c - Floating complex vector arithmetic routines.
+ * complex_vector_int.c - Integer complex vector arithmetic routines.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_vector_float.c,v 1.10 2008/09/18 13:16:49 steveu Exp $
+ * $Id: complex_vector_int.c,v 1.3 2008/09/18 13:54:32 steveu Exp $
  */
 
 /*! \file */
@@ -47,15 +47,30 @@
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
 #include "spandsp/complex.h"
-#include "spandsp/vector_float.h"
-#include "spandsp/complex_vector_float.h"
+#include "spandsp/vector_int.h"
+#include "spandsp/complex_vector_int.h"
 
-complexf_t cvec_dot_prodf(const complexf_t x[], const complexf_t y[], int n)
+complexi32_t cvec_dot_prodi16(const complexi16_t x[], const complexi16_t y[], int n)
 {
     int i;
-    complexf_t z;
+    complexi32_t z;
 
-    z = complex_setf(0.0f, 0.0f);
+    z = complex_seti32(0, 0);
+    for (i = 0;  i < n;  i++)
+    {
+        z.re += ((int32_t) x[i].re*(int32_t) y[i].re - (int32_t) x[i].im*(int32_t) y[i].im);
+        z.im += ((int32_t) x[i].re*(int32_t) y[i].im + (int32_t) x[i].im*(int32_t) y[i].re);
+    }
+    return z;
+}
+/*- End of function --------------------------------------------------------*/
+
+complexi32_t cvec_dot_prodi32(const complexi32_t x[], const complexi32_t y[], int n)
+{
+    int i;
+    complexi32_t z;
+
+    z = complex_seti32(0, 0);
     for (i = 0;  i < n;  i++)
     {
         z.re += (x[i].re*y[i].re - x[i].im*y[i].im);
@@ -65,69 +80,34 @@ complexf_t cvec_dot_prodf(const complexf_t x[], const complexf_t y[], int n)
 }
 /*- End of function --------------------------------------------------------*/
 
-complex_t cvec_dot_prod(const complex_t x[], const complex_t y[], int n)
+complexi32_t cvec_circular_dot_prodi16(const complexi16_t x[], const complexi16_t y[], int n, int pos)
 {
-    int i;
-    complex_t z;
+    complexi32_t z;
+    complexi32_t z1;
 
-    z = complex_set(0.0, 0.0);
-    for (i = 0;  i < n;  i++)
-    {
-        z.re += (x[i].re*y[i].re - x[i].im*y[i].im);
-        z.im += (x[i].re*y[i].im + x[i].im*y[i].re);
-    }
+    z = cvec_dot_prodi16(&x[pos], &y[0], n - pos);
+    z1 = cvec_dot_prodi16(&x[0], &y[n - pos], pos);
+    z = complex_addi32(&z, &z1);
     return z;
 }
 /*- End of function --------------------------------------------------------*/
 
-#if defined(HAVE_LONG_DOUBLE)
-complexl_t cvec_dot_prodl(const complexl_t x[], const complexl_t y[], int n)
-{
-    int i;
-    complexl_t z;
-
-    z = complex_setl(0.0L, 0.0L);
-    for (i = 0;  i < n;  i++)
-    {
-        z.re += (x[i].re*y[i].re - x[i].im*y[i].im);
-        z.im += (x[i].re*y[i].im + x[i].im*y[i].re);
-    }
-    return z;
-}
-/*- End of function --------------------------------------------------------*/
-#endif
-
-complexf_t cvec_circular_dot_prodf(const complexf_t x[], const complexf_t y[], int n, int pos)
-{
-    complexf_t z;
-    complexf_t z1;
-
-    z = cvec_dot_prodf(&x[pos], &y[0], n - pos);
-    z1 = cvec_dot_prodf(&x[0], &y[n - pos], pos);
-    z = complex_addf(&z, &z1);
-    return z;
-}
-/*- End of function --------------------------------------------------------*/
-
-void cvec_lmsf(const complexf_t x[], complexf_t y[], int n, const complexf_t *error)
+void cvec_lmsi16(const complexi16_t x[], complexi16_t y[], int n, const complexi16_t *error)
 {
     int i;
 
     for (i = 0;  i < n;  i++)
     {
-        y[i].re += (x[i].im*error->im + x[i].re*error->re);
-        y[i].im += (x[i].re*error->im - x[i].im*error->re);
-        /* Leak a little to tame uncontrolled wandering */
-        y[i].re *= 0.9999f;
-        y[i].im *= 0.9999f;
+        y[i].re += ((int32_t) x[i].im*(int32_t) error->im + (int32_t) x[i].re*(int32_t) error->re) >> 12;
+        y[i].im += ((int32_t) x[i].re*(int32_t) error->im - (int32_t) x[i].im*(int32_t) error->re) >> 12;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
-void cvec_circular_lmsf(const complexf_t x[], complexf_t y[], int n, int pos, const complexf_t *error)
+void cvec_circular_lmsi16(const complexi16_t x[], complexi16_t y[], int n, int pos, const complexi16_t *error)
 {
-    cvec_lmsf(&x[pos], &y[0], n - pos, error);
-    cvec_lmsf(&x[0], &y[n - pos], pos, error);
+    cvec_lmsi16(&x[pos], &y[0], n - pos, error);
+    cvec_lmsi16(&x[0], &y[n - pos], pos, error);
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

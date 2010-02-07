@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector_int_tests.c,v 1.10 2008/09/18 12:05:35 steveu Exp $
+ * $Id: complex_vector_int_tests.c,v 1.1 2008/09/18 12:05:35 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -37,37 +37,42 @@
 
 #include "spandsp.h"
 
-static int32_t vec_dot_prodi16_dumb(const int16_t x[], const int16_t y[], int n)
+static complexi32_t cvec_dot_prodi16_dumb(const complexi16_t x[], const complexi16_t y[], int n)
 {
-    int32_t z;
+    complexi32_t z;
     int i;
 
-    z = 0;
+    z = complex_seti32(0, 0);
     for (i = 0;  i < n;  i++)
-        z += (int32_t) x[i]*(int32_t) y[i];
+    {
+        z.re += ((int32_t) x[i].re*(int32_t) y[i].re - (int32_t) x[i].im*(int32_t) y[i].im);
+        z.im += ((int32_t) x[i].re*(int32_t) y[i].im + (int32_t) x[i].im*(int32_t) y[i].re);
+    }
     return z;
 }
 /*- End of function --------------------------------------------------------*/
 
-static int test_vec_dot_prodi16(void)
+static int test_cvec_dot_prodi16(void)
 {
     int i;
-    int32_t za;
-    int32_t zb;
-    int16_t x[99];
-    int16_t y[99];
+    complexi32_t za;
+    complexi32_t zb;
+    complexi16_t x[99];
+    complexi16_t y[99];
 
     for (i = 0;  i < 99;  i++)
     {
-        x[i] = rand();
-        y[i] = rand();
+        x[i].re = rand();
+        x[i].im = rand();
+        y[i].re = rand();
+        y[i].im = rand();
     }
 
     for (i = 1;  i < 99;  i++)
     {
-        za = vec_dot_prodi16(x, y, i);
-        zb = vec_dot_prodi16_dumb(x, y, i);
-        if (za != zb)
+        za = cvec_dot_prodi16(x, y, i);
+        zb = cvec_dot_prodi16_dumb(x, y, i);
+        if (za.re != zb.re  ||  za.im != zb.im)
         {
             printf("Tests failed\n");
             exit(2);
@@ -77,99 +82,40 @@ static int test_vec_dot_prodi16(void)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int32_t vec_min_maxi16_dumb(const int16_t x[], int n, int16_t out[])
-{
-    int i;
-    int16_t min;
-    int16_t max;
-    int16_t temp;
-    int32_t z;
-    
-    max = INT16_MIN;
-    min = INT16_MAX;
-    for (i = 0;  i < n;  i++)
-    {
-        temp = x[i];
-        if (temp > max)
-            max = temp;
-        /*endif*/
-        if (temp < min)
-            min = temp;
-        /*endif*/
-    }
-    /*endfor*/
-    out[0] = max;
-    out[1] = min;
-    z = abs(min);
-    if (z > max)
-        return z;
-    return max;
-}
-/*- End of function --------------------------------------------------------*/
-    
-static int test_vec_min_maxi16(void)
-{
-    int i;
-    int32_t za;
-    int32_t zb;
-    int16_t x[99];
-    int16_t y[99];
-    int16_t outa[2];
-    int16_t outb[2];
-
-    for (i = 0;  i < 99;  i++)
-    {
-        x[i] = rand();
-        y[i] = rand();
-    }
-
-    x[42] = -32768;
-    za = vec_min_maxi16_dumb(x, 99, outa);
-    zb = vec_min_maxi16(x, 99, outb);
-    if (za != zb
-        ||
-        outa[0] != outb[0]
-        ||
-        outa[1] != outb[1])
-    {
-        printf("Tests failed\n");
-        exit(2);
-    }
-    return 0;
-}
-/*- End of function --------------------------------------------------------*/
-
-static int test_vec_circular_dot_prodi16(void)
+static int test_cvec_circular_dot_prodi16(void)
 {
     int i;
     int j;
     int pos;
     int len;
-    int32_t za;
-    int32_t zb;
-    int16_t x[99];
-    int16_t y[99];
+    complexi32_t za;
+    complexi32_t zb;
+    complexi16_t x[99];
+    complexi16_t y[99];
 
     /* Verify that we can do circular sample buffer "dot" linear coefficient buffer
        operations properly, by doing two sub-dot products. */
     for (i = 0;  i < 99;  i++)
     {
-        x[i] = rand();
-        y[i] = rand();
+        x[i].re = rand();
+        x[i].im = rand();
+        y[i].re = rand();
+        y[i].im = rand();
     }
 
     len = 95;
     for (pos = 0;  pos < len;  pos++)
     {
-        za = vec_circular_dot_prodi16(x, y, len, pos);
-        zb = 0;
+        za = cvec_circular_dot_prodi16(x, y, len, pos);
+        zb = complex_seti32(0, 0);
         for (i = 0;  i < len;  i++)
         {
             j = (pos + i) % len;
-            zb += (int32_t) x[j]*(int32_t) y[i];
+            zb.re += ((int32_t) x[j].re*(int32_t) y[i].re - (int32_t) x[j].im*(int32_t) y[i].im);
+            zb.im += ((int32_t) x[j].re*(int32_t) y[i].im + (int32_t) x[j].im*(int32_t) y[i].re);
         }
 
-        if (za != zb)
+        if (za.re != zb.re  ||  za.im != zb.im)
         {
             printf("Tests failed\n");
             exit(2);
@@ -181,9 +127,8 @@ static int test_vec_circular_dot_prodi16(void)
 
 int main(int argc, char *argv[])
 {
-    test_vec_dot_prodi16();
-    test_vec_min_maxi16();
-    test_vec_circular_dot_prodi16();
+    test_cvec_dot_prodi16();
+    test_cvec_circular_dot_prodi16();
 
     printf("Tests passed.\n");
     return 0;

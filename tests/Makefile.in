@@ -42,12 +42,14 @@ noinst_PROGRAMS = adsi_tests$(EXEEXT) async_tests$(EXEEXT) \
 	at_interpreter_tests$(EXEEXT) awgn_tests$(EXEEXT) \
 	bell_mf_rx_tests$(EXEEXT) bell_mf_tx_tests$(EXEEXT) \
 	bert_tests$(EXEEXT) bit_operations_tests$(EXEEXT) \
-	crc_tests$(EXEEXT) dc_restore_tests$(EXEEXT) \
-	dds_tests$(EXEEXT) dtmf_rx_tests$(EXEEXT) \
-	dtmf_tx_tests$(EXEEXT) echo_tests$(EXEEXT) fax_decode$(EXEEXT) \
-	fax_tests$(EXEEXT) fsk_tests$(EXEEXT) g1050_tests$(EXEEXT) \
-	g168_tests$(EXEEXT) g711_tests$(EXEEXT) g722_tests$(EXEEXT) \
-	g726_tests$(EXEEXT) gsm0610_tests$(EXEEXT) hdlc_tests$(EXEEXT) \
+	complex_tests$(EXEEXT) complex_vector_float_tests$(EXEEXT) \
+	complex_vector_int_tests$(EXEEXT) crc_tests$(EXEEXT) \
+	dc_restore_tests$(EXEEXT) dds_tests$(EXEEXT) \
+	dtmf_rx_tests$(EXEEXT) dtmf_tx_tests$(EXEEXT) \
+	echo_tests$(EXEEXT) fax_decode$(EXEEXT) fax_tests$(EXEEXT) \
+	fsk_tests$(EXEEXT) g1050_tests$(EXEEXT) g168_tests$(EXEEXT) \
+	g711_tests$(EXEEXT) g722_tests$(EXEEXT) g726_tests$(EXEEXT) \
+	gsm0610_tests$(EXEEXT) hdlc_tests$(EXEEXT) \
 	ima_adpcm_tests$(EXEEXT) line_model_tests$(EXEEXT) \
 	logging_tests$(EXEEXT) lpc10_tests$(EXEEXT) \
 	make_g168_css$(EXEEXT) modem_echo_tests$(EXEEXT) \
@@ -111,6 +113,19 @@ bert_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_bit_operations_tests_OBJECTS = bit_operations_tests.$(OBJEXT)
 bit_operations_tests_OBJECTS = $(am_bit_operations_tests_OBJECTS)
 bit_operations_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_complex_tests_OBJECTS = complex_tests.$(OBJEXT)
+complex_tests_OBJECTS = $(am_complex_tests_OBJECTS)
+complex_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_complex_vector_float_tests_OBJECTS =  \
+	complex_vector_float_tests.$(OBJEXT)
+complex_vector_float_tests_OBJECTS =  \
+	$(am_complex_vector_float_tests_OBJECTS)
+complex_vector_float_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_complex_vector_int_tests_OBJECTS =  \
+	complex_vector_int_tests.$(OBJEXT)
+complex_vector_int_tests_OBJECTS =  \
+	$(am_complex_vector_int_tests_OBJECTS)
+complex_vector_int_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_crc_tests_OBJECTS = crc_tests.$(OBJEXT)
 crc_tests_OBJECTS = $(am_crc_tests_OBJECTS)
 crc_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -330,17 +345,19 @@ SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(at_interpreter_tests_SOURCES) $(awgn_tests_SOURCES) \
 	$(bell_mf_rx_tests_SOURCES) $(bell_mf_tx_tests_SOURCES) \
 	$(bert_tests_SOURCES) $(bit_operations_tests_SOURCES) \
-	$(crc_tests_SOURCES) $(dc_restore_tests_SOURCES) \
-	$(dds_tests_SOURCES) $(dtmf_rx_tests_SOURCES) \
-	$(dtmf_tx_tests_SOURCES) $(echo_tests_SOURCES) \
-	$(fax_decode_SOURCES) $(fax_tests_SOURCES) \
-	$(fsk_tests_SOURCES) $(g1050_tests_SOURCES) \
-	$(g168_tests_SOURCES) $(g711_tests_SOURCES) \
-	$(g722_tests_SOURCES) $(g726_tests_SOURCES) \
-	$(gsm0610_tests_SOURCES) $(hdlc_tests_SOURCES) \
-	$(ima_adpcm_tests_SOURCES) $(line_model_tests_SOURCES) \
-	$(logging_tests_SOURCES) $(lpc10_tests_SOURCES) \
-	$(make_g168_css_SOURCES) $(modem_connect_tones_tests_SOURCES) \
+	$(complex_tests_SOURCES) $(complex_vector_float_tests_SOURCES) \
+	$(complex_vector_int_tests_SOURCES) $(crc_tests_SOURCES) \
+	$(dc_restore_tests_SOURCES) $(dds_tests_SOURCES) \
+	$(dtmf_rx_tests_SOURCES) $(dtmf_tx_tests_SOURCES) \
+	$(echo_tests_SOURCES) $(fax_decode_SOURCES) \
+	$(fax_tests_SOURCES) $(fsk_tests_SOURCES) \
+	$(g1050_tests_SOURCES) $(g168_tests_SOURCES) \
+	$(g711_tests_SOURCES) $(g722_tests_SOURCES) \
+	$(g726_tests_SOURCES) $(gsm0610_tests_SOURCES) \
+	$(hdlc_tests_SOURCES) $(ima_adpcm_tests_SOURCES) \
+	$(line_model_tests_SOURCES) $(logging_tests_SOURCES) \
+	$(lpc10_tests_SOURCES) $(make_g168_css_SOURCES) \
+	$(modem_connect_tones_tests_SOURCES) \
 	$(modem_echo_tests_SOURCES) $(noise_tests_SOURCES) \
 	$(oki_adpcm_tests_SOURCES) $(playout_tests_SOURCES) \
 	$(plc_tests_SOURCES) $(power_meter_tests_SOURCES) \
@@ -366,17 +383,19 @@ DIST_SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(at_interpreter_tests_SOURCES) $(awgn_tests_SOURCES) \
 	$(bell_mf_rx_tests_SOURCES) $(bell_mf_tx_tests_SOURCES) \
 	$(bert_tests_SOURCES) $(bit_operations_tests_SOURCES) \
-	$(crc_tests_SOURCES) $(dc_restore_tests_SOURCES) \
-	$(dds_tests_SOURCES) $(dtmf_rx_tests_SOURCES) \
-	$(dtmf_tx_tests_SOURCES) $(echo_tests_SOURCES) \
-	$(fax_decode_SOURCES) $(fax_tests_SOURCES) \
-	$(fsk_tests_SOURCES) $(g1050_tests_SOURCES) \
-	$(g168_tests_SOURCES) $(g711_tests_SOURCES) \
-	$(g722_tests_SOURCES) $(g726_tests_SOURCES) \
-	$(gsm0610_tests_SOURCES) $(hdlc_tests_SOURCES) \
-	$(ima_adpcm_tests_SOURCES) $(line_model_tests_SOURCES) \
-	$(logging_tests_SOURCES) $(lpc10_tests_SOURCES) \
-	$(make_g168_css_SOURCES) $(modem_connect_tones_tests_SOURCES) \
+	$(complex_tests_SOURCES) $(complex_vector_float_tests_SOURCES) \
+	$(complex_vector_int_tests_SOURCES) $(crc_tests_SOURCES) \
+	$(dc_restore_tests_SOURCES) $(dds_tests_SOURCES) \
+	$(dtmf_rx_tests_SOURCES) $(dtmf_tx_tests_SOURCES) \
+	$(echo_tests_SOURCES) $(fax_decode_SOURCES) \
+	$(fax_tests_SOURCES) $(fsk_tests_SOURCES) \
+	$(g1050_tests_SOURCES) $(g168_tests_SOURCES) \
+	$(g711_tests_SOURCES) $(g722_tests_SOURCES) \
+	$(g726_tests_SOURCES) $(gsm0610_tests_SOURCES) \
+	$(hdlc_tests_SOURCES) $(ima_adpcm_tests_SOURCES) \
+	$(line_model_tests_SOURCES) $(logging_tests_SOURCES) \
+	$(lpc10_tests_SOURCES) $(make_g168_css_SOURCES) \
+	$(modem_connect_tones_tests_SOURCES) \
 	$(modem_echo_tests_SOURCES) $(noise_tests_SOURCES) \
 	$(oki_adpcm_tests_SOURCES) $(playout_tests_SOURCES) \
 	$(plc_tests_SOURCES) $(power_meter_tests_SOURCES) \
@@ -572,6 +591,12 @@ bert_tests_SOURCES = bert_tests.c
 bert_tests_LDADD = $(LIBDIR) -lspandsp
 bit_operations_tests_SOURCES = bit_operations_tests.c
 bit_operations_tests_LDADD = $(LIBDIR) -lspandsp
+complex_tests_SOURCES = complex_tests.c
+complex_tests_LDADD = $(LIBDIR) -lspandsp
+complex_vector_float_tests_SOURCES = complex_vector_float_tests.c
+complex_vector_float_tests_LDADD = $(LIBDIR) -lspandsp
+complex_vector_int_tests_SOURCES = complex_vector_int_tests.c
+complex_vector_int_tests_LDADD = $(LIBDIR) -lspandsp
 crc_tests_SOURCES = crc_tests.c
 crc_tests_LDADD = $(LIBDIR) -lspandsp
 dc_restore_tests_SOURCES = dc_restore_tests.c
@@ -754,6 +779,15 @@ bert_tests$(EXEEXT): $(bert_tests_OBJECTS) $(bert_tests_DEPENDENCIES)
 bit_operations_tests$(EXEEXT): $(bit_operations_tests_OBJECTS) $(bit_operations_tests_DEPENDENCIES) 
 	@rm -f bit_operations_tests$(EXEEXT)
 	$(LINK) $(bit_operations_tests_LDFLAGS) $(bit_operations_tests_OBJECTS) $(bit_operations_tests_LDADD) $(LIBS)
+complex_tests$(EXEEXT): $(complex_tests_OBJECTS) $(complex_tests_DEPENDENCIES) 
+	@rm -f complex_tests$(EXEEXT)
+	$(LINK) $(complex_tests_LDFLAGS) $(complex_tests_OBJECTS) $(complex_tests_LDADD) $(LIBS)
+complex_vector_float_tests$(EXEEXT): $(complex_vector_float_tests_OBJECTS) $(complex_vector_float_tests_DEPENDENCIES) 
+	@rm -f complex_vector_float_tests$(EXEEXT)
+	$(LINK) $(complex_vector_float_tests_LDFLAGS) $(complex_vector_float_tests_OBJECTS) $(complex_vector_float_tests_LDADD) $(LIBS)
+complex_vector_int_tests$(EXEEXT): $(complex_vector_int_tests_OBJECTS) $(complex_vector_int_tests_DEPENDENCIES) 
+	@rm -f complex_vector_int_tests$(EXEEXT)
+	$(LINK) $(complex_vector_int_tests_LDFLAGS) $(complex_vector_int_tests_OBJECTS) $(complex_vector_int_tests_LDADD) $(LIBS)
 crc_tests$(EXEEXT): $(crc_tests_OBJECTS) $(crc_tests_DEPENDENCIES) 
 	@rm -f crc_tests$(EXEEXT)
 	$(LINK) $(crc_tests_LDFLAGS) $(crc_tests_OBJECTS) $(crc_tests_LDADD) $(LIBS)
@@ -946,6 +980,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bell_mf_tx_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bert_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bit_operations_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_vector_float_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_vector_int_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/crc_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dc_restore_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dds_tests.Po@am__quote@
