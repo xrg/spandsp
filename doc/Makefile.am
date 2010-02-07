@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.10 2008/05/05 11:25:01 steveu Exp $
+## $Id: Makefile.am,v 1.11 2008/06/21 10:28:34 steveu Exp $
 
 MAINTAINERCLEANFILES = Makefile.in
 
@@ -30,7 +30,7 @@ EXTRA_DIST = css.css \
 all: doxydocs t38_manual/index.html
 
 doxydocs:
-	doxygen libspandsp-doxygen
+	doxygen doxygen
 
 t38_manual/index.html: t38_manual.xml
 	cd t38_manual ; xsltproc ../wrapper.xsl ../t38_manual.xml

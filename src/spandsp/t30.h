@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.108 2008/06/19 13:27:45 steveu Exp $
+ * $Id: t30.h,v 1.109 2008/06/21 10:28:34 steveu Exp $
  */
 
 /*! \file */
@@ -57,14 +57,14 @@ Current features of this module include:
     - Monitoring and sending passwords (PWD).
     - Monitoring of non-standard facility frames (NSF, NSC, and NSS).
     - Sending custom non-standard facility frames (NSF, NSC, and NSS).
-    - Modem and T.38 operation.
+    - Analogue modem and T.38 operation.
 
 \section t30_page_sec_2 How does it work?
 
 Some of the following is paraphrased from some notes found a while ago on the Internet.
 I cannot remember exactly where they came from, but they are useful.
 
-The answer (CED) tone
+\subsection t30_page_sec_2a The answer (CED) tone
 
 The T.30 standard says an answering fax device must send CED (a 2100Hz tone) for
 approximately 3 seconds before sending the first handshake message. Some machines
@@ -72,16 +72,16 @@ send an 1100Hz or 1850Hz tone, and some send no tone at all. In fact, this answe
 tone is so unpredictable, it cannot really be used. It should, however, always be
 generated according to the specification.
 
-Common Timing Deviations
+\subsection t30_page_sec_2b Common Timing Deviations
 
 The T.30 spec. specifies a number of time-outs. For example, after dialing a number,
 a calling fax system should listen for a response for 35 seconds before giving up.
 These time-out periods are as follows: 
 
-    * T1 - 35+-5s: the maximum time for which two fax system will attempt to identify each other
-    * T2 - 6+-1s:  a time-out used to start the sequence for changing transmit parameters
-    * T3 - 10+-5s: a time-out used in handling operator interrupts
-    * T5 - 60+-5s: a time-out used in error correction mode
+    - T1 - 35+-5s: the maximum time for which two fax system will attempt to identify each other
+    - T2 - 6+-1s:  a time-out used to start the sequence for changing transmit parameters
+    - T3 - 10+-5s: a time-out used in handling operator interrupts
+    - T5 - 60+-5s: a time-out used in error correction mode
 
 These time-outs are sometimes misinterpreted. In addition, they are routinely
 ignored, sometimes with good reason. For example, after placing a call, the
@@ -101,8 +101,8 @@ manually overrides.
 
 All the time-outs are subject to alteration, and sometimes misuse. Good T.30
 implementations must do the right thing, and tolerate others doing the wrong thing.
- 
-Variations in the inter-carrier gap
+
+\subsection t30_page_sec_2c Variations in the inter-carrier gap
 
 T.30 specifies 75+-20ms of silence between signals using different modulation
 schemes. Examples are between the end of a DCS signal and the start of a TCF signal,
@@ -113,7 +113,7 @@ handshake signal error recovery, should a packet be corrupted on the line. Syste
 should ensure they stay within the prescribed T.30 limits, and be tolerant of others
 being out of spec.. 
 
-Other timing variations
+\subsection t30_page_sec_2d Other timing variations
 
 Testing is required to determine the ability of a fax system to handle
 variations in the duration of pauses between unacknowledged handshake message
@@ -122,22 +122,22 @@ the start of a response to that command. In order to reduce the total
 transmission time, many fax systems start sending a response message before the
 end of the command has been received. 
 
-Other deviations from the T.30 standard
+\subsection t30_page_sec_2e Other deviations from the T.30 standard
 
 There are many other commonly encountered variations between machines, including:
 
-    * frame sequence deviations
-    * preamble and flag sequence variations
-    * improper EOM usage
-    * unusual data rate fallback sequences
-    * common training pattern detection algorithms
-    * image transmission deviations
-    * use of the talker echo protect tone
-    * image padding and short lines
-    * RTP/RTN handshake message usage
-    * long duration lines
-    * nonstandard disconnect sequences
-    * DCN usage
+    - frame sequence deviations
+    - preamble and flag sequence variations
+    - improper EOM usage
+    - unusual data rate fallback sequences
+    - common training pattern detection algorithms
+    - image transmission deviations
+    - use of the talker echo protect tone
+    - image padding and short lines
+    - RTP/RTN handshake message usage
+    - long duration lines
+    - nonstandard disconnect sequences
+    - DCN usage
 */
 
 #define T30_MAX_DIS_DTC_DCS_LEN     22

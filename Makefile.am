@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.37 2008/05/05 12:20:14 steveu Exp $
+## $Id: Makefile.am,v 1.38 2008/06/22 06:51:05 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -25,7 +25,8 @@ noinst_SCRIPTS = spandsp.spec
 
 MAINTAINERCLEANFILES = Makefile.in
 
-EXTRA_DIST = DueDiligence \
+EXTRA_DIST = autogen.sh \
+             DueDiligence \
              README.testdata \
              spandsp.spec \
              wrapper.xsl \
@@ -34,7 +35,7 @@ EXTRA_DIST = DueDiligence \
              unpack_g726_data.sh \
              unpack_gsm0610_data.sh \
              unpack_v56ter_data.sh \
-             doc/libspandsp-doxygen \
+             doc/doxygen.in \
              src/float_fudge.h \
              src/spandsp/version.h.in \
              src/libspandsp.dsp \

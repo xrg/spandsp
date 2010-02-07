@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.51 2008/05/07 14:38:30 steveu Exp $
+# $Id: configure.ac,v 1.52 2008/06/21 10:28:34 steveu Exp $
 
 # @start 1
 
@@ -324,13 +324,14 @@ AC_SUBST(INSERT_MATH_HEADER)
 
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
+                 doc/doxygen
+                 src/Makefile
+                 src/spandsp.h
+                 spandsp-sim/Makefile
                  test-data/Makefile
                  test-data/itu/Makefile
                  test-data/itu/fax/Makefile
                  test-data/local/Makefile
-                 src/Makefile
-                 src/spandsp.h
-                 spandsp-sim/Makefile
                  tests/Makefile
                  spandsp.spec])
 
