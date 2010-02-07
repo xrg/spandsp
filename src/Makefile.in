@@ -488,6 +488,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/private/super_tone_tx.h \
                          spandsp/private/swept_tone.h \
                          spandsp/private/t30.h \
+                         spandsp/private/t30_dis_dtc_dcs_bits.h \
                          spandsp/private/t31.h \
                          spandsp/private/t38_core.h \
                          spandsp/private/t38_gateway.h \

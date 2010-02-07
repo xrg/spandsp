@@ -855,6 +855,10 @@ SOURCE=.\spandsp/private/t30.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\spandsp/private/t30_dis_dtc_dcs_bits.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\spandsp/private/t31.h
 # End Source File
 # Begin Source File

@@ -283,6 +283,7 @@
 <File RelativePath="spandsp/private/super_tone_tx.h"></File>
 <File RelativePath="spandsp/private/swept_tone.h"></File>
 <File RelativePath="spandsp/private/t30.h"></File>
+<File RelativePath="spandsp/private/t30_dis_dtc_dcs_bits.h"></File>
 <File RelativePath="spandsp/private/t31.h"></File>
 <File RelativePath="spandsp/private/t38_core.h"></File>
 <File RelativePath="spandsp/private/t38_gateway.h"></File>

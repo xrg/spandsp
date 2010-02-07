@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.137 2009/09/22 14:52:31 steveu Exp $
+## $Id: Makefile.am,v 1.138 2009/10/08 15:14:31 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -252,6 +252,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/private/super_tone_tx.h \
                          spandsp/private/swept_tone.h \
                          spandsp/private/t30.h \
+                         spandsp/private/t30_dis_dtc_dcs_bits.h \
                          spandsp/private/t31.h \
                          spandsp/private/t38_core.h \
                          spandsp/private/t38_gateway.h \
