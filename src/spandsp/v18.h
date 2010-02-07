@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v18.h,v 1.3 2009/04/12 09:12:11 steveu Exp $
+ * $Id: v18.h,v 1.4 2009/05/22 16:39:01 steveu Exp $
  */
  
 /*! \file */
@@ -116,7 +116,8 @@ SPAN_DECLARE(int) v18_rx(v18_state_t *s, const int16_t amp[], int len);
     \param len The length of the string. If negative, the string is
            assumed to be a NULL terminated string.
     \return The number of characters actually added. This may be less than the
-            length of the digit string, if the buffer fills up. */
+            length of the digit string, if the buffer fills up. If the string is
+            invalid, this function will return -1. */
 SPAN_DECLARE(int) v18_put(v18_state_t *s, const char msg[], int len);
 
 /*! Convert a text string to a V.18 DTMF string.

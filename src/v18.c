@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v18.c,v 1.7 2009/04/26 07:00:38 steveu Exp $
+ * $Id: v18.c,v 1.8 2009/05/22 16:39:01 steveu Exp $
  */
  
 /*! \file */
@@ -709,11 +709,11 @@ SPAN_DECLARE(int) v18_put(v18_state_t *s, const char msg[], int len)
                 buf[n++] = (uint8_t) (x & 0x1F);
                 /* TODO: Deal with out of space condition */
                 if (queue_write(&s->queue.queue, (const uint8_t *) buf, n) < 0)
-                    return 0;
+                    return i;
                 s->tx_signal_on = TRUE;
             }
         }
-        break;
+        return len;
     case V18_MODE_DTMF:
         break;
     }

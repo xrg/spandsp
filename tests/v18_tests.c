@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v18_tests.c,v 1.5 2009/04/11 18:11:19 steveu Exp $
+ * $Id: v18_tests.c,v 1.6 2009/05/22 16:39:01 steveu Exp $
  */
 
 /*! \page v18_tests_page V.18 tests
@@ -64,10 +64,12 @@ char *decode_test_file = NULL;
 
 int good_message_received;
 
+const char *qbf_tx = "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()";
+const char *qbf_rx = "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG 0123456789#$*()";
 #if 1
 static void put_text_msg(void *user_data, const uint8_t *msg, int len)
 {
-    if (strcmp((const char *) msg, "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG 0123456789#$*()"))
+    if (strcmp((const char *) msg, qbf_rx))
         printf("%s\n", msg);
     else
         good_message_received = TRUE;
@@ -91,7 +93,11 @@ static void basic_tests(int mode)
     /* Fake an OK condition for the first message test */
     good_message_received = TRUE;
     push = 0;
-    v18_put(v18_a, "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()", -1);
+    if (v18_put(v18_a, qbf_tx, -1) != strlen(qbf_tx))
+    {
+        printf("V.18 put failed\n");
+        exit(2);
+    }
     for (i = 0;  i < 100000;  i++)
     {
         if (push == 0)
@@ -111,7 +117,11 @@ static void basic_tests(int mode)
                     exit(2);
                 }
                 good_message_received = FALSE;
-                v18_put(v18_a, "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()", -1);
+                if (v18_put(v18_a, qbf_tx, -1) != strlen(qbf_tx))
+                {
+                    printf("V.18 put failed\n");
+                    exit(2);
+                }
             }
         }
         if (len < SAMPLES_PER_CHUNK)
@@ -166,7 +176,6 @@ static int test_x_03(void)
 static int test_x_04(void)
 {
     const char *s;
-    const char *ref;
     char result[1024];
     char *t;
     int ch;
@@ -176,7 +185,7 @@ static int test_x_04(void)
 
     /* III.5.4.5.4 5 Bit to T.50 character conversion */
     v18_state = v18_init(NULL, TRUE, V18_MODE_5BIT_45, NULL, NULL);
-    s = "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()";
+    s = qbf_tx;
     printf("Original:\n%s\n", s);
     t = result;
     while ((ch = *s++))
@@ -194,10 +203,9 @@ static int test_x_04(void)
     }
     *t = '\0';
     v18_free(v18_state);
-    ref = "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG 0123456789#$*()";
     printf("Result:\n%s\n", result);
-    printf("Reference result:\n%s\n", ref);
-    if (strcmp(result, ref) != 0)
+    printf("Reference result:\n%s\n", qbf_rx);
+    if (strcmp(result, qbf_rx) != 0)
         return -1;
     return 0;
 }
