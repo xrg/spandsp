@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.54 2009/03/19 13:06:11 steveu Exp $
+ * $Id: fsk.c,v 1.57 2009/03/31 12:49:58 steveu Exp $
  */
 
 /*! \file */
@@ -245,7 +245,7 @@ SPAN_DECLARE(void) fsk_rx_set_modem_status_handler(fsk_rx_state_t *s, modem_tx_s
 
 SPAN_DECLARE(fsk_rx_state_t *) fsk_rx_init(fsk_rx_state_t *s,
                                            const fsk_spec_t *spec,
-                                           int sync_mode,
+                                           int framing_mode,
                                            put_bit_func_t put_bit,
                                            void *user_data)
 {
@@ -259,7 +259,7 @@ SPAN_DECLARE(fsk_rx_state_t *) fsk_rx_init(fsk_rx_state_t *s,
 
     memset(s, 0, sizeof(*s));
     s->baud_rate = spec->baud_rate;
-    s->sync_mode = sync_mode;
+    s->framing_mode = framing_mode;
     fsk_rx_signal_cutoff(s, (float) spec->min_level);
     s->put_bit = put_bit;
     s->put_bit_user_data = user_data;
@@ -293,7 +293,10 @@ SPAN_DECLARE(fsk_rx_state_t *) fsk_rx_init(fsk_rx_state_t *s,
 
     /* Initialise the baud/bit rate tracking. */
     s->baud_inc = s->baud_rate;
-    s->baud_pll = 0;
+    s->baud_phase = 0;
+    s->frame_state = 0;
+    s->frame_bits = 0;
+    s->last_bit = 0;
     
     /* Initialise a power detector, so sense when a signal is present. */
     power_meter_init(&(s->power), 4);
@@ -368,6 +371,7 @@ SPAN_DECLARE(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
             if (power < s->carrier_on_power)
                 continue;
             s->signal_present = 1;
+            s->frame_state = 0;
             report_status_change(s, SIG_STATUS_CARRIER_UP);
         }
         /* Non-coherent FSK demodulation by correlation with the target tones
@@ -396,36 +400,130 @@ SPAN_DECLARE(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
         }
         baudstate = (sum[0] < sum[1]);
 
-        if (s->lastbit != baudstate)
+        switch (s->framing_mode)
         {
-            s->lastbit = baudstate;
-            if (s->sync_mode)
+        case 1:
+            /* Synchronous serial operation - e.g. for HDLC */
+            if (s->last_bit != baudstate)
             {
+                /* On a transition we check our timing */
+                s->last_bit = baudstate;
                 /* For synchronous use (e.g. HDLC channels in FAX modems), nudge
                    the baud phase gently, trying to keep it centred on the bauds. */
-                if (s->baud_pll < (SAMPLE_RATE*50))
-                    s->baud_pll += (s->baud_inc >> 3);
+                if (s->baud_phase < (SAMPLE_RATE*50))
+                    s->baud_phase += (s->baud_inc >> 3);
                 else
-                    s->baud_pll -= (s->baud_inc >> 3);
+                    s->baud_phase -= (s->baud_inc >> 3);
             }
-            else
+            if ((s->baud_phase += s->baud_inc) >= (SAMPLE_RATE*100))
             {
+                /* We should be in the middle of a baud now, so report the current
+                   state as the next bit */
+                s->baud_phase -= (SAMPLE_RATE*100);
+                s->put_bit(s->put_bit_user_data, baudstate);
+            }
+            break;
+        case 0:
+            /* Fully asynchronous mode */
+            if (s->last_bit != baudstate)
+            {
+                /* On a transition we check our timing */
+                s->last_bit = baudstate;
                 /* For async. operation, believe transitions completely, and
                    sample appropriately. This allows instant start on the first
                    transition. */
                 /* We must now be about half way to a sampling point. We do not do
                    any fractional sample estimation of the transitions, so this is
                    the most accurate baud alignment we can do. */
-                s->baud_pll = SAMPLE_RATE*50;
+                s->baud_phase = SAMPLE_RATE*50;
             }
-
-        }
-        if ((s->baud_pll += s->baud_inc) >= (SAMPLE_RATE*100))
-        {
-            /* We should be in the middle of a baud now, so report the current
-               state as the next bit */
-            s->baud_pll -= (SAMPLE_RATE*100);
-            s->put_bit(s->put_bit_user_data, baudstate);
+            if ((s->baud_phase += s->baud_inc) >= (SAMPLE_RATE*100))
+            {
+                /* We should be in the middle of a baud now, so report the current
+                   state as the next bit */
+                s->baud_phase -= (SAMPLE_RATE*100);
+                s->put_bit(s->put_bit_user_data, baudstate);
+            }
+            break;
+        default:
+            /* Gather the specified number of bits, with robust checking to ensure reasonable voice immunity.
+               The first bit should be a start bit (0), and the last bit should be a stop bit (1) */
+            if (s->frame_state == 0)
+            {
+                /* Looking for the start of a zero bit, which hopefully the start of a start bit */
+                if (baudstate == 0)
+                {
+                    s->baud_phase = SAMPLE_RATE*(100 - 40)/2;
+                    s->frame_state = -1;
+                    s->frame_bits = 0;
+                    s->last_bit = -1;
+                }
+            }
+            else if (s->frame_state == -1)
+            {
+                /* Look for a continuous zero from the start of the start bit until
+                   beyond the middle */
+                if (baudstate != 0)
+                {
+                    /* If we aren't looking at a stable start bit, restart */
+                    s->frame_state = 0;
+                }
+                else
+                {
+                    s->baud_phase += s->baud_inc;
+                    if (s->baud_phase >= SAMPLE_RATE*100)
+                    {
+                        s->frame_state = 1;
+                        s->last_bit = baudstate;
+                    }
+                }
+            }
+            else
+            {
+                s->baud_phase += s->baud_inc;
+                if (s->baud_phase >= SAMPLE_RATE*(100 - 40))
+                {
+                    if (s->last_bit < 0)
+                        s->last_bit = baudstate;
+                    /* Look for the bit being consistent over the central 20% of the bit time. */
+                    if (s->last_bit != baudstate)
+                    {
+                        s->frame_state = 0;
+                    }
+                    else if (s->baud_phase >= SAMPLE_RATE*100)
+                    {
+                        /* We should be in the middle of a baud now, so report the current
+                           state as the next bit */
+                        if (s->last_bit == baudstate)
+                        {
+                            s->frame_bits |= (baudstate << s->framing_mode);
+                            s->frame_bits >>= 1;
+                            s->baud_phase -= (SAMPLE_RATE*100);
+                            if (++s->frame_state > s->framing_mode)
+                            {
+                                /* Check we have a stop bit */
+                                if (baudstate == 1)
+                                {
+                                    /* Check we have a start bit */
+                                    if ((s->frame_bits & 1) == 0)
+                                    {
+                                        /* Drop the start bit, and pass the rest back */
+                                        s->frame_bits >>= 1;
+                                        s->put_bit(s->put_bit_user_data, s->frame_bits);
+                                    }
+                                }
+                                s->frame_state = 0;
+                            }
+                        }
+                        else
+                        {
+                            s->frame_state = 0;
+                        }
+                        s->last_bit = -1;
+                    }
+                }
+            }
+            break;
         }
         if (++buf_ptr >= s->correlation_span)
             buf_ptr = 0;

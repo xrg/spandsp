@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.h,v 1.37 2009/03/13 12:59:26 steveu Exp $
+ * $Id: fsk.h,v 1.38 2009/03/30 15:03:35 steveu Exp $
  */
 
 /*! \file */
@@ -191,13 +191,14 @@ SPAN_DECLARE(void) fsk_rx_signal_cutoff(fsk_rx_state_t *s, float cutoff);
     \brief Initialise an FSK modem receive context.
     \param s The modem context.
     \param spec The specification of the modem tones and rate.
-    \param sync_mode TRUE for synchronous modem. FALSE for asynchronous mode.
+    \param framing_mode 0 for fully asynchronous mode. 1 for synchronous mode. >1 for
+           this many bits per asynchronous character frame.
     \param put_bit The callback routine used to put the received data.
     \param user_data An opaque pointer.
     \return A pointer to the modem context, or NULL if there was a problem. */
 SPAN_DECLARE(fsk_rx_state_t *) fsk_rx_init(fsk_rx_state_t *s,
                                            const fsk_spec_t *spec,
-                                           int sync_mode,
+                                           int framing_mode,
                                            put_bit_func_t put_bit,
                                            void *user_data);
 

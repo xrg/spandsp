@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi_tests.c,v 1.49 2009/03/28 17:52:13 steveu Exp $
+ * $Id: adsi_tests.c,v 1.51 2009/03/31 12:49:58 steveu Exp $
  */
 
 /*! \page adsi_tests_page ADSI tests
@@ -62,15 +62,34 @@ tests, these tests do not include line modelling.
 
 #define BLOCK_LEN       160
 
+#define MITEL_DIR                   "../test-data/mitel/"
+#define BELLCORE_DIR                "../test-data/bellcore/"
+
+const char *bellcore_files[] =
+{
+    MITEL_DIR    "mitel-cm7291-talkoff.wav",
+    BELLCORE_DIR "tr-tsy-00763-1.wav",
+    BELLCORE_DIR "tr-tsy-00763-2.wav",
+    BELLCORE_DIR "tr-tsy-00763-3.wav",
+    BELLCORE_DIR "tr-tsy-00763-4.wav",
+    BELLCORE_DIR "tr-tsy-00763-5.wav",
+    BELLCORE_DIR "tr-tsy-00763-6.wav",
+    ""
+};
+
 char *decode_test_file = NULL;
 
 int errors = 0;
+int basic_testing = FALSE;
 
 adsi_rx_state_t *rx_adsi;
 adsi_tx_state_t *tx_adsi;
 
 int current_standard = 0;
 int good_message_received;
+int log_audio = FALSE;
+AFfilehandle outhandle = NULL;
+int short_preamble = FALSE;
 
 static int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg)
 {
@@ -453,7 +472,7 @@ static void put_adsi_msg(void *user_data, const uint8_t *msg, int len)
                     }
                     break;
                 case ADSI_STANDARD_TDD:
-                    if (decode_test_file == NULL)
+                    if (basic_testing)
                     {
                         if (len != 59
                             ||
@@ -571,32 +590,177 @@ static void put_adsi_msg(void *user_data, const uint8_t *msg, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-int main(int argc, char *argv[])
+static void tdd_character_set_tests(void)
+{
+#if 0
+    char *s;
+    int ch;
+    int xx;
+    int yy;
+
+    /* This part tests internal static routines in the ADSI module. It can
+       only be run with a modified version of the ADSI module, which makes
+       the routines visible. */
+    /* Check the character encode/decode cycle */
+    tx_adsi = adsi_tx_init(NULL, ADSI_STANDARD_TDD);
+    rx_adsi = adsi_rx_init(NULL, ADSI_STANDARD_TDD, put_adsi_msg, NULL);
+    s = "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()";
+    while ((ch = *s++))
+    {
+        xx = adsi_encode_baudot(tx_adsi, ch);
+        if ((xx & 0x3E0))
+        {
+            yy = adsi_decode_baudot(rx_adsi, (xx >> 5) & 0x1F);
+            if (yy)
+                printf("%c", yy);
+        }
+        yy = adsi_decode_baudot(rx_adsi, xx & 0x1F);
+        if (yy)
+            printf("%c", yy);
+    }
+    adsi_tx_free(tx_adsi);
+    adsi_rx_free(rx_adsi);
+    printf("\n");
+#endif
+}
+/*- End of function --------------------------------------------------------*/
+
+static void basic_tests(int standard)
 {
     int16_t amp[BLOCK_LEN];
     uint8_t adsi_msg[256 + 42];
-    int adsi_msg_len;
-    AFfilehandle inhandle;
-    AFfilehandle outhandle;
     int outframes;
     int len;
-    int i;
+    int adsi_msg_len;
     int push;
-    int log_audio;
-    int short_preamble;
+    int i;
+
+    basic_testing = TRUE;
+    printf("Testing %s\n", adsi_standard_to_str(current_standard));
+    tx_adsi = adsi_tx_init(NULL, current_standard);
+    if (short_preamble)
+        adsi_tx_set_preamble(tx_adsi, 50, 20, 5, -1);
+    rx_adsi = adsi_rx_init(NULL, current_standard, put_adsi_msg, NULL);
+
+   /* Fake an OK condition for the first message test */
+    good_message_received = TRUE;
+    push = 0;
+    for (i = 0;  i < 100000;  i++)
+    {
+        if (push == 0)
+        {
+            if ((len = adsi_tx(tx_adsi, amp, BLOCK_LEN)) == 0)
+                push = 10;
+        }
+        else
+        {
+            len = 0;
+            /* Push a little silence through, to flush things out */
+            if (--push == 0)
+            {
+                if (!good_message_received)
+                {
+                    printf("No message received %s (%d)\n", adsi_standard_to_str(current_standard), i);
+                    exit(2);
+                }
+                good_message_received = FALSE;
+                adsi_msg_len = adsi_create_message(tx_adsi, adsi_msg);
+                adsi_msg_len = adsi_tx_put_message(tx_adsi, adsi_msg, adsi_msg_len);
+            }
+        }
+        if (len < BLOCK_LEN)
+        {
+            memset(&amp[len], 0, sizeof(int16_t)*(BLOCK_LEN - len));
+            len = BLOCK_LEN;
+        }
+        if (log_audio)
+        {
+            outframes = afWriteFrames(outhandle,
+                                      AF_DEFAULT_TRACK,
+                                      amp,
+                                      len);
+            if (outframes != len)
+            {
+                fprintf(stderr, "    Error writing wave file\n");
+                exit(2);
+            }
+        }
+        adsi_rx(rx_adsi, amp, len);
+    }
+    adsi_rx_free(rx_adsi);
+    adsi_tx_free(tx_adsi);
+    basic_testing = FALSE;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void mitel_cm7291_side_2_and_bellcore_tests(int standard)
+{
+    int j;
+    int16_t amp[BLOCK_LEN];
+    AFfilehandle inhandle;
+    int frames;
+
+    /* The remainder of the Mitel tape is the talk-off test */
+    /* Here we use the Bellcore test tapes (much tougher), in six
+       wave files - 1 from each side of the original 3 cassette tapes */
+    /* Bellcore say you should get no more than 470 false detections with
+       a good receiver. Dialogic claim 20. Of course, we can do better than
+       that, eh? */
+    printf("Talk-off tests for %s\n", adsi_standard_to_str(current_standard));
+    rx_adsi = adsi_rx_init(NULL, standard, put_adsi_msg, NULL);
+    for (j = 0;  bellcore_files[j][0];  j++)
+    {
+        if ((inhandle = afOpenFile_telephony_read(bellcore_files[j], 1)) == AF_NULL_FILEHANDLE)
+        {
+            printf("    Cannot open speech file '%s'\n", bellcore_files[j]);
+            exit(2);
+        }
+        while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, BLOCK_LEN)))
+        {
+            adsi_rx(rx_adsi, amp, frames);
+        }
+        if (afCloseFile(inhandle) != 0)
+        {
+            printf("    Cannot close speech file '%s'\n", bellcore_files[j]);
+            exit(2);
+        }
+    }
+    adsi_rx_free(rx_adsi);
+    if (j > 470)
+    {
+        printf("    Failed\n");
+        exit(2);
+    }
+    printf("    Passed\n");
+}
+/*- End of function --------------------------------------------------------*/
+
+int main(int argc, char *argv[])
+{
+    int16_t amp[BLOCK_LEN];
+    AFfilehandle inhandle;
+    int len;
     int test_standard;
     int first_standard;
     int last_standard;
     int opt;
+    int enable_basic_tests;
+    int enable_talkoff_tests;
 
     log_audio = FALSE;
     decode_test_file = NULL;
     test_standard = -1;
     short_preamble = FALSE;
-    while ((opt = getopt(argc, argv, "d:lps:")) != -1)
+    enable_basic_tests = TRUE;
+    enable_talkoff_tests = FALSE;
+    while ((opt = getopt(argc, argv, "bd:lps:t")) != -1)
     {
         switch (opt)
         {
+        case 'b':
+            enable_basic_tests = TRUE;
+            enable_talkoff_tests = FALSE;
+            break;
         case 'd':
             decode_test_file = optarg;
             break;
@@ -622,6 +786,10 @@ int main(int argc, char *argv[])
             else
                 test_standard = atoi(optarg);
             break;
+        case 't':
+            enable_basic_tests = FALSE;
+            enable_talkoff_tests = TRUE;
+            break;
         default:
             //usage();
             exit(2);
@@ -630,32 +798,7 @@ int main(int argc, char *argv[])
     }
     outhandle = AF_NULL_FILEHANDLE;
     
-#if 0
-    /* This part tests internal static routines in the ADSI module. It can
-       only be run with a modified version of the ADSI module, which makes
-       the routines visible. */
-    /* Check the character encode/decode cycle */
-    current_standard = ADSI_STANDARD_TDD;
-    tx_adsi = adsi_tx_init(NULL, ADSI_STANDARD_TDD);
-    rx_adsi = adsi_rx_init(NULL, ADSI_STANDARD_TDD, put_adsi_msg, NULL);
-    s = "The quick Brown Fox Jumps Over The Lazy dog 0123456789!@#$%^&*()";
-    while ((ch = *s++))
-    {
-        xx = adsi_encode_baudot(tx_adsi, ch);
-        if ((xx & 0x3E0))
-        {
-            yy = adsi_decode_baudot(rx_adsi, (xx >> 5) & 0x1F);
-            if (yy)
-                printf("%c", yy);
-        }
-        yy = adsi_decode_baudot(rx_adsi, xx & 0x1F);
-        if (yy)
-            printf("%c", yy);
-    }
-    adsi_tx_free(tx_adsi);
-    adsi_rx_free(rx_adsi);
-    printf("\n");
-#endif
+    tdd_character_set_tests();
 
     if (decode_test_file)
     {
@@ -716,59 +859,10 @@ int main(int argc, char *argv[])
         }
         for (current_standard = first_standard;  current_standard <= last_standard;  current_standard++)
         {
-            printf("Testing %s\n", adsi_standard_to_str(current_standard));
-            tx_adsi = adsi_tx_init(NULL, current_standard);
-            if (short_preamble)
-                adsi_tx_set_preamble(tx_adsi, 50, 20, 5, -1);
-            rx_adsi = adsi_rx_init(NULL, current_standard, put_adsi_msg, NULL);
-
-            /* Fake an OK condition for the first message test */
-            good_message_received = TRUE;
-            push = 0;
-            for (i = 0;  i < 100000;  i++)
-            {
-                if (push == 0)
-                {
-                    if ((len = adsi_tx(tx_adsi, amp, BLOCK_LEN)) == 0)
-                        push = 10;
-                }
-                else
-                {
-                    len = 0;
-                    /* Push a little silence through, to flush things out */
-                    if (--push == 0)
-                    {
-                        if (!good_message_received)
-                        {
-                            printf("No message received %s (%d)\n", adsi_standard_to_str(current_standard), i);
-                            exit(2);
-                        }
-                        good_message_received = FALSE;
-                        adsi_msg_len = adsi_create_message(tx_adsi, adsi_msg);
-                        adsi_msg_len = adsi_tx_put_message(tx_adsi, adsi_msg, adsi_msg_len);
-                    }
-                }
-                if (len < BLOCK_LEN)
-                {
-                    memset(&amp[len], 0, sizeof(int16_t)*(BLOCK_LEN - len));
-                    len = BLOCK_LEN;
-                }
-                if (log_audio)
-                {
-                    outframes = afWriteFrames(outhandle,
-                                              AF_DEFAULT_TRACK,
-                                              amp,
-                                              len);
-                    if (outframes != len)
-                    {
-                        fprintf(stderr, "    Error writing wave file\n");
-                        exit(2);
-                    }
-                }
-                adsi_rx(rx_adsi, amp, len);
-            }
-            adsi_rx_free(rx_adsi);
-            adsi_tx_free(tx_adsi);
+            if (enable_basic_tests)
+                basic_tests(current_standard);
+            if (enable_talkoff_tests)
+                mitel_cm7291_side_2_and_bellcore_tests(current_standard);
         }
         if (log_audio)
         {

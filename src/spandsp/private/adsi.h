@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.h,v 1.1 2008/10/13 13:14:01 steveu Exp $
+ * $Id: adsi.h,v 1.2 2009/03/31 12:49:58 steveu Exp $
  */
 
 /*! \file */
@@ -72,7 +72,6 @@ struct adsi_rx_state_s
 
     fsk_rx_state_t fskrx;
     dtmf_rx_state_t dtmfrx;
-    async_rx_state_t asyncrx;
     
     int consecutive_ones;
     int bit_pos;

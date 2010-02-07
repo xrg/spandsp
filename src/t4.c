@@ -24,7 +24,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.128 2009/03/01 11:47:03 steveu Exp $
+ * $Id: t4.c,v 1.129 2009/03/30 23:41:00 steveu Exp $
  */
 
 /*
@@ -302,24 +302,25 @@ static int get_tiff_directory_info(t4_state_t *s)
         {             -1.00f, -1, -1}
     };
     uint16_t res_unit;
-    uint32_t parm;
+    uint16_t parm16;
+    uint32_t parm32;
     float x_resolution;
     float y_resolution;
     int i;
     t4_tiff_state_t *t;
 
     t = &s->tiff;
-    parm = 0;
-    TIFFGetField(t->tiff_file, TIFFTAG_BITSPERSAMPLE, &parm);
-    if (parm != 1)
+    parm16 = 0;
+    TIFFGetField(t->tiff_file, TIFFTAG_BITSPERSAMPLE, &parm16);
+    if (parm16 != 1)
         return -1;
-    parm = 0;
-    TIFFGetField(t->tiff_file, TIFFTAG_IMAGEWIDTH, &parm);
-    s->image_width = parm;
+    parm32 = 0;
+    TIFFGetField(t->tiff_file, TIFFTAG_IMAGEWIDTH, &parm32);
+    s->image_width = parm32;
     s->bytes_per_row = (s->image_width + 7)/8;
-    parm = 0;
-    TIFFGetField(t->tiff_file, TIFFTAG_IMAGELENGTH, &parm);
-    s->image_length = parm;
+    parm32 = 0;
+    TIFFGetField(t->tiff_file, TIFFTAG_IMAGELENGTH, &parm32);
+    s->image_length = parm32;
     x_resolution = 0.0f;
     TIFFGetField(t->tiff_file, TIFFTAG_XRESOLUTION, &x_resolution);
     y_resolution = 0.0f;
@@ -400,20 +401,21 @@ static int test_tiff_directory_info(t4_state_t *s)
         {             -1.00f, -1, -1}
     };
     uint16_t res_unit;
-    uint32_t parm;
+    uint16_t parm16;
+    uint32_t parm32;
     float x_resolution;
     float y_resolution;
     int i;
     t4_tiff_state_t *t;
 
     t = &s->tiff;
-    parm = 0;
-    TIFFGetField(t->tiff_file, TIFFTAG_BITSPERSAMPLE, &parm);
-    if (parm != 1)
+    parm16 = 0;
+    TIFFGetField(t->tiff_file, TIFFTAG_BITSPERSAMPLE, &parm16);
+    if (parm16 != 1)
         return -1;
-    parm = 0;
-    TIFFGetField(t->tiff_file, TIFFTAG_IMAGEWIDTH, &parm);
-    if (s->image_width != (int) parm)
+    parm32 = 0;
+    TIFFGetField(t->tiff_file, TIFFTAG_IMAGEWIDTH, &parm32);
+    if (s->image_width != (int) parm32)
         return 1;
     x_resolution = 0.0f;
     TIFFGetField(t->tiff_file, TIFFTAG_XRESOLUTION, &x_resolution);

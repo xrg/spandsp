@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.c,v 1.70 2009/02/10 13:06:46 steveu Exp $
+ * $Id: adsi.c,v 1.73 2009/03/31 12:49:58 steveu Exp $
  */
 
 /*! \file */
@@ -183,10 +183,10 @@ static void adsi_rx_put_bit(void *user_data, int bit)
     if (bit < 0)
     {
         /* Special conditions */
+        span_log(&s->logging, SPAN_LOG_FLOW, "ADSI signal status is %s (%d)\n", signal_status_to_str(bit), bit);
         switch (bit)
         {
         case SIG_STATUS_CARRIER_UP:
-            span_log(&s->logging, SPAN_LOG_FLOW, "Carrier up.\n");
             s->consecutive_ones = 0;
             s->bit_pos = 0;
             s->in_progress = 0;
@@ -194,7 +194,6 @@ static void adsi_rx_put_bit(void *user_data, int bit)
             s->baudot_shift = 0;
             break;
         case SIG_STATUS_CARRIER_DOWN:
-            span_log(&s->logging, SPAN_LOG_FLOW, "Carrier down.\n");
             break;
         default:
             span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected special put bit value - %d!\n", bit);
@@ -303,10 +302,11 @@ static void adsi_tdd_put_async_byte(void *user_data, int byte)
     uint8_t octet;
     
     s = (adsi_rx_state_t *) user_data;
+    //printf("Rx bit %x\n", bit);
     if (byte < 0)
     {
         /* Special conditions */
-        printf("Status is %s (%d)\n", signal_status_to_str(byte), byte);
+        span_log(&s->logging, SPAN_LOG_FLOW, "ADSI signal status is %s (%d)\n", signal_status_to_str(byte), byte);
         switch (byte)
         {
         case SIG_STATUS_CARRIER_UP:
@@ -330,12 +330,17 @@ static void adsi_tdd_put_async_byte(void *user_data, int byte)
         }
         return;
     }
-    if ((octet = adsi_decode_baudot(s, (uint8_t) byte)))
-        s->msg[s->msg_len++] = octet;
-    if (s->msg_len >= 256)
+    /* Check the extra stop bit (TDD characters have 2 stop bits) */
+    if (byte & 0x20)
     {
-        s->put_msg(s->user_data, s->msg, s->msg_len);
-        s->msg_len = 0;
+        byte &= 0x1F;
+        if ((octet = adsi_decode_baudot(s, (uint8_t) byte)))
+            s->msg[s->msg_len++] = octet;
+        if (s->msg_len >= 256)
+        {
+            s->put_msg(s->user_data, s->msg, s->msg_len);
+            s->msg_len = 0;
+        }
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -439,8 +444,7 @@ SPAN_DECLARE(adsi_rx_state_t *) adsi_rx_init(adsi_rx_state_t *s,
         dtmf_rx_init(&(s->dtmfrx), adsi_rx_dtmf, s);
         break;
     case ADSI_STANDARD_TDD:
-        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_WEITBRECHT], FALSE, async_rx_put_bit, &(s->asyncrx));
-        async_rx_init(&(s->asyncrx), 5, ASYNC_PARITY_NONE, 2, TRUE, adsi_tdd_put_async_byte, s);
+        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_WEITBRECHT], 8, adsi_tdd_put_async_byte, s);
         break;
     }
     s->standard = standard;
