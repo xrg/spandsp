@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.295 2009/04/29 14:12:29 steveu Exp $
+ * $Id: t30.c,v 1.297 2009/04/30 15:04:20 steveu Exp $
  */
 
 /*! \file */
@@ -73,8 +73,13 @@
 
 #include "t30_local.h"
 
-/*! The maximum number of consecutive retries allowed. */
-#define MAX_MESSAGE_TRIES   3
+/*! The maximum permitted number of retries of a single command allowed. */
+#define MAX_COMMAND_TRIES   3
+
+/*! The maximum permitted number of retries of a single response request allowed. This
+    is not specified in T.30. However, if you don't apply some limit a messed up FAX
+    terminal could keep you retrying all day. Its a backstop protection. */
+#define MAX_RESPONSE_TRIES  6
 
 /*! Conversion between milliseconds and audio samples. */
 #define ms_to_samples(t)    (((t)*SAMPLE_RATE)/1000)
@@ -2509,6 +2514,9 @@ static void process_rx_fcd(t30_state_t *s, const uint8_t *msg, int len)
         {
             unexpected_frame_length(s, msg, len);
         }
+        /* We have received something, so any missing carrier status is out of date */
+        if (s->current_status == T30_ERR_RX_NOCARRIER)
+            s->current_status = T30_ERR_OK;
         break;
     default:
         unexpected_non_final_frame(s, msg, len);
@@ -2519,16 +2527,21 @@ static void process_rx_fcd(t30_state_t *s, const uint8_t *msg, int len)
 
 static void process_rx_rcp(t30_state_t *s, const uint8_t *msg, int len)
 {
-    /* Return to control for partial page. These might come through with or without the final frame tag,
-       so we have this routine to deal with the "no final frame tag" case. */
+    /* Return to control for partial page. These might come through with or without the final frame tag.
+       Here we deal with the "no final frame tag" case. */
     switch (s->state)
     {
     case T30_STATE_F_DOC_ECM:
         set_state(s, T30_STATE_F_POST_DOC_ECM);
         queue_phase(s, T30_PHASE_D_RX);
+        timer_t2_start(s);
+        /* We have received something, so any missing carrier status is out of date */
+        if (s->current_status == T30_ERR_RX_NOCARRIER)
+            s->current_status = T30_ERR_OK;
         break;
     case T30_STATE_F_POST_DOC_ECM:
-        /* Just ignore this */
+        /* Just ignore this. It must be an extra RCP. Several are usually sent, to maximise the chance
+           of receiving a correct one. */
         break;
     default:
         unexpected_non_final_frame(s, msg, len);
@@ -2775,7 +2788,7 @@ static void process_state_d_post_tcf(t30_state_t *s, const uint8_t *msg, int len
         break;
     case T30_DIS:
         /* It appears they didn't see what we sent - retry the TCF */
-        if (++s->retries >= MAX_MESSAGE_TRIES)
+        if (++s->retries >= MAX_COMMAND_TRIES)
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "Too many retries. Giving up.\n");
             s->current_status = T30_ERR_RETRYDCN;
@@ -2829,6 +2842,10 @@ static void process_state_f_cfr(t30_state_t *s, const uint8_t *msg, int len)
     /* We're waiting for a response to the CFR we sent */
     switch (msg[2] & 0xFE)
     {
+    case T30_DCS:
+        /* If we received another DCS, they must have missed our CFR */
+        process_rx_dcs(s, msg, len);
+        break;
     case T30_CRP:
         repeat_last_command(s);
         break;
@@ -3152,7 +3169,7 @@ static void process_state_f_post_doc_non_ecm(t30_state_t *s, const uint8_t *msg,
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_state_f_post_doc_ecm(t30_state_t *s, const uint8_t *msg, int len)
+static void process_state_f_doc_and_post_doc_ecm(t30_state_t *s, const uint8_t *msg, int len)
 {
     uint8_t fcf2;
     
@@ -3166,16 +3183,22 @@ static void process_state_f_post_doc_ecm(t30_state_t *s, const uint8_t *msg, int
         process_rx_dcs(s, msg, len);
         break;
     case T4_RCP:
+        /* Return to control for partial page. These might come through with or without the final frame tag.
+           Here we deal with the "final frame tag" case. */
         if (s->state == T30_STATE_F_DOC_ECM)
         {
             /* Return to control for partial page */
-            queue_phase(s, T30_PHASE_D_RX);
             set_state(s, T30_STATE_F_POST_DOC_ECM);
+            queue_phase(s, T30_PHASE_D_RX);
+            timer_t2_start(s);
+            /* We have received something, so any missing carrier status is out of date */
+            if (s->current_status == T30_ERR_RX_NOCARRIER)
+                s->current_status = T30_ERR_OK;
         }
         else
         {
-            /* Ignore extra RCP frames. The source will usually send several to maximise the chance of
-               one getting through OK. */
+            /* Just ignore this. It must be an extra RCP. Several are usually sent, to maximise the chance
+               of receiving a correct one. */
         }
         break;
     case T30_EOR:
@@ -4361,7 +4384,7 @@ static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
             break;
         case T30_STATE_F_DOC_ECM:
         case T30_STATE_F_POST_DOC_ECM:
-            process_state_f_post_doc_ecm(s, msg, len);
+            process_state_f_doc_and_post_doc_ecm(s, msg, len);
             break;
         case T30_STATE_F_POST_RCP_MCF:
             process_state_f_post_rcp_mcf(s, msg, len);
@@ -4567,7 +4590,7 @@ static void set_state(t30_state_t *s, int state)
 static void repeat_last_command(t30_state_t *s)
 {
     s->step = 0;
-    if (++s->retries >= MAX_MESSAGE_TRIES)
+    if (++s->retries >= MAX_COMMAND_TRIES)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Too many retries. Giving up.\n");
         switch (s->state)
@@ -5346,12 +5369,12 @@ static void t30_hdlc_rx_status(void *user_data, int status)
         switch (s->timer_t2_t4_is)
         {
         case TIMER_IS_T2B:
-            s->timer_t2_t4_is = TIMER_IS_T2C;
             timer_t2_t4_stop(s);
+            s->timer_t2_t4_is = TIMER_IS_T2C;
             break;
         case TIMER_IS_T4B:
-            s->timer_t2_t4_is = TIMER_IS_T4C;
             timer_t2_t4_stop(s);
+            s->timer_t2_t4_is = TIMER_IS_T4C;
             break;
         }
         break;
@@ -5361,39 +5384,34 @@ static void t30_hdlc_rx_status(void *user_data, int status)
         s->rx_trained = FALSE;
         /* If a phase change has been queued to occur after the receive signal drops,
            its time to change. */
-        if (s->next_phase != T30_PHASE_IDLE)
+        if (s->state == T30_STATE_F_DOC_ECM)
         {
-            switch (s->state)
+            /* We should be receiving a document right now, but we haven't seen an RCP at the end of
+               transmission. */
+            if (was_trained)
             {
-            case T30_STATE_F_POST_DOC_ECM:
-                /* Page ended cleanly with an RCP */
+                /* We trained OK, so we should have some kind of received page, possibly with
+                   zero good HDLC frames. It just did'nt end cleanly with an RCP. */
+                span_log(&s->logging, SPAN_LOG_WARNING, "ECM signal did not end cleanly\n");
+                /* Fake the existance of an RCP, and proceed */
+                set_state(s, T30_STATE_F_POST_DOC_ECM);
+                queue_phase(s, T30_PHASE_D_RX);
+                timer_t2_start(s);
+                /* We at least trained, so any missing carrier status is out of date */
                 if (s->current_status == T30_ERR_RX_NOCARRIER)
                     s->current_status = T30_ERR_OK;
-                break;
-            case T30_STATE_F_DOC_ECM:
-                /* We should be receiving a document right now, but it did not end cleanly. */
-                if (was_trained)
-                {
-                    span_log(&s->logging, SPAN_LOG_WARNING, "ECM signal did not end cleanly\n");
-                    /* We trained OK, so we should have some kind of received page, possibly with
-                       zero good HDLC frames, even though it did not end cleanly. */
-                    set_state(s, T30_STATE_F_POST_DOC_ECM);
-                    set_phase(s, T30_PHASE_D_RX);
-                    timer_t2_start(s);
-                    if (s->current_status == T30_ERR_RX_NOCARRIER)
-                        s->current_status = T30_ERR_OK;
-                }
-                else
-                {
-                    span_log(&s->logging, SPAN_LOG_WARNING, "ECM carrier not found\n");
-                    s->current_status = T30_ERR_RX_NOCARRIER;
-                }
-                break;
             }
-            timer_t2_t4_stop(s);
+            else
+            {
+                /* Either there was no image carrier, or we failed to train to it. */
+                span_log(&s->logging, SPAN_LOG_WARNING, "ECM carrier not found\n");
+                s->current_status = T30_ERR_RX_NOCARRIER;
+            }
+        }
+        if (s->next_phase != T30_PHASE_IDLE)
+        {
+            /* The appropriate timer for the next phase should already be in progress */
             set_phase(s, s->next_phase);
-            if (s->next_phase == T30_PHASE_C_NON_ECM_RX)
-                timer_t2_start(s);
             s->next_phase = T30_PHASE_IDLE;
         }
         else
