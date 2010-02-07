@@ -932,7 +932,7 @@ int t4_rx_init(t4_state_t *s, const char *file, int output_encoding)
     s->pages_transferred = 0;
     /* Set some default values */
     s->column_resolution = 7700;
-    s->row_resolution = T4_RESOLUTION_STANDARD;
+    s->row_resolution = T4_X_RESOLUTION_R8;
     s->image_width = 1728;
 
     return 0;
@@ -1623,40 +1623,40 @@ int t4_tx_init(t4_state_t *s, const char *file)
     TIFFGetField(s->tiff_file, TIFFTAG_YRESOLUTION, &y_resolution);
     TIFFGetField(s->tiff_file, TIFFTAG_RESOLUTIONUNIT, &res_unit);
 
-    if ((res_unit == RESUNIT_CENTIMETER  &&  x_resolution == 154.0)
+    if ((res_unit == RESUNIT_CENTIMETER  &&  x_resolution == 160.74)
         ||
-        (res_unit == RESUNIT_INCH  &&  x_resolution == 392.0))
+        (res_unit == RESUNIT_INCH  &&  x_resolution == 408.0))
     {
-        s->column_resolution = T4_RESOLUTION_SUPERFINE;
+        s->column_resolution = T4_X_RESOLUTION_R16;
     }
-    else if ((res_unit == RESUNIT_CENTIMETER  &&  x_resolution == 77.0)
+    else if ((res_unit == RESUNIT_CENTIMETER  &&  x_resolution == 40.19)
             ||
-            (res_unit == RESUNIT_INCH  &&  x_resolution == 196.0))
+            (res_unit == RESUNIT_INCH  &&  x_resolution == 102.0))
     {
-        s->column_resolution = T4_RESOLUTION_FINE;
+        s->column_resolution = T4_X_RESOLUTION_R4;
     }
     else
     {
-        s->column_resolution = T4_RESOLUTION_STANDARD;
+        s->column_resolution = T4_X_RESOLUTION_R8;
     }
 
     if ((res_unit == RESUNIT_CENTIMETER  &&  y_resolution == 154.0)
         ||
         (res_unit == RESUNIT_INCH  &&  y_resolution == 392.0))
     {
-        s->row_resolution = T4_RESOLUTION_SUPERFINE;
+        s->row_resolution = T4_Y_RESOLUTION_SUPERFINE;
         s->maxk = 8;
     }
     else if ((res_unit == RESUNIT_CENTIMETER  &&  y_resolution == 77.0)
              ||
              (res_unit == RESUNIT_INCH  &&  y_resolution == 196.0))
     {
-        s->row_resolution = T4_RESOLUTION_FINE;
+        s->row_resolution = T4_Y_RESOLUTION_FINE;
         s->maxk = 4;
     }
     else
     {
-        s->row_resolution = T4_RESOLUTION_STANDARD;
+        s->row_resolution = T4_Y_RESOLUTION_STANDARD;
         s->maxk = 2;
     }
 
@@ -1800,14 +1800,14 @@ int t4_tx_start_page(t4_state_t *s)
                     data = 0;
                 }
             }
-            if (s->row_resolution == T4_RESOLUTION_SUPERFINE)
+            if (s->row_resolution == T4_X_RESOLUTION_R16)
             {
                 if ((ok = t4_encode_row(s, s->rowbuf)) <= 0)
                     return -1;
                 if ((ok = t4_encode_row(s, s->rowbuf)) <= 0)
                     return -1;
             }
-            if (s->row_resolution == T4_RESOLUTION_FINE)
+            if (s->row_resolution == T4_X_RESOLUTION_R8)
             {
                 if ((ok = t4_encode_row(s, s->rowbuf)) <= 0)
                     return -1;

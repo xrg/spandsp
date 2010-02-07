@@ -45,9 +45,13 @@ defined in T.6. These are image compression algorithms used for FAX transmission
 #define T4_COMPRESSION_ITU_T4_2D    2
 #define T4_COMPRESSION_ITU_T6       3
 
-#define T4_RESOLUTION_STANDARD      3850
-#define T4_RESOLUTION_FINE          7700
-#define T4_RESOLUTION_SUPERFINE     15400
+#define T4_X_RESOLUTION_R4          4019
+#define T4_X_RESOLUTION_R8          8037
+#define T4_X_RESOLUTION_R16         16074
+
+#define T4_Y_RESOLUTION_STANDARD    3850
+#define T4_Y_RESOLUTION_FINE        7700
+#define T4_Y_RESOLUTION_SUPERFINE   15400
 
 /*!
     T.4 FAX compression/decompression descriptor. This defines the working state

@@ -665,29 +665,29 @@ static int build_dcs(t30_state_t *s, const uint8_t *dis_frame)
     /* Set scantime bits; clear extend bit */
     switch (s->resolution)
     {
-    case T4_RESOLUTION_SUPERFINE:
+    case T4_Y_RESOLUTION_SUPERFINE:
         if ((dis_frame[6] & DISBIT1))
         {
             s->dcs_frame[6] |= DISBIT1;
             s->dcs_frame[3] = (translate_min_scan_time[2][min_bits_field] + 8) << 4;
             break;
         }
-        s->resolution = T4_RESOLUTION_FINE;
+        s->resolution = T4_Y_RESOLUTION_FINE;
         if (s->verbose)
             fprintf(stderr, "Remote fax does not support super-fine resolution.\n");
         /* Fall through */
-    case T4_RESOLUTION_FINE:
+    case T4_Y_RESOLUTION_FINE:
         if ((dis_frame[2] & DISBIT7))
         {
             s->dcs_frame[2] |= DISBIT7;
             s->dcs_frame[3] = (translate_min_scan_time[1][min_bits_field] + 8) << 4;
             break;
         }
-        s->resolution = T4_RESOLUTION_STANDARD;
+        s->resolution = T4_Y_RESOLUTION_STANDARD;
         if (s->verbose)
             fprintf(stderr, "Remote fax does not support fine resolution.\n");
         /* Fall through */
-    case T4_RESOLUTION_STANDARD:
+    case T4_Y_RESOLUTION_STANDARD:
         s->dcs_frame[3] = translate_min_scan_time[0][min_bits_field] << 4;
         break;
     }
@@ -729,11 +729,11 @@ static int check_dcs(t30_state_t *s, const uint8_t *dcs_frame, int len)
     if (len < 4)
         fprintf(stderr, "Short DCS frame\n");
     if (len >= 7  &&  (dcs_frame[6] & DISBIT1))
-        s->resolution = T4_RESOLUTION_SUPERFINE;
+        s->resolution = T4_Y_RESOLUTION_SUPERFINE;
     else if (dcs_frame[2] & DISBIT7)
-        s->resolution = T4_RESOLUTION_FINE;
+        s->resolution = T4_Y_RESOLUTION_FINE;
     else
-        s->resolution = T4_RESOLUTION_STANDARD;
+        s->resolution = T4_Y_RESOLUTION_STANDARD;
     s->image_width = widths[1][dcs_frame[3] & (DISBIT2 | DISBIT1)];
     s->line_encoding = (dcs_frame[2] & DISBIT8)  ?  T4_COMPRESSION_ITU_T4_2D  :  T4_COMPRESSION_ITU_T4_1D;
     if (!(dcs_frame[2] & DISBIT2))
@@ -827,15 +827,15 @@ static int start_sending_document(t30_state_t *s)
     s->resolution = t4_tx_get_row_resolution(&(s->t4));
     switch (s->resolution)
     {
-    case T4_RESOLUTION_STANDARD:
+    case T4_Y_RESOLUTION_STANDARD:
         s->dcs_frame[2] &= ~DISBIT7;
         s->dtc_frame[6] &= ~DISBIT1;
         break;
-    case T4_RESOLUTION_FINE:
+    case T4_Y_RESOLUTION_FINE:
         s->dcs_frame[2] |= DISBIT7;
         s->dtc_frame[6] &= ~DISBIT1;
         break;
-    case T4_RESOLUTION_SUPERFINE:
+    case T4_Y_RESOLUTION_SUPERFINE:
         s->dcs_frame[2] &= ~DISBIT7;
         s->dtc_frame[6] |= DISBIT1;
         break;
