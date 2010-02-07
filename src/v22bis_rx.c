@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.47 2009/02/03 16:28:40 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.48 2009/03/13 12:59:26 steveu Exp $
  */
 
 /*! \file */
@@ -626,7 +626,7 @@ SPAN_DECLARE(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len)
         {
             /* Only spend effort processing this data if the modem is not
                parked, after training failure. */
-            z = dds_complexf(&(s->rx.carrier_phase), s->rx.carrier_phase_rate);
+            z = dds_complexf(&s->rx.carrier_phase, s->rx.carrier_phase_rate);
             if (s->rx.training == V22BIS_TRAINING_STAGE_SYMBOL_ACQUISITION)
             {
                 /* Only AGC during the initial symbol acquisition, and then lock the gain. */
@@ -674,6 +674,27 @@ SPAN_DECLARE(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len)
                 process_half_baud(s, &zz);
             }
         }
+    }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) v22bis_rx_fillin(v22bis_state_t *s, int len)
+{
+    int i;
+
+    /* We want to sustain the current state (i.e carrier on<->carrier off), and
+       try to sustain the carrier phase. We should probably push the filters, as well */
+    span_log(&s->logging, SPAN_LOG_FLOW, "Fill-in %d samples\n", len);
+    if (!s->rx.signal_present)
+        return 0;
+    for (i = 0;  i < len;  i++)
+    {
+#if defined(SPANDSP_USE_FIXED_POINT)
+        dds_advance(&s->rx.carrier_phase, s->rx.carrier_phase_rate);
+#else
+        dds_advancef(&s->rx.carrier_phase, s->rx.carrier_phase_rate);
+#endif
     }
     return 0;
 }

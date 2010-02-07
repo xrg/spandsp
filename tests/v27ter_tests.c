@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tests.c,v 1.101 2009/02/12 14:21:16 steveu Exp $
+ * $Id: v27ter_tests.c,v 1.102 2009/03/13 12:59:26 steveu Exp $
  */
 
 /*! \page v27ter_tests_page V.27ter modem tests
@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
     int signal_level;
     int bits_per_test;
     int line_model_no;
-    int block;
+    int block_no;
     int log_audio;
     int channel_codec;
     int rbs_pattern;
@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
 #endif
 
     memset(&latest_results, 0, sizeof(latest_results));
-    for (block = 0;  ;  block++)
+    for (block_no = 0;  ;  block_no++)
     {
         if (decode_test_file)
         {

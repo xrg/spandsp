@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.117 2009/02/10 13:06:47 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.118 2009/03/13 12:59:26 steveu Exp $
  */
 
 /*! \file */
@@ -1004,6 +1004,29 @@ SPAN_DECLARE(int) v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len)
             dds_advancef(&s->carrier_phase, s->carrier_phase_rate);
 #endif
         }
+    }
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) v27ter_rx_fillin(v27ter_rx_state_t *s, int len)
+{
+    int i;
+
+    /* We want to sustain the current state (i.e carrier on<->carrier off), and
+       try to sustain the carrier phase. We should probably push the filters, as well */
+    span_log(&s->logging, SPAN_LOG_FLOW, "Fill-in %d samples\n", len);
+    if (!s->signal_present)
+        return 0;
+    if (s->training_stage == TRAINING_STAGE_PARKED)
+        return 0;
+    for (i = 0;  i < len;  i++)
+    {
+#if defined(SPANDSP_USE_FIXED_POINT)
+        dds_advance(&s->carrier_phase, s->carrier_phase_rate);
+#else
+        dds_advancef(&s->carrier_phase, s->carrier_phase_rate);
+#endif
     }
     return 0;
 }

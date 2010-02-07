@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.88 2009/02/16 09:57:22 steveu Exp $
+ * $Id: fax.c,v 1.89 2009/03/13 12:59:25 steveu Exp $
  */
 
 /*! \file */
@@ -235,6 +235,33 @@ SPAN_DECLARE(int) fax_rx(fax_state_t *s, int16_t *amp, int len)
         amp[i] = dc_restore(&s->modems.dc_restore, amp[i]);
     s->modems.rx_handler(s->modems.rx_user_data, amp, len);
     t30_timer_update(&s->t30, len);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) fax_rx_fillin(fax_state_t *s, int len)
+{
+    /* To mitigate the effect of lost packets on a packet network we should
+       try to sustain the status quo. If there is no receive modem running, keep
+       things that way. If there is a receive modem running, try to sustain its
+       operation, without causing a phase hop, or letting its adaptive functions
+       diverge. */
+#if defined(LOG_FAX_AUDIO)
+    if (s->modems.audio_rx_log >= 0)
+    {
+        int i;
+#if defined(_MSC_VER)
+        int16_t *amp = (int16_t *) _alloca(sizeof(int16_t)*len);
+#else
+        int16_t amp[len];
+#endif
+
+        vec_zeroi16(amp, len);
+        write(s->modems.audio_rx_log, amp, len*sizeof(int16_t));
+    }
+#endif
+    t30_timer_update(&s->t30, len);
+    /* TODO: Call the fillin function of the current modem (if there is one). */
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

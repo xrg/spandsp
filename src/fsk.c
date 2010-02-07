@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.c,v 1.52 2009/02/10 13:06:46 steveu Exp $
+ * $Id: fsk.c,v 1.53 2009/03/13 12:59:26 steveu Exp $
  */
 
 /*! \file */
@@ -431,6 +431,15 @@ SPAN_DECLARE(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len)
             buf_ptr = 0;
     }
     s->buf_ptr = buf_ptr;
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) fsk_rx_fillin(fsk_rx_state_t *s, int len)
+{
+    /* The valid choice here is probably to do nothing. We don't change state
+      (i.e carrier on<->carrier off), and we'll just output less bits than we
+      should. */
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

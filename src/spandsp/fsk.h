@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.h,v 1.36 2009/02/10 13:06:47 steveu Exp $
+ * $Id: fsk.h,v 1.37 2009/03/13 12:59:26 steveu Exp $
  */
 
 /*! \file */
@@ -213,6 +213,15 @@ SPAN_DECLARE(int) fsk_rx_free(fsk_rx_state_t *s);
     \return The number of samples unprocessed.
 */
 SPAN_DECLARE(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len);
+
+/*! Fake processing of a missing block of received FSK modem audio samples
+    (e.g due to packet loss).
+    \brief Fake processing of a missing block of received FSK modem audio samples.
+    \param s The modem context.
+    \param len The number of samples to fake.
+    \return The number of samples unprocessed.
+*/
+SPAN_DECLARE(int) fsk_rx_fillin(fsk_rx_state_t *s, int len);
 
 SPAN_DECLARE(void) fsk_rx_set_put_bit(fsk_rx_state_t *s, put_bit_func_t put_bit, void *user_data);
 

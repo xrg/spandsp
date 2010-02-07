@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.35 2009/02/10 13:06:47 steveu Exp $
+ * $Id: v22bis.h,v 1.36 2009/03/13 12:59:26 steveu Exp $
  */
 
 /*! \file */
@@ -84,6 +84,14 @@ SPAN_DECLARE(int) v22bis_rx_restart(v22bis_state_t *s, int bit_rate);
     \param len The number of samples in the buffer.
     \return The number of samples unprocessed. */
 SPAN_DECLARE(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len);
+
+/*! Fake processing of a missing block of received V.22bis modem audio samples.
+    (e.g due to packet loss).
+    \brief Fake processing of a missing block of received V.22bis modem audio samples.
+    \param s The modem context.
+    \param len The number of samples to fake.
+    \return The number of samples unprocessed. */
+SPAN_DECLARE(int) v22bis_rx_fillin(v22bis_state_t *s, int len);
 
 /*! Get a snapshot of the current equalizer coefficients.
     \brief Get a snapshot of the current equalizer coefficients.

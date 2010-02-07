@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.144 2009/02/16 09:57:22 steveu Exp $
+ * $Id: t31.c,v 1.146 2009/03/13 14:49:57 steveu Exp $
  */
 
 /*! \file */
@@ -669,7 +669,7 @@ static void send_hdlc(void *user_data, const uint8_t *msg, int len)
 
 static __inline__ int bits_to_us(t31_state_t *s, int bits)
 {
-    if (s->t38_fe.ms_per_tx_chunk == 0)
+    if (s->t38_fe.ms_per_tx_chunk == 0  ||  s->t38_fe.tx_bit_rate == 0)
         return 0;
     return bits*1000000/s->t38_fe.tx_bit_rate;
 }
@@ -2335,6 +2335,30 @@ SPAN_DECLARE(int) t31_rx(t31_state_t *s, int16_t amp[], int len)
     if (!s->at_state.transmit  ||  s->modem == T31_CNG_TONE)
         s->audio.modems.rx_handler(s->audio.modems.rx_user_data, amp, len);
     return  0;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) t31_rx_fillin(t31_state_t *s, int len)
+{
+    /* To mitigate the effect of lost packets on a packet network we should
+       try to sustain the status quo. If there is no receive modem running, keep
+       things that way. If there is a receive modem running, try to sustain its
+       operation, without causing a phase hop, or letting its adaptive functions
+       diverge. */
+    /* Time is determined by counting the samples in audio packets coming in. */
+    s->call_samples += len;
+
+    /* In HDLC transmit mode, if 5 seconds elapse without data from the DTE
+       we must treat this as an error. We return the result ERROR, and change
+       to command-mode. */
+    if (s->dte_data_timeout  &&  s->call_samples > s->dte_data_timeout)
+    {
+        t31_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+        at_put_response_code(&s->at_state, AT_RESPONSE_CODE_ERROR);
+        restart_modem(s, T31_SILENCE_TX);
+    }
+    /* TODO: Call the fillin function of the current modem (if there is one). */
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 

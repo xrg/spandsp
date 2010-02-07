@@ -25,7 +25,7 @@
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
  *
- * $Id: gsm0610_long_term.c,v 1.21 2009/02/03 16:28:39 steveu Exp $
+ * $Id: gsm0610_long_term.c,v 1.22 2009/03/13 15:57:29 steveu Exp $
  */
 
 /*! \file */
@@ -67,8 +67,8 @@ static const int16_t gsm_QLB[4] =
 
 /* 4.2.11 .. 4.2.12 LONG TERM PREDICTOR (LTP) SECTION */
 
-#if defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX)
-int32_t gsm0610_max_cross_corr(const int16_t *wt, const int16_t *dp, int16_t *Nc_out)
+#if defined(__GNUC__)  &&  defined(SPANDSP_USE_MMXx)
+static int32_t gsm0610_max_cross_corr(const int16_t *wt, const int16_t *dp, int16_t *Nc_out)
 {
     int32_t lmax;
     int32_t out;
@@ -77,9 +77,9 @@ int32_t gsm0610_max_cross_corr(const int16_t *wt, const int16_t *dp, int16_t *Nc
     __asm__ __volatile__(
         " emms;\n"
         " pushq %%rbx;\n"
-        " movl $0,%%edx;\n"             /* Will be maximum inner-product */
+        " movl $0,%%edx;\n"                 /* Will be maximum inner-product */
         " movl $40,%%ebx;\n"
-        " movl %%ebx,%%ecx;\n"          /* Will be index of max inner-product */
+        " movl %%ebx,%%ecx;\n"              /* Will be index of max inner-product */
         " subq $80,%%rsi;\n"
         " .p2align 2;\n"
         "1:\n"
@@ -123,9 +123,9 @@ int32_t gsm0610_max_cross_corr(const int16_t *wt, const int16_t *dp, int16_t *Nc
         " pmaddwd %%mm2,%%mm1;\n"
         " paddd %%mm1,%%mm0;\n"
         " movq %%mm0,%%mm1;\n"
-        " punpckhdq %%mm0,%%mm1;\n"        /* mm1 has high int32 of mm0 dup'd */
+        " punpckhdq %%mm0,%%mm1;\n"         /* mm1 has high int32 of mm0 dup'd */
         " paddd %%mm1,%%mm0;\n"
-        " movd %%mm0,%%eax;\n"                /* eax has result */
+        " movd %%mm0,%%eax;\n"              /* eax has result */
         " cmpl %%edx,%%eax;\n"
         " jle 2f;\n"
         " movl %%eax,%%edx;\n"
@@ -146,9 +146,9 @@ int32_t gsm0610_max_cross_corr(const int16_t *wt, const int16_t *dp, int16_t *Nc
     __asm__ __volatile__(
         " emms;\n"
         " pushl %%ebx;\n"
-        " movl $0,%%edx;\n"             /* Will be maximum inner-product */
+        " movl $0,%%edx;\n"                 /* Will be maximum inner-product */
         " movl $40,%%ebx;\n"
-        " movl %%ebx,%%ecx;\n"          /* Will be index of max inner-product */
+        " movl %%ebx,%%ecx;\n"              /* Will be index of max inner-product */
         " subl $80,%%esi;\n"
         " .p2align 2;\n"
         "1:\n"
@@ -192,9 +192,9 @@ int32_t gsm0610_max_cross_corr(const int16_t *wt, const int16_t *dp, int16_t *Nc
         " pmaddwd %%mm2,%%mm1;\n"
         " paddd %%mm1,%%mm0;\n"
         " movq %%mm0,%%mm1;\n"
-        " punpckhdq %%mm0,%%mm1;\n"        /* mm1 has high int32 of mm0 dup'd */
+        " punpckhdq %%mm0,%%mm1;\n"         /* mm1 has high int32 of mm0 dup'd */
         " paddd %%mm1,%%mm0;\n"
-        " movd %%mm0,%%eax;\n"                /* eax has result */
+        " movd %%mm0,%%eax;\n"              /* eax has result */
         " cmpl %%edx,%%eax;\n"
         " jle 2f;\n"
         " movl %%eax,%%edx;\n"
@@ -213,7 +213,7 @@ int32_t gsm0610_max_cross_corr(const int16_t *wt, const int16_t *dp, int16_t *Nc
     );
 #endif
     *Nc_out = out;
-    return  lmax;
+    return lmax;
 }
 /*- End of function --------------------------------------------------------*/
 #endif
@@ -248,7 +248,7 @@ static int16_t evaluate_ltp_parameters(int16_t d[40],
     int16_t scale;
     int16_t temp;
     int32_t L_temp;
-#if !(defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX))
+#if !(defined(__GNUC__)  &&  defined(SPANDSP_USE_MMXx))
     int16_t lambda;
 #endif
 
@@ -288,7 +288,7 @@ static int16_t evaluate_ltp_parameters(int16_t d[40],
     /*endfor*/
 
     /* Search for the maximum cross-correlation and coding of the LTP lag */
-#if defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX)
+#if defined(__GNUC__)  &&  defined(SPANDSP_USE_MMXx)
     L_max = gsm0610_max_cross_corr(wt, dp, &Nc);
 #else
     L_max = 0;
@@ -453,7 +453,7 @@ void gsm0610_long_term_synthesis_filtering(gsm0610_state_t *s,
     int16_t drpp;
     int16_t Nr;
 
-    /* This procedure uses the bcr and Ncr parameter to realize the
+    /* This procedure uses the bcr and Ncr parameters to realize the
        long term synthesis filter.  The decoding of bcr needs
        table 4.3b. */
 

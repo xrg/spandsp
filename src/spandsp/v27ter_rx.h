@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.h,v 1.57 2009/02/10 13:06:47 steveu Exp $
+ * $Id: v27ter_rx.h,v 1.58 2009/03/13 12:59:26 steveu Exp $
  */
 
 /*! \file */
@@ -124,6 +124,15 @@ SPAN_DECLARE(void) v27ter_rx_set_modem_status_handler(v27ter_rx_state_t *s, mode
     \return The number of samples unprocessed.
 */
 SPAN_DECLARE(int) v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len);
+
+/*! Fake processing of a missing block of received V.27ter modem audio samples.
+    (e.g due to packet loss).
+    \brief Fake processing of a missing block of received V.27ter modem audio samples.
+    \param s The modem context.
+    \param len The number of samples to fake.
+    \return The number of samples unprocessed.
+*/
+SPAN_DECLARE(int) v27ter_rx_fillin(v27ter_rx_state_t *s, int len);
 
 /*! Get a snapshot of the current equalizer coefficients.
     \brief Get a snapshot of the current equalizer coefficients.
