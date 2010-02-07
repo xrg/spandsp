@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.1 2008/10/13 13:14:01 steveu Exp $
+ * $Id: t31.h,v 1.4 2009/01/02 15:48:53 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_T31_H_)
@@ -62,35 +62,30 @@ typedef struct
 */
 typedef struct
 {
+    /*! \brief Internet Aware FAX mode bit mask. */
+    int iaf;
+    /*! \brief Required time between T.38 transmissions, in ms. */
+    int ms_per_tx_chunk;
+    /*! \brief Bit fields controlling the way data is packed into chunked for transmission. */
+    int chunking_modes;
+
+    /*! \brief Core T.38 IFP support */
     t38_core_state_t t38;
+
+    /*! \brief The current transmit step being timed */
+    int timed_step;
+
+    /*! \brief TRUE is there has been some T.38 data missed */
+    int rx_data_missing;
 
     /*! \brief The number of octets to send in each image packet (non-ECM or ECM) at the current
                rate and the current specified packet interval. */
     int octets_per_data_packet;
 
-    int timed_step;
-
-    int ms_per_tx_chunk;
-    int merge_tx_fields;
-
-    /*! \brief TRUE is there has been some T.38 data missed */
-    int missing_data;
-
-    /*! \brief The number of times an indicator packet will be sent. Numbers greater than one
-               will increase reliability for UDP transmission. Zero is valid, to suppress all
-               indicator packets for TCP transmission. */
-    int indicator_tx_count;
-
-    /*! \brief The number of times a data packet which ends transmission will be sent. Numbers
-               greater than one will increase reliability for UDP transmission. Zero is not valid. */
-    int data_end_tx_count;
-
     /*! \brief The current T.38 data type being transmitted */
     int current_tx_data_type;
     /*! \brief The next queued tramsit indicator */
     int next_tx_indicator;
-
-    int trailer_bytes;
 
     struct
     {
@@ -98,9 +93,21 @@ typedef struct
         int len;
     } hdlc_rx;
 
+    struct
+    {
+        /*! \brief The number of extra bits in a fully stuffed version of the
+                   contents of the HDLC transmit buffer. This is needed to accurately
+                   estimate the playout time for this frame, through an analogue modem. */
+        int extra_bits;
+    } hdlc_tx;
+
+    int non_ecm_trailer_bytes;
+
     int current_rx_type;
     int current_tx_type;
 
+    /*! \brief Current transmission bit rate. */
+    int tx_bit_rate;
     int32_t next_tx_samples;
     int32_t timeout_rx_samples;
     /*! \brief A "sample" count, used to time events */

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.c,v 1.68 2008/11/30 13:44:35 steveu Exp $
+ * $Id: v27ter_tx.c,v 1.69 2008/12/31 13:39:49 steveu Exp $
  */
 
 /*! \file */
@@ -151,6 +151,7 @@ static complexf_t getbaud(v27ter_tx_state_t *s)
         { 0000,   -1414},       /* 270deg */
         { 1000,   -1000}        /* 315deg */
     };
+    static const complexi16_t zero = {0, 0};
 #else
     static const complexf_t constellation[8] =
     {
@@ -163,6 +164,7 @@ static complexf_t getbaud(v27ter_tx_state_t *s)
         { 0.0f,   -1.414f},     /* 270deg */
         { 1.0f,   -1.0f}        /* 315deg */
     };
+    static const complexf_t zero = {0.0f, 0.0f};
 #endif
     int bits;
 
@@ -181,11 +183,7 @@ static complexf_t getbaud(v27ter_tx_state_t *s)
                 if (s->training_step <= V27TER_TRAINING_SEG_3)
                 {
                     /* Segment 2: Silence */
-#if defined(SPANDSP_USE_FIXED_POINT)
-                    return complex_seti16(0, 0);
-#else
-                    return complex_setf(0.0f, 0.0f);
-#endif
+                    return zero;
                 }
                 /* Segment 3: Regular reversals... */
                 s->constellation_state = (s->constellation_state + 4) & 7;

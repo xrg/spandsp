@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.c,v 1.34 2008/11/30 13:44:35 steveu Exp $
+ * $Id: v8.c,v 1.35 2008/12/31 13:04:28 steveu Exp $
  */
  
 /*! \file */
@@ -125,21 +125,21 @@ const char *v8_modulation_to_str(int modulation_scheme)
     case V8_MOD_V21:
         return "V.21 duplex";
     case V8_MOD_V22:
-        return "V.22/V22.bis duplex";
+        return "V.22/V.22bis duplex";
     case V8_MOD_V23HALF:
         return "V.23 half-duplex";
     case V8_MOD_V23:
         return "V.23 duplex";
     case V8_MOD_V26BIS:
-        return "V.23 duplex";
+        return "V.26bis duplex";
     case V8_MOD_V26TER:
-        return "V.23 duplex";
+        return "V.26ter duplex";
     case V8_MOD_V27TER:
-        return "V.23 duplex";
+        return "V.27ter duplex";
     case V8_MOD_V29:
         return "V.29 half-duplex";
     case V8_MOD_V32:
-        return "V.32/V32.bis duplex";
+        return "V.32/V.32bis duplex";
     case V8_MOD_V34HALF:
         return "V.34 half-duplex";
     case V8_MOD_V34:

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17_tests.c,v 1.96 2008/12/06 12:36:29 steveu Exp $
+ * $Id: v17_tests.c,v 1.97 2008/12/31 13:39:24 steveu Exp $
  */
 
 /*! \page v17_tests_page V.17 modem tests
@@ -344,6 +344,9 @@ int main(int argc, char *argv[])
     {
         /* We will generate V.17 audio, and add some noise to it. */
         tx = v17_tx_init(NULL, test_bps, tep, v17getbit, NULL);
+        logging = v17_tx_get_logging_state(tx);
+        span_log_set_level(logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_FLOW);
+        span_log_set_tag(logging, "V.17 tx");
         v17_tx_power(tx, signal_level);
         v17_tx_set_modem_status_handler(tx, v17_tx_status, (void *) tx);
 #if defined(WITH_SPANDSP_INTERNALS)
@@ -456,7 +459,7 @@ int main(int argc, char *argv[])
             {
                 outframes = afWriteFrames(outhandle,
                                           AF_DEFAULT_TRACK,
-                                          amp,
+                                          gen_amp,
                                           samples);
                 if (outframes != samples)
                 {

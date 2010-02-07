@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.63 2008/11/30 13:44:35 steveu Exp $
+ * $Id: t4_tests.c,v 1.64 2008/12/31 13:57:13 steveu Exp $
  */
 
 /*! \file */
@@ -219,6 +219,8 @@ int main(int argc, char *argv[])
     int bit_error_rate;
     int dump_as_xxx;
     int tests_failed;
+    unsigned int last_pkt_no;
+    unsigned int pkt_no;
 
     tests_failed = 0;
     decode_test = FALSE;
@@ -299,9 +301,10 @@ int main(int argc, char *argv[])
 
         page_no = 1;
         t4_rx_start_page(&receive_state);
+        last_pkt_no = 0;
         while (fgets(buf, 1024, stdin))
         {
-            if (sscanf(buf, "HDLC:  FCD: 06 %x", (unsigned int *) &bit) == 1)
+            if (sscanf(buf, "HDLC:  FCD: 06 %x", &pkt_no) == 1)
             {
                 /* Useful for breaking up T.38 ECM logs */
                 for (i = 0;  i < 256;  i++)
@@ -312,7 +315,7 @@ int main(int argc, char *argv[])
                         break;
                 }
             }
-            else if (sscanf(buf, "HDLC:  %x", (unsigned int *) &bit) == 1)
+            else if (sscanf(buf, "HDLC:  %x", &pkt_no) == 1)
             {
                 /* Useful for breaking up HDLC decodes of ECM logs */
                 for (i = 0;  i < 256;  i++)
@@ -323,9 +326,12 @@ int main(int argc, char *argv[])
                         break;
                 }
             }
-            else if (strlen(buf) > 62  &&  sscanf(buf + 62, "Rx %*d: IFP %*x %*x") == 3)
+            else if (strlen(buf) > 62  &&  sscanf(buf + 62, "Rx %d: IFP %x %x", &pkt_no, (unsigned int *) &bit, (unsigned int *) &bit) == 3)
             {
                 /* Useful for breaking up T.38 non-ECM logs */
+                if (pkt_no != last_pkt_no + 1)
+                    printf("Packet %u\n", pkt_no);
+                last_pkt_no = pkt_no;
                 for (i = 0;  i < 256;  i++)
                 {
                     if (sscanf(&buf[62 + 29 + 3*i], "%x", (unsigned int *) &bit) != 1)

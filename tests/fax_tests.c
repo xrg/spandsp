@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.99 2008/12/17 12:46:08 steveu Exp $
+ * $Id: fax_tests.c,v 1.100 2009/01/03 14:44:15 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -115,6 +115,7 @@ static int phase_d_handler(t30_state_t *s, void *user_data, int result)
     printf("%d: Phase D: image resolution %d x %d\n", i, t.x_resolution, t.y_resolution);
     printf("%d: Phase D: bad rows %d\n", i, t.bad_rows);
     printf("%d: Phase D: longest bad row run %d\n", i, t.longest_bad_row_run);
+    printf("%d: Phase D: bad ECM frames %d\n", i, t.error_correcting_mode_retries);
     printf("%d: Phase D: compression type %d\n", i, t.encoding);
     printf("%d: Phase D: image size %d bytes\n", i, t.image_size);
     if ((u = t30_get_tx_ident(s)))
@@ -172,6 +173,7 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
     printf("%d: Phase E: image resolution %d x %d\n", i, t.x_resolution, t.y_resolution);
     printf("%d: Phase E: bad rows %d\n", i, t.bad_rows);
     printf("%d: Phase E: longest bad row run %d\n", i, t.longest_bad_row_run);
+    printf("%d: Phase E: bad ECM frames %d\n", i, t.error_correcting_mode_retries);
     printf("%d: Phase E: coding method %s\n", i, t4_encoding_to_str(t.encoding));
     printf("%d: Phase E: image size %d bytes\n", i, t.image_size);
     if ((u = t30_get_tx_ident(s)))

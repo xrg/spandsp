@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.117 2008/10/13 13:14:00 steveu Exp $
+ * $Id: t30.h,v 1.119 2009/01/03 13:02:31 steveu Exp $
  */
 
 /*! \file */
@@ -329,7 +329,9 @@ enum
         dying. */
     T30_FRONT_END_RECEIVE_COMPLETE,
     T30_FRONT_END_SIGNAL_PRESENT,
-    T30_FRONT_END_SIGNAL_ABSENT
+    T30_FRONT_END_SIGNAL_ABSENT,
+    T30_FRONT_END_CED_PRESENT,
+    T30_FRONT_END_CNG_PRESENT
 };
 
 enum
@@ -485,22 +487,24 @@ typedef struct
     int pages_transferred;
     /*! \brief The number of pages in the file (<0 if not known). */
     int pages_in_file;
+    /*! \brief The horizontal column-to-column resolution of the page, in pixels per metre */
+    int x_resolution;
+    /*! \brief The vertical row-to-row resolution of the page, in pixels per metre */
+    int y_resolution;
     /*! \brief The number of horizontal pixels in the most recent page. */
     int width;
     /*! \brief The number of vertical pixels in the most recent page. */
     int length;
+    /*! \brief The size of the image, in bytes */
+    int image_size;
+    /*! \brief The type of compression used between the FAX machines */
+    int encoding;
     /*! \brief The number of bad pixel rows in the most recent page. */
     int bad_rows;
     /*! \brief The largest number of bad pixel rows in a block in the most recent page. */
     int longest_bad_row_run;
-    /*! \brief The horizontal column-to-column resolution of the page in pixels per metre */
-    int x_resolution;
-    /*! \brief The vertical row-to-row resolution of the page in pixels per metre */
-    int y_resolution;
-    /*! \brief The type of compression used between the FAX machines */
-    int encoding;
-    /*! \brief The size of the image, in bytes */
-    int image_size;
+    /*! \brief The number of HDLC frame retries, if error correcting mode is used. */
+    int error_correcting_mode_retries;
     /*! \brief Current status */
     int current_status;
 } t30_stats_t;

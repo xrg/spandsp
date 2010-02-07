@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.1 2008/10/13 13:14:01 steveu Exp $
+ * $Id: t38_terminal.h,v 1.2 2008/12/31 13:57:13 steveu Exp $
  */
 
 /*! \file */
@@ -73,7 +73,7 @@ typedef struct
                    contents of the HDLC transmit buffer. This is needed to accurately
                    estimate the playout time for this frame, through an analogue modem. */
         int extra_bits;
-    } tx;
+    } hdlc_tx;
 
     /*! \brief Counter for trailing non-ECM bytes, used to flush out the far end's modem. */
     int non_ecm_trailer_bytes;

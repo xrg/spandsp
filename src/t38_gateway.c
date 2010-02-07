@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.147 2008/11/30 13:44:35 steveu Exp $
+ * $Id: t38_gateway.c,v 1.148 2008/12/31 20:09:24 steveu Exp $
  */
 
 /*! \file */
@@ -664,6 +664,18 @@ static void edit_control_messages(t38_gateway_state_t *s, int from_modem, uint8_
                 s->t38x.corrupt_current_frame[from_modem] = TRUE;
             }
             /*endif*/
+            break;
+        }
+        /*endswitch*/
+        break;
+    case 4:
+        switch (buf[2])
+        {
+        case T30_DIS:
+            /* Make sure the V.8 capability doesn't pass through. If it
+               did then two V.34 capable FAX machines might start some
+               V.8 re-negotiation. */
+            buf[3] &= ~DISBIT6;
             break;
         }
         /*endswitch*/

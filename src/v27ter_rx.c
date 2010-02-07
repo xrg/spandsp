@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.109 2008/11/30 13:44:35 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.111 2008/12/30 15:05:01 steveu Exp $
  */
 
 /*! \file */
@@ -688,12 +688,14 @@ static __inline__ void process_half_baud(v27ter_rx_state_t *s, const complexf_t 
 #endif
         if (++s->training_count >= V27TER_TRAINING_SEG_6_LEN)
         {
-            if ((s->bit_rate == 4800  &&  s->training_error < 0.5f)
+            /* At 4800bps the symbols are 1.08238 (Euclidian) apart.
+               At 2400bps the symbols are 2.0 (Euclidian) apart. */
+            if ((s->bit_rate == 4800  &&  s->training_error < V27TER_TRAINING_SEG_6_LEN*0.25f)
                 ||
-                (s->bit_rate == 2400  &&  s->training_error < 1.0f))
+                (s->bit_rate == 2400  &&  s->training_error < V27TER_TRAINING_SEG_6_LEN*0.5f))
             {
                 /* We are up and running */
-                span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded (constellation mismatch %f)\n", s->training_error);
+                span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded at %dbps (constellation mismatch %f)\n", s->bit_rate, s->training_error);
                 report_status_change(s, SIG_STATUS_TRAINING_SUCCEEDED);
                 /* Apply some lag to the carrier off condition, to ensure the last few bits get pushed through
                    the processing. */

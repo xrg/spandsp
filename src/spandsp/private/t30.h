@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.1 2008/10/13 13:14:01 steveu Exp $
+ * $Id: t30.h,v 1.2 2009/01/03 13:02:31 steveu Exp $
  */
 
 /*! \file */
@@ -205,6 +205,8 @@ struct t30_state_s
     int retries;
     /*! \brief TRUE if error correcting mode is used. */
     int error_correcting_mode;
+    /*! \brief The number of HDLC frame retries, if error correcting mode is used. */
+    int error_correcting_mode_retries;
     /*! \brief The current count of consecutive T30_PPR messages. */
     int ppr_count;
     /*! \brief The current count of consecutive T30_RNR messages. */

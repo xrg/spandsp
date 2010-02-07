@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.c,v 1.81 2008/11/30 13:44:35 steveu Exp $
+ * $Id: v29tx.c,v 1.82 2008/12/31 13:39:49 steveu Exp $
  */
 
 /*! \file */
@@ -116,6 +116,11 @@ static __inline__ complexf_t getbaud(v29_tx_state_t *s)
     {
         0, 2, 6, 4
     };
+#if defined(SPANDSP_USE_FIXED_POINT)
+    static const complexi16_t zero = {0, 0};
+#else
+    static const complexf_t zero = {0.0f, 0.0f};
+#endif
     int bits;
     int amp;
     int bit;
@@ -135,11 +140,7 @@ static __inline__ complexf_t getbaud(v29_tx_state_t *s)
                 if (s->training_step <= V29_TRAINING_SEG_2)
                 {
                     /* Segment 1: silence */
-#if defined(SPANDSP_USE_FIXED_POINT)
-                    return complex_seti16(0, 0);
-#else
-                    return complex_setf(0.0f, 0.0f);
-#endif
+                    return zero;
                 }
                 /* Segment 2: ABAB... */
                 return v29_abab_constellation[(s->training_step & 1) + s->training_offset];
