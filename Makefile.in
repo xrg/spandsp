@@ -243,6 +243,7 @@ EXTRA_DIST = autogen.sh \
              unpack_g726_data.sh \
              unpack_gsm0610_data.sh \
              unpack_v56ter_data.sh \
+             spandsp/fax-tests.dtd \
              spandsp/global-tones.xml \
              spandsp/tones.dtd \
              spandsp/tsb85.xml \

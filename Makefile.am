@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.47 2009/05/18 14:00:19 steveu Exp $
+## $Id: Makefile.am,v 1.48 2009/05/25 12:37:38 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -35,6 +35,7 @@ EXTRA_DIST = autogen.sh \
              unpack_g726_data.sh \
              unpack_gsm0610_data.sh \
              unpack_v56ter_data.sh \
+             spandsp/fax-tests.dtd \
              spandsp/global-tones.xml \
              spandsp/tones.dtd \
              spandsp/tsb85.xml \

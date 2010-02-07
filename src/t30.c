@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.300 2009/05/24 07:18:36 steveu Exp $
+ * $Id: t30.c,v 1.301 2009/05/25 12:37:38 steveu Exp $
  */
 
 /*! \file */
@@ -1613,6 +1613,7 @@ static void send_dcn(t30_state_t *s)
 static void return_to_phase_b(t30_state_t *s, int with_fallback)
 {
     /* This is what we do after things like T30_EOM is exchanged. */
+#if 0
     if (step_fallback_entry(s) < 0)
     {
         /* We have fallen back as far as we can go. Give up. */
@@ -1627,6 +1628,12 @@ static void return_to_phase_b(t30_state_t *s, int with_fallback)
         else
             set_state(s, T30_STATE_R);
     }
+#else
+    if (s->calling_party)
+        set_state(s, T30_STATE_T);
+    else
+        set_state(s, T30_STATE_R);
+#endif
 }
 /*- End of function --------------------------------------------------------*/
 
