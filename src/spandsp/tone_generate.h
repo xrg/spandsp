@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_generate.h,v 1.26 2007/03/03 10:40:33 steveu Exp $
+ * $Id: tone_generate.h,v 1.28 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_TONE_GENERATE_H_)
-#define _TONE_GENERATE_H_
+#if !defined(_SPANDSP_TONE_GENERATE_H_)
+#define _SPANDSP_TONE_GENERATE_H_
 
 /*! \page tone_generation_page Tone generation
 \section tone_generation_page_sec_1 What does it do?
@@ -80,7 +80,8 @@ typedef struct
 } tone_gen_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Create a tone generator descriptor

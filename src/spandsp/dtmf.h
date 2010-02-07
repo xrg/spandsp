@@ -22,11 +22,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dtmf.h,v 1.7 2007/02/27 16:52:16 steveu Exp $
+ * $Id: dtmf.h,v 1.9 2007/04/05 19:20:49 steveu Exp $
  */
 
-#if !defined(_DTMF_H_)
-#define _DTMF_H_
+#if !defined(_SPANDSP_DTMF_H_)
+#define _SPANDSP_DTMF_H_
 
 /*! \page dtmf_rx_page DTMF receiver
 \section dtmf_rx_page_sec_1 What does it do?
@@ -136,7 +136,8 @@ typedef struct
 } dtmf_rx_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! \brief Generate a buffer of DTMF tones.

@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.h,v 1.26 2006/10/24 13:45:28 steveu Exp $
+ * $Id: v17tx.h,v 1.28 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_V17TX_H_)
-#define _V17TX_H_
+#if !defined(_SPANDSP_V17TX_H_)
+#define _SPANDSP_V17TX_H_
 
 /*! \page v17tx_page The V.17 transmitter
 \section v17tx_page_sec_1 What does it do?
@@ -139,7 +139,8 @@ typedef struct
 } v17_tx_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Adjust a V.17 modem transmit context's power output.

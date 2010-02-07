@@ -22,11 +22,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_tx.h,v 1.8 2006/10/24 13:45:28 steveu Exp $
+ * $Id: super_tone_tx.h,v 1.9 2007/04/05 19:20:50 steveu Exp $
  */
 
-#if !defined(_SUPER_TONE_TX_H_)
-#define _SUPER_TONE_TX_H_
+#if !defined(_SPANDSP_SUPER_TONE_TX_H_)
+#define _SPANDSP_SUPER_TONE_TX_H_
 
 /*! \page super_tone_tx_page Supervisory tone generation
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.c,v 1.32 2007/02/18 12:54:23 steveu Exp $
+ * $Id: t38_core.c,v 1.33 2007/03/28 13:56:04 steveu Exp $
  */
 
 /*! \file */
@@ -478,6 +478,7 @@ int t38_core_rx_ifp_packet(t38_core_state_t *s, int seq_no, const uint8_t *buf, 
         count = buf[ptr++];
         //printf("Count is %d\n", count);
         other_half = FALSE;
+        t30_field_type = 0;
         for (i = 0;  i < (int) count;  i++)
         {
             if (ptr >= len)

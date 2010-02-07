@@ -22,11 +22,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: lpc10.h,v 1.10 2006/11/21 13:57:40 steveu Exp $
+ * $Id: lpc10.h,v 1.12 2007/04/05 19:20:49 steveu Exp $
  */
 
-#if !defined(_LPC10_H_)
-#define _LPC10_H_
+#if !defined(_SPANDSP_LPC10_H_)
+#define _SPANDSP_LPC10_H_
 
 /*! \page lpc10_page LPC10 encoding and decoding
 \section lpc10_page_sec_1 What does it do?
@@ -168,7 +168,8 @@ typedef struct
 } lpc10_decode_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise an LPC10e encode context.

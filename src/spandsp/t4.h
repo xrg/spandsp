@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.30 2007/02/22 13:21:52 steveu Exp $
+ * $Id: t4.h,v 1.31 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_T4_H_)
-#define _T4_H_
+#if !defined(_SPANDSP_T4_H_)
+#define _SPANDSP_T4_H_
 
 /*! \page t4_page T.4 image compression and decompression
 

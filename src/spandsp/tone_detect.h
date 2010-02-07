@@ -22,11 +22,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tone_detect.h,v 1.28 2007/03/03 10:40:33 steveu Exp $
+ * $Id: tone_detect.h,v 1.30 2007/04/05 19:20:50 steveu Exp $
  */
 
-#if !defined(_TONE_DETECT_H_)
-#define _TONE_DETECT_H_
+#if !defined(_SPANDSP_TONE_DETECT_H_)
+#define _SPANDSP_TONE_DETECT_H_
 
 /*!
     Floating point Goertzel filter descriptor.
@@ -50,7 +50,8 @@ typedef struct
 } goertzel_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! \brief Create a descriptor for use with either a Goertzel transform */

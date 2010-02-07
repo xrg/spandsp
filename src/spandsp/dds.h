@@ -22,18 +22,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dds.h,v 1.9 2006/10/24 13:45:28 steveu Exp $
+ * $Id: dds.h,v 1.11 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_DDS_H_)
-#define _DDS_H_
+#if !defined(_SPANDSP_DDS_H_)
+#define _SPANDSP_DDS_H_
 
 #include "complex.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! \brief Find the phase rate value to achieve a particular frequency.

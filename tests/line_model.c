@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.c,v 1.22 2007/02/06 14:43:32 steveu Exp $
+ * $Id: line_model.c,v 1.23 2007/03/28 13:56:05 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -273,8 +273,8 @@ static float calc_far_line_filter(one_way_line_model_state_t *s, float v)
 /*- End of function --------------------------------------------------------*/
 
 void one_way_line_model(one_way_line_model_state_t *s, 
-                        int16_t *output,
-                        const int16_t *input,
+                        int16_t output[],
+                        const int16_t input[],
                         int samples)
 {
     int i;
@@ -328,16 +328,40 @@ void one_way_line_model(one_way_line_model_state_t *s,
         /* Line model filters & noise */
         out = calc_far_line_filter(s, out);
     
-        output[i] = out;
+        if (s->mains_interference)
+        {
+            tone_gen(&s->mains_tone, amp, 1);
+            out += amp[0];
+        }
+        output[i] = out + s->dc_offset;
     }
 }
 /*- End of function --------------------------------------------------------*/
 
+void one_way_line_model_set_dc(one_way_line_model_state_t *s, float dc)
+{
+    s->dc_offset = dc;
+}
+/*- End of function --------------------------------------------------------*/
+
+void one_way_line_model_set_mains_pickup(one_way_line_model_state_t *s, int f, float level)
+{
+    tone_gen_descriptor_t mains_tone_desc;
+
+    if (f)
+    {
+        make_tone_gen_descriptor(&mains_tone_desc, f, (int) (level - 10.0f), f*3, (int) level, 1, 0, 0, 0, TRUE);
+        tone_gen_init(&s->mains_tone, &mains_tone_desc);
+    }
+    s->mains_interference = f;
+}
+/*- End of function --------------------------------------------------------*/
+
 void both_ways_line_model(both_ways_line_model_state_t *s, 
-                          int16_t *output1,
-                          const int16_t *input1,
-                          int16_t *output2,
-                          const int16_t *input2,
+                          int16_t output1[],
+                          const int16_t input1[],
+                          int16_t output2[],
+                          const int16_t input2[],
                           int samples)
 {
     int i;
@@ -416,9 +440,32 @@ void both_ways_line_model(both_ways_line_model_state_t *s,
         out1 = calc_far_line_filter(&s->line1, out1);
         out2 = calc_far_line_filter(&s->line2, out2);
 
-        output1[i] = fsaturate(out1);
-        output2[i] = fsaturate(out2);
+        output1[i] = fsaturate(out1 + s->line1.dc_offset);
+        output2[i] = fsaturate(out2 + s->line2.dc_offset);
     }
+}
+/*- End of function --------------------------------------------------------*/
+
+void both_ways_line_model_set_dc(both_ways_line_model_state_t *s, float dc1, float dc2)
+{
+    s->line1.dc_offset = dc1;
+    s->line2.dc_offset = dc2;
+}
+/*- End of function --------------------------------------------------------*/
+
+void both_ways_line_model_set_mains_pickup(both_ways_line_model_state_t *s, int f, float level1, float level2)
+{
+    tone_gen_descriptor_t mains_tone_desc;
+
+    if (f)
+    {
+        make_tone_gen_descriptor(&mains_tone_desc, f, (int) (level1 - 10.0f), f*3, (int) level1, 1, 0, 0, 0, TRUE);
+        tone_gen_init(&s->line1.mains_tone, &mains_tone_desc);
+        make_tone_gen_descriptor(&mains_tone_desc, f, (int) (level2 - 10.0f), f*3, (int) level2, 1, 0, 0, 0, TRUE);
+        tone_gen_init(&s->line2.mains_tone, &mains_tone_desc);
+    }
+    s->line1.mains_interference = f;
+    s->line2.mains_interference = f;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -443,6 +490,10 @@ one_way_line_model_state_t *one_way_line_model_init(int model, float noise, int 
 
     awgn_init_dbm0(&s->near_noise, 1234567, noise);
     awgn_init_dbm0(&s->far_noise, 1234567, noise);
+    
+    s->dc_offset = 0.0f;
+    s->mains_interference = 0;
+
     return s;
 }
 /*- End of function --------------------------------------------------------*/
@@ -492,6 +543,11 @@ both_ways_line_model_state_t *both_ways_line_model_init(int model1,
 
     awgn_init_dbm0(&s->line1.far_noise, 1234567, noise1);
     awgn_init_dbm0(&s->line2.far_noise, 7654321, noise2);
+
+    s->line1.dc_offset = 0.0f;
+    s->line2.dc_offset = 0.0f;
+    s->line1.mains_interference = 0;
+    s->line2.mains_interference = 0;
 
     /* Echos */
     echo_level = -15; /* in dB */

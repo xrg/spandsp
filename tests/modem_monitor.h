@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_monitor.h,v 1.9 2006/10/24 13:45:29 steveu Exp $
+ * $Id: modem_monitor.h,v 1.10 2007/03/29 12:28:37 steveu Exp $
  */
 
 /*! \page constel_page Modem performance monitoring
@@ -48,7 +48,8 @@ struct qam_monitor_s;
 typedef struct qam_monitor_s qam_monitor_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 qam_monitor_t *qam_monitor_init(float constel_width, const char *tag);

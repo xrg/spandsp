@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.68 2007/02/18 12:54:23 steveu Exp $
+ * $Id: t38_gateway.c,v 1.75 2007/04/03 12:59:33 steveu Exp $
  */
 
 /*! \file */
@@ -49,6 +49,7 @@
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
 #include "spandsp/queue.h"
+#include "spandsp/dc_restore.h"
 #include "spandsp/bit_operations.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/complex.h"
@@ -194,7 +195,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
     {
     case T38_IND_NO_SIGNAL:
         /* Impose 75ms minimum on transmitted silence */
-        silence_gen_set(&s->silence_gen, ms_to_samples(75));
+        //silence_gen_set(&s->silence_gen, ms_to_samples(75));
         s->tx_handler = (span_tx_handler_t *) &(silence_gen);
         s->tx_user_data = &(s->silence_gen);
         s->next_tx_handler = NULL;
@@ -476,6 +477,7 @@ static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int l
         /* We are changing from TCF exchange to image exchange */
         /* Successful training means we should change to short training */
         s->short_train = TRUE;
+        s->tcf_in_progress = FALSE;
         span_log(&s->logging, SPAN_LOG_FLOW, "CFR - short = %d, ECM = %d\n", s->short_train, s->ecm_mode);
         if (!from_modem)
             restart_rx_modem(s);
@@ -483,74 +485,83 @@ static void monitor_control_messages(t38_gateway_state_t *s, uint8_t *buf, int l
     case T30_RTP:
         /* We are going back to the exchange of fresh TCF */
         s->short_train = FALSE;
+        s->tcf_in_progress = FALSE;
         break;
     case T30_DTC:
     case T30_DCS:
     case T30_DCS + 1:
         /* We need to check which modem type is about to be used. */
-        switch (buf[4] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3))
+        if (len >= 5)
         {
-        case 0:
-            s->fast_bit_rate = 2400;
-            s->fast_modem = T38_V27TER_RX;
-            s->short_train = FALSE;
-            break;
-        case DISBIT4:
-            s->fast_bit_rate = 4800;
-            s->fast_modem = T38_V27TER_RX;
-            s->short_train = FALSE;
-            break;
-        case DISBIT3:
-            s->fast_bit_rate = 9600;
-            s->fast_modem = T38_V29_RX;
-            s->short_train = FALSE;
-            break;
-        case (DISBIT4 | DISBIT3):
-            s->fast_bit_rate = 7200;
-            s->fast_modem = T38_V29_RX;
-            s->short_train = FALSE;
-            break;
+            switch (buf[4] & (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3))
+            {
+            case 0:
+                s->fast_bit_rate = 2400;
+                s->fast_modem = T38_V27TER_RX;
+                s->short_train = FALSE;
+                break;
+            case DISBIT4:
+                s->fast_bit_rate = 4800;
+                s->fast_modem = T38_V27TER_RX;
+                s->short_train = FALSE;
+                break;
+            case DISBIT3:
+                s->fast_bit_rate = 9600;
+                s->fast_modem = T38_V29_RX;
+                s->short_train = FALSE;
+                break;
+            case (DISBIT4 | DISBIT3):
+                s->fast_bit_rate = 7200;
+                s->fast_modem = T38_V29_RX;
+                s->short_train = FALSE;
+                break;
 #if defined(ENABLE_V17)
-        case DISBIT6:
-            s->fast_bit_rate = 14400;
-            s->fast_modem = T38_V17_RX;
-            s->short_train = FALSE;
-            break;
-        case (DISBIT6 | DISBIT4):
-            s->fast_bit_rate = 12000;
-            s->fast_modem = T38_V17_RX;
-            s->short_train = FALSE;
-            break;
-        case (DISBIT6 | DISBIT3):
-            s->fast_bit_rate = 9600;
-            s->fast_modem = T38_V17_RX;
-            s->short_train = FALSE;
-            break;
-        case (DISBIT6 | DISBIT4 | DISBIT3):
-            s->fast_bit_rate = 7200;
-            s->fast_modem = T38_V17_RX;
-            s->short_train = FALSE;
-            break;
+            case DISBIT6:
+                s->fast_bit_rate = 14400;
+                s->fast_modem = T38_V17_RX;
+                s->short_train = FALSE;
+                break;
+            case (DISBIT6 | DISBIT4):
+                s->fast_bit_rate = 12000;
+                s->fast_modem = T38_V17_RX;
+                s->short_train = FALSE;
+                break;
+            case (DISBIT6 | DISBIT3):
+                s->fast_bit_rate = 9600;
+                s->fast_modem = T38_V17_RX;
+                s->short_train = FALSE;
+                break;
+            case (DISBIT6 | DISBIT4 | DISBIT3):
+                s->fast_bit_rate = 7200;
+                s->fast_modem = T38_V17_RX;
+                s->short_train = FALSE;
+                break;
 #endif
-        case (DISBIT5 | DISBIT3):
-        case (DISBIT5 | DISBIT4 | DISBIT3):
-        case (DISBIT6 | DISBIT5):
-        case (DISBIT6 | DISBIT5 | DISBIT3):
-        case (DISBIT6 | DISBIT5 | DISBIT4):
-        case (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3):
-            /* Reserved */
-            s->fast_bit_rate = 0;
-            s->fast_modem = T38_NONE;
-            break;
-        default:
-            /* Not used */
-            s->fast_bit_rate = 0;
-            s->fast_modem = T38_NONE;
-            break;
+            case (DISBIT5 | DISBIT3):
+            case (DISBIT5 | DISBIT4 | DISBIT3):
+            case (DISBIT6 | DISBIT5):
+            case (DISBIT6 | DISBIT5 | DISBIT3):
+            case (DISBIT6 | DISBIT5 | DISBIT4):
+            case (DISBIT6 | DISBIT5 | DISBIT4 | DISBIT3):
+                /* Reserved */
+                s->fast_bit_rate = 0;
+                s->fast_modem = T38_NONE;
+                break;
+            default:
+                /* Not used */
+                s->fast_bit_rate = 0;
+                s->fast_modem = T38_NONE;
+                break;
+            }
         }
-        s->ecm_mode = (buf[6] & DISBIT3);
+        if (len >= 7)
+            s->ecm_mode = (buf[6] & DISBIT3);
+        else
+            s->ecm_mode = FALSE;
+        s->tcf_in_progress = TRUE;
         break;
     default:
+        s->tcf_in_progress = FALSE;
         break;
     }
 }
@@ -964,6 +975,12 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
 }
 /*- End of function --------------------------------------------------------*/
 
+static void set_octets_per_data_packet(t38_gateway_state_t *s, int bit_rate)
+{
+    s->octets_per_data_packet = MS_PER_TX_CHUNK*bit_rate/(8*1000);
+}
+/*- End of function --------------------------------------------------------*/
+
 static void announce_training(t38_gateway_state_t *s)
 {
     int ind;
@@ -976,25 +993,25 @@ static void announce_training(t38_gateway_state_t *s)
         switch (s->fast_bit_rate)
         {
         case 7200:
+            set_octets_per_data_packet(s, s->fast_bit_rate);
             ind = (s->short_train)  ?  T38_IND_V17_7200_SHORT_TRAINING  :  T38_IND_V17_7200_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_7200;
-            s->octets_per_data_packet = MS_PER_TX_CHUNK*7200/(8*1000);
             break;
         case 9600:
+            set_octets_per_data_packet(s, s->fast_bit_rate);
             ind = (s->short_train)  ?  T38_IND_V17_9600_SHORT_TRAINING  :  T38_IND_V17_9600_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_9600;
-            s->octets_per_data_packet = MS_PER_TX_CHUNK*9600/(8*1000);
             break;
         case 12000:
+            set_octets_per_data_packet(s, s->fast_bit_rate);
             ind = (s->short_train)  ?  T38_IND_V17_12000_SHORT_TRAINING  :  T38_IND_V17_12000_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_12000;
-            s->octets_per_data_packet = MS_PER_TX_CHUNK*12000/(8*1000);
             break;
         default:
         case 14400:
+            set_octets_per_data_packet(s, 14400);
             ind = (s->short_train)  ?  T38_IND_V17_14400_SHORT_TRAINING  :  T38_IND_V17_14400_LONG_TRAINING;
             s->current_tx_data_type = T38_DATA_V17_14400;
-            s->octets_per_data_packet = MS_PER_TX_CHUNK*14400/(8*1000);
             break;
         }
         break;
@@ -1003,15 +1020,15 @@ static void announce_training(t38_gateway_state_t *s)
         switch (s->fast_bit_rate)
         {
         case 2400:
+            set_octets_per_data_packet(s, s->fast_bit_rate);
             ind = T38_IND_V27TER_2400_TRAINING;
             s->current_tx_data_type = T38_DATA_V27TER_2400;
-            s->octets_per_data_packet = MS_PER_TX_CHUNK*2400/(8*1000);
             break;
         default:
         case 4800:
+            set_octets_per_data_packet(s, 4800);
             ind = T38_IND_V27TER_4800_TRAINING;
             s->current_tx_data_type = T38_DATA_V27TER_4800;
-            s->octets_per_data_packet = MS_PER_TX_CHUNK*4800/(8*1000);
             break;
         }
         break;
@@ -1019,15 +1036,15 @@ static void announce_training(t38_gateway_state_t *s)
         switch (s->fast_bit_rate)
         {
         case 7200:
+            set_octets_per_data_packet(s, s->fast_bit_rate);
             ind = T38_IND_V29_7200_TRAINING;
             s->current_tx_data_type = T38_DATA_V29_7200;
-            s->octets_per_data_packet = MS_PER_TX_CHUNK*7200/(8*1000);
             break;
         default:
         case 9600:
+            set_octets_per_data_packet(s, 9600);
             ind = T38_IND_V29_9600_TRAINING;
             s->current_tx_data_type = T38_DATA_V29_9600;
-            s->octets_per_data_packet = MS_PER_TX_CHUNK*9600/(8*1000);
             break;
         }
         break;
@@ -1053,9 +1070,9 @@ static void non_ecm_put_bit(void *user_data, int bit)
             /* The modem is now trained */
             span_log(&s->logging, SPAN_LOG_FLOW, "Non-ECM carrier trained\n");
             s->rx_signal_present = TRUE;
-            s->v21_rx_active = FALSE;
-            announce_training(s);
-            s->samples_since_last_tx_packet = 0;
+            s->rx_trained = TRUE;
+            if (!s->tcf_in_progress)
+                announce_training(s);
             s->rx_data_ptr = 0;
             break;
         case PUTBIT_CARRIER_UP:
@@ -1075,7 +1092,6 @@ static void non_ecm_put_bit(void *user_data, int bit)
             case T38_DATA_V29_9600:
                 t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_T4_NON_ECM_SIG_END, NULL, 0, DATA_END_TX_COUNT);
                 t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, INDICATOR_TX_COUNT);
-                s->rx_signal_present = FALSE;
                 restart_rx_modem(s);
                 break;
             }
@@ -1090,14 +1106,12 @@ static void non_ecm_put_bit(void *user_data, int bit)
     if (++s->non_ecm_bit_no >= 8)
     {
         s->rx_data[s->rx_data_ptr++] = (uint8_t) s->current_non_ecm_octet;
-        if (++s->octets_since_last_tx_packet >= s->octets_per_data_packet)
+        if (s->rx_data_ptr >= s->octets_per_data_packet)
         {
             t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_T4_NON_ECM_DATA, s->rx_data, s->rx_data_ptr, DATA_TX_COUNT);
             /* Since we delay transmission by 2 octets, we should now have sent the last of the data octets when
                we have just received the last of the CRC octets. */
             s->rx_data_ptr = 0;
-            s->samples_since_last_tx_packet = 0;
-            s->octets_since_last_tx_packet = 0;
         }
         s->non_ecm_bit_no = 0;
         s->current_non_ecm_octet = 0;
@@ -1233,11 +1247,10 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
             /* The modem is now trained */
             span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier trained\n");
             s->rx_signal_present = TRUE;
-            s->v21_rx_active = FALSE;
+            s->rx_trained = TRUE;
             announce_training(s);
             /* Behave like HDLC preamble has been announced */
             t->framing_ok_announced = TRUE;
-            s->samples_since_last_tx_packet = 0;
             s->rx_data_ptr = 0;
             break;
         case PUTBIT_CARRIER_UP:
@@ -1247,7 +1260,6 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
             t->num_bits = 0;
             t->flags_seen = 0;
             t->framing_ok_announced = FALSE;
-            s->rx_signal_present = TRUE;
             break;
         case PUTBIT_CARRIER_DOWN:
             span_log(&s->logging, SPAN_LOG_FLOW, "HDLC carrier down\n");
@@ -1257,8 +1269,15 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
                 t38_core_send_indicator(&s->t38, T38_IND_NO_SIGNAL, INDICATOR_TX_COUNT);
                 t->framing_ok_announced = FALSE;
             }
-            s->rx_signal_present = FALSE;
             restart_rx_modem(s);
+            if (s->tcf_in_progress)
+            {
+                /* If we are doing TCF, we need to announce the fast carrier training very
+                   quickly, to ensure it starts 75+-20ms after the HDLC carrier ends. Waiting until
+                   it trains will be too late. We need to announce the fast modem a fixed time after
+                   the end of the V.21 carrier, in anticipation of its arrival. */
+                s->samples_to_timeout = ms_to_samples(75);
+            }
             break;
         default:
             span_log(&s->logging, SPAN_LOG_WARNING, "Unexpected HDLC special bit - %d!\n", new_bit);
@@ -1280,7 +1299,6 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
             t->len = 0;
             t->num_bits = 0;
             s->corrupt_the_frame = FALSE;
-            s->octets_since_last_tx_packet = 0;
         }
         else
         {
@@ -1298,7 +1316,7 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
                             final = (t->len - 2 >= 2  &&  t->buffer[0] == 0xFF  &&  t->buffer[1] == 0x13);
                             span_log(&s->logging, SPAN_LOG_FLOW, "E Type %s\n", t30_frametype(t->buffer[2]));
                             if (s->current_tx_data_type == T38_DATA_V21)
-                                monitor_control_messages(s, t->buffer, t->len, TRUE);
+                                monitor_control_messages(s, t->buffer, t->len - 2, TRUE);
                             if (s->rx_data_ptr)
                             {
                                 t38_core_send_data(&s->t38, s->current_tx_data_type, T38_FIELD_HDLC_DATA, s->rx_data, s->rx_data_ptr, DATA_TX_COUNT);
@@ -1335,7 +1353,10 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
                 if (++t->flags_seen >= t->framing_ok_threshold  &&  !t->framing_ok_announced)
                 {
                     if (s->current_tx_data_type == T38_DATA_V21)
+                    {
                         t38_core_send_indicator(&s->t38, T38_IND_V21_PREAMBLE, INDICATOR_TX_COUNT);
+                        s->rx_signal_present = TRUE;
+                    }
                     if (s->in_progress_rx_indicator == T38_IND_CNG)
                         set_next_tx_type(s);
                     t->framing_ok_announced = TRUE;
@@ -1345,7 +1366,6 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
             t->len = 0;
             t->num_bits = 0;
             s->corrupt_the_frame = FALSE;
-            s->octets_since_last_tx_packet = 0;
         }
     }
     else
@@ -1413,7 +1433,7 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
                                         span_log(&s->logging, SPAN_LOG_FLOW, "Inhibiting ECM\n");
                                         t->buffer[6] &= ~(DISBIT3 | DISBIT7);
                                         break;
-                                }
+                                    }
                                 }
                                 break;
                             }
@@ -1425,7 +1445,6 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
                             /* Since we delay transmission by 2 octets, we should now have sent the last of the data octets when
                                we have just received the last of the CRC octets. */
                             s->rx_data_ptr = 0;
-                            s->samples_since_last_tx_packet = 0;
                         }
                     }
                     t->len++;
@@ -1438,20 +1457,131 @@ static void t38_hdlc_rx_put_bit(hdlc_rx_state_t *t, int new_bit)
 }
 /*- End of function --------------------------------------------------------*/
 
+static int dummy_rx(void *s, const int16_t amp[], int len)
+{
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+#if defined(ENABLE_V17)
+static int early_v17_rx(void *user_data, const int16_t amp[], int len)
+{
+    t38_gateway_state_t *s;
+
+    s = (t38_gateway_state_t *) user_data;
+    v17_rx(&(s->v17rx), amp, len);
+    fsk_rx(&(s->v21rx), amp, len);
+    if (s->rx_signal_present)
+    {
+        if (s->rx_trained)
+        {
+            /* The fast modem has trained, so we no longer need to run the slow
+               one in parallel. */
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&(s->v17rx)));
+            s->rx_handler = (span_rx_handler_t *) &v17_rx;
+            s->rx_user_data = &(s->v17rx);
+        }
+        else
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&(s->v21rx)));
+            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            s->rx_user_data = &(s->v21rx);
+        }
+    }
+    return len;
+}
+/*- End of function --------------------------------------------------------*/
+#endif
+
+static int early_v27ter_rx(void *user_data, const int16_t amp[], int len)
+{
+    t38_gateway_state_t *s;
+
+    s = (t38_gateway_state_t *) user_data;
+    v27ter_rx(&(s->v27ter_rx), amp, len);
+    fsk_rx(&(s->v21rx), amp, len);
+    if (s->rx_signal_present)
+    {
+        if (s->rx_trained)
+        {
+            /* The fast modem has trained, so we no longer need to run the slow
+               one in parallel. */
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.27ter (%.2fdBm0)\n", v27ter_rx_signal_power(&(s->v27ter_rx)));
+            s->rx_handler = (span_rx_handler_t *) &v27ter_rx;
+            s->rx_user_data = &(s->v27ter_rx);
+        }
+        else
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&(s->v21rx)));
+            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            s->rx_user_data = &(s->v21rx);
+        }
+    }
+    return len;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int early_v29_rx(void *user_data, const int16_t amp[], int len)
+{
+    t38_gateway_state_t *s;
+
+    s = (t38_gateway_state_t *) user_data;
+    v29_rx(&(s->v29rx), amp, len);
+    fsk_rx(&(s->v21rx), amp, len);
+    if (s->rx_signal_present)
+    {
+        if (s->rx_trained)
+        {
+            /* The fast modem has trained, so we no longer need to run the slow
+               one in parallel. */
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&(s->v29rx)));
+            s->rx_handler = (span_rx_handler_t *) &v29_rx;
+            s->rx_user_data = &(s->v29rx);
+        }
+        else
+        {
+            span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&(s->v21rx)));
+            s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+            s->rx_user_data = &(s->v21rx);
+        }
+    }
+    return len;
+}
+/*- End of function --------------------------------------------------------*/
+
+int t38_gateway_rx(t38_gateway_state_t *s, int16_t amp[], int len)
+{
+    int i;
+
+    if (s->samples_to_timeout > 0)
+    {
+        if ((s->samples_to_timeout -= len) <= 0)
+        {
+            if (s->tcf_in_progress)
+                announce_training(s);
+        }
+    }
+    for (i = 0;  i < len;  i++)
+        amp[i] = dc_restore(&(s->dc_restore), amp[i]);
+    s->rx_handler(s->rx_user_data, amp, len);
+    return  0;
+}
+/*- End of function --------------------------------------------------------*/
+
 static int restart_rx_modem(t38_gateway_state_t *s)
 {
     put_bit_func_t put_bit_func;
     void *put_bit_user_data;
 
-    span_log(&s->logging, SPAN_LOG_FLOW, "Restart modem - short = %d, ECM = %d\n", s->short_train,  s->ecm_mode);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Restart rx modem - modem = %d, short = %d, ECM = %d\n", s->fast_modem, s->short_train,  s->ecm_mode);
 
     hdlc_rx_init(&(s->hdlcrx), FALSE, TRUE, 5, NULL, s);
     s->crc = 0xFFFF;
     s->rx_signal_present = FALSE;
+    s->rx_trained = FALSE;
     /* Default to the transmit data being V.21, unless a faster modem pops up trained. */
     s->current_tx_data_type = T38_DATA_V21;
     fsk_rx_init(&(s->v21rx), &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) t38_hdlc_rx_put_bit, &(s->hdlcrx));
-    s->v21_rx_active = TRUE;
     if (s->short_train  &&  s->ecm_mode)
     {
         put_bit_func = (put_bit_func_t) t38_hdlc_rx_put_bit;
@@ -1468,50 +1598,37 @@ static int restart_rx_modem(t38_gateway_state_t *s)
     {
 #if defined(ENABLE_V17)
     case T38_V17_RX:
-        v17_rx_restart(&(s->v17rx), s->fast_bit_rate, s->short_train);
+        v17_rx_restart(&(s->v17rx), s->fast_bit_rate, 2);
         v17_rx_set_put_bit(&(s->v17rx), put_bit_func, put_bit_user_data);
+        s->rx_handler = (span_rx_handler_t *) &early_v17_rx;
+        s->rx_user_data = s;
         s->fast_rx_active = T38_V17_RX;
         break;
 #endif
     case T38_V27TER_RX:
         v27ter_rx_restart(&(s->v27ter_rx), s->fast_bit_rate, FALSE);
         v27ter_rx_set_put_bit(&(s->v27ter_rx), put_bit_func, put_bit_user_data);
+        s->rx_handler = (span_rx_handler_t *) &early_v27ter_rx;
+        s->rx_user_data = s;
         s->fast_rx_active = T38_V27TER_RX;
         break;
     case T38_V29_RX:
         v29_rx_restart(&(s->v29rx), s->fast_bit_rate, FALSE);
         v29_rx_set_put_bit(&(s->v29rx), put_bit_func, put_bit_user_data);
+        s->rx_handler = (span_rx_handler_t *) &early_v29_rx;
+        s->rx_user_data = s;
         s->fast_rx_active = T38_V29_RX;
+        break;
+    default:
+        s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+        s->rx_user_data = &(s->v21rx);
         break;
     }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-int t38_gateway_rx(t38_gateway_state_t *s, const int16_t *amp, int len)
-{
-    s->samples_since_last_tx_packet += len;
-    if (s->v21_rx_active)
-        fsk_rx(&(s->v21rx), amp, len);
-    switch (s->fast_rx_active)
-    {
-#if defined(ENABLE_V17)
-    case T38_V17_RX:
-        v17_rx(&(s->v17rx), amp, len);
-        break;
-#endif
-    case T38_V27TER_RX:
-        v27ter_rx(&(s->v27ter_rx), amp, len);
-        break;
-    case T38_V29_RX:
-        v29_rx(&(s->v29rx), amp, len);
-        break;
-    }
-    return  0;
-}
-/*- End of function --------------------------------------------------------*/
-
-int t38_gateway_tx(t38_gateway_state_t *s, int16_t *amp, int max_len)
+int t38_gateway_tx(t38_gateway_state_t *s, int16_t amp[], int max_len)
 {
     int len;
 
@@ -1556,9 +1673,9 @@ t38_gateway_state_t *t38_gateway_init(t38_gateway_state_t *s,
     v29_tx_init(&(s->v29tx), 9600, FALSE, non_ecm_get_bit, s);
     v27ter_rx_init(&(s->v27ter_rx), 4800, non_ecm_put_bit, s);
     v27ter_tx_init(&(s->v27ter_tx), 4800, FALSE, non_ecm_get_bit, s);
-    s->octets_per_data_packet = 1;
     silence_gen_init(&(s->silence_gen), 0);
     hdlc_tx_init(&s->hdlctx, FALSE, 2, TRUE, hdlc_underflow_handler, s);
+    s->octets_per_data_packet = 1;
     s->rx_signal_present = FALSE;
     s->tx_handler = (span_tx_handler_t *) &(silence_gen);
     s->tx_user_data = &(s->silence_gen);

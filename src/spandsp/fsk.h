@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk.h,v 1.18 2006/12/15 15:03:59 steveu Exp $
+ * $Id: fsk.h,v 1.20 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
@@ -78,8 +78,8 @@ Two modes of symbol synchronisation are provided:
       noise ratio is very poor it does not perform as well as the synchronous mode.
 */
 
-#if !defined(_FSK_H_)
-#define _FSK_H_
+#if !defined(_SPANDSP_FSK_H_)
+#define _SPANDSP_FSK_H_
 
 /*!
     FSK modem specification. This defines the frequencies, signal levels and
@@ -166,7 +166,8 @@ typedef struct
 } fsk_rx_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise an FSK modem transmit context.

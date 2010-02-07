@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.20 2007/01/12 13:59:19 steveu Exp $
+ * $Id: t38_gateway.h,v 1.24 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_T38_GATEWAY_H_)
-#define _T38_GATEWAY_H_
+#if !defined(_SPANDSP_T38_GATEWAY_H_)
+#define _SPANDSP_T38_GATEWAY_H_
 
 /*! \page t38_gateway_page T.38 real time FAX over IP PSTN gateway
 \section t38_gateway_page_sec_1 What does it do?
@@ -109,6 +109,8 @@ typedef struct
     int fast_bit_rate;
     /*! \brief The current fast modem type. */
     int fast_modem;
+    /*! \brief TRUE if between DCS and TCF */
+    int tcf_in_progress;
     /*! \brief Use talker echo protection when transmitting. */
     int use_tep;    
     /*! \brief TRUE if a carrier is present. Otherwise FALSE. */
@@ -155,28 +157,32 @@ typedef struct
                4800bps */
     v27ter_rx_state_t v27ter_rx;
 
+    /*! \brief */
+    dc_restore_state_t dc_restore;
+
     /*! \brief Used to insert timed silences. */
     silence_gen_state_t silence_gen;
 
-    /*! The current receive signal handler */
+    /*! \brief The current receive signal handler */
     span_rx_handler_t *rx_handler;
     void *rx_user_data;
 
-    /*! The current transmit signal handler */
+    /*! \brief The current transmit signal handler */
     span_tx_handler_t *tx_handler;
     void *tx_user_data;
-    /*! The transmit signal handler to be used when the current one has finished sending. */
+    /*! \brief The transmit signal handler to be used when the current one has finished sending. */
     span_tx_handler_t *next_tx_handler;
     void *next_tx_user_data;
 
-    /*! The number of octets to send in each image packet (non-ECM or ECM) at the current
-        rate and the current specified packet interval. */
+    /*! \brief The number of octets to send in each image packet (non-ECM or ECM) at the current
+               rate and the current specified packet interval. */
     int octets_per_data_packet;
 
-    int v21_rx_active;
+    /*! \brief The type of fast receive modem currently active, which may be T38_NONE */
     int fast_rx_active;
-    int samples_since_last_tx_packet;
-    int octets_since_last_tx_packet;
+    /*! \brief The number of samples until the next timeout event */
+    int samples_to_timeout;
+    /*! \brief TRUE is short training is to be used for the fast modem */
     int short_train;
 
     /*! \brief TRUE if we need to corrupt the HDLC frame in progress, so the receiver cannot
@@ -190,7 +196,8 @@ typedef struct
 } t38_gateway_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! \brief Initialise a gateway mode T.38 context.
@@ -208,7 +215,7 @@ t38_gateway_state_t *t38_gateway_init(t38_gateway_state_t *s,
     \param amp The audio sample buffer.
     \param len The number of samples in the buffer.
     \return The number of samples unprocessed. */
-int t38_gateway_rx(t38_gateway_state_t *s, const int16_t *amp, int len);
+int t38_gateway_rx(t38_gateway_state_t *s, int16_t amp[], int len);
 
 /*! Generate a block of FAX audio samples.
     \brief Generate a block of FAX audio samples.
@@ -217,7 +224,7 @@ int t38_gateway_rx(t38_gateway_state_t *s, const int16_t *amp, int len);
     \param max_len The number of samples to be generated.
     \return The number of samples actually generated.
 */
-int t38_gateway_tx(t38_gateway_state_t *s, int16_t *amp, int max_len);
+int t38_gateway_tx(t38_gateway_state_t *s, int16_t amp[], int max_len);
 
 /*! Control whether error correcting mode (ECM) is allowed.
     \brief Control whether error correcting mode (ECM) is allowed.

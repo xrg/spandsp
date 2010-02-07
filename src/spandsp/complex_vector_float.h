@@ -22,14 +22,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_vector_float.h,v 1.3 2006/10/24 13:45:28 steveu Exp $
+ * $Id: complex_vector_float.h,v 1.5 2007/04/05 19:20:49 steveu Exp $
  */
 
-#if !defined(_COMPLEX_VECTOR_FLOAT_H_)
-#define _COMPLEX_VECTOR_FLOAT_H_
+#if !defined(_SPANDSP_COMPLEX_VECTOR_FLOAT_H_)
+#define _SPANDSP_COMPLEX_VECTOR_FLOAT_H_
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 static __inline__ void cvec_copyf(complexf_t z[], const complexf_t x[], int n)

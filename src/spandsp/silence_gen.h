@@ -22,11 +22,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: silence_gen.h,v 1.4 2006/10/24 13:45:28 steveu Exp $
+ * $Id: silence_gen.h,v 1.6 2007/04/05 19:20:49 steveu Exp $
  */
 
-#if !defined(_SILENCE_GEN_H_)
-#define _SILENCE_GEN_H_
+#if !defined(_SPANDSP_SILENCE_GEN_H_)
+#define _SPANDSP_SILENCE_GEN_H_
 
 typedef struct
 {
@@ -35,7 +35,8 @@ typedef struct
 } silence_gen_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Generate a block of silent audio samples.

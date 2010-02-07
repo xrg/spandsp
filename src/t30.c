@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.166 2007/03/01 13:37:30 steveu Exp $
+ * $Id: t30.c,v 1.169 2007/04/03 12:59:32 steveu Exp $
  */
 
 /*! \file */
@@ -1063,7 +1063,7 @@ static int set_dis_or_dtc(t30_state_t *s)
         s->dis_dtc_frame[4] |= DISBIT1;
     else
         s->dis_dtc_frame[4] &= ~DISBIT1;
-    t30_decode_dis_dtc_dcs(s, s->dis_dtc_frame, s->dis_dtc_len);
+    //t30_decode_dis_dtc_dcs(s, s->dis_dtc_frame, s->dis_dtc_len);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -1080,11 +1080,8 @@ static int build_dis_or_dtc(t30_state_t *s)
     s->dis_dtc_frame[0] = 0xFF;
     s->dis_dtc_frame[1] = 0x13;
     s->dis_dtc_frame[2] = (uint8_t) (T30_DIS | s->dis_received);
-    s->dis_dtc_frame[3] = 0x00;
-    s->dis_dtc_frame[4] = 0x00;
-    for (i = 5;  i < 18;  i++)
-        s->dis_dtc_frame[i] = DISBIT8;
-    s->dis_dtc_frame[18] = 0x00;
+    for (i = 3;  i < 19;  i++)
+        s->dis_dtc_frame[i] = 0x00;
 
     /* Always say 256 octets per ECM frame preferred, as 64 is never used in the
        real world. */
@@ -1147,6 +1144,8 @@ static int build_dis_or_dtc(t30_state_t *s)
         s->dis_dtc_frame[8] |= DISBIT3;
     /* Metric */ 
     s->dis_dtc_frame[8] |= DISBIT4;
+    /* Superfine minimum scan line time pattern follows fine */
+    /* No selective polling */
     /* No sub-addressing */
     /* No password */
     /* No data file (polling) */
@@ -1187,8 +1186,30 @@ static int build_dis_or_dtc(t30_state_t *s)
     if ((s->iaf & T30_IAF_MODE_CONTINUOUS_FLOW))
         s->dis_dtc_frame[18] |= DISBIT3;
     s->dis_dtc_len = 19;
-    t30_decode_dis_dtc_dcs(s, s->dis_dtc_frame, s->dis_dtc_len);
+    //t30_decode_dis_dtc_dcs(s, s->dis_dtc_frame, s->dis_dtc_len);
     return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int prune_dis_dtc(t30_state_t *s)
+{
+    int i;
+
+    /* Find the last octet that is really needed, set the extension bits, and trim the message length */
+    for (i = 18;  i > 4;  i--)
+    {
+        /* Strip the top bit */
+        s->dis_dtc_frame[i] &= (DISBIT1 | DISBIT2 | DISBIT3 | DISBIT4 | DISBIT5 | DISBIT6 | DISBIT7);
+        /* Check if there is some real message content here */
+        if (s->dis_dtc_frame[i])
+            break;
+    }
+    s->dis_dtc_len = i + 1;
+    /* Fill in any required extension bits */
+    for (i--  ;  i > 4;  i--)
+        s->dis_dtc_frame[i] |= DISBIT8;
+    t30_decode_dis_dtc_dcs(s, s->dis_dtc_frame, s->dis_dtc_len);
+    return s->dis_dtc_len;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1236,11 +1257,8 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
     s->dcs_frame[0] = 0xFF;
     s->dcs_frame[1] = 0x13;
     s->dcs_frame[2] = (uint8_t) (T30_DCS | s->dis_received);
-    s->dcs_frame[3] = 0x00;
-    s->dcs_frame[4] = 0x00;
-    for (i = 5;  i < 18;  i++)
-        s->dcs_frame[i] = DISBIT8;
-    s->dcs_frame[18] = 0x00;
+    for (i = 3;  i < 19;  i++)
+        s->dcs_frame[i] = 0x00;
     /* Set to required modem rate */
     s->dcs_frame[4] |= fallback_sequence[s->current_fallback].dcs_code;
 
@@ -1302,6 +1320,7 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
         s->min_row_bits = fallback_sequence[s->current_fallback].bit_rate*min_scan_times[min_bits_field]/1000;
     s->dcs_frame[5] |= min_bits_field << 4;
     span_log(&s->logging, SPAN_LOG_FLOW, "Minimum bits per row will be %d\n", s->min_row_bits);
+    /* Deal with the image width */
     switch (s->image_width)
     {
         /* Low (R4) res widths are not supported in recent versions of T.30 */
@@ -1356,15 +1375,46 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
         span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not a valid FAX image width\n", s->image_width);
         return -1;
     }
+    /* Deal with the image length */
+    /* If the other end supports unlimited length, then use that. Otherwise, if the other end supports
+       B4 use that, as its longer than the default A4 length. */
+    if ((dis_dtc_frame[5] & DISBIT4))
+        s->dcs_frame[5] |= DISBIT4;
+    else if ((dis_dtc_frame[5] & DISBIT3))
+        s->dcs_frame[5] |= DISBIT3;
+
     if (s->error_correcting_mode)
         s->dcs_frame[6] |= DISBIT3;
+
     if ((s->iaf & T30_IAF_MODE_FLOW_CONTROL)  &&  (s->dis_dtc_frame[18] & DISBIT1))
         s->dcs_frame[18] |= DISBIT1;
     if ((s->iaf & T30_IAF_MODE_CONTINUOUS_FLOW)  &&  (s->dis_dtc_frame[18] & DISBIT3))
         s->dcs_frame[18] |= DISBIT3;
     s->dcs_len = 19;
-    t30_decode_dis_dtc_dcs(s, s->dcs_frame, s->dcs_len);
+    //t30_decode_dis_dtc_dcs(s, s->dcs_frame, s->dcs_len);
     return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+static int prune_dcs(t30_state_t *s)
+{
+    int i;
+
+    /* Find the last octet that is really needed, set the extension bits, and trim the message length */
+    for (i = 18;  i > 4;  i--)
+    {
+        /* Strip the top bit */
+        s->dcs_frame[i] &= (DISBIT1 | DISBIT2 | DISBIT3 | DISBIT4 | DISBIT5 | DISBIT6 | DISBIT7);
+        /* Check if there is some real message content here */
+        if (s->dcs_frame[i])
+            break;
+    }
+    s->dcs_len = i + 1;
+    /* Fill in any required extension bits */
+    for (i--  ;  i > 4;  i--)
+        s->dcs_frame[i] |= DISBIT8;
+    t30_decode_dis_dtc_dcs(s, s->dcs_frame, s->dcs_len);
+    return s->dcs_len;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1372,6 +1422,8 @@ static int check_rx_dis_dtc(t30_state_t *s, const uint8_t *msg, int len)
 {
     uint8_t dis_dtc_frame[T30_MAX_DIS_DTC_DCS_LEN];
     
+    t30_decode_dis_dtc_dcs(s, msg, len);
+
     if (len < 6)
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Short DIS/DTC frame\n");
@@ -1550,6 +1602,7 @@ static void send_dcn(t30_state_t *s)
 
 static void send_dis_or_dtc_sequence(t30_state_t *s)
 {
+    prune_dis_dtc(s);
     set_state(s, T30_STATE_R);
     if (send_nsf_frame(s))
     {
@@ -1570,6 +1623,7 @@ static void send_dis_or_dtc_sequence(t30_state_t *s)
 static void send_dcs_sequence(t30_state_t *s)
 {
     /* Schedule training after the messages */
+    prune_dcs(s);
     set_state(s, T30_STATE_D);
     if (send_pw_frame(s))
     {
@@ -1738,7 +1792,6 @@ static void process_rx_dis_or_dtc(t30_state_t *s, const uint8_t *msg, int len)
     case T30_STATE_R:
     case T30_STATE_T:
     case T30_STATE_F_DOC:
-        t30_decode_dis_dtc_dcs(s, msg, len);
         if (s->phase_b_handler)
             s->phase_b_handler(s, s->phase_d_user_data, msg[2]);
         queue_phase(s, T30_PHASE_B_TX);
@@ -1826,10 +1879,10 @@ static void process_rx_dcs(t30_state_t *s, const uint8_t *msg, int len)
             s->phase_b_handler(s, s->phase_d_user_data, T30_DCS);
         /* Start document reception */
         span_log(&s->logging,
-                SPAN_LOG_FLOW, 
-                "Get document at %dbps, modem %d\n",
-                fallback_sequence[s->current_fallback].bit_rate,
-                fallback_sequence[s->current_fallback].modem_type);
+                 SPAN_LOG_FLOW, 
+                 "Get document at %dbps, modem %d\n",
+                 fallback_sequence[s->current_fallback].bit_rate,
+                 fallback_sequence[s->current_fallback].modem_type);
         if (s->rx_file[0] == '\0')
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "No document to receive\n");
@@ -1850,6 +1903,10 @@ static void process_rx_dcs(t30_state_t *s, const uint8_t *msg, int len)
             set_phase(s, T30_PHASE_C_NON_ECM_RX);
         }
         break;
+    case T30_STATE_F_TCF:
+        /* We received a DCS while waiting for RCF data. We must have missed
+           the fast modem, and be getting a repeat of the DCS. */
+        /* TODO: handle this better */
     default:
         unexpected_final_frame(s, msg, len);
         break;
@@ -1956,6 +2013,18 @@ static void process_rx_eom(t30_state_t *s, const uint8_t *msg, int len)
         set_state(s, T30_STATE_III_Q_RTN);
         send_simple_frame(s, T30_RTN);
         break;
+    case T30_STATE_III_Q_MCF:
+        /* Looks like they didn't see our signal. Repeat it */
+        send_simple_frame(s, T30_MCF);
+        break;
+    case T30_STATE_III_Q_RTP:
+        /* Looks like they didn't see our signal. Repeat it */
+        send_simple_frame(s, T30_RTP);
+        break;
+    case T30_STATE_III_Q_RTN:
+        /* Looks like they didn't see our signal. Repeat it */
+        send_simple_frame(s, T30_RTN);
+        break;
     default:
         unexpected_final_frame(s, msg, len);
         break;
@@ -2002,6 +2071,18 @@ static void process_rx_mps(t30_state_t *s, const uint8_t *msg, int len)
         s->next_rx_step = T30_MPS;
         queue_phase(s, T30_PHASE_D_TX);
         set_state(s, T30_STATE_III_Q_RTN);
+        send_simple_frame(s, T30_RTN);
+        break;
+    case T30_STATE_III_Q_MCF:
+        /* Looks like they didn't see our signal. Repeat it */
+        send_simple_frame(s, T30_MCF);
+        break;
+    case T30_STATE_III_Q_RTP:
+        /* Looks like they didn't see our signal. Repeat it */
+        send_simple_frame(s, T30_RTP);
+        break;
+    case T30_STATE_III_Q_RTN:
+        /* Looks like they didn't see our signal. Repeat it */
         send_simple_frame(s, T30_RTN);
         break;
     default:
@@ -2051,6 +2132,18 @@ static void process_rx_eop(t30_state_t *s, const uint8_t *msg, int len)
         s->next_rx_step = T30_EOP;
         queue_phase(s, T30_PHASE_D_TX);
         set_state(s, T30_STATE_III_Q_RTN);
+        send_simple_frame(s, T30_RTN);
+        break;
+    case T30_STATE_III_Q_MCF:
+        /* Looks like they didn't see our signal. Repeat it */
+        send_simple_frame(s, T30_MCF);
+        break;
+    case T30_STATE_III_Q_RTP:
+        /* Looks like they didn't see our signal. Repeat it */
+        send_simple_frame(s, T30_RTP);
+        break;
+    case T30_STATE_III_Q_RTN:
+        /* Looks like they didn't see our signal. Repeat it */
         send_simple_frame(s, T30_RTN);
         break;
     default:

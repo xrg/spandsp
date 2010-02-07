@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.h,v 1.10 2006/10/24 13:45:27 steveu Exp $
+ * $Id: at_interpreter.h,v 1.12 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_AT_INTERPRETER_H_)
-#define _AT_INTERPRETER_H_
+#if !defined(_SPANDSP_AT_INTERPRETER_H_)
+#define _SPANDSP_AT_INTERPRETER_H_
 
 /*! \page at_page AT command interpreter
 \section at_page_sec_1 What does it do?
@@ -213,7 +213,8 @@ struct at_state_s
 };
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 void at_set_at_rx_mode(at_state_t *s, int new_mode);

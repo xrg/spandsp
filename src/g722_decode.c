@@ -28,7 +28,7 @@
  * Computer Science, Speech Group
  * Chengxiang Lu and Alex Hauptmann
  *
- * $Id: g722_decode.c,v 1.18 2006/11/19 14:07:24 steveu Exp $
+ * $Id: g722_decode.c,v 1.19 2007/03/14 11:51:01 steveu Exp $
  */
 
 /*! \file */
@@ -178,8 +178,14 @@ int g722_decode_release(g722_decode_state_t *s)
 
 int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[], int len)
 {
-    static const int wl[8] = {-60, -30, 58, 172, 334, 538, 1198, 3042 };
-    static const int rl42[16] = {0, 7, 6, 5, 4, 3, 2, 1, 7, 6, 5, 4, 3,  2, 1, 0 };
+    static const int wl[8] =
+    {
+        -60, -30, 58, 172, 334, 538, 1198, 3042
+    };
+    static const int rl42[16] =
+    {
+        0, 7, 6, 5, 4, 3, 2, 1, 7, 6, 5, 4, 3,  2, 1, 0
+    };
     static const int ilb[32] =
     {
         2048, 2093, 2139, 2186, 2233, 2282, 2332,
@@ -188,9 +194,18 @@ int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[]
         3228, 3298, 3371, 3444, 3520, 3597, 3676,
         3756, 3838, 3922, 4008
     };
-    static const int wh[3] = {0, -214, 798};
-    static const int rh2[4] = {2, 1, 2, 1};
-    static const int qm2[4] = {-7408, -1616,  7408,   1616};
+    static const int wh[3] =
+    {
+        0, -214, 798
+    };
+    static const int rh2[4] =
+    {
+        2, 1, 2, 1
+    };
+    static const int qm2[4] =
+    {
+        -7408, -1616,  7408,   1616
+    };
     static const int qm4[16] = 
     {
               0, -20456, -12896,  -8968, 
@@ -232,7 +247,6 @@ int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[]
     {
            3,  -11,   12,   32, -210,  951, 3876, -805,  362, -156,   53,  -11,
     };
-
     int dlowt;
     int rlow;
     int ihigh;
@@ -368,8 +382,7 @@ int g722_decode(g722_decode_state_t *s, int16_t amp[], const uint8_t g722_data[]
             else
             {
                 /* Apply the receive QMF */
-                for (i = 0;  i < 22;  i++)
-                    s->x[i] = s->x[i + 2];
+                memcpy(s->x, &s->x[2], 22*sizeof(s->x[0]));
                 s->x[22] = rlow + rhigh;
                 s->x[23] = rlow - rhigh;
 

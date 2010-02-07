@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tx.h,v 1.25 2006/10/24 13:45:28 steveu Exp $
+ * $Id: v27ter_tx.h,v 1.27 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_V27TER_TX_H_)
-#define _V27TER_TX_H_
+#if !defined(_SPANDSP_V27TER_TX_H_)
+#define _SPANDSP_V27TER_TX_H_
 
 /*! \page v27ter_tx_page The V.27ter transmitter
 \section v27ter_tx_page_sec_1 What does it do?
@@ -115,7 +115,8 @@ typedef struct
 } v27ter_tx_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Adjust a V.27ter modem transmit context's power output.

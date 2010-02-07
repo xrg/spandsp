@@ -23,13 +23,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g168models.h,v 1.5 2006/10/24 13:45:28 steveu Exp $
+ * $Id: g168models.h,v 1.6 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_G168MODELS_H_)
-#define _G168MODELS_H_
+#if !defined(_SPANDSP_G168MODELS_H_)
+#define _SPANDSP_G168MODELS_H_
 
 /*! \page g168_test_data_page The test data from the G.168 specification
 */

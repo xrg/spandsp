@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: g711.h,v 1.3 2006/10/24 13:45:28 steveu Exp $
+ * $Id: g711.h,v 1.5 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
@@ -49,11 +49,12 @@ difficult to achieve the precise transcoding procedure laid down in the G.711
 specification by other means.
 */
 
-#if !defined(_G711_H_)
-#define _G711_H_
+#if !defined(_SPANDSP_G711_H_)
+#define _SPANDSP_G711_H_
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /* N.B. It is tempting to use look-up tables for A-law and u-law conversion.

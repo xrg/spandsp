@@ -22,16 +22,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bit_operations.h,v 1.15 2007/02/23 13:16:13 steveu Exp $
+ * $Id: bit_operations.h,v 1.17 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_BIT_OPERATIONS_H_)
-#define _BIT_OPERATIONS_H_
+#if !defined(_SPANDSP_BIT_OPERATIONS_H_)
+#define _SPANDSP_BIT_OPERATIONS_H_
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! \brief Find the bit position of the highest set bit in a word

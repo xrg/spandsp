@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42bis.h,v 1.16 2007/01/03 14:15:36 steveu Exp $
+ * $Id: v42bis.h,v 1.18 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \page v42bis_page V.42bis modem data compression
@@ -33,8 +33,8 @@ conjunction with the error correction scheme defined in V.42.
 \section v42bis_page_sec_2 How does it work?
 */
 
-#if !defined(_V42BIS_H_)
-#define _V42BIS_H_
+#if !defined(_SPANDSP_V42BIS_H_)
+#define _SPANDSP_V42BIS_H_
 
 #define V42BIS_MAX_BITS         12
 #define V42BIS_MAX_CODEWORDS    4096    /* 2^V42BIS_MAX_BITS */
@@ -165,7 +165,8 @@ typedef struct
 } v42bis_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Compress a block of octets.

@@ -22,14 +22,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: vector_int.h,v 1.4 2006/10/24 13:45:28 steveu Exp $
+ * $Id: vector_int.h,v 1.6 2007/04/05 19:20:50 steveu Exp $
  */
 
-#if !defined(_VECTOR_INT_H_)
-#define _VECTOR_INT_H_
+#if !defined(_SPANDSP_VECTOR_INT_H_)
+#define _SPANDSP_VECTOR_INT_H_
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 int32_t vec_dot_prodi16(const int16_t x[], const int16_t y[], int n);

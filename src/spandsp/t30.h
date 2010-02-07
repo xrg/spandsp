@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.66 2007/02/28 12:08:57 steveu Exp $
+ * $Id: t30.h,v 1.68 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_T30_H_)
-#define _T30_H_
+#if !defined(_SPANDSP_T30_H_)
+#define _SPANDSP_T30_H_
 
 /*! \page t30_page T.30 FAX protocol handling
 
@@ -568,7 +568,8 @@ typedef struct
 } t30_stats_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise a T.30 context.

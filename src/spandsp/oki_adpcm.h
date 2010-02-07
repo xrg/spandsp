@@ -26,13 +26,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: oki_adpcm.h,v 1.13 2006/10/24 13:45:28 steveu Exp $
+ * $Id: oki_adpcm.h,v 1.15 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_OKI_ADPCM_H_)
-#define _OKI_ADPCM_H_
+#if !defined(_SPANDSP_OKI_ADPCM_H_)
+#define _SPANDSP_OKI_ADPCM_H_
 
 /*! \page okiadpcm_page OKI (Dialogic) ADPCM encoding and decoding
 \section okiadpcm_page_sec_1 What does it do?
@@ -65,7 +65,8 @@ typedef struct
 } oki_adpcm_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise an Oki ADPCM encode or decode context.

@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.79 2007/02/10 11:54:57 steveu Exp $
+## $Id: Makefile.am,v 1.84 2007/03/29 13:38:27 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -46,6 +46,7 @@ noinst_PROGRAMS =   adsi_tests \
                     fax_decode \
                     fax_tests \
                     fsk_tests \
+                    g1050_tests \
                     g168_tests \
                     g711_tests \
                     g722_tests \
@@ -92,11 +93,12 @@ noinst_PROGRAMS =   adsi_tests \
                     testadsi \
                     testfax
 
-noinst_HEADERS =    modem_monitor.h \
-                    echo_monitor.h \
-                    ip_network_model.h \
+noinst_HEADERS =    echo_monitor.h \
+                    g1050.h \
                     line_model.h \
                     line_model_monitor.h \
+                    media_monitor.h \
+                    modem_monitor.h \
                     test_utils.h
 
 adsi_tests_SOURCES = adsi_tests.c
@@ -146,6 +148,9 @@ fax_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
 fsk_tests_SOURCES = fsk_tests.c line_model.c test_utils.c
 fsk_tests_LDADD = -L$(top_builddir)/src -lspandsp
+
+g1050_tests_SOURCES = g1050_tests.c g1050.c media_monitor.cpp
+g1050_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
 g168_tests_SOURCES = g168_tests.c
 g168_tests_LDADD = -L$(top_builddir)/src -lspandsp
@@ -231,16 +236,16 @@ t31_tests_LDADD = -L$(top_builddir)/src -lspandsp
 t38_core_tests_SOURCES = t38_core_tests.c
 t38_core_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
-t38_gateway_tests_SOURCES = t38_gateway_tests.c ip_network_model.c
+t38_gateway_tests_SOURCES = t38_gateway_tests.c g1050.c media_monitor.cpp
 t38_gateway_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
-t38_gateway_to_terminal_tests_SOURCES = t38_gateway_to_terminal_tests.c ip_network_model.c
+t38_gateway_to_terminal_tests_SOURCES = t38_gateway_to_terminal_tests.c g1050.c media_monitor.cpp
 t38_gateway_to_terminal_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
-t38_terminal_tests_SOURCES = t38_terminal_tests.c ip_network_model.c
+t38_terminal_tests_SOURCES = t38_terminal_tests.c g1050.c media_monitor.cpp
 t38_terminal_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
-t38_terminal_to_gateway_tests_SOURCES = t38_terminal_to_gateway_tests.c ip_network_model.c
+t38_terminal_to_gateway_tests_SOURCES = t38_terminal_to_gateway_tests.c g1050.c media_monitor.cpp
 t38_terminal_to_gateway_tests_LDADD = -L$(top_builddir)/src -lspandsp
 
 time_scale_tests_SOURCES = time_scale_tests.c

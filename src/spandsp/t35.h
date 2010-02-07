@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t35.h,v 1.8 2006/10/24 13:45:28 steveu Exp $
+ * $Id: t35.h,v 1.10 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_T35_H_)
-#define _T35_H_
+#if !defined(_SPANDSP_T35_H_)
+#define _SPANDSP_T35_H_
 
 /*! \page t35_page T.35 manufacturer specific processing for FAX machines
 \section t35_page_sec_1 What does it do?
@@ -41,7 +41,8 @@
 extern const char *t35_country_codes[256];
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Decode an NSF field to try to determine the make and model of the

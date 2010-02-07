@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: logging.h,v 1.10 2006/10/24 13:45:28 steveu Exp $
+ * $Id: logging.h,v 1.12 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
@@ -32,8 +32,8 @@
 ???.
 */
 
-#if !defined(_LOGGING_H_)
-#define _LOGGING_H_
+#if !defined(_SPANDSP_LOGGING_H_)
+#define _SPANDSP_LOGGING_H_
 
 /*! General logging function for spandsp logging. */
 typedef void (*message_handler_func_t)(int level, const char *text);
@@ -87,7 +87,8 @@ typedef struct
 } logging_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Test if logging of a specified severity level is enabled.

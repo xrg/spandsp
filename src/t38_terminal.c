@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.60 2007/02/23 12:59:45 steveu Exp $
+ * $Id: t38_terminal.c,v 1.62 2007/03/23 17:17:27 steveu Exp $
  */
 
 /*! \file */
@@ -436,7 +436,7 @@ int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples)
            0,      0,   /* T38_IND_NO_SIGNAL */
            0,      0,   /* T38_IND_CNG */
            0,      0,   /* T38_IND_CED */
-         850,    850,   /* T38_IND_V21_PREAMBLE */
+        1000,   1000,   /* T38_IND_V21_PREAMBLE */ /* TODO: 850 should be OK for this, but it causes trouble with some ATAs. Why? */
          943,   1158,   /* T38_IND_V27TER_2400_TRAINING */
          708,    923,   /* T38_IND_V27TER_4800_TRAINING */
          234,    454,   /* T38_IND_V29_7200_TRAINING */
@@ -679,8 +679,7 @@ static void set_tx_type(void *user_data, int type, int short_train, int use_hdlc
         s->timed_step = (use_hdlc)  ?  T38_TIMED_STEP_HDLC_MODEM  :  T38_TIMED_STEP_NON_ECM_MODEM;
         break;
     case T30_MODEM_V29_9600:
-        set_octets_per_data_packet(s, 4800);
-        s->octets_per_data_packet = s->ms_per_tx_chunk*9600/(8*1000);
+        set_octets_per_data_packet(s, 9600);
         s->next_tx_indicator = T38_IND_V29_9600_TRAINING;
         s->current_tx_data_type = T38_DATA_V29_9600;
         s->next_tx_samples = s->samples + ms_to_samples(s->ms_per_tx_chunk);

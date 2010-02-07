@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_tests.c,v 1.63 2007/02/28 12:08:57 steveu Exp $
+ * $Id: fax_tests.c,v 1.65 2007/03/28 13:56:05 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -68,6 +68,7 @@ struct machine_s
     int succeeded;
     char tag[50];
     int error_delay;
+    int total_audio_time;
 } machines[FAX_MACHINES];
 
 int test_local_interrupt = FALSE;
@@ -197,6 +198,8 @@ int main(int argc, char *argv[])
     int use_line_hits;
     int polled_mode;
     int reverse_flow;
+    time_t start_time;
+    time_t end_time;
     char *page_header_info;
 
     log_audio = FALSE;
@@ -353,8 +356,10 @@ int main(int argc, char *argv[])
         span_log_set_level(&mc->fax.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
         span_log_set_tag(&mc->fax.logging, mc->tag);
         memset(mc->amp, 0, sizeof(mc->amp));
+        mc->total_audio_time = 0;
         mc->done = FALSE;
     }
+    time(&start_time);
     for (;;)
     {
         alldone = TRUE;
@@ -372,6 +377,7 @@ int main(int argc, char *argv[])
             {
                 mc->len = fax_tx(&mc->fax, mc->amp, SAMPLES_PER_CHUNK);
             }
+            mc->total_audio_time += SAMPLES_PER_CHUNK;
             /* The receive side always expects a full block of samples, but the
                transmit side may not be sending any when it doesn't need to. We
                may need to pad with some silence. */
@@ -424,6 +430,7 @@ int main(int argc, char *argv[])
         if (alldone  ||  j < FAX_MACHINES)
             break;
     }
+    time(&end_time);
     for (j = 0;  j < FAX_MACHINES;  j++)
     {
         mc = &machines[j];
@@ -447,6 +454,7 @@ int main(int argc, char *argv[])
         }
         afFreeFileSetup(filesetup);
     }
+    printf("Total audio time = %ds (wall time %ds)\n", machines[0].total_audio_time/8000, (int) (end_time - start_time));
     return  0;
 }
 /*- End of function --------------------------------------------------------*/

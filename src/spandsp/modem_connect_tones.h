@@ -23,13 +23,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_connect_tones.h,v 1.4 2006/10/24 13:45:28 steveu Exp $
+ * $Id: modem_connect_tones.h,v 1.6 2007/04/05 19:20:49 steveu Exp $
  */
  
 /*! \file */
 
-#if !defined(_MODEM_CONNECT_TONES_H_)
-#define _MODEM_CONNECT_TONES_H_
+#if !defined(_SPANDSP_MODEM_CONNECT_TONES_H_)
+#define _SPANDSP_MODEM_CONNECT_TONES_H_
 
 /*! \page modem_connect_tones_page Echo cancellor disable tone detection
 
@@ -100,7 +100,8 @@ typedef struct
 } modem_connect_tones_rx_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! \brief Initialse an instance of the echo canceller disable tone generator.

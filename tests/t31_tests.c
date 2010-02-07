@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31_tests.c,v 1.42 2006/11/19 14:07:27 steveu Exp $
+ * $Id: t31_tests.c,v 1.43 2007/03/30 14:16:46 steveu Exp $
  */
 
 /*! \file */
@@ -95,7 +95,7 @@ static const struct command_response_s fax_send_test_seq[] =
     RESPONSE("\r\nOK\r\n"),
     EXCHANGE("AT+FRH=3\r", "\r\nCONNECT\r\n"),
     //<DIS frame data>
-    RESPONSE("\xFF\x13\x80\x00\xCE\xF8\x80\x80\x89\x80\x80\x80\x98\x80\x80\x80\x80\x80\x00\xFA\x72\x10\x03"),
+    RESPONSE("\xFF\x13\x80\x00\xEE\xF8\x80\x80\x89\x80\x80\x80\x18\x18\xB9\x10\x03"),
     RESPONSE("\r\nOK\r\n"),
     //EXCHANGE("AT+FRH=3\r", "\r\nNO CARRIER\r\n"),
     EXCHANGE("AT+FTH=3\r", "\r\nCONNECT\r\n"),
@@ -147,7 +147,7 @@ static const struct command_response_s fax_receive_test_seq[] =
     RESPONSE("\r\nOK\r\n"),
     EXCHANGE("AT+FRH=3\r", "\r\nCONNECT\r\n"),
     //<DCS frame data>
-    RESPONSE("\xFF\x13\x83\x00\xC6\xF0\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x00\xE4\x7E\x10\x03"),
+    RESPONSE("\xFF\x13\x83\x00\xC6\x74\x53\x00\x10\x03"),
     RESPONSE("\r\nOK\r\n"),
     EXCHANGE("AT+FRM=96\r", "\r\nCONNECT\r\n"),
     //<TCF data>

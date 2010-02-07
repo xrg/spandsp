@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.c,v 1.44 2006/11/28 16:59:56 steveu Exp $
+ * $Id: hdlc.c,v 1.45 2007/03/29 12:28:35 steveu Exp $
  */
 
 /*! \file */
@@ -285,20 +285,16 @@ static void rx_flag_or_abort(hdlc_rx_state_t *s)
                     {
                         s->rx_frames++;
                         s->rx_bytes += s->len - s->crc_bytes;
-                        s->frame_handler(s->user_data,
-                                         TRUE,
-                                         s->buffer,
-                                         s->len - s->crc_bytes);
+                        s->len -= s->crc_bytes;
+                        s->frame_handler(s->user_data, TRUE, s->buffer, s->len);
                     }
                     else
                     {
                         s->rx_crc_errors++;
                         if (s->report_bad_frames)
                         {
-                            s->frame_handler(s->user_data,
-                                             FALSE,
-                                             s->buffer,
-                                             s->len - s->crc_bytes);
+                            s->len -= s->crc_bytes;
+                            s->frame_handler(s->user_data, FALSE, s->buffer, s->len);
                         }
                     }
                     s->framing_ok_announced = FALSE;
@@ -308,10 +304,12 @@ static void rx_flag_or_abort(hdlc_rx_state_t *s)
                     /* Frame too short or too long */
                     if (s->report_bad_frames)
                     {
-                        s->frame_handler(s->user_data,
-                                         FALSE,
-                                         s->buffer,
-                                         s->len - s->crc_bytes);
+                        s->len -= s->crc_bytes;
+                        /* Don't let the length go negative, or it will be confused
+                           with one of the special conditions. */
+                        if (s->len < 0)
+                            s->len = 0;
+                        s->frame_handler(s->user_data, FALSE, s->buffer, s->len);
                     }
                     s->rx_length_errors++;
                 }

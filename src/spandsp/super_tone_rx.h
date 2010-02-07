@@ -22,11 +22,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: super_tone_rx.h,v 1.10 2007/02/27 16:52:16 steveu Exp $
+ * $Id: super_tone_rx.h,v 1.11 2007/04/05 19:20:49 steveu Exp $
  */
 
-#if !defined(_SUPER_TONE_RX_H_)
-#define _SUPER_TONE_RX_H_
+#if !defined(_SPANDSP_SUPER_TONE_RX_H_)
+#define _SPANDSP_SUPER_TONE_RX_H_
 
 /*! \page super_tone_rx_page Supervisory tone detection
 

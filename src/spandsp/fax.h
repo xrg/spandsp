@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.h,v 1.20 2006/10/24 13:45:28 steveu Exp $
+ * $Id: fax.h,v 1.22 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_FAX_H_)
-#define _FAX_H_
+#if !defined(_SPANDSP_FAX_H_)
+#define _SPANDSP_FAX_H_
 
 /*! \page fax_page FAX over analogue modem handling
 
@@ -134,7 +134,8 @@ struct fax_state_s
 };
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Apply T.30 receive processing to a block of audio samples.

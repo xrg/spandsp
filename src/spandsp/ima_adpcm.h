@@ -26,13 +26,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ima_adpcm.h,v 1.12 2006/10/24 13:45:28 steveu Exp $
+ * $Id: ima_adpcm.h,v 1.14 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_IMA_ADPCM_H_)
-#define _IMA_ADPCM_H_
+#if !defined(_SPANDSP_IMA_ADPCM_H_)
+#define _SPANDSP_IMA_ADPCM_H_
 
 /*! \page ima_adpcm_page IMA/DVI/Intel ADPCM encoding and decoding
 \section ima_adpcm_page_sec_1 What does it do?
@@ -65,7 +65,8 @@ typedef struct
 } ima_adpcm_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise an IMA ADPCM encode or decode context.

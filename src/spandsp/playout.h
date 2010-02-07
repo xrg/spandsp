@@ -22,11 +22,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: playout.h,v 1.6 2006/10/24 13:45:28 steveu Exp $
+ * $Id: playout.h,v 1.8 2007/04/05 19:20:49 steveu Exp $
  */
 
-#if !defined(_PLAYOUT_H_)
-#define _PLAYOUT_H_
+#if !defined(_SPANDSP_PLAYOUT_H_)
+#define _SPANDSP_PLAYOUT_H_
 
 /*! \page playout_page Play-out (jitter buffering)
 \section playout_page_sec_1 What does it do?
@@ -134,7 +134,8 @@ typedef struct
 } playout_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Queue a frame

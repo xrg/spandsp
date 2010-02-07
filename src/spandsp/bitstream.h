@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bitstream.h,v 1.3 2006/10/24 13:45:28 steveu Exp $
+ * $Id: bitstream.h,v 1.5 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_BITSTREAM_H_)
-#define _BITSTREAM_H_
+#if !defined(_SPANDSP_BITSTREAM_H_)
+#define _SPANDSP_BITSTREAM_H_
 
 /*! \page bitstream_page Bitstream composition and decomposition
 \section bitstream_page_sec_1 What does it do?
@@ -44,7 +44,8 @@ typedef struct
 
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 bitstream_state_t *bitstream_init(bitstream_state_t *s);

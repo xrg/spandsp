@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: schedule.h,v 1.9 2007/01/12 13:59:19 steveu Exp $
+ * $Id: schedule.h,v 1.11 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
@@ -35,8 +35,8 @@
 ???.
 */
 
-#if !defined(_SCHEDULE_H_)
-#define _SCHEDULE_H_
+#if !defined(_SPANDSP_SCHEDULE_H_)
+#define _SPANDSP_SCHEDULE_H_
 
 typedef struct span_sched_state_s span_sched_state_t;
 
@@ -59,7 +59,8 @@ struct span_sched_state_s
 };
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 uint64_t span_schedule_next(span_sched_state_t *s);

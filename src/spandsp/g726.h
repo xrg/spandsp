@@ -48,13 +48,13 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- * $Id: g726.h,v 1.13 2006/11/28 16:59:57 steveu Exp $
+ * $Id: g726.h,v 1.15 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_G726_H_)
-#define _G726_H_
+#if !defined(_SPANDSP_G726_H_)
+#define _SPANDSP_G726_H_
 
 /*! \page g726_page G.726 encoding and decoding
 \section g726_page_sec_1 What does it do?
@@ -144,7 +144,8 @@ typedef struct g726_state_s
 } g726_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise a G.726 encode or decode context.

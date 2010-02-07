@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.h,v 1.14 2006/11/22 13:46:06 steveu Exp $
+ * $Id: v8.h,v 1.16 2007/04/05 19:20:50 steveu Exp $
  */
  
 /*! \file */
@@ -40,8 +40,8 @@ will use for data communication. The V.8 protocol then terminates, and the modem
 being negotiating and training with their chosen modem standard.
 */
 
-#if !defined(_V8_H_)
-#define _V8_H_
+#if !defined(_SPANDSP_V8_H_)
+#define _SPANDSP_V8_H_
 
 typedef struct v8_result_s v8_result_t;
 
@@ -163,7 +163,8 @@ struct v8_result_s
 };
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise a V.8 context.

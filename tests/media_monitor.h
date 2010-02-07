@@ -1,11 +1,11 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * complex_filters.h
+ * media_monitor.h - Display IP streaming media status, using the FLTK toolkit.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
- * Copyright (C) 2003 Steve Underwood
+ * Copyright (C) 2007 Steve Underwood
  *
  * All rights reserved.
  *
@@ -22,49 +22,31 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: complex_filters.h,v 1.8 2007/04/05 19:20:49 steveu Exp $
+ * $Id: media_monitor.h,v 1.2 2007/03/29 12:28:37 steveu Exp $
  */
 
-#if !defined(_SPANDSP_COMPLEX_FILTERS_H_)
-#define _SPANDSP_COMPLEX_FILTERS_H_
+/*! \page media_monitor_page IP streaming media performance monitoring
+\section media_monitor_page_sec_1 What does it do?
+This code controls a GUI window, which provides monitoring of the status
+of an IP media stream. It shows, graphically:
 
-typedef struct filter_s filter_t;
+\section media_monitor_page_sec_2 How does it work?
+This code uses the FLTK cross platform GUI toolkit. It works on X11 and Windows platforms.
+In addition to the basic FLTK toolkit, fltk_cartesian is also required.
+*/
 
-typedef float (*filter_step_func_t)(filter_t *fi, float x);
-
-typedef struct
-{
-    int                 nz;
-    int                 np;
-    filter_step_func_t  fsf;
-} fspec_t;
-
-struct filter_s
-{
-    fspec_t             *fs;
-    float               sum;
-    int                 ptr;		/* for moving average filters only */
-    float               v[];
-};
-
-typedef struct
-{
-    filter_t            *ref;
-    filter_t            *imf;
-} cfilter_t;
+#if !defined(_MEDIA_MONITOR_H_)
+#define _MEDIA_MONITOR_H_
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-filter_t *filter_create(fspec_t *fs);
-void filter_delete(filter_t *fi);
-float filter_step(filter_t *fi, float x);
-
-cfilter_t *cfilter_create(fspec_t *fs);
-void cfilter_delete(cfilter_t *cfi);
-complexf_t cfilter_step(cfilter_t *cfi, const complexf_t *z);
+int start_media_monitor(void);
+void media_monitor_rx(int seq_no, double departure_time, double arrival_time);
+void media_monitor_wait_to_end(void);
+void media_monitor_update_display(void);
 
 #ifdef __cplusplus
 }

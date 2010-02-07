@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spandsp.h,v 1.47 2007/02/27 16:52:16 steveu Exp $
+ * $Id: spandsp.h,v 1.48 2007/03/23 17:17:27 steveu Exp $
  */
 
 /*! \file */

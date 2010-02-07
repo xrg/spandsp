@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: arctan2.h,v 1.7 2006/10/24 13:22:01 steveu Exp $
+ * $Id: arctan2.h,v 1.9 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_ARCTAN2_H_)
-#define _ARCTAN2_H_
+#if !defined(_SPANDSP_ARCTAN2_H_)
+#define _SPANDSP_ARCTAN2_H_
 
 /*! \page arctan2_page Fast approximate four quadrant arc-tangent
 \section arctan2_page_sec_1 What does it do?
@@ -41,7 +41,8 @@ This is fine for many "where am I" type evaluations in comms. work.
 */
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /* This returns its answer as a signed 32 bit integer phase value. */

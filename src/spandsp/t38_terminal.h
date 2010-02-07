@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.15 2007/02/19 08:28:47 steveu Exp $
+ * $Id: t38_terminal.h,v 1.17 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_T38_TERMINAL_H_)
-#define _T38_TERMINAL_H_
+#if !defined(_SPANDSP_T38_TERMINAL_H_)
+#define _SPANDSP_T38_TERMINAL_H_
 
 /*! \page t38_terminal_page T.38 real time FAX over IP termination
 \section t38_terminal_page_sec_1 What does it do?
@@ -96,7 +96,8 @@ typedef struct
 } t38_terminal_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 int t38_terminal_send_timeout(t38_terminal_state_t *s, int samples);

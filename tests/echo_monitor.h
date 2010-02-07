@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: echo_monitor.h,v 1.7 2006/10/24 13:22:02 steveu Exp $
+ * $Id: echo_monitor.h,v 1.8 2007/03/29 12:28:37 steveu Exp $
  */
 
 /*! \page echo_monitor_page Echo canceller performance monitoring
@@ -43,15 +43,16 @@ In addition to the basic FLTK toolkit, fltk_cartesian is also required.
 #define _ECHO_MONITOR_H_
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-    int start_echo_can_monitor(int len);
-    int echo_can_monitor_can_update(const int16_t *coeffs, int len);
-    int echo_can_monitor_line_model_update(const int32_t *coeffs, int len);
-    int echo_can_monitor_line_spectrum_update(const int16_t amp[], int len);
-    void echo_can_monitor_wait_to_end(void);
-    void echo_can_monitor_update_display(void);
+int start_echo_can_monitor(int len);
+int echo_can_monitor_can_update(const int16_t *coeffs, int len);
+int echo_can_monitor_line_model_update(const int32_t *coeffs, int len);
+int echo_can_monitor_line_spectrum_update(const int16_t amp[], int len);
+void echo_can_monitor_wait_to_end(void);
+void echo_can_monitor_update_display(void);
 
 #ifdef __cplusplus
 }

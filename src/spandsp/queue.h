@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: queue.h,v 1.4 2006/10/24 13:45:28 steveu Exp $
+ * $Id: queue.h,v 1.6 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
@@ -35,8 +35,8 @@
 ???.
 */
 
-#if !defined(_QUEUE_H_)
-#define _QUEUE_H_
+#if !defined(_SPANDSP_QUEUE_H_)
+#define _SPANDSP_QUEUE_H_
 
 #define QUEUE_READ_ATOMIC   0x0001
 #define QUEUE_WRITE_ATOMIC  0x0002
@@ -51,7 +51,8 @@ typedef struct
 } queue_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Check if a queue is empty.

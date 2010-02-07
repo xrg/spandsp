@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.h,v 1.23 2006/10/24 13:22:02 steveu Exp $
+ * $Id: v29tx.h,v 1.25 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_V29TX_H_)
-#define _V29TX_H_
+#if !defined(_SPANDSP_V29TX_H_)
+#define _SPANDSP_V29TX_H_
 
 /*! \page v29tx_page The V.29 transmitter
 \section v29tx_page_sec_1 What does it do?
@@ -149,7 +149,8 @@ typedef struct
 } v29_tx_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Adjust a V.29 modem transmit context's power output.

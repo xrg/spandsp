@@ -28,14 +28,14 @@
  * Computer Science, Speech Group
  * Chengxiang Lu and Alex Hauptmann
  *
- * $Id: g722.h,v 1.13 2006/10/24 13:45:28 steveu Exp $
+ * $Id: g722.h,v 1.15 2007/04/05 19:20:49 steveu Exp $
  */
 
 
 /*! \file */
 
-#if !defined(_G722_H_)
-#define _G722_H_
+#if !defined(_SPANDSP_G722_H_)
+#define _SPANDSP_G722_H_
 
 /*! \page g722_page G.722 encoding and decoding
 \section g722_page_sec_1 What does it do?
@@ -133,7 +133,8 @@ typedef struct
 } g722_decode_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise an G.722 encode context.

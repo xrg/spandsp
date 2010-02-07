@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_core.h,v 1.16 2007/02/18 12:54:23 steveu Exp $
+ * $Id: t38_core.h,v 1.17 2007/03/29 12:28:36 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_T38_CORE_H_)
-#define _T38_CORE_H_
+#if !defined(_SPANDSP_T38_CORE_H_)
+#define _SPANDSP_T38_CORE_H_
 
 /*! \page t38_core_page T.38 real time FAX over IP message handling
 There are two ITU recommendations which address sending FAXes over IP networks. T.37 specifies a
@@ -267,7 +267,8 @@ struct t38_core_state_s
 };
 
 #if defined(__cplusplus)
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! \brief Convert the code for an indicator to a short text name.

@@ -22,11 +22,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: power_meter.h,v 1.8 2006/10/24 13:45:28 steveu Exp $
+ * $Id: power_meter.h,v 1.10 2007/04/05 19:20:49 steveu Exp $
  */
 
-#if !defined(_POWER_METER_H_)
-#define _POWER_METER_H_
+#if !defined(_SPANDSP_POWER_METER_H_)
+#define _SPANDSP_POWER_METER_H_
 
 /*! \page power_meter_page Power metering
 
@@ -55,7 +55,8 @@ typedef struct
 } power_meter_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise a power meter context.

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: hdlc.h,v 1.27 2006/10/24 13:45:28 steveu Exp $
+ * $Id: hdlc.h,v 1.29 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
@@ -40,8 +40,8 @@ HDLC may not be a DSP function, but is needed to accompany several DSP component
 */
 
 
-#if !defined(_HDLC_H_)
-#define _HDLC_H_
+#if !defined(_SPANDSP_HDLC_H_)
+#define _SPANDSP_HDLC_H_
 
 /*! 
     HDLC_MAXFRAME_LEN is the maximum length of a stuffed HDLC frame, excluding the CRC.
@@ -162,7 +162,8 @@ typedef struct
 } hdlc_tx_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! \brief Calculate the ITU/CCITT CRC-32 value in buffer.

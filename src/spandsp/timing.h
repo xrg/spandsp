@@ -22,14 +22,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: timing.h,v 1.8 2007/03/01 15:06:29 steveu Exp $
+ * $Id: timing.h,v 1.10 2007/04/05 19:20:50 steveu Exp $
  */
 
-#if !defined(_TIMING_H_)
-#define _TIMING_H_
+#if !defined(_SPANDSP_TIMING_H_)
+#define _SPANDSP_TIMING_H_
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #if defined(__MSVC__)

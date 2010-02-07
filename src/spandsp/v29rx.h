@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.h,v 1.41 2006/10/24 13:45:28 steveu Exp $
+ * $Id: v29rx.h,v 1.43 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_V29RX_H_)
-#define _V29RX_H_
+#if !defined(_SPANDSP_V29RX_H_)
+#define _SPANDSP_V29RX_H_
 
 /*! \page v29rx_page The V.29 receiver
 \section v29rx_page_sec_1 What does it do?
@@ -214,7 +214,8 @@ typedef struct
 } v29_rx_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise a V.29 modem receive context.

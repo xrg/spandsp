@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17tx.c,v 1.47 2007/01/03 14:15:36 steveu Exp $
+ * $Id: v17tx.c,v 1.48 2007/03/18 09:43:50 steveu Exp $
  */
 
 /*! \file */
@@ -581,7 +581,6 @@ static __inline__ complexf_t getbaud(v17_tx_state_t *s)
     {
         if ((bit = s->current_get_bit(s->user_data)) == PUTBIT_END_OF_DATA)
         {
-printf("End of real data\n");
             /* End of real data. Switch to the fake get_bit routine, until we
                have shut down completely. */
             s->current_get_bit = fake_get_bit;

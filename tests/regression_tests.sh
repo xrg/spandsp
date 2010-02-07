@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: regression_tests.sh,v 1.38 2007/02/10 11:54:57 steveu Exp $
+# $Id: regression_tests.sh,v 1.40 2007/03/24 12:16:55 steveu Exp $
 #
 
 ITUTESTS_TIF=../itutests/fax/itutests.tif

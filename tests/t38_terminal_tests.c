@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_tests.c,v 1.37 2007/02/19 08:28:47 steveu Exp $
+ * $Id: t38_terminal_tests.c,v 1.40 2007/03/29 12:28:37 steveu Exp $
  */
 
 /*! \file */
@@ -36,6 +36,10 @@ These tests exercise the path
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
+
+#if defined(HAVE_FL_FL_H)  &&  defined(HAVE_FL_FL_CARTESIAN_H)  &&  defined(HAVE_FL_FL_AUDIO_METER_H)
+#define ENABLE_GUI
 #endif
 
 #include <inttypes.h>
@@ -63,8 +67,10 @@ These tests exercise the path
 #include <tiffio.h>
 
 #include "spandsp.h"
-
-#include "ip_network_model.h"
+#include "g1050.h"
+#if defined(ENABLE_GUI)
+#include "media_monitor.h"
+#endif
 
 #define SAMPLES_PER_CHUNK 160
 
@@ -74,8 +80,10 @@ These tests exercise the path
 t38_terminal_state_t t38_state_a;
 t38_terminal_state_t t38_state_b;
 
-ip_network_model_state_t *path_a_to_b;
-ip_network_model_state_t *path_b_to_a;
+g1050_state_t *path_a_to_b;
+g1050_state_t *path_b_to_a;
+
+double when = 0.0;
 
 int done[2] = {FALSE, FALSE};
 int succeeded[2] = {FALSE, FALSE};
@@ -157,7 +165,8 @@ static int tx_packet_handler_a(t38_core_state_t *s, void *user_data, const uint8
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d\n", subst_seq, len);
 
-            ip_network_model_send(path_a_to_b, subst_seq, 1, buf, len);
+            if (g1050_put(path_a_to_b, buf, len, subst_seq, when) < 0)
+                printf("Lost packet %d\n", subst_seq);
             subst_seq = (subst_seq + 1) & 0xFFFF;
         }
     }
@@ -165,7 +174,11 @@ static int tx_packet_handler_a(t38_core_state_t *s, void *user_data, const uint8
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d, count %d\n", s->tx_seq_no, len, count);
 
-        ip_network_model_send(path_a_to_b, s->tx_seq_no, count, buf, len);
+        for (i = 0;  i < count;  i++)
+        {
+            if (g1050_put(path_a_to_b, buf, len, s->tx_seq_no, when) < 0)
+                printf("Lost packet %d\n", s->tx_seq_no);
+        }
     }
     return 0;
 }
@@ -185,7 +198,7 @@ static int tx_packet_handler_b(t38_core_state_t *s, void *user_data, const uint8
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d\n", subst_seq, len);
 
-            ip_network_model_send(path_b_to_a, subst_seq, 1, buf, len);
+            g1050_put(path_b_to_a, buf, len, subst_seq, when);
             subst_seq = (subst_seq + 1) & 0xFFFF;
         }
     }
@@ -193,7 +206,8 @@ static int tx_packet_handler_b(t38_core_state_t *s, void *user_data, const uint8
     {
         span_log(&s->logging, SPAN_LOG_FLOW, "Send seq %d, len %d, count %d\n", s->tx_seq_no, len, count);
 
-        ip_network_model_send(path_b_to_a, s->tx_seq_no, count, buf, len);
+        for (i = 0;  i < count;  i++)
+            g1050_put(path_b_to_a, buf, len, s->tx_seq_no, when);
     }
     return 0;
 }
@@ -208,13 +222,21 @@ int main(int argc, char *argv[])
     int seq_no;
     int use_ecm;
     int without_pacing;
+    int model_no;
+    int speed_pattern_no;
     const char *input_file_name;
-    
+    double tx_when;
+    double rx_when;
+    int use_gui;
+
     t38_version = 1;
     without_pacing = FALSE;
     input_file_name = INPUT_FILE_NAME;
     use_ecm = FALSE;
     simulate_incrementing_repeats = FALSE;
+    model_no = 0;
+    speed_pattern_no = 1;
+    use_gui = FALSE;
     for (i = 1;  i < argc;  i++)
     {
         if (strcmp(argv[i], "-e") == 0)
@@ -222,10 +244,14 @@ int main(int argc, char *argv[])
             use_ecm = TRUE;
             continue;
         }
+        if (strcmp(argv[i], "-g") == 0)
+        {
+            use_gui = TRUE;
+            continue;
+        }
         if (strcmp(argv[i], "-i") == 0)
         {
-            i++;
-            input_file_name = argv[i];
+            input_file_name = argv[++i];
             continue;
         }
         if (strcmp(argv[i], "-I") == 0)
@@ -233,15 +259,24 @@ int main(int argc, char *argv[])
             simulate_incrementing_repeats = TRUE;
             continue;
         }
+        if (strcmp(argv[i], "-m") == 0)
+        {
+            model_no = argv[++i][0] - 'A' + 1;
+            continue;
+        }
         if (strcmp(argv[i], "-p") == 0)
         {
             without_pacing = TRUE;
             continue;
         }
+        if (strcmp(argv[i], "-s") == 0)
+        {
+            speed_pattern_no = atoi(argv[++i]);
+            continue;
+        }
         if (strcmp(argv[i], "-v") == 0)
         {
-            i++;
-            t38_version = atoi(argv[i]);
+            t38_version = atoi(argv[++i]);
             continue;
         }
     }
@@ -250,12 +285,13 @@ int main(int argc, char *argv[])
     if (use_ecm)
         printf("Using ECM\n");
 
-    if ((path_a_to_b = ip_network_model_init(800, 2000, 0)) == NULL)
+    srand48(0x1234567);
+    if ((path_a_to_b = g1050_init(model_no, speed_pattern_no, 100, 33)) == NULL)
     {
         fprintf(stderr, "Failed to start IP network path model\n");
         exit(2);
     }
-    if ((path_b_to_a = ip_network_model_init(800, 2000, 0)) == NULL)
+    if ((path_b_to_a = g1050_init(model_no, speed_pattern_no, 100, 33)) == NULL)
     {
         fprintf(stderr, "Failed to start IP network path model\n");
         exit(2);
@@ -307,6 +343,10 @@ int main(int argc, char *argv[])
     if (use_ecm)
         t30_set_supported_compressions(&t38_state_b.t30_state, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
 
+#if defined(ENABLE_GUI)
+    if (use_gui)
+        start_media_monitor();
+#endif
     for (;;)
     {
         span_log_bump_samples(&t38_state_a.logging, SAMPLES_PER_CHUNK);
@@ -319,16 +359,30 @@ int main(int argc, char *argv[])
         done[0] = t38_terminal_send_timeout(&t38_state_a, SAMPLES_PER_CHUNK);
         done[1] = t38_terminal_send_timeout(&t38_state_b, SAMPLES_PER_CHUNK);
 
-        while ((msg_len = ip_network_model_get(path_a_to_b, SAMPLES_PER_CHUNK, msg, 1024, &seq_no)) >= 0)
+        when += 0.02;
+
+        while ((msg_len = g1050_get(path_a_to_b, msg, 1024, when, &seq_no, &tx_when, &rx_when)) >= 0)
         {
+#if defined(ENABLE_GUI)
+            if (use_gui)
+                media_monitor_rx(seq_no, tx_when, rx_when);
+#endif
             t38_core_rx_ifp_packet(&t38_state_b.t38, seq_no, msg, msg_len);
         }
-        while ((msg_len = ip_network_model_get(path_b_to_a, SAMPLES_PER_CHUNK, msg, 1024, &seq_no)) >= 0)
+        while ((msg_len = g1050_get(path_b_to_a, msg, 1024, when, &seq_no, &tx_when, &rx_when)) >= 0)
         {
+#if defined(ENABLE_GUI)
+            if (use_gui)
+                media_monitor_rx(seq_no, tx_when, rx_when);
+#endif
             t38_core_rx_ifp_packet(&t38_state_a.t38, seq_no, msg, msg_len);
         }
         if (done[0]  &&  done[1])
             break;
+#if defined(ENABLE_GUI)
+        if (use_gui)
+            media_monitor_update_display();
+#endif
     }
     if (!succeeded[0]  ||  !succeeded[1])
     {

@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: plc.h,v 1.12 2006/10/24 13:45:28 steveu Exp $
+ * $Id: plc.h,v 1.14 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_PLC_H_)
-#define _PLC_H_
+#if !defined(_SPANDSP_PLC_H_)
+#define _SPANDSP_PLC_H_
 
 /*! \page plc_page Packet loss concealment
 \section plc_page_sec_1 What does it do?
@@ -129,7 +129,8 @@ typedef struct
 
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Process a block of received audio samples for PLC.

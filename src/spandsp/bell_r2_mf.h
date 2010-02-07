@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bell_r2_mf.h,v 1.7 2006/12/27 04:09:46 steveu Exp $
+ * $Id: bell_r2_mf.h,v 1.9 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_BELL_R2_MF_H_)
-#define _BELL_R2_MF_H_
+#if !defined(_SPANDSP_BELL_R2_MF_H_)
+#define _SPANDSP_BELL_R2_MF_H_
 
 /*! \page mfc_r2_tone_generation_page MFC/R2 tone generation
 \section mfc_r2_tone_generation_page_sec_1 What does it do?
@@ -170,7 +170,8 @@ typedef struct
 } r2_mf_rx_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! \brief Generate a buffer of Bell MF tones.

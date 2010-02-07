@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bert.c,v 1.21 2006/11/19 14:07:24 steveu Exp $
+ * $Id: bert.c,v 1.22 2007/03/13 14:10:42 steveu Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -43,6 +43,35 @@
 
 static const char *qbf = "VoyeZ Le BricK GeanT QuE J'ExaminE PreS Du WharF 123 456 7890 + - * : = $ % ( )"
                          "ThE QuicK BrowN FoX JumpS OveR ThE LazY DoG 123 456 7890 + - * : = $ % ( )";
+
+const char *bert_event_to_str(int event)
+{
+    switch (event)
+    {
+    case BERT_REPORT_SYNCED:
+        return "synced";
+    case BERT_REPORT_UNSYNCED:
+        return "unsync'ed";
+    case BERT_REPORT_REGULAR:
+        return "regular";
+    case BERT_REPORT_GT_10_2:
+        return "error rate > 1 in 10^2";
+    case BERT_REPORT_LT_10_2:
+        return "error rate < 1 in 10^2";
+    case BERT_REPORT_LT_10_3:
+        return "error rate < 1 in 10^3";
+    case BERT_REPORT_LT_10_4:
+        return "error rate < 1 in 10^4";
+    case BERT_REPORT_LT_10_5:
+        return "error rate < 1 in 10^5";
+    case BERT_REPORT_LT_10_6:
+        return "error rate < 1 in 10^6";
+    case BERT_REPORT_LT_10_7:
+        return "error rate < 1 in 10^7";
+    }
+    return "???";
+}
+/*- End of function --------------------------------------------------------*/
 
 int bert_get_bit(bert_state_t *s)
 {
@@ -99,13 +128,60 @@ int bert_get_bit(bert_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-void bert_put_bit(bert_state_t *s, int bit)
+static void assess_error_rate(bert_state_t *s)
 {
     int i;
     int j;
     int sum;
     int test;
 
+    /* We assess the error rate in decadic steps. For each decade we assess the error over 10 times
+       the number of bits, to smooth the result. This means we assess the 1 in 100 rate based on 1000 bits
+       (i.e. we look for >=10 errors in 1000 bits). We make an assessment every 100 bits, using a sliding
+       window over the last 1000 bits. We assess the 1 in 1000 rate over 10000 bits in a similar way, and
+       so on for the lower error rates. */
+    test = TRUE;
+    for (i = 2;  i <= 7;  i++)
+    {
+        if (++s->decade_ptr[i] < 10)
+            break;
+        /* This decade has reached 10 snapshots, so we need to touch the next decade */
+        s->decade_ptr[i] = 0;
+        /* Sum the last 10 snapshots from this decade, to see if we overflow into the next decade */
+        for (sum = 0, j = 0;  j < 10;  j++)
+            sum += s->decade_bad[i][j];
+        if (test  &&  sum > 10)
+        {
+            /* We overflow into the next decade */
+            test = FALSE;
+            if (s->error_rate != i  &&  s->reporter)
+                s->reporter(s->user_data, BERT_REPORT_GT_10_2 + i - 2, &s->results);
+            s->error_rate = i;
+        }
+        s->decade_bad[i][0] = 0;
+        if (i < 7)
+            s->decade_bad[i + 1][s->decade_ptr[i + 1]] = sum;
+    }
+    if (i > 7)
+    {
+        if (s->decade_ptr[i] >= 10)
+            s->decade_ptr[i] = 0;
+        if (test)
+        {
+            if (s->error_rate != i  &&  s->reporter)
+                s->reporter(s->user_data, BERT_REPORT_GT_10_2 + i - 2, &s->results);
+            s->error_rate = i;
+        }
+    }
+    else
+    {
+        s->decade_bad[i][s->decade_ptr[i]] = 0;
+    }
+}
+/*- End of function --------------------------------------------------------*/
+
+void bert_put_bit(bert_state_t *s, int bit)
+{
     if (bit < 0)
     {
         /* Special conditions */
@@ -186,8 +262,10 @@ void bert_put_bit(bert_state_t *s, int bit)
         }
         else
         {
+            s->results.total_bits++;
             if (s->max_zeros)
             {
+                /* This generator suppresses runs >s->max_zeros */
                 if ((s->rx_reg & s->mask))
                 {
                     if (++s->rx_zeros > s->max_zeros)
@@ -201,7 +279,6 @@ void bert_put_bit(bert_state_t *s, int bit)
                     s->rx_zeros = 0;
                 }
             }
-            s->results.total_bits++;
             if (bit != (int) ((s->rx_reg >> s->shift) & 1))
             {
                 s->results.bad_bits++;
@@ -210,41 +287,9 @@ void bert_put_bit(bert_state_t *s, int bit)
             }
             if (--s->step <= 0)
             {
+                /* Every hundred bits we need to do the error rate measurement */
                 s->step = 100;
-                test = TRUE;
-                for (i = 2;  i <= 7;  i++)
-                {
-                    if (++s->decade_ptr[i] < 10)
-                        break;
-                    s->decade_ptr[i] = 0;
-                    for (sum = 0, j = 0;  j < 10;  j++)
-                        sum += s->decade_bad[i][j];
-                    if (test  &&  sum > 10)
-                    {
-                        test = FALSE;
-                        if (s->error_rate != i  &&  s->reporter)
-                            s->reporter(s->user_data, BERT_REPORT_GT_10_2 + i - 2, &s->results);
-                        s->error_rate = i;
-                    }
-                    s->decade_bad[i][0] = 0;
-                    if (i < 7)
-                        s->decade_bad[i + 1][s->decade_ptr[i + 1]] = sum;
-                }
-                if (i > 7)
-                {
-                    if (s->decade_ptr[i] >= 10)
-                        s->decade_ptr[i] = 0;
-                    if (test)
-                    {
-                        if (s->error_rate != i  &&  s->reporter)
-                            s->reporter(s->user_data, BERT_REPORT_GT_10_2 + i - 2, &s->results);
-                        s->error_rate = i;
-                    }
-                }
-                else
-                {
-                    s->decade_bad[i][s->decade_ptr[i]] = 0;
-                }
+                assess_error_rate(s);
             }
             if (--s->resync_cnt <= 0)
             {

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.h,v 1.7 2006/10/24 13:22:02 steveu Exp $
+ * $Id: sig_tone.h,v 1.9 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
@@ -37,8 +37,8 @@ in many analogue signaling procotols, and digital ones derived from them.
 TBD
 */
 
-#if !defined(_SIG_TONE_H_)
-#define _SIG_TONE_H_
+#if !defined(_SPANDSP_SIG_TONE_H_)
+#define _SPANDSP_SIG_TONE_H_
 
 typedef int (*sig_tone_func_t)(void *user_data, int what);
 
@@ -166,6 +166,11 @@ typedef struct
     int signaling_state_duration;
 } sig_tone_state_t;
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*! Initialise a signaling tone context.
     \brief Initialise a signaling tone context.
     \param s The signaling tone context.
@@ -190,6 +195,10 @@ int sig_tone_rx(sig_tone_state_t *s, int16_t amp[], int len);
     \param len The number of samples to be generated.
     \return The number of samples actually generated. */
 int sig_tone_tx(sig_tone_state_t *s, int16_t amp[], int len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

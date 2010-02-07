@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: awgn.h,v 1.8 2006/10/24 13:45:27 steveu Exp $
+ * $Id: awgn.h,v 1.10 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
@@ -42,8 +42,8 @@
    The non-core nature of this code also explains why it is unlikely
    to ever be optimised. */
 
-#if !defined(_AWGN_H_)
-#define _AWGN_H_
+#if !defined(_SPANDSP_AWGN_H_)
+#define _SPANDSP_AWGN_H_
 
 /*! \page awgn_page Additive white gaussian noise (AWGN) generation
 
@@ -83,7 +83,8 @@ typedef struct
 } awgn_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 void awgn_init_dbm0(awgn_state_t *s, int idum, float level);

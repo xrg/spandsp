@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: adsi.h,v 1.15 2006/10/24 13:22:01 steveu Exp $
+ * $Id: adsi.h,v 1.17 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_ADSI_H_)
-#define _ADSI_H_
+#if !defined(_SPANDSP_ADSI_H_)
+#define _SPANDSP_ADSI_H_
 
 /*! \page adsi_page ADSI transmission and reception
 \section adsi_page_sec_1 What does it do?
@@ -324,7 +324,8 @@ typedef struct
 } adsi_rx_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! \brief Initialise an ADSI receive context.

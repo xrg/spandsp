@@ -22,11 +22,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: bert.h,v 1.13 2006/10/24 13:45:27 steveu Exp $
+ * $Id: bert.h,v 1.16 2007/04/05 19:20:49 steveu Exp $
  */
 
-#if !defined(_BERT_H_)
-#define _BERT_H_
+#if !defined(_SPANDSP_BERT_H_)
+#define _SPANDSP_BERT_H_
 
 /*! \page bert_page The Bit Error Rate tester
 \section bert_page_sec_1 What does it do?
@@ -55,7 +55,7 @@ the software looks over 10*10^5 => 10^6 bits.
 
 enum
 {
-    BERT_REPORT_SYNCED,
+    BERT_REPORT_SYNCED = 0,
     BERT_REPORT_UNSYNCED,
     BERT_REPORT_REGULAR,
     BERT_REPORT_GT_10_2,
@@ -74,7 +74,7 @@ enum
 
 enum
 {
-    BERT_PATTERN_ZEROS,
+    BERT_PATTERN_ZEROS = 0,
     BERT_PATTERN_ONES,
     BERT_PATTERN_7_TO_1,
     BERT_PATTERN_3_TO_1,
@@ -141,8 +141,8 @@ typedef struct
     int invert;
     int resync_time;
 
-    int decade_ptr[8];
-    int decade_bad[8][10];
+    int decade_ptr[9];
+    int decade_bad[9][10];
     int step;
     int error_rate;
 
@@ -156,8 +156,14 @@ typedef struct
 } bert_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
+
+/*! Return a short description of a BERT event.
+    \param event The event type.
+    \return A pointer to a short text string describing the event. */
+const char *bert_event_to_str(int event);
 
 /*! Initialise a BERT context.
     \param s The BERT context.

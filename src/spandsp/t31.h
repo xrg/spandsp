@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.h,v 1.37 2006/10/24 13:45:28 steveu Exp $
+ * $Id: t31.h,v 1.39 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_T31_H_)
-#define _T31_H_
+#if !defined(_SPANDSP_T31_H_)
+#define _SPANDSP_T31_H_
 
 /*! \page t31_page T.31 Class 1 FAX modem protocol handling
 \section t31_page_sec_1 What does it do?
@@ -174,7 +174,8 @@ struct t31_state_s
 };
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 void t31_call_event(t31_state_t *s, int event);

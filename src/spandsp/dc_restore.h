@@ -23,13 +23,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: dc_restore.h,v 1.15 2006/12/01 18:00:48 steveu Exp $
+ * $Id: dc_restore.h,v 1.17 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_DC_RESTORE_H_)
-#define _DC_RESTORE_H_
+#if !defined(_SPANDSP_DC_RESTORE_H_)
+#define _SPANDSP_DC_RESTORE_H_
 
 /*! \page dc_restore_page Removing DC bias from a signal
 
@@ -62,7 +62,8 @@ typedef struct
 } dc_restore_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 static __inline__ void dc_restore_init(dc_restore_state_t *dc)

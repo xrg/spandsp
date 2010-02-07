@@ -22,11 +22,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: time_scale.h,v 1.7 2006/10/24 13:45:28 steveu Exp $
+ * $Id: time_scale.h,v 1.9 2007/04/05 19:20:50 steveu Exp $
  */
 
-#if !defined(_TIME_SCALE_H_)
-#define _TIME_SCALE_H_
+#if !defined(_SPANDSP_TIME_SCALE_H_)
+#define _SPANDSP_TIME_SCALE_H_
 
 /*! \page time_scale_page Time scaling speech
 \section time_scale_page_sec_1 What does it do?
@@ -62,7 +62,8 @@ typedef struct
 } time_scale_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise a time scale context. This must be called before the first

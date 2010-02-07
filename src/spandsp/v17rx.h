@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.35 2006/10/24 13:45:28 steveu Exp $
+ * $Id: v17rx.h,v 1.37 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_V17RX_H_)
-#define _V17RX_H_
+#if !defined(_SPANDSP_V17RX_H_)
+#define _SPANDSP_V17RX_H_
 
 /*! \page v17rx_page The V.17 receiver
 \section v17rx_page_sec_1 What does it do?
@@ -329,7 +329,8 @@ extern const complexf_t v17_9600_constellation[32];
 extern const complexf_t v17_7200_constellation[16];
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise a V.17 modem receive context.

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: async.h,v 1.6 2006/10/24 13:22:01 steveu Exp $
+ * $Id: async.h,v 1.8 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
@@ -46,8 +46,8 @@ and decoding must occur before data is fed to this module.
 ???.
 */
 
-#if !defined(_ASYNC_H_)
-#define _ASYNC_H_
+#if !defined(_SPANDSP_ASYNC_H_)
+#define _SPANDSP_ASYNC_H_
 
 /* Special "bit" values for the put and get bit functions */
 enum
@@ -158,7 +158,8 @@ typedef struct
 } async_rx_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise an asynchronous data transmit context.

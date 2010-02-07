@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.70 2007/02/23 12:59:45 steveu Exp $
+ * $Id: t4.c,v 1.71 2007/04/05 16:32:08 steveu Exp $
  */
 
 /*
@@ -1822,7 +1822,7 @@ int t4_tx_start_page(t4_state_t *s)
                 s->row_buf[row_bufptr++] = (uint8_t) (pattern >> 8);
                 s->row_buf[row_bufptr++] = (uint8_t) (pattern & 0xFF);
             }
-            for (  ;  row_bufptr <= s->bytes_per_row;  )
+            for (  ;  row_bufptr < s->bytes_per_row;  )
                 s->row_buf[row_bufptr++] = 0;
             switch (s->y_resolution)
             {

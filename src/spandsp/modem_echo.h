@@ -25,13 +25,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo.h,v 1.7 2006/10/24 13:45:28 steveu Exp $
+ * $Id: modem_echo.h,v 1.8 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_MODEM_ECHO_H_)
-#define _MODEM_ECHO_H_
+#if !defined(_SPANDSP_MODEM_ECHO_H_)
+#define _SPANDSP_MODEM_ECHO_H_
 
 /*! \page modem_echo_can_page Line echo cancellation for modems
 

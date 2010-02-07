@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: line_model.h,v 1.13 2007/02/06 14:43:32 steveu Exp $
+ * $Id: line_model.h,v 1.14 2007/03/28 13:56:05 steveu Exp $
  */
 
 /*! \file */
@@ -104,6 +104,12 @@ typedef struct
     float far_cpe_hybrid_echo;
     /*! The scaling factor for the far CO hybrid echo */
     float far_co_hybrid_echo;
+    /*! DC offset impairment */
+    float dc_offset;
+    
+    /*! Mains pickup impairment */
+    int mains_interference;
+    tone_gen_state_t mains_tone;
 } one_way_line_model_state_t;
 
 /*!
@@ -123,12 +129,16 @@ extern "C" {
 #endif
 
 void both_ways_line_model(both_ways_line_model_state_t *s, 
-                          int16_t *output1,
-                          const int16_t *input1,
-                          int16_t *output2,
-                          const int16_t *input2,
+                          int16_t output1[],
+                          const int16_t input1[],
+                          int16_t output2[],
+                          const int16_t input2[],
                           int samples);
 
+void both_ways_line_model_set_dc(both_ways_line_model_state_t *s, float dc1, float dc2);
+
+void both_ways_line_model_set_mains_pickup(both_ways_line_model_state_t *s, int f, float level1, float level2);
+    
 both_ways_line_model_state_t *both_ways_line_model_init(int model1,
                                                         float noise1,
                                                         int model2,
@@ -139,9 +149,13 @@ both_ways_line_model_state_t *both_ways_line_model_init(int model1,
 int both_ways_line_model_release(both_ways_line_model_state_t *s);
 
 void one_way_line_model(one_way_line_model_state_t *s, 
-                        int16_t *output,
-                        const int16_t *input,
+                        int16_t output[],
+                        const int16_t input[],
                         int samples);
+
+void one_way_line_model_set_dc(one_way_line_model_state_t *s, float dc);
+
+void one_way_line_model_set_mains_pickup(one_way_line_model_state_t *s, int f, float level);
 
 one_way_line_model_state_t *one_way_line_model_init(int model, float noise, int codec, int rbs_pattern);
 

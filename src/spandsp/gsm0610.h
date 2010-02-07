@@ -22,11 +22,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: gsm0610.h,v 1.7 2006/10/24 13:45:28 steveu Exp $
+ * $Id: gsm0610.h,v 1.9 2007/04/05 19:20:49 steveu Exp $
  */
 
-#if !defined(_GSM0610_H_)
-#define _GSM0610_H_
+#if !defined(_SPANDSP_GSM0610_H_)
+#define _SPANDSP_GSM0610_H_
 
 /*! \page gsm0610_page GSM 06.10 encoding and decoding
 \section gsm0610_page_sec_1 What does it do?
@@ -97,7 +97,8 @@ typedef struct
 } gsm0610_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*! Initialise a GSM 06.10 encode or decode context.

@@ -22,13 +22,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_fcf.h,v 1.9 2006/10/24 13:45:28 steveu Exp $
+ * $Id: t30_fcf.h,v 1.10 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \file */
 
-#if !defined(_T30_FCF_H_)
-#define _T30_FCF_H_
+#if !defined(_SPANDSP_T30_FCF_H_)
+#define _SPANDSP_T30_FCF_H_
 
 /*! Initial identification messages */
 /*! From the called to the calling terminal. */

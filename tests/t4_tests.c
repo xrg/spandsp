@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.35 2007/02/22 13:21:52 steveu Exp $
+ * $Id: t4_tests.c,v 1.36 2007/03/27 13:04:01 steveu Exp $
  */
 
 /*! \file */
@@ -142,6 +142,7 @@ int main(int argc, char* argv[])
     memset(&send_state, 0, sizeof(send_state));
     memset(&receive_state, 0, sizeof(receive_state));
 
+    end_of_page = FALSE;
     if (decode_test)
     {
         if (compression < 0)

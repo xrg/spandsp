@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: biquad.h,v 1.9 2006/10/24 13:45:28 steveu Exp $
+ * $Id: biquad.h,v 1.11 2007/04/05 19:20:49 steveu Exp $
  */
 
 /*! \page biquad_page Bi-quadratic filter sections
@@ -34,8 +34,8 @@
 ???.
 */
 
-#if !defined(_BIQUAD_H_)
-#define _BIQUAD_H_
+#if !defined(_SPANDSP_BIQUAD_H_)
+#define _SPANDSP_BIQUAD_H_
 
 typedef struct
 {
@@ -57,7 +57,8 @@ typedef struct
 } biquad2_state_t;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 static __inline__ void biquad2_init(biquad2_state_t *bq,

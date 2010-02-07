@@ -28,7 +28,7 @@
  * Computer Science, Speech Group
  * Chengxiang Lu and Alex Hauptmann
  *
- * $Id: g722_encode.c,v 1.16 2006/11/19 14:07:24 steveu Exp $
+ * $Id: g722_encode.c,v 1.17 2007/03/14 11:51:01 steveu Exp $
  */
 
 /*! \file */
@@ -276,8 +276,7 @@ int g722_encode(g722_encode_state_t *s, uint8_t g722_data[], const int16_t amp[]
             {
                 /* Apply the transmit QMF */
                 /* Shuffle the buffer down */
-                for (i = 0;  i < 22;  i++)
-                    s->x[i] = s->x[i + 2];
+                memcpy(s->x, &s->x[2], 22*sizeof(s->x[0]));
                 s->x[22] = amp[j++];
                 s->x[23] = amp[j++];
     

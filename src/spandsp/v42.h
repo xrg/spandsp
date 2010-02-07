@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v42.h,v 1.17 2006/10/24 13:22:02 steveu Exp $
+ * $Id: v42.h,v 1.19 2007/04/05 19:20:50 steveu Exp $
  */
 
 /*! \page v42_page V.42 modem error correction
@@ -35,8 +35,8 @@ far modem supports V.42 is also defined.
 \section v42_page_sec_2 How does it work?
 */
 
-#if !defined(_V42_H_)
-#define _V42_H_
+#if !defined(_SPANDSP_V42_H_)
+#define _SPANDSP_V42_H_
 
 enum
 {
@@ -155,7 +155,8 @@ typedef struct
 #define LAPM_DEBUG_LAPM_STATE 	    (1 << 2)
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 const char *lapm_status_to_str(int status);

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.68 2007/03/02 13:14:06 steveu Exp $
+ * $Id: v17rx.c,v 1.76 2007/03/31 04:16:30 steveu Exp $
  */
 
 /*! \file */
@@ -61,6 +61,7 @@
 #define CARRIER_NOMINAL_FREQ            1800.0f
 #define BAUD_RATE                       2400
 #define EQUALIZER_DELTA                 0.21f
+#define EQUALIZER_SLOW_ADAPT_RATIO      0.1f
 
 /* Segments of the training sequence */
 #define V17_TRAINING_SEG_1_LEN          256
@@ -11208,7 +11209,7 @@ static void equalizer_restore(v17_rx_state_t *s)
 
     s->eq_put_step = PULSESHAPER_COEFF_SETS*10/(3*2) - 1;
     s->eq_step = 0;
-    s->eq_delta = EQUALIZER_DELTA/(V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN);
+    s->eq_delta = EQUALIZER_SLOW_ADAPT_RATIO*EQUALIZER_DELTA/(V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -11309,8 +11310,7 @@ static void track_carrier(v17_rx_state_t *s, const complexf_t *z, const complexf
     
     s->carrier_phase_rate += (int32_t) (s->carrier_track_i*error);
     s->carrier_phase += (int32_t) (s->carrier_track_p*error);
-    span_log(&s->logging, SPAN_LOG_FLOW, "Im = %15.5f   f = %15.5f\n", error, dds_frequencyf(s->carrier_phase_rate));
-    printf("Im = %15.5f (%15.5f)  f = %15.5f\n", error, s->carrier_track_i, dds_frequencyf(s->carrier_phase_rate));
+    //span_log(&s->logging, SPAN_LOG_FLOW, "Im = %15.5f   f = %15.5f\n", error, dds_frequencyf(s->carrier_phase_rate));
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -11331,7 +11331,7 @@ static __inline__ void put_bit(v17_rx_state_t *s, int bit)
            buggy modems mean you cannot rely on this. Therefore we don't bother
            testing for ones, but just rely on a constellation mismatch measurement. */
         out_bit = descramble(s, bit);
-        span_log(&s->logging, SPAN_LOG_FLOW, "A 1 is really %d\n", out_bit);
+        //span_log(&s->logging, SPAN_LOG_FLOW, "A 1 is really %d\n", out_bit);
     }
 }
 /*- End of function --------------------------------------------------------*/
@@ -11528,7 +11528,7 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
     else
         s->baud_balance += (s->baud_phase < 0)  ?  -1  :  1;
 
-    printf("v = %10.5f %5d - %f %f %d %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction, s->baud_balance);
+    //printf("v = %10.5f %5d - %f %f %d %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction, s->baud_balance);
 
     if (abs(s->baud_balance) > 16)
     {
@@ -11546,7 +11546,7 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
         i = 1;
     else if (s->baud_phase < -100.0f)
         i = -1;
-    printf("v = %10.5f %5d - %f %f %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
+    //printf("v = %10.5f %5d - %f %f %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
 
     s->eq_put_step += i;
     s->total_baud_timing_correction += i;
@@ -11571,7 +11571,7 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
             s->angles[0] =
             s->start_angles[0] = arctan2(z.im, z.re);
             s->in_training = TRAINING_STAGE_LOG_PHASE;
-            if (!s->short_train)
+            if (s->agc_scaling_save == 0.0f)
                 s->agc_scaling_save = s->agc_scaling;
         }
         break;
@@ -11602,7 +11602,7 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
             /* angle is now the difference between where A is, and where it should be */
             p = 3.14159f + angle*2.0f*3.14159f/(65536.0f*65536.0f) - 0.321751f;
             span_log(&s->logging, SPAN_LOG_FLOW, "Spin (short) by %.5f rads\n", p);
-            printf("Spin (short) by %.5f rads\n", p);
+            //printf("Spin (short) by %.5f rads\n", p);
             zz = complex_setf(cosf(p), -sinf(p));
             for (i = 0;  i <= V17_EQUALIZER_MASK;  i++)
                 s->eq_buf[i] = complex_mulf(&s->eq_buf[i], &zz);
@@ -11625,7 +11625,6 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
         /* Look for the initial ABAB sequence to display a phase reversal, which will
            signal the start of the scrambled CDBA segment */
         ang = angle - s->angles[(s->training_count - 1) & 0xF];
-//printf("Ang= %10d %15.5f %15.5f\n", angle, z.im, z.re);
         s->angles[(s->training_count + 1) & 0xF] = angle;
 
         if (s->training_count == 100)
@@ -11649,8 +11648,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
         }
         if ((ang > 0x40000000  ||  ang < -0x40000000)  &&  s->training_count >= 13)
         {
-span_log(&s->logging, SPAN_LOG_FLOW, "We seem to have a reversal at symbol %d\n", s->training_count);
-//printf("We seem to have a reversal at symbol %d\n", s->training_count);
+            span_log(&s->logging, SPAN_LOG_FLOW, "We seem to have a reversal at symbol %d\n", s->training_count);
             /* We seem to have a phase reversal */
             /* Slam the carrier frequency into line, based on the total phase drift over the last
                section. Use the shift from the odd bits and the shift from the even bits to get
@@ -11669,7 +11667,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "We seem to have a reversal at symbol %d\n"
                 ang = (s->angles[j] - s->start_angles[0])/(i - 100 + 8)
                     + (s->angles[j | 0x1] - s->start_angles[1])/(i - 100 + 8);
                 s->carrier_phase_rate += 3*(ang/20);
-span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angles[j], s->start_angles[0], s->angles[j | 0x1], s->start_angles[1], i);
+                span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angles[j], s->start_angles[0], s->angles[j | 0x1], s->start_angles[1], i);
             }
             //span_log(&s->logging, SPAN_LOG_FLOW, "%d %d %d %d %d\n", s->angles[s->training_count & 0xF], s->start_angles[0], s->angles[(s->training_count | 0x1) & 0xF], s->start_angles[1], s->training_count);
             span_log(&s->logging, SPAN_LOG_FLOW, "Coarse carrier frequency %7.2f (%d)\n", dds_frequencyf(s->carrier_phase_rate), s->training_count);
@@ -11691,7 +11689,6 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
             /* angle is now the difference between where C is, and where it should be */
             p = angle*2.0f*3.14159f/(65536.0f*65536.0f) - 0.321751f;
             span_log(&s->logging, SPAN_LOG_FLOW, "Spin (long) by %.5f rads\n", p);
-            printf("Spin (long) by %.5f rads\n", p);
             zz = complex_setf(cosf(p), -sinf(p));
             for (i = 0;  i <= V17_EQUALIZER_MASK;  i++)
                 s->eq_buf[i] = complex_mulf(&s->eq_buf[i], &zz);
@@ -11723,7 +11720,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
         tune_equalizer(s, &z, target);
         if (s->training_count == V17_TRAINING_SEG_2_LEN - 2000)
         {
-            s->eq_delta /= 2.0;
+            s->eq_delta *= EQUALIZER_SLOW_ADAPT_RATIO;
             s->carrier_track_i = 1000.0f;
         }
         if (++s->training_count >= V17_TRAINING_SEG_2_LEN - 48)
@@ -11749,7 +11746,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
         if (++s->training_count >= V17_TRAINING_SEG_2_LEN)
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "Long training error %f\n", s->training_error);
-            if (s->training_error < 100.0f)
+            if (s->training_error < 20.0f)
             {
                 s->training_count = 0;
                 s->training_error = 0.0f;
@@ -11772,7 +11769,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
         if (++s->training_count >= V17_TRAINING_SEG_3_LEN)
         {
             s->training_count = 0;
-            s->training_error = 0.0;
+            s->training_error = 0.0f;
             s->in_training = TRAINING_STAGE_TCM_WINDUP;
         }
         break;
@@ -11790,6 +11787,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
             descramble(s, 1);
             descramble(s, 1);
             s->training_count = 1;
+            s->training_error = 0.0f;
             s->in_training = TRAINING_STAGE_SHORT_TRAIN_ON_CDBA_AND_TEST;
         }
         else
@@ -11825,7 +11823,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
             span_log(&s->logging, SPAN_LOG_FLOW, "Short training error %f\n", s->training_error);
             s->carrier_track_i = 100.0f;
             s->carrier_track_p = 500000.0f;
-            if (s->training_error < 4000.0f)
+            if (s->training_error < 20.0f)
             {
                 s->training_count = 0;
                 s->in_training = TRAINING_STAGE_TCM_WINDUP;
@@ -11867,7 +11865,7 @@ span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angl
         s->training_error += powerf(&zz);
         if (++s->training_count >= V17_TRAINING_SEG_4_LEN)
         {
-            if (s->training_error < 5.0f)
+            if (s->training_error < 20.0f)
             {
                 /* We are up and running */
                 span_log(&s->logging, SPAN_LOG_FLOW, "Training succeeded (constellation mismatch %f)\n", s->training_error);
@@ -12021,9 +12019,8 @@ void v17_rx_set_put_bit(v17_rx_state_t *s, put_bit_func_t put_bit, void *user_da
 int v17_rx_restart(v17_rx_state_t *s, int rate, int short_train)
 {
     int i;
-    int j;
 
-    span_log(&s->logging, SPAN_LOG_FLOW, "Restarting V.17\n");
+    span_log(&s->logging, SPAN_LOG_FLOW, "Restarting V.17, %dbps, %s training\n", rate, (short_train)  ?  "short"  :  "long");
     switch (rate)
     {
     case 14400:
@@ -12057,22 +12054,21 @@ int v17_rx_restart(v17_rx_state_t *s, int rate, int short_train)
     s->scramble_reg = 0x2ECDD5;
     s->in_training = TRAINING_STAGE_SYMBOL_ACQUISITION;
     s->training_count = 0;
+    s->training_error = 0.0f;
     s->carrier_present = 0;
-    s->short_train = short_train;
+    if (short_train != 2)
+        s->short_train = short_train;
+    memset(s->start_angles, 0, sizeof(s->start_angles));
+    memset(s->angles, 0, sizeof(s->angles));
 
     /* Initialise the TCM decoder parameters. */
     /* The accumulated distance vectors are set so state zero starts
        at a value of zero, and all others start larger. This forces the
        initial paths to merge at the zero states. */
     for (i = 0;  i < 8;  i++)
-    {
-        s->distances[i] = 99.0;
-        for (j = 0;  j < 16;  j++)
-        {
-            s->full_path_to_past_state_locations[j][i] = 0;
-            s->past_state_locations[j][i] = 0;
-        }
-    }
+        s->distances[i] = 99.0f;
+    memset(s->full_path_to_past_state_locations, 0, sizeof(s->full_path_to_past_state_locations));
+    memset(s->past_state_locations, 0, sizeof(s->past_state_locations));
     s->distances[0] = 0;
     s->trellis_ptr = 14;
 
@@ -12092,6 +12088,7 @@ int v17_rx_restart(v17_rx_state_t *s, int rate, int short_train)
     else
     {
         s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
+        s->agc_scaling_save = 0.0f;
         s->agc_scaling = 0.0005f;
         equalizer_reset(s);
         s->carrier_track_i = 5000.0f;

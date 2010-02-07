@@ -1,4 +1,5 @@
 #define ENABLE_V17
+//#define ADD_MAINS_INTERFERENCE
 /*
  * SpanDSP - a series of DSP components for telephony
  *
@@ -23,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17_tests.c,v 1.62 2007/03/02 13:14:07 steveu Exp $
+ * $Id: v17_tests.c,v 1.65 2007/03/28 13:56:05 steveu Exp $
  */
 
 /*! \page v17_tests_page V.17 modem tests
@@ -178,33 +179,16 @@ static void v17putbit(void *user_data, int bit)
         return;
     }
 
-#if 0
-    printf("Rx bit %d - %d - %d\n", rx_bits++, bit, tx_bits);
-#else
     if (decode_test_file)
         printf("Rx bit %d - %d\n", rx_bits++, bit);
     else
         bert_put_bit(&bert, bit);
-#endif
 }
 /*- End of function --------------------------------------------------------*/
 
 static int v17getbit(void *user_data)
 {
-#if 0
-    if (++tx_bits >= 50000)
-    {
-        tx_bits = 0;
-        return PUTBIT_END_OF_DATA;
-    }
-//    if (tx_bits < 200)
-//        return (tx_bits & 1);
-    if (tx_bits == 1)
-        return 0;
-    return 1;
-#else
     return bert_get_bit(&bert);
-#endif
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -283,6 +267,7 @@ int main(int argc, char *argv[])
     int log_audio;
     int channel_codec;
     int rbs_pattern;
+    float x;
 
     channel_codec = MUNGE_CODEC_NONE;
     rbs_pattern = 0;
@@ -390,6 +375,21 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
             exit(2);
         }
+        if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
+        {
+            printf("    Unexpected frame size in speech file '%s'\n", decode_test_file);
+            exit(2);
+        }
+        if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
+        {
+            printf("    Unexpected sample rate in speech file '%s'\n", decode_test_file);
+            exit(2);
+        }
+        if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
+        {
+            printf("    Unexpected number of channels in speech file '%s'\n", decode_test_file);
+            exit(2);
+        }
     }
     else
     {
@@ -408,6 +408,10 @@ int main(int argc, char *argv[])
             fprintf(stderr, "    Failed to create line model\n");
             exit(2);
         }
+        one_way_line_model_set_dc(line_model, 0.0f);
+#if defined(ADD_MAINS_INTERFERENCE)
+        one_way_line_model_set_mains_pickup(line_model, 50, -40.0f);
+#endif
     }
 
     v17_rx_init(&rx, test_bps, v17putbit, &rx);
@@ -485,11 +489,12 @@ int main(int argc, char *argv[])
                 bert_init(&bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
                 bert_set_report(&bert, 10000, reporter, NULL);
             }
+            one_way_line_model(line_model, amp, gen_amp, samples);
             if (log_audio)
             {
                 outframes = afWriteFrames(outhandle,
                                           AF_DEFAULT_TRACK,
-                                          gen_amp,
+                                          amp,
                                           samples);
                 if (outframes != samples)
                 {
@@ -497,7 +502,6 @@ int main(int argc, char *argv[])
                     exit(2);
                 }
             }
-            one_way_line_model(line_model, amp, gen_amp, samples);
         }
 #if defined(ENABLE_GUI)
         if (use_gui  &&  !decode_test_file)
