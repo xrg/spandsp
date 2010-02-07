@@ -204,10 +204,10 @@ MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = DueDiligence \
              spandsp.spec \
              wrapper.xsl \
+             libspandsp.vcproj \
              doc/libspandsp-doxygen \
              src/float_fudge.h \
              src/spandsp/version.h.in \
-             src/libspandsp.vcproj \
              src/libspandsp.dsp \
              src/libspandsp.sln \
              src/msvc/gettimeofday.c \

@@ -59,9 +59,10 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)"
 libLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libspandsp_sim_la_LIBADD =
-am_libspandsp_sim_la_OBJECTS = g1050.lo line_model.lo line_models.lo \
-	test_utils.lo
-libspandsp_sim_la_OBJECTS = $(am_libspandsp_sim_la_OBJECTS)
+am_libspandsp_sim_la_OBJECTS = g1050.lo line_model.lo test_utils.lo
+nodist_libspandsp_sim_la_OBJECTS = line_models.lo
+libspandsp_sim_la_OBJECTS = $(am_libspandsp_sim_la_OBJECTS) \
+	$(nodist_libspandsp_sim_la_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
 am_make_line_models_OBJECTS = make_line_models.$(OBJEXT)
 make_line_models_OBJECTS = $(am_make_line_models_OBJECTS)
@@ -77,7 +78,9 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libspandsp_sim_la_SOURCES) $(make_line_models_SOURCES)
+SOURCES = $(libspandsp_sim_la_SOURCES) \
+	$(nodist_libspandsp_sim_la_SOURCES) \
+	$(make_line_models_SOURCES)
 DIST_SOURCES = $(libspandsp_sim_la_SOURCES) \
 	$(make_line_models_SOURCES)
 nobase_includeHEADERS_INSTALL = $(install_sh_DATA)
@@ -205,9 +208,9 @@ INCLUDES = -I$(top_builddir) -I$(top_builddir)/src -DDATADIR="\"$(pkgdatadir)\""
 lib_LTLIBRARIES = libspandsp-sim.la
 libspandsp_sim_la_SOURCES = g1050.c \
                             line_model.c \
-                            line_models.c \
                             test_utils.c
 
+nodist_libspandsp_sim_la_SOURCES = line_models.c
 libspandsp_sim_la_LDFLAGS = -version-info @SPANDSP_LT_CURRENT@:@SPANDSP_LT_REVISION@:@SPANDSP_LT_AGE@
 nobase_include_HEADERS = spandsp/g1050.h \
                          spandsp/line_model.h \

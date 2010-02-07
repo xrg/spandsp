@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.28 2007/07/22 08:52:45 steveu Exp $
+## $Id: Makefile.am,v 1.29 2007/09/23 12:45:15 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 
@@ -29,10 +29,10 @@ MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = DueDiligence \
              spandsp.spec \
              wrapper.xsl \
+             libspandsp.vcproj \
              doc/libspandsp-doxygen \
              src/float_fudge.h \
              src/spandsp/version.h.in \
-             src/libspandsp.vcproj \
              src/libspandsp.dsp \
              src/libspandsp.sln \
              src/msvc/gettimeofday.c \

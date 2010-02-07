@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.h,v 1.36 2007/09/15 06:10:20 steveu Exp $
+ * $Id: t4.h,v 1.38 2007/09/26 03:19:23 steveu Exp $
  */
 
 /*! \file */
@@ -46,21 +46,114 @@ enum
     T4_COMPRESSION_ITU_T4_1D = 1,
     T4_COMPRESSION_ITU_T4_2D = 2,
     T4_COMPRESSION_ITU_T6 = 3
-};
+} t4_image_compression_t;
 
 enum
 {
-    T4_X_RESOLUTION_R4 = 4019,
-    T4_X_RESOLUTION_R8 = 8037,
-    T4_X_RESOLUTION_R16 = 16074
-};
+    T4_X_RESOLUTION_R4 = 4016,
+    T4_X_RESOLUTION_R8 = 8031,
+    T4_X_RESOLUTION_300 = 11811,
+    T4_X_RESOLUTION_R16 = 16063,
+    T4_X_RESOLUTION_600 = 23622,
+    T4_X_RESOLUTION_800 = 31496,
+    T4_X_RESOLUTION_1200 = 47244
+} t4_image_x_resolution_t;
 
 enum
 {
     T4_Y_RESOLUTION_STANDARD = 3850,
     T4_Y_RESOLUTION_FINE = 7700,
-    T4_Y_RESOLUTION_SUPERFINE = 15400
-};
+    T4_Y_RESOLUTION_300 = 11811,
+    T4_Y_RESOLUTION_SUPERFINE = 15400,  /* 400 is 15748 */
+    T4_Y_RESOLUTION_600 = 23622,
+    T4_Y_RESOLUTION_800 = 31496,
+    T4_Y_RESOLUTION_1200 = 47244
+} t4_image_y_resolution_t;
+
+/*!
+    Exact widths in PELs for the difference resolutions, and page widths.
+    Note:
+        The A4 widths also apply to North American letter and legal.
+        The R4 resolution widths are not supported in recent versions of T.30
+        Only images of exactly these widths are acceptable for FAX transmisson.
+
+    R4    864 pels/215mm for ISO A4, North American Letter and Legal
+    R4   1024 pels/255mm for ISO B4
+    R4   1216 pels/303mm for ISO A3
+    R8   1728 pels/215mm for ISO A4, North American Letter and Legal
+    R8   2048 pels/255mm for ISO B4
+    R8   2432 pels/303mm for ISO A3
+    R16  3456 pels/215mm for ISO A4, North American Letter and Legal
+    R16  4096 pels/255mm for ISO B4
+    R16  4864 pels/303mm for ISO A3
+*/
+typedef enum
+{
+    T4_WIDTH_R4_A4 = 864,
+    T4_WIDTH_R4_B4 = 1024,
+    T4_WIDTH_R4_A3 = 1216,
+    T4_WIDTH_R8_A4 = 1728,
+    T4_WIDTH_R8_B4 = 2048,
+    T4_WIDTH_R8_A3 = 2432,
+    T4_WIDTH_300_A4 = 2592,
+    T4_WIDTH_300_B4 = 3072,
+    T4_WIDTH_300_A3 = 3648,
+    T4_WIDTH_R16_A4 = 3456,
+    T4_WIDTH_R16_B4 = 4096,
+    T4_WIDTH_R16_A3 = 4864,
+    T4_WIDTH_600_A4 = 5184,
+    T4_WIDTH_600_B4 = 6144,
+    T4_WIDTH_600_A3 = 7296,
+    T4_WIDTH_1200_A4 = 10368,
+    T4_WIDTH_1200_B4 = 12288,
+    T4_WIDTH_1200_A3 = 14592
+} t4_image_width_t;
+
+/*!
+    Length of the various supported paper sizes, in pixels at the various Y resolutions.
+    Paper sizes are
+        A4 (215mm x 297mm)
+        B4 (255mm x 364mm)
+        A3 (303mm x 418.56mm)
+        North American Letter (215.9mm x 279.4mm)
+        North American Legal (215.9mm x 355.6mm)
+        Unlimited
+*/
+enum
+{
+    /* A4 is 297mm long */
+    T4_LENGTH_STANDARD_A4 = 1143,
+    T4_LENGTH_FINE_A4 = 2286,
+    T4_LENGTH_300_A4 = 4665,
+    T4_LENGTH_SUPERFINE_A4 = 4573,
+    T4_LENGTH_600_A4 = 6998,
+    T4_LENGTH_800_A4 = 9330,
+    T4_LENGTH_1200_A4 = 13996,
+    /* B4 is 364mm long */
+    T4_LENGTH_STANDARD_B4 = 1401,
+    T4_LENGTH_FINE_B4 = 2802,
+    T4_LENGTH_300_B4 = 0,
+    T4_LENGTH_SUPERFINE_B4 = 5605,
+    T4_LENGTH_600_B4 = 0,
+    T4_LENGTH_800_B4 = 0,
+    T4_LENGTH_1200_B4 = 0,
+    /* North American letter is 279.4mm long */
+    T4_LENGTH_STANDARD_US_LETTER = 1075,
+    T4_LENGTH_FINE_US_LETTER = 2151,
+    T4_LENGTH_300_US_LETTER = 0,
+    T4_LENGTH_SUPERFINE_US_LETTER = 4302,
+    T4_LENGTH_600_US_LETTER = 0,
+    T4_LENGTH_800_US_LETTER = 0,
+    T4_LENGTH_1200_US_LETTER = 0,
+    /* North American legal is 355.6mm long */
+    T4_LENGTH_STANDARD_US_LEGAL = 1369,
+    T4_LENGTH_FINE_US_LEGAL = 2738,
+    T4_LENGTH_300_US_LEGAL = 0,
+    T4_LENGTH_SUPERFINE_US_LEGAL = 5476,
+    T4_LENGTH_600_US_LEGAL = 0,
+    T4_LENGTH_800_US_LEGAL = 0,
+    T4_LENGTH_1200_US_LEGAL = 0
+} t4_image_length_t;
 
 /*!
     T.4 FAX compression/decompression descriptor. This defines the working state

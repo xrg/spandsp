@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.193 2007/09/15 12:21:39 steveu Exp $
+ * $Id: t30.c,v 1.196 2007/09/26 03:19:23 steveu Exp $
  */
 
 /*! \file */
@@ -288,6 +288,8 @@ static void decode_url_msg(t30_state_t *s, char *msg, const uint8_t *pkt, int le
 #define set_dis_dtc_bits(s,val,bit) s->dis_dtc_frame[3 + ((bit - 1)/8)] |= ((val) << ((bit - 1)%8))
 #define clr_dis_dtc_bit(s,bit) s->dis_dtc_frame[3 + ((bit - 1)/8)] &= ~(1 << ((bit - 1)%8))
 
+#define test_bit(s,bit) (s[3 + ((bit - 1)/8)] & (1 << ((bit - 1)%8)))
+
 #define set_dcs_bit(s,bit) s->dcs_frame[3 + ((bit - 1)/8)] |= (1 << ((bit - 1)%8))
 #define set_dcs_bits(s,val,bit) s->dcs_frame[3 + ((bit - 1)/8)] |= ((val) << ((bit - 1)%8))
 #define clr_dcs_bit(s,bit) s->dcs_frame[3 + ((bit - 1)/8)] &= ~(1 << ((bit - 1)%8))
@@ -326,8 +328,8 @@ static int copy_quality(t30_state_t *s)
        intolerable, so retrain. */
     t4_get_transfer_statistics(&(s->t4), &stats);
     span_log(&s->logging, SPAN_LOG_FLOW, "Page no = %d\n", stats.pages_transferred + 1);
-    span_log(&s->logging, SPAN_LOG_FLOW, "Image size = %dx%d\n", stats.width, stats.length);
-    span_log(&s->logging, SPAN_LOG_FLOW, "Image resolution = %dx%d\n", stats.x_resolution, stats.y_resolution);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Image size = %d x %d\n", stats.width, stats.length);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Image resolution = %d x %d\n", stats.x_resolution, stats.y_resolution);
     span_log(&s->logging, SPAN_LOG_FLOW, "Bad rows = %d\n", stats.bad_rows);
     span_log(&s->logging, SPAN_LOG_FLOW, "Longest bad row run = %d\n", stats.longest_bad_row_run);
     if (stats.bad_rows*50 < stats.length)
@@ -1212,6 +1214,7 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
 {
     uint8_t dis_dtc_frame[T30_MAX_DIS_DTC_DCS_LEN];
     int i;
+    int bad;
     
     if (len < 6)
     {
@@ -1258,78 +1261,209 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
     if (s->rx_file[0])
         set_dcs_bit(s, 10);
     /* Set the Y resolution bits */
+    bad = FALSE;
     switch (s->y_resolution)
     {
+    case T4_Y_RESOLUTION_1200:
+        switch (s->x_resolution)
+        {
+        case T4_X_RESOLUTION_600:
+            if (!(s->supported_resolutions & T30_SUPPORT_600_1200_RESOLUTION))
+                bad = TRUE;
+            else
+                set_dcs_bit(s, 109);
+            break;
+        case T4_X_RESOLUTION_1200:
+            if (!(s->supported_resolutions & T30_SUPPORT_1200_1200_RESOLUTION))
+                bad = TRUE;
+            else
+                set_dcs_bit(s, 106);
+            break;
+        default:
+            bad = TRUE;
+            break;
+        }
+        break;
+    case T4_Y_RESOLUTION_800:
+        switch (s->x_resolution)
+        {
+        case T4_X_RESOLUTION_R16:
+            if (!(s->supported_resolutions & T30_SUPPORT_400_800_RESOLUTION))
+                bad = TRUE;
+            else
+                set_dcs_bit(s, 108);
+            break;
+        default:
+            bad = TRUE;
+            break;
+        }
+        break;
+    case T4_Y_RESOLUTION_600:
+        switch (s->x_resolution)
+        {
+        case T4_X_RESOLUTION_300:
+            if (!(s->supported_resolutions & T30_SUPPORT_300_600_RESOLUTION))
+                bad = TRUE;
+            else
+                set_dcs_bit(s, 107);
+            break;
+        case T4_X_RESOLUTION_600:
+            if (!(s->supported_resolutions & T30_SUPPORT_600_600_RESOLUTION))
+                bad = TRUE;
+            else
+                set_dcs_bit(s, 105);
+            break;
+        default:
+            bad = TRUE;
+            break;
+        }
+        break;
+    case T4_Y_RESOLUTION_300:
+        switch (s->x_resolution)
+        {
+        case T4_X_RESOLUTION_300:
+            if (!(s->supported_resolutions & T30_SUPPORT_300_300_RESOLUTION))
+                bad = TRUE;
+            else
+                set_dcs_bit(s, 42);
+            break;
+        default:
+            bad = TRUE;
+            break;
+        }
+        break;
     case T4_Y_RESOLUTION_SUPERFINE:
-        set_dcs_bit(s, 41);
+        switch (s->x_resolution)
+        {
+        case T4_X_RESOLUTION_R8:
+        case T4_X_RESOLUTION_R16:
+            if (!(s->supported_resolutions & T30_SUPPORT_SUPERFINE_RESOLUTION))
+                bad = TRUE;
+            else
+                set_dcs_bit(s, 41);
+            break;
+        default:
+            bad = TRUE;
+            break;
+        }
         break;
     case T4_Y_RESOLUTION_FINE:
-        set_dcs_bit(s, 15);
+        switch (s->x_resolution)
+        {
+        case T4_X_RESOLUTION_R8:
+        case T4_X_RESOLUTION_R16:
+            if (!(s->supported_resolutions & T30_SUPPORT_FINE_RESOLUTION))
+                bad = TRUE;
+            else
+                set_dcs_bit(s, 15);
+            break;
+        default:
+            bad = TRUE;
+            break;
+        }
         break;
     default:
     case T4_Y_RESOLUTION_STANDARD:
+        switch (s->x_resolution)
+        {
+        case T4_X_RESOLUTION_R8:
+        case T4_X_RESOLUTION_R16:
+            /* No bits to set for this */
+            break;
+        default:
+            bad = TRUE;
+            break;
+        }
         break;
+    }
+    if (bad)
+    {
+        s->current_status = T30_ERR_NORESSUPPORT;
+        span_log(&s->logging, SPAN_LOG_FLOW, "Image resolution (%d x %d) not acceptable to far end\n", s->x_resolution, s->y_resolution);
+        return -1;
     }
     /* Set the minimum scan time to be used */
     set_dcs_bits(s, s->min_scan_time_code & 0x7, 21);
     /* Deal with the image width. The X resolution will fall in line with any valid width. */
+    /* Low (R4) res widths are not supported in recent versions of T.30 */
+    bad = FALSE;
     switch (s->image_width)
     {
-        /* Low (R4) res widths are not supported in recent versions of T.30 */
-        /* Medium (R8) res widths */
-    case T30_WIDTH_R8_A4:
-        /* Always supported. No bits need to be set. */
+    case T4_WIDTH_R8_A4:
+    case T4_WIDTH_300_A4:
+    case T4_WIDTH_R16_A4:
+    case T4_WIDTH_600_A4:
+    case T4_WIDTH_1200_A4:
+        /* No width related bits need to be set. */
         break;
-    case T30_WIDTH_R8_B4:
-        if ((s->dis_dtc_frame[5] & (DISBIT2 | DISBIT1)) < 1)
-        {
-            s->current_status = T30_ERR_NOSIZESUPPORT;
-            span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not acceptable to far end\n", s->image_width);
-            return -1;
-        }
-        set_dcs_bit(s, 17);
+    case T4_WIDTH_R8_B4:
+    case T4_WIDTH_300_B4:
+    case T4_WIDTH_R16_B4:
+    case T4_WIDTH_600_B4:
+    case T4_WIDTH_1200_B4:
+        if ((s->dis_dtc_frame[5] & (DISBIT2 | DISBIT1)) < 1  ||  !(s->supported_image_sizes & T30_SUPPORT_255MM_WIDTH))
+            bad = TRUE;
+        else
+            set_dcs_bit(s, 17);
         break;
-    case T30_WIDTH_R8_A3:
-        if ((s->dis_dtc_frame[5] & (DISBIT2 | DISBIT1)) < 2)
-        {
-            s->current_status = T30_ERR_NOSIZESUPPORT;
-            span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not acceptable to far end\n", s->image_width);
-            return -1;
-        }
-        set_dcs_bit(s, 18);
-        break;
-        /* High (R16) res widths */
-    case T30_WIDTH_R16_A4:
-        if ((dis_dtc_frame[8] & DISBIT3) == 0)
-        {
-            s->current_status = T30_ERR_NOSIZESUPPORT;
-            span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not acceptable to far end\n", s->image_width);
-            return -1;
-        }
-        set_dcs_bit(s, 43);
-        break;
-    case T30_WIDTH_R16_B4:
-        if ((dis_dtc_frame[8] & DISBIT3) == 0  ||  (s->dis_dtc_frame[5] & (DISBIT2 | DISBIT1)) == 0)
-        {
-            s->current_status = T30_ERR_NOSIZESUPPORT;
-            span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not acceptable to far end\n", s->image_width);
-            return -1;
-        }
-        set_dcs_bit(s, 17);
-        set_dcs_bit(s, 43);
-        break;
-    case T30_WIDTH_R16_A3:
-        if ((dis_dtc_frame[8] & DISBIT3) == 0  ||  (s->dis_dtc_frame[5] & (DISBIT2 | DISBIT1)) != DISBIT2)
-        {
-            s->current_status = T30_ERR_NOSIZESUPPORT;
-            span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not acceptable to far end\n", s->image_width);
-            return -1;
-        }
-        set_dcs_bit(s, 18);
-        set_dcs_bit(s, 43);
+    case T4_WIDTH_R8_A3:
+    case T4_WIDTH_300_A3:
+    case T4_WIDTH_R16_A3:
+    case T4_WIDTH_600_A3:
+    case T4_WIDTH_1200_A3:
+        if ((s->dis_dtc_frame[5] & (DISBIT2 | DISBIT1)) < 2  ||  !(s->supported_image_sizes & T30_SUPPORT_303MM_WIDTH))
+            bad = TRUE;
+        else
+            set_dcs_bit(s, 18);
         break;
     default:
         /* The image is of an unrecognised width. */
+        bad = TRUE;
+        break;
+    }
+    if (bad)
+    {
+        s->current_status = T30_ERR_NOSIZESUPPORT;
+        span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not a valid FAX image width\n", s->image_width);
+        return -1;
+    }
+    switch (s->image_width)
+    {
+    case T4_WIDTH_R8_A4:
+    case T4_WIDTH_R8_B4:
+    case T4_WIDTH_R8_A3:
+        /* These are always OK */
+        break;
+    case T4_WIDTH_300_A4:
+    case T4_WIDTH_300_B4:
+    case T4_WIDTH_300_A3:
+        if (!test_bit(dis_dtc_frame, 42)  &&  !test_bit(dis_dtc_frame, 107))
+            bad = TRUE;
+        break;
+    case T4_WIDTH_R16_A4:
+    case T4_WIDTH_R16_B4:
+    case T4_WIDTH_R16_A3:
+        if (!test_bit(dis_dtc_frame, 43))
+            bad = TRUE;
+        break;
+    case T4_WIDTH_600_A4:
+    case T4_WIDTH_600_B4:
+    case T4_WIDTH_600_A3:
+        if (!test_bit(dis_dtc_frame, 105)  &&  !test_bit(dis_dtc_frame, 109))
+            bad = TRUE;
+        break;
+    case T4_WIDTH_1200_A4:
+    case T4_WIDTH_1200_B4:
+    case T4_WIDTH_1200_A3:
+        if (!test_bit(dis_dtc_frame, 106))
+            bad = TRUE;
+        break;
+    default:
+        bad = TRUE;
+        break;
+    }
+    if (bad)
+    {
         s->current_status = T30_ERR_NOSIZESUPPORT;
         span_log(&s->logging, SPAN_LOG_FLOW, "Image width (%d pixels) not a valid FAX image width\n", s->image_width);
         return -1;
@@ -1337,17 +1471,17 @@ static int build_dcs(t30_state_t *s, const uint8_t *msg, int len)
     /* Deal with the image length */
     /* If the other end supports unlimited length, then use that. Otherwise, if the other end supports
        B4 use that, as its longer than the default A4 length. */
-    if ((dis_dtc_frame[5] & DISBIT4))
+    if (test_bit(dis_dtc_frame, 20))
         set_dcs_bit(s, 20);
-    else if ((dis_dtc_frame[5] & DISBIT3))
+    else if (test_bit(dis_dtc_frame, 19))
         set_dcs_bit(s, 19);
 
     if (s->error_correcting_mode)
         set_dcs_bit(s, 27);
 
-    if ((s->iaf & T30_IAF_MODE_FLOW_CONTROL)  &&  (s->dis_dtc_frame[18] & DISBIT1))
+    if ((s->iaf & T30_IAF_MODE_FLOW_CONTROL)  &&  test_bit(dis_dtc_frame, 121))
         set_dcs_bit(s, 121);
-    if ((s->iaf & T30_IAF_MODE_CONTINUOUS_FLOW)  &&  (s->dis_dtc_frame[18] & DISBIT3))
+    if ((s->iaf & T30_IAF_MODE_CONTINUOUS_FLOW)  &&  test_bit(dis_dtc_frame, 123))
         set_dcs_bit(s, 123);
     s->dcs_len = 19;
     //t30_decode_dis_dtc_dcs(s, s->dcs_frame, s->dcs_len);
@@ -1550,6 +1684,7 @@ static int start_sending_document(t30_state_t *s, const uint8_t *msg, int len)
     t4_tx_set_local_ident(&(s->t4), s->local_ident);
     t4_tx_set_header_info(&(s->t4), s->header_info);
 
+    s->x_resolution = t4_tx_get_x_resolution(&(s->t4));
     s->y_resolution = t4_tx_get_y_resolution(&(s->t4));
     /* The minimum scan time to be used can't be evaluated until we know the Y resolution, and
        must be evaluated before the minimum scan row bits can be evaluated. */
@@ -1616,7 +1751,7 @@ static void unexpected_frame(t30_state_t *s, const uint8_t *msg, int len)
     case T30_STATE_F_DOC_NON_ECM:
         s->current_status = T30_ERR_INVALCMDRX;
         break;
-}
+    }
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1795,9 +1930,9 @@ static int process_rx_dcs(t30_state_t *s, const uint8_t *msg, int len)
 {
     static const int widths[3][4] =
     {
-        { T30_WIDTH_R4_A4,  T30_WIDTH_R4_B4,  T30_WIDTH_R4_A3, -1}, /* R4 resolution - no longer used in recent versions of T.30 */
-        { T30_WIDTH_R8_A4,  T30_WIDTH_R8_B4,  T30_WIDTH_R8_A3, -1}, /* R8 resolution */
-        {T30_WIDTH_R16_A4, T30_WIDTH_R16_B4, T30_WIDTH_R16_A3, -1}  /* R16 resolution */
+        { T4_WIDTH_R4_A4,  T4_WIDTH_R4_B4,  T4_WIDTH_R4_A3, -1}, /* R4 resolution - no longer used in recent versions of T.30 */
+        { T4_WIDTH_R8_A4,  T4_WIDTH_R8_B4,  T4_WIDTH_R8_A3, -1}, /* R8 resolution */
+        {T4_WIDTH_R16_A4, T4_WIDTH_R16_B4, T4_WIDTH_R16_A3, -1}  /* R16 resolution */
     };
     uint8_t dcs_frame[T30_MAX_DIS_DTC_DCS_LEN];
     int i;
@@ -3145,13 +3280,64 @@ static void process_state_iv(t30_state_t *s, const uint8_t *msg, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void process_state_iv_pps_null(t30_state_t *s, const uint8_t *msg, int len)
+static void process_ppr_bit_list(t30_state_t *s, const uint8_t *msg, int len)
 {
-    t4_stats_t stats;
     int i;
     int j;
     int frame_no;
     int mask;
+
+    /* Check which frames are OK, and mark them as OK. */
+    if (len != 32)
+    {
+        span_log(&s->logging, SPAN_LOG_FLOW, "Bad length for PPR bits - %d\n", len);
+        return;
+    }
+    for (i = 0;  i < 32;  i++)
+    {
+        if (msg[i] == 0)
+        {
+            /* A chunk of 8 frames is OK */
+            s->ecm_frame_map[i + 3] = 0;
+            for (j = 0;  j < 8;  j++)
+                s->ecm_len[(i << 3) + j] = -1;
+        }
+        else
+        {
+            /* We need to sift through a chunk of 8 frames to find he good and bad */
+            mask = 1;
+            for (j = 0;  j < 8;  j++)
+            {
+                frame_no = (i << 3) + j;
+                /* Tick off the frames they are not complaining about as OK */
+                if ((msg[i] & mask) == 0)
+                {
+                    s->ecm_len[frame_no] = -1;
+                }
+                else
+                {
+                    if (frame_no < s->ecm_frames)
+                        span_log(&s->logging, SPAN_LOG_FLOW, "Frame %d to be resent\n", frame_no);
+#if 0
+                    /* Diagnostic: See if the other end is complaining about something we didn't even send this time. */
+                    if (s->ecm_len[frame_no] < 0)
+                        span_log(&s->logging, SPAN_LOG_FLOW, "PPR contains complaint about frame %d, which was not sent\n", frame_no);
+#endif
+                }
+                mask <<= 1;
+            }
+        }
+    }
+    /* Initiate resending of the remainder of the frames. */
+    set_state(s, T30_STATE_IV);
+    queue_phase(s, T30_PHASE_C_ECM_TX);
+    send_first_ecm_frame(s);
+}
+/*- End of function --------------------------------------------------------*/
+
+static void process_state_iv_pps_null(t30_state_t *s, const uint8_t *msg, int len)
+{
+    t4_stats_t stats;
     uint8_t frame[4];
 
     switch (msg[2] & 0xFE)
@@ -3248,44 +3434,7 @@ static void process_state_iv_pps_null(t30_state_t *s, const uint8_t *msg, int le
         }
         else
         {
-            /* Check which frames are OK, and mark them as OK. */
-            for (i = 0;  i < 32;  i++)
-            {
-                if (msg[i + 3] == 0)
-                {
-                    s->ecm_frame_map[i + 3] = 0;
-                    for (j = 0;  j < 8;  j++)
-                        s->ecm_len[(i << 3) + j] = -1;
-                }
-                else
-                {
-                    mask = 1;
-                    for (j = 0;  j < 8;  j++)
-                    {
-                        frame_no = (i << 3) + j;
-                        /* Tick off the frames they are not complaining about as OK */
-                        if ((msg[i + 3] & mask) == 0)
-                        {
-                            s->ecm_len[frame_no] = -1;
-                        }
-                        else
-                        {
-                            if (frame_no < s->ecm_frames)
-                                span_log(&s->logging, SPAN_LOG_FLOW, "Frame %d to be resent\n", frame_no);
-#if 0
-                            /* Diagnostic: See if the other end is complaining about something we didn't even send this time. */
-                            if (s->ecm_len[frame_no] < 0)
-                                span_log(&s->logging, SPAN_LOG_FLOW, "PPR contains complaint about frame %d, which was not sent\n", frame_no);
-#endif
-                        }
-                        mask <<= 1;
-                    }
-                }
-            }
-            /* Initiate resending of the remainder of the frames. */
-            set_state(s, T30_STATE_IV);
-            queue_phase(s, T30_PHASE_C_ECM_TX);
-            send_first_ecm_frame(s);
+            process_ppr_bit_list(s, msg + 3, len - 3);
         }
         break;
     case T30_RNR:
@@ -3317,10 +3466,6 @@ static void process_state_iv_pps_null(t30_state_t *s, const uint8_t *msg, int le
 static void process_state_iv_pps_q(t30_state_t *s, const uint8_t *msg, int len)
 {
     t4_stats_t stats;
-    int i;
-    int j;
-    int frame_no;
-    int mask;
     uint8_t frame[4];
 
     switch (msg[2] & 0xFE)
@@ -3441,44 +3586,7 @@ static void process_state_iv_pps_q(t30_state_t *s, const uint8_t *msg, int len)
         }
         else
         {
-            /* Check which frames are OK, and mark them as OK. */
-            for (i = 0;  i < 32;  i++)
-            {
-                if (msg[i + 3] == 0)
-                {
-                    s->ecm_frame_map[i + 3] = 0;
-                    for (j = 0;  j < 8;  j++)
-                        s->ecm_len[(i << 3) + j] = -1;
-                }
-                else
-                {
-                    mask = 1;
-                    for (j = 0;  j < 8;  j++)
-                    {
-                        frame_no = (i << 3) + j;
-                        /* Tick off the frames they are not complaining about as OK */
-                        if ((msg[i + 3] & mask) == 0)
-                        {
-                            s->ecm_len[frame_no] = -1;
-                        }
-                        else
-                        {
-                            if (frame_no < s->ecm_frames)
-                                span_log(&s->logging, SPAN_LOG_FLOW, "Frame %d to be resent\n", frame_no);
-#if 0
-                            /* Diagnostic: See if the other end is complaining about something we didn't even send this time. */
-                            if (s->ecm_len[frame_no] < 0)
-                                span_log(&s->logging, SPAN_LOG_FLOW, "PPR contains complaint about frame %d, which was not sent\n", frame_no);
-#endif
-                        }
-                        mask <<= 1;
-                    }
-                }
-            }
-            /* Initiate resending of the remainder of the frames. */
-            set_state(s, T30_STATE_IV);
-            queue_phase(s, T30_PHASE_C_ECM_TX);
-            send_first_ecm_frame(s);
+            process_ppr_bit_list(s, msg + 3, len - 3);
         }
         break;
     case T30_DCN:
@@ -5291,7 +5399,6 @@ void t30_decode_dis_dtc_dcs(t30_state_t *s, const uint8_t *pkt, int len)
         span_log(log, SPAN_LOG_FLOW, "  Frame is short\n");
         return;
     }
-
     octet_bit_field(log, pkt, 41, "R8x15.4lines/mm", NULL, NULL);
     octet_bit_field(log, pkt, 42, "300x300pels/25.4mm", NULL, NULL);
     octet_bit_field(log, pkt, 43, "R16x15.4lines/mm and/or 400x400pels/25.4mm", NULL, NULL);

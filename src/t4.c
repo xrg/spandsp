@@ -1,3 +1,5 @@
+//#define T4_STATE_DEBUGGING
+
 /*
  * SpanDSP - a series of DSP components for telephony
  *
@@ -23,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4.c,v 1.82 2007/09/16 15:06:12 steveu Exp $
+ * $Id: t4.c,v 1.88 2007/09/26 03:19:23 steveu Exp $
  */
 
 /*
@@ -87,7 +89,7 @@
 #include "spandsp/async.h"
 #include "spandsp/t4.h"
 
-//#define T4_STATE_DEBUGGING
+#define CM_PER_INCH     2.54f
 
 /* Finite state machine state codes */
 enum
@@ -126,9 +128,9 @@ static void STATE_TRACE(const char *format, ...)
 /* Finite state machine state table entry */
 typedef struct
 {
-    uint8_t state;          /* see above */
-    uint8_t width;          /* width of code in bits */
-    uint32_t param;         /* run length in bits */
+    uint8_t state;          /* See above */
+    uint8_t width;          /* Width of code in bits */
+    uint32_t param;         /* Run length in bits */
 } T4_tab_entry;
 
 #include "t4_states.h"
@@ -436,6 +438,216 @@ static __inline__ int run_length(unsigned int bits)
 /*- End of function --------------------------------------------------------*/
 #endif
 
+#if 0
+/* TODO: Use this routine to convert a row to a series of run lengths in one
+         go. This should speed up the process. */
+#if 1
+static int row_to_run_lengths(uint32_t list[], const uint8_t row[], int width)
+{
+    uint32_t flip;
+    uint32_t x;
+    int span;
+    int entry;
+    int frag;
+    int rem;
+    int limit;
+    int i;
+    int pos;
+
+    /* Deal with whole words first. We know we are starting on a word boundary. */
+    entry = 0;
+    flip = 0;
+    limit = (width >> 3) & ~3;
+    span = 0;
+    pos = 0;
+    for (i = 0;  i < limit;  i += sizeof(uint32_t))
+    {
+        x = *((uint32_t *) &row[i]);
+        if (x != flip)
+        {
+            x = ((uint32_t) row[i] << 24) | ((uint32_t) row[i + 1] << 16) | ((uint32_t) row[i + 2] << 8) | ((uint32_t) row[i + 3]);
+            /* We know we are going to find at least one transition. */
+            frag = 31 - top_bit(x ^ flip);
+            pos += ((i << 3) - span + frag);
+            list[entry++] = pos;
+            x <<= frag;
+            flip ^= 0xFFFFFFFF;
+            rem = 32 - frag;
+            /* Now see if there are any more */
+            while ((frag = 31 - top_bit(x ^ flip)) < rem)
+            {
+                pos += frag;
+                list[entry++] = pos;
+                x <<= frag;
+                flip ^= 0xFFFFFFFF;
+                rem -= frag;
+            }
+            /* Save the remainder of the word */
+            span = (i << 3) + 32 - rem;
+        }
+    }
+    /* Now deal with some whole bytes, if there are any left. */
+    limit = width >> 3;
+    flip &= 0xFF000000;
+    if (i < limit)
+    {
+        for (  ;  i < limit;  i++)
+        {
+            x = (uint32_t) row[i] << 24;
+            if (x != flip)
+            {
+                /* We know we are going to find at least one transition. */
+                frag = 31 - top_bit(x ^ flip);
+                pos += ((i << 3) - span + frag);
+                list[entry++] = pos;
+                x <<= frag;
+                flip ^= 0xFF000000;
+                rem = 8 - frag;
+                /* Now see if there are any more */
+                while ((frag = 31 - top_bit(x ^ flip)) < rem)
+                {
+                    pos += frag;
+                    list[entry++] = pos;
+                    x <<= frag;
+                    flip ^= 0xFF000000;
+                    rem -= frag;
+                }   
+                /* Save the remainder of the word */
+                span = (i << 3) + 8 - rem;
+            }
+        }
+    }
+    /* Deal with any left over fractional byte. */
+    span = (i << 3) - span;
+    if ((rem = width & 7))
+    {
+        x = row[i];
+        x <<= 24;
+        do
+        {
+            frag = 31 - top_bit(x ^ flip);
+            if (frag > rem)
+                frag = rem;
+            pos += (span + frag);
+            list[entry++] = pos;
+            x <<= frag;
+            span = 0;
+            flip ^= 0xFF000000;
+            rem -= frag;
+        }
+        while (rem > 0);
+    }
+    else
+    {
+        if (span)
+        {
+            pos += span;
+            list[entry++] = pos;
+        }
+    }
+    return entry;
+}
+/*- End of function --------------------------------------------------------*/
+#else
+static int row_to_run_lengths(uint32_t list[], const uint8_t row[], int width)
+{
+    uint32_t flip;
+    uint32_t x;
+    int span;
+    int entry;
+    int frag;
+    int rem;
+    int limit;
+    int i;
+
+    /* Deal with whole words first. We know we are starting on a word boundary. */
+    entry = 0;
+    flip = 0;
+    limit = (width >> 3) & ~3;
+    span = 0;
+    for (i = 0;  i < limit;  i += sizeof(uint32_t))
+    {
+        x = *((uint32_t *) &row[i]);
+        if (x != flip)
+        {
+            x = ((uint32_t) row[i] << 24) | ((uint32_t) row[i + 1] << 16) | ((uint32_t) row[i + 2] << 8) | ((uint32_t) row[i + 3]);
+            /* We know we are going to find at least one transition. */
+            frag = 31 - top_bit(x ^ flip);
+            list[entry++] = (i << 3) - span + frag;
+            x <<= frag;
+            flip ^= 0xFFFFFFFF;
+            rem = 32 - frag;
+            /* Now see if there are any more */
+            while ((frag = 31 - top_bit(x ^ flip)) < rem)
+            {
+                list[entry++] = frag;
+                x <<= frag;
+                flip ^= 0xFFFFFFFF;
+                rem -= frag;
+            }
+            /* Save the remainder of the word */
+            span = (i << 3) + 32 - rem;
+        }
+    }
+    /* Now deal with some whole bytes, if there are any left. */
+    limit = width >> 3;
+    flip &= 0xFF000000;
+    if (i < limit)
+    {
+        for (  ;  i < limit;  i++)
+        {
+            x = (uint32_t) row[i] << 24;
+            if (x != flip)
+            {
+                /* We know we are going to find at least one transition. */
+                frag = 31 - top_bit(x ^ flip);
+                list[entry++] = (i << 3) - span + frag;
+                x <<= frag;
+                flip ^= 0xFF000000;
+                rem = 8 - frag;
+                /* Now see if there are any more */
+                while ((frag = 31 - top_bit(x ^ flip)) < rem)
+                {
+                    list[entry++] = frag;
+                    x <<= frag;
+                    flip ^= 0xFF000000;
+                    rem -= frag;
+                }   
+                /* Save the remainder of the word */
+                span = (i << 3) + 8 - rem;
+            }
+        }
+    }
+    /* Deal with any left over fractional byte. */
+    span = (i << 3) - span;
+    if ((rem = width & 7))
+    {
+        x = row[i];
+        x <<= 24;
+        do
+        {
+            frag = 31 - top_bit(x ^ flip);
+            if (frag > rem)
+                frag = rem;
+            list[entry++] = span + frag;
+            x <<= frag;
+            span = 0;
+            flip ^= 0xFF000000;
+            rem -= frag;
+        }
+        while (rem > 0);
+    }
+    else
+    {
+        if (span)
+            list[entry++] = span;
+    }
+    return entry;
+}
+/*- End of function --------------------------------------------------------*/
+#endif
+#endif
+
 static __inline__ int flush_bits_to_image_buffer(t4_state_t *s)
 {
     uint8_t *t;
@@ -474,7 +686,7 @@ static __inline__ void put_run(t4_state_t *s, int black)
 }
 /*- End of function --------------------------------------------------------*/
 
-static __inline__ void put_eol(t4_state_t *s)
+static __inline__ int put_eol(t4_state_t *s)
 {
     uint32_t *x;
     uint8_t *t;
@@ -491,7 +703,7 @@ static __inline__ void put_eol(t4_state_t *s)
         for (x = s->ref_runs;  x < s->pb;  x++)
         {
             total += *x;
-            printf("%d ", *x);
+            printf("%" PRIu32 " ", *x);
         }
         printf(" total = %d\n", total);
         printf("Cur ");
@@ -499,7 +711,7 @@ static __inline__ void put_eol(t4_state_t *s)
         for (x = s->cur_runs;  x < s->pa;  x++)
         {
             total += *x;
-            printf("%d ", *x);
+            printf("%" PRIu32 " ", *x);
         }
         printf(" total = %d\n", total);
     }
@@ -534,7 +746,7 @@ static __inline__ void put_eol(t4_state_t *s)
                 if ((t = realloc(s->image_buffer, s->image_buffer_size + 10000)) == NULL)
                 {
                     /* TODO: take some action to report the allocation failure */
-                    return;
+                    return -1;
                 }
                 s->image_buffer_size += 10000;
                 s->image_buffer = t;
@@ -569,6 +781,7 @@ static __inline__ void put_eol(t4_state_t *s)
     
     s->a0 = 0;
     s->b1 = *s->pb++;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -628,7 +841,7 @@ int t4_rx_end_page(t4_state_t *s)
 
     x_resolution = s->x_resolution/100.0f;
     y_resolution = s->y_resolution/100.0f;
-    /* Metric seems the sane things to use in the 21st century, but a lot of lousy software
+    /* Metric seems the sane thing to use in the 21st century, but a lot of lousy software
        gets FAX resolutions wrong, and more get it wrong using metric than using inches. */
 #if 0
     TIFFSetField(s->tiff_file, TIFFTAG_XRESOLUTION, x_resolution);
@@ -636,8 +849,8 @@ int t4_rx_end_page(t4_state_t *s)
     resunit = RESUNIT_CENTIMETER;
     TIFFSetField(s->tiff_file, TIFFTAG_RESOLUTIONUNIT, resunit);
 #else
-    TIFFSetField(s->tiff_file, TIFFTAG_XRESOLUTION, floorf(x_resolution*2.54f + 0.5f));
-    TIFFSetField(s->tiff_file, TIFFTAG_YRESOLUTION, floorf(y_resolution*2.54f + 0.5f));
+    TIFFSetField(s->tiff_file, TIFFTAG_XRESOLUTION, floorf(x_resolution*CM_PER_INCH + 0.5f));
+    TIFFSetField(s->tiff_file, TIFFTAG_YRESOLUTION, floorf(y_resolution*CM_PER_INCH + 0.5f));
     resunit = RESUNIT_INCH;
     TIFFSetField(s->tiff_file, TIFFTAG_RESOLUTIONUNIT, resunit);
 #endif
@@ -760,7 +973,8 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
                 else
                 {
                     s->consecutive_eols = 0;
-                    put_eol(s);
+                    if (put_eol(s))
+                        return TRUE;
                 }
                 s->row_is_2d = !(s->bits_to_date & 0x1000);
                 i = T4_black_table[s->bits_to_date & 0x1FFF].width + 1;
@@ -796,7 +1010,7 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
                     s->b1 += *s->pb++;
                     break;
                 case S_Horiz:
-                    STATE_TRACE("Horiz %d %d\n", s->pa, s->cur_runs);
+                    STATE_TRACE("Horiz %d\n", (int) (s->pa - s->cur_runs));
                     s->its_black = ((int) (s->pa - s->cur_runs)) & 1;
                     s->black_white = 2;
                     break;
@@ -939,7 +1153,8 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
                     else
                     {
                         s->consecutive_eols = 0;
-                        put_eol(s);
+                        if (put_eol(s))
+                            return TRUE;
                     }
                     if (s->line_encoding != T4_COMPRESSION_ITU_T4_1D)
                     {
@@ -1010,7 +1225,8 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
                     else
                     {
                         s->consecutive_eols = 0;
-                        put_eol(s);
+                        if (put_eol(s))
+                            return TRUE;
                     }
                     if (s->line_encoding != T4_COMPRESSION_ITU_T4_1D)
                     {
@@ -1042,7 +1258,8 @@ static int t4_rx_put_bits(t4_state_t *s, unsigned int bit_string, int quantity)
             if (s->black_white == 0  &&  s->row_len >= s->image_width)
             {
                 STATE_TRACE("EOL T.6\n");
-                put_eol(s);
+                if (put_eol(s))
+                    return TRUE;
                 s->its_black = FALSE;
                 s->black_white = 0;
                 s->run_length = 0;
@@ -1605,10 +1822,10 @@ static void t4_encode_2d_row(t4_state_t *s, const uint8_t bp[])
         c)	Horizontal mode
 	        When this mode is identified, both the run-lengths a0a1 and a1a2 are coded using the code
             words H + M(a0a1) + M(a1a2). H is the flag code word 001 taken from the two-dimensional
-            code table (Table 4). M(a0a1) and M(a1a2) are code words which represent the length and
-            "colour" of the runs a0a1 and a1a2 respectively and are taken from the appropriate white
-            or black one-dimensional code tables (Tables 3a and 3b). After a horizontal mode coding,
-            the position of a0 is set on a2 (see figure below).
+            code table. M(a0a1) and M(a1a2) are code words which represent the length and "colour"
+            of the runs a0a1 and a1a2 respectively and are taken from the appropriate white or black
+            one-dimensional code tables. After a horizontal mode coding, the position of a0 is set on
+            a2 (see figure below).
 
                                                             Vertical
                                                             <a1 b1>
@@ -1616,7 +1833,7 @@ static void t4_encode_2d_row(t4_state_t *s, const uint8_t bp[])
             --  XX  XX  XX  XX  XX  --  --  --  --  --  --  --  --  XX  XX  XX  XX  --  --  --
             --  --  --  --  --  --  --  --  --  --  --  --  XX  XX  XX  XX  XX  XX  XX  --  --
                                     a0                      a1                          a2
-                                   <------ a0   a1 -------><----- a1   a2 ------------>
+                                   <-------- a0a1 --------><-------- a1a2 ------------>
                                                     Horizontal mode
                           Vertical and horizontal modes
      */
@@ -1683,7 +1900,7 @@ static void t4_encode_2d_row(t4_state_t *s, const uint8_t bp[])
  * a sequence of all-white or all-black spans
  * of pixels encoded with Huffman codes.
  */
-static void t4_encode_1d_row(t4_state_t *s, uint8_t *bp)
+static void t4_encode_1d_row(t4_state_t *s, const uint8_t row[])
 {
     int span;
     int bs;
@@ -1691,12 +1908,12 @@ static void t4_encode_1d_row(t4_state_t *s, uint8_t *bp)
     bs = 0;
     for (;;)
     {
-        span = white_span(bp, bs, s->image_width);                /* white span */
+        span = white_span(row, bs, s->image_width);
         put_span(s, span, t4_white_codes);
         bs += span;
         if (bs >= s->image_width)
             break;
-        span = black_span(bp, bs, s->image_width);                /* black span */
+        span = black_span(row, bs, s->image_width);
         put_span(s, span, t4_black_codes);
         bs += span;
         if (bs >= s->image_width)
@@ -1705,7 +1922,7 @@ static void t4_encode_1d_row(t4_state_t *s, uint8_t *bp)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int t4_encode_row(t4_state_t *s, uint8_t *bp)
+static int t4_encode_row(t4_state_t *s)
 {
     switch (s->line_encoding)
     {
@@ -1714,19 +1931,19 @@ static int t4_encode_row(t4_state_t *s, uint8_t *bp)
            throw it in here. T.6 is only used with error correction,
            so it does not need independantly compressed (i.e. 1D) lines
            to recover from data errors. It doesn't need EOLs, either. */
-        t4_encode_2d_row(s, bp);
-        memcpy(s->ref_row_buf, bp, s->bytes_per_row);
+        t4_encode_2d_row(s, s->row_buf);
+        memcpy(s->ref_row_buf, s->row_buf, s->bytes_per_row);
         break;
     case T4_COMPRESSION_ITU_T4_2D:
         t4_encode_eol(s);
         if (s->row_is_2d)
         {
-            t4_encode_2d_row(s, bp);
+            t4_encode_2d_row(s, s->row_buf);
             s->rows_to_next_1d_row--;
         }
         else
         {
-            t4_encode_1d_row(s, bp);
+            t4_encode_1d_row(s, s->row_buf);
             s->row_is_2d = TRUE;
         }
         if (s->rows_to_next_1d_row <= 0)
@@ -1737,18 +1954,17 @@ static int t4_encode_row(t4_state_t *s, uint8_t *bp)
         }
         else
         {
-            memcpy(s->ref_row_buf, bp, s->bytes_per_row);
+            memcpy(s->ref_row_buf, s->row_buf, s->bytes_per_row);
         }
         break;
     default:
     case T4_COMPRESSION_ITU_T4_1D:
         t4_encode_eol(s);
-        t4_encode_1d_row(s, bp);
+        t4_encode_1d_row(s, s->row_buf);
         break;
     }
-    bp += s->bytes_per_row;
     s->row++;
-    return 1;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -1768,12 +1984,52 @@ t4_state_t *t4_tx_create(const char *file, int start_page, int stop_page)
 }
 /*- End of function --------------------------------------------------------*/
 
+static int test_resolution(int res_unit, float actual, float expected)
+{
+    if (res_unit == RESUNIT_INCH)
+        actual *= 1.0f/CM_PER_INCH;
+    return (expected*0.95f <= actual  &&  actual <= expected*1.05f);
+}
+/*- End of function --------------------------------------------------------*/
+
 int t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page)
 {
+    static const struct
+    {
+        float resolution;
+        int code;
+    } x_res_table[] =
+    {
+        { 102.0f/CM_PER_INCH, T4_X_RESOLUTION_R4},
+        { 204.0f/CM_PER_INCH, T4_X_RESOLUTION_R8},
+        { 300.0f/CM_PER_INCH, T4_X_RESOLUTION_300},
+        { 408.0f/CM_PER_INCH, T4_X_RESOLUTION_R16},
+        { 600.0f/CM_PER_INCH, T4_X_RESOLUTION_600},
+        { 800.0f/CM_PER_INCH, T4_X_RESOLUTION_800},
+        {1200.0f/CM_PER_INCH, T4_X_RESOLUTION_1200},
+        {             -1.00f, -1}
+    };
+    static const struct
+    {
+        float resolution;
+        int code;
+        int max_rows_to_next_1d_row;
+    } y_res_table[] =
+    {
+        {             38.50f, T4_Y_RESOLUTION_STANDARD, 2},
+        {             77.00f, T4_Y_RESOLUTION_FINE, 4},
+        { 300.0f/CM_PER_INCH, T4_Y_RESOLUTION_300, 6},
+        {            154.00f, T4_Y_RESOLUTION_SUPERFINE, 8},
+        { 600.0f/CM_PER_INCH, T4_Y_RESOLUTION_600, 12},
+        { 800.0f/CM_PER_INCH, T4_Y_RESOLUTION_800, 16},
+        {1200.0f/CM_PER_INCH, T4_Y_RESOLUTION_1200, 24},
+        {             -1.00f, -1, -1}
+    };
     float x_resolution;
     float y_resolution;
     uint16_t res_unit;
     uint32_t parm;
+    int i;
 
     memset(s, 0, sizeof(*s));
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
@@ -1800,43 +2056,29 @@ int t4_tx_init(t4_state_t *s, const char *file, int start_page, int stop_page)
 
     /* Allow a little range for the X resolution in centimeters. The spec doesn't pin down the
        precise value. The other value should be exact. */
-    if ((res_unit == RESUNIT_CENTIMETER  &&  fabsf(x_resolution - 160.74f) < 2.0f)
-        ||
-        (res_unit == RESUNIT_INCH  &&  fabs(x_resolution - 408.0f) < 2.0f))
+    /* Treat everything we can't match as R8. Most FAXes are this resolution anyway. */
+    s->x_resolution = T4_X_RESOLUTION_R8;
+    for (i = 0;  x_res_table[i].code > 0;  i++)
     {
-        s->x_resolution = T4_X_RESOLUTION_R16;
-    }
-    else if ((res_unit == RESUNIT_CENTIMETER  &&  fabsf(x_resolution - 40.19f) < 2.0f)
-            ||
-            (res_unit == RESUNIT_INCH  &&  fabs(x_resolution - 102.0f) < 2.0f))
-    {
-        s->x_resolution = T4_X_RESOLUTION_R4;
-    }
-    else
-    {
-        /* Treat everything else as R8. Most FAXes are this resolution anyway. */
-        s->x_resolution = T4_X_RESOLUTION_R8;
+        if (test_resolution(res_unit, x_resolution, x_res_table[i].resolution))
+        {
+            s->x_resolution = x_res_table[i].code;
+            break;
+        }
     }
 
-    if ((res_unit == RESUNIT_CENTIMETER  &&  fabsf(y_resolution - 154.0f) < 2.0f)
-        ||
-        (res_unit == RESUNIT_INCH  &&  fabsf(y_resolution - 392.0f) < 2.0f))
+    s->y_resolution = T4_Y_RESOLUTION_STANDARD;
+    s->max_rows_to_next_1d_row = 2;
+    for (i = 0;  y_res_table[i].code > 0;  i++)
     {
-        s->y_resolution = T4_Y_RESOLUTION_SUPERFINE;
-        s->max_rows_to_next_1d_row = 8;
+        if (test_resolution(res_unit, y_resolution, y_res_table[i].resolution))
+        {
+            s->y_resolution = y_res_table[i].code;
+            s->max_rows_to_next_1d_row = y_res_table[i].max_rows_to_next_1d_row;
+            break;
+        }
     }
-    else if ((res_unit == RESUNIT_CENTIMETER  &&  fabsf(y_resolution - 77.0f) < 2.0f)
-             ||
-             (res_unit == RESUNIT_INCH  &&  fabsf(y_resolution - 196.0f) < 2.0f))
-    {
-        s->y_resolution = T4_Y_RESOLUTION_FINE;
-        s->max_rows_to_next_1d_row = 4;
-    }
-    else
-    {
-        s->y_resolution = T4_Y_RESOLUTION_STANDARD;
-        s->max_rows_to_next_1d_row = 2;
-    }
+
     s->rows_to_next_1d_row = s->max_rows_to_next_1d_row - 1;
 
     s->pages_transferred = s->start_page;
@@ -1950,17 +2192,17 @@ int t4_tx_start_page(t4_state_t *s)
             switch (s->y_resolution)
             {
             case T4_Y_RESOLUTION_SUPERFINE:
-                if ((ok = t4_encode_row(s, s->row_buf)) <= 0)
+                if (t4_encode_row(s))
                     return -1;
-                if ((ok = t4_encode_row(s, s->row_buf)) <= 0)
+                if (t4_encode_row(s))
                     return -1;
                 /* Fall through */
             case T4_Y_RESOLUTION_FINE:
-                if ((ok = t4_encode_row(s, s->row_buf)) <= 0)
+                if (t4_encode_row(s))
                     return -1;
                 /* Fall through */
             default:
-                if ((ok = t4_encode_row(s, s->row_buf)) <= 0)
+                if (t4_encode_row(s))
                     return -1;
                 break;
             }
@@ -1975,7 +2217,7 @@ int t4_tx_start_page(t4_state_t *s)
             span_log(&s->logging, SPAN_LOG_WARNING, "%s: Write error at row %d.\n", s->file, row);
             break;
         }
-        if ((ok = t4_encode_row(s, s->row_buf)) <= 0)
+        if (t4_encode_row(s))
             return -1;
     }
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.80 2007/09/15 12:21:39 steveu Exp $
+ * $Id: t30.h,v 1.82 2007/09/26 03:19:23 steveu Exp $
  */
 
 /*! \file */
@@ -366,72 +366,6 @@ enum
 };
 
 /*!
-    Exact widths in PELs for the difference resolutions, and page widths.
-    Note:
-        The A4 widths also apply to North American letter and legal.
-        The R4 resolution widths are not supported in recent versions of T.30
-        Only images of exactly these widths are acceptable for FAX transmisson.
-
-    R4    864 pels/215mm for ISO A4, North American Letter and Legal
-    R4   1024 pels/255mm for ISO B4
-    R4   1216 pels/303mm for ISO A3
-    R8   1728 pels/215mm for ISO A4, North American Letter and Legal
-    R8   2048 pels/255mm for ISO B4
-    R8   2432 pels/303mm for ISO A3
-    R16  3456 pels/215mm for ISO A4, North American Letter and Legal
-    R16  4096 pels/255mm for ISO B4
-    R16  4864 pels/303mm for ISO A3
-*/
-typedef enum
-{
-    T30_WIDTH_R4_A4 = 864,
-    T30_WIDTH_R4_B4 = 1024,
-    T30_WIDTH_R4_A3 = 1216,
-    T30_WIDTH_R8_A4 = 1728,
-    T30_WIDTH_R8_B4 = 2048,
-    T30_WIDTH_R8_A3 = 2432,
-    T30_WIDTH_R16_A4 = 3456,
-    T30_WIDTH_R16_B4 = 4096,
-    T30_WIDTH_R16_A3 = 4864,
-    T30_WIDTH_600_A4 = 5184,
-    T30_WIDTH_600_B4 = 6144,
-    T30_WIDTH_600_A3 = 7296,
-    T30_WIDTH_1200_A4 = 10368,
-    T30_WIDTH_1200_B4 = 12288,
-    T30_WIDTH_1200_A3 = 14592
-} t30_image_width_t;
-
-/*!
-    Length of the various supported paper sizes, in pixels at the various Y resolutions.
-    Paper sizes are
-        A4 (297mm x 215mm)
-        B4 (364mm x 255mm)
-        A3 (303mm x ???mm)
-        North American Letter (215.9mm x 279.4mm)
-        North American Legal (215.9mm x 355.6mm)
-        Unlimited
-*/
-enum
-{
-    /* A4 is 297mm long */
-    T30_LENGTH_STANDARD_A4 = 1143,
-    T30_LENGTH_FINE_A4 = 2286,
-    T30_LENGTH_SUPERFINE_A4 = 4573,
-    /* B4 is 364mm long */
-    T30_LENGTH_STANDARD_B4 = 1401,
-    T30_LENGTH_FINE_B4 = 2802,
-    T30_LENGTH_SUPERFINE_B4 = 5605,
-    /* North American letter is 279.4mm long */
-    T30_LENGTH_STANDARD_US_LETTER = 1075,
-    T30_LENGTH_FINE_US_LETTER = 2151,
-    T30_LENGTH_SUPERFINE_US_LETTER = 4302,
-    /* North American legal is 355.6mm long */
-    T30_LENGTH_STANDARD_US_LEGAL = 1369,
-    T30_LENGTH_FINE_US_LEGAL = 2738,
-    T30_LENGTH_SUPERFINE_US_LEGAL = 5476
-};
-
-/*!
     T.30 FAX channel descriptor. This defines the state of a single working
     instance of a T.30 FAX channel.
 */
@@ -572,7 +506,7 @@ struct t30_state_s
     uint8_t min_scan_time_code;
     int x_resolution;
     int y_resolution;
-    t30_image_width_t image_width;
+    t4_image_width_t image_width;
     int retries;
     /*! \brief TRUE if error correcting mode is used. */
     int error_correcting_mode;

@@ -25,7 +25,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.92 2007/07/29 17:56:41 steveu Exp $
+ * $Id: t31.c,v 1.93 2007/09/18 12:34:37 steveu Exp $
  */
 
 /*! \file */
@@ -669,7 +669,7 @@ static void hdlc_accept(void *user_data, const uint8_t *msg, int len, int ok)
                 s->modem = T31_V21_RX;
                 s->at_state.transmit = FALSE;
             }
-            if (s->modem != T31_V21_RX)
+            if (s->modem == T31_V17_RX  ||  s->modem == T31_V27TER_RX  ||  s->modem == T31_V29_RX)
             {
                 /* V.21 has been detected while expecting a different carrier.
                    If +FAR=0 then result +FCERROR and return to command-mode.
@@ -1368,6 +1368,12 @@ int t31_at_rx(t31_state_t *s, const char *t, int len)
         /* Data from the DTE in this state returns us to command mode */
         if (len)
         {
+            if (s->at_state.rx_signal_present)
+            {
+                s->at_state.rx_data[s->at_state.rx_data_bytes++] = DLE;
+                s->at_state.rx_data[s->at_state.rx_data_bytes++] = ETX;
+                s->at_state.at_tx_handler(&s->at_state, s->at_state.at_tx_user_data, s->at_state.rx_data, s->at_state.rx_data_bytes);
+            }
             s->at_state.rx_data_bytes = 0;
             s->at_state.transmit = FALSE;
             s->modem = T31_SILENCE_TX;
