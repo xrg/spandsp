@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.49 2009/05/30 05:55:22 steveu Exp $
+## $Id: Makefile.am,v 1.49.4.1 2010/01/04 14:50:32 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -37,7 +37,6 @@ EXTRA_DIST = autogen.sh \
              debian/rules \
              debian/watch \
              README.testdata \
-             spandsp.pc \
              spandsp.spec \
              spandsp/fax-tests.dtd \
              spandsp/global-tones.xml \

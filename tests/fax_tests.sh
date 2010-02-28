@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # spandsp fax tests
 #
@@ -15,7 +15,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: fax_tests.sh,v 1.5 2008/03/30 18:33:31 steveu Exp $
+# $Id: fax_tests.sh,v 1.5.4.1 2009/12/29 11:32:19 steveu Exp $
 #
 
 run_fax_test()

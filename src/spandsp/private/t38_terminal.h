@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.h,v 1.2 2008/12/31 13:57:13 steveu Exp $
+ * $Id: t38_terminal.h,v 1.2.4.1 2010/02/17 14:58:53 steveu Exp $
  */
 
 /*! \file */
@@ -97,6 +97,8 @@ typedef struct
     int32_t samples;
     /*! \brief The value for samples at the next transmission point. */
     int32_t next_tx_samples;
+    /*! \brief The current transmit timeout. */
+    //int32_t timeout_tx_samples;
     /*! \brief The current receive timeout. */
     int32_t timeout_rx_samples;
 } t38_terminal_front_end_state_t;

@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: expose.h,v 1.14.4.1 2009/12/19 09:47:56 steveu Exp $
+ * $Id: expose.h,v 1.14.4.4 2010/02/17 14:58:53 steveu Exp $
  */
 
 /*! \file */
@@ -61,16 +61,21 @@
 #include <spandsp/private/modem_echo.h>
 #include <spandsp/private/async.h>
 #include <spandsp/private/fsk.h>
-#include <spandsp/private/v29rx.h>
-#include <spandsp/private/v29tx.h>
+#include <spandsp/private/modem_connect_tones.h>
+#include <spandsp/private/v8.h>
 #include <spandsp/private/v17rx.h>
 #include <spandsp/private/v17tx.h>
 #include <spandsp/private/v22bis.h>
 #include <spandsp/private/v27ter_rx.h>
 #include <spandsp/private/v27ter_tx.h>
-#include <spandsp/private/modem_connect_tones.h>
+#include <spandsp/private/v29rx.h>
+#include <spandsp/private/v29tx.h>
+/*#include <spandsp/private/v32bis.h>*/
+/*#include <spandsp/private/v34.h>*/
 #include <spandsp/private/at_interpreter.h>
 #include <spandsp/private/fax_modems.h>
+#include <spandsp/private/t4_t6_decode.h>
+#include <spandsp/private/t4_t6_encode.h>
 #include <spandsp/private/t4_rx.h>
 #include <spandsp/private/t4_tx.h>
 #include <spandsp/private/t30.h>
@@ -80,7 +85,6 @@
 #include <spandsp/private/t38_gateway.h>
 #include <spandsp/private/t38_terminal.h>
 #include <spandsp/private/t31.h>
-#include <spandsp/private/v8.h>
 #include <spandsp/private/v18.h>
 #include <spandsp/private/v42.h>
 #include <spandsp/private/v42bis.h>

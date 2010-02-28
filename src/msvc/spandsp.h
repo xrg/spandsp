@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spandsp.h.in,v 1.19.4.1 2009/12/19 09:47:56 steveu Exp $
+ * $Id: spandsp.h.in,v 1.19.4.3 2010/02/17 14:58:53 steveu Exp $
  */
 
 /*! \file */
@@ -88,6 +88,10 @@
 #include <spandsp/fsk.h>
 #include <spandsp/modem_connect_tones.h>
 #include <spandsp/silence_gen.h>
+#include <spandsp/v8.h>
+#include <spandsp/v42.h>
+#include <spandsp/v42bis.h>
+#include <spandsp/v18.h>
 #include <spandsp/v29rx.h>
 #include <spandsp/v29tx.h>
 #include <spandsp/v17rx.h>
@@ -95,12 +99,12 @@
 #include <spandsp/v22bis.h>
 #include <spandsp/v27ter_rx.h>
 #include <spandsp/v27ter_tx.h>
-#include <spandsp/v8.h>
-#include <spandsp/v18.h>
-#include <spandsp/v42.h>
-#include <spandsp/v42bis.h>
+/*#include <spandsp/v32bis.h>*/
+/*#include <spandsp/v34.h>*/
 #include <spandsp/t4_rx.h>
 #include <spandsp/t4_tx.h>
+#include <spandsp/t4_t6_decode.h>
+#include <spandsp/t4_t6_encode.h>
 #include <spandsp/t30.h>
 #include <spandsp/t30_api.h>
 #include <spandsp/t30_fcf.h>

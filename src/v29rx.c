@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.167.4.5 2009/12/28 12:20:47 steveu Exp $
+ * $Id: v29rx.c,v 1.167.4.7 2010/02/17 14:58:53 steveu Exp $
  */
 
 /*! \file */
@@ -508,17 +508,18 @@ static __inline__ void symbol_sync(v29_rx_state_t *s)
       - (((s->symbol_sync_low[0] >> 5)*(s->symbol_sync_high[1] >> 4)) >> 15)*SYNC_HIGH_BAND_EDGE_COEFF_2
       + (((s->symbol_sync_low[1] >> 5)*(s->symbol_sync_high[1] >> 4)) >> 15)*SYNC_MIXED_EDGES_COEFF_3;
     /* Filter away any DC component */
-    p = v - s->symbol_sync_dc_filter[1];
-    s->symbol_sync_dc_filter[1] = s->symbol_sync_dc_filter[0];
-    s->symbol_sync_dc_filter[0] = v;
+    p = v - s->symbol_sync_dc_filter;
+    s->symbol_sync_dc_filter = v;
     /* A little integration will now filter away much of the HF noise */
     s->baud_phase -= p;
-    if (abs(s->baud_phase) > 30*FP_FACTOR)
+    v = labs(s->baud_phase);
+    if (v > 40*FP_FACTOR)
     {
-        if (s->baud_phase > 0)
-            i = (s->baud_phase > 1000*FP_FACTOR)  ?  5  :  1;
-        else
-            i = (s->baud_phase < -1000*FP_FACTOR)  ?  -5  :  -1;
+        i = v/(40*FP_FACTOR);
+        if (i > 30)
+            i = 30;
+        if (s->baud_phase < 0)
+            i = -i;
         //printf("v = %10.5f %5d - %f %f %d %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
         s->eq_put_step += i;
         s->total_baud_timing_correction += i;
@@ -529,17 +530,18 @@ static __inline__ void symbol_sync(v29_rx_state_t *s)
       - s->symbol_sync_low[0]*s->symbol_sync_high[1]*SYNC_HIGH_BAND_EDGE_COEFF_2
       + s->symbol_sync_low[1]*s->symbol_sync_high[1]*SYNC_MIXED_EDGES_COEFF_3;
     /* Filter away any DC component */
-    p = v - s->symbol_sync_dc_filter[1];
-    s->symbol_sync_dc_filter[1] = s->symbol_sync_dc_filter[0];
-    s->symbol_sync_dc_filter[0] = v;
+    p = v - s->symbol_sync_dc_filter;
+    s->symbol_sync_dc_filter = v;
     /* A little integration will now filter away much of the HF noise */
     s->baud_phase -= p;
-    if (fabsf(s->baud_phase) > 30.0f)
+    v = fabsf(s->baud_phase);
+    if (v > 40.0f)
     {
-        if (s->baud_phase > 0.0f)
-            i = (s->baud_phase > 1000.0f)  ?  5  :  1;
-        else
-            i = (s->baud_phase < -1000.0f)  ?  -5  :  -1;
+        i = v/40.0f;
+        if (i > 30)
+            i = 30;
+        if (s->baud_phase < 0.0f)
+            i = -i;
         //printf("v = %10.5f %5d - %f %f %d %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
         s->eq_put_step += i;
         s->total_baud_timing_correction += i;
@@ -1025,7 +1027,7 @@ SPAN_DECLARE_NONSTD(int) v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v29_rx_fillin(v29_rx_state_t *s, int len)
+SPAN_DECLARE_NONSTD(int) v29_rx_fillin(v29_rx_state_t *s, int len)
 {
     int i;
 
@@ -1152,16 +1154,16 @@ SPAN_DECLARE(int) v29_rx_restart(v29_rx_state_t *s, int bit_rate, int old_train)
     {
         s->symbol_sync_low[i] = 0;
         s->symbol_sync_high[i] = 0;
-        s->symbol_sync_dc_filter[i] = 0;
     }
+    s->symbol_sync_dc_filter = 0;
     s->baud_phase = 0;
 #else
     for (i = 0;  i < 2;  i++)
     {
         s->symbol_sync_low[i] = 0.0f;
         s->symbol_sync_high[i] = 0.0f;
-        s->symbol_sync_dc_filter[i] = 0.0f;
     }
+    s->symbol_sync_dc_filter = 0.0f;
     s->baud_phase = 0.0f;
 #endif
     s->baud_half = 0;

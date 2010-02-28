@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tx.c,v 1.13.2.9 2009/12/21 17:18:40 steveu Exp $
+ * $Id: t4_tx.c,v 1.13.2.11 2010/01/21 14:39:36 steveu Exp $
  */
 
 /*
@@ -83,9 +83,13 @@
 #include "spandsp/async.h"
 #include "spandsp/t4_rx.h"
 #include "spandsp/t4_tx.h"
+#include "spandsp/t4_t6_decode.h"
+#include "spandsp/t4_t6_encode.h"
 #include "spandsp/version.h"
 
 #include "spandsp/private/logging.h"
+#include "spandsp/private/t4_t6_decode.h"
+#include "spandsp/private/t4_t6_encode.h"
 #include "spandsp/private/t4_rx.h"
 #include "spandsp/private/t4_tx.h"
 
@@ -381,7 +385,7 @@ static void make_header(t4_state_t *s, char *header)
              tm.tm_hour,
              tm.tm_min,
              s->t4_t6_tx.header_info,
-             s->tiff.local_ident,
+             (s->tiff.local_ident)  ?  s->tiff.local_ident  :  "",
              s->current_page + 1);
 }
 /*- End of function --------------------------------------------------------*/
@@ -1482,7 +1486,7 @@ SPAN_DECLARE(void) t4_tx_set_tx_encoding(t4_state_t *s, int encoding)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(void) t4_tx_set_min_row_bits(t4_state_t *s, int bits)
+SPAN_DECLARE(void) t4_tx_set_min_bits_per_row(t4_state_t *s, int bits)
 {
     s->t4_t6_tx.min_bits_per_row = bits;
 }
@@ -1534,6 +1538,21 @@ SPAN_DECLARE(int) t4_tx_get_pages_in_file(t4_state_t *s)
 SPAN_DECLARE(int) t4_tx_get_current_page_in_file(t4_state_t *s)
 {
     return s->current_page;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(void) t4_tx_get_transfer_statistics(t4_state_t *s, t4_stats_t *t)
+{
+    t->pages_transferred = s->current_page - s->tiff.start_page;
+    t->pages_in_file = s->tiff.pages_in_file;
+    t->width = s->image_width;
+    t->length = s->image_length;
+    t->bad_rows = s->t4_t6_rx.bad_rows;
+    t->longest_bad_row_run = s->t4_t6_rx.longest_bad_row_run;
+    t->x_resolution = s->x_resolution;
+    t->y_resolution = s->y_resolution;
+    t->encoding = s->line_encoding;
+    t->line_image_size = s->line_image_size/8;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

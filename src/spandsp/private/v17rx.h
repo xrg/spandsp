@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.2.4.1 2009/12/24 16:52:30 steveu Exp $
+ * $Id: v17rx.h,v 1.2.4.2 2010/02/17 14:58:53 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_V17RX_H_)
@@ -163,7 +163,7 @@ struct v17_rx_state_s
     /*! High band edge filter for symbol sync. */
     int32_t symbol_sync_high[2];
     /*! DC filter for symbol sync. */
-    int32_t symbol_sync_dc_filter[2];
+    int32_t symbol_sync_dc_filter;
     /*! Baud phase for symbol sync. */
     int32_t baud_phase;
 #else
@@ -186,7 +186,7 @@ struct v17_rx_state_s
     /*! High band edge filter for symbol sync. */
     float symbol_sync_high[2];
     /*! DC filter for symbol sync. */
-    float symbol_sync_dc_filter[2];
+    float symbol_sync_dc_filter;
     /*! Baud phase for symbol sync. */
     float baud_phase;
 #endif

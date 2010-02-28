@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.171.4.2 2009/12/19 10:44:10 steveu Exp $
+ * $Id: t38_gateway.c,v 1.171.4.4 2010/02/16 17:52:02 steveu Exp $
  */
 
 /*! \file */
@@ -75,6 +75,8 @@
 #include "spandsp/modem_connect_tones.h"
 #include "spandsp/t4_rx.h"
 #include "spandsp/t4_tx.h"
+#include "spandsp/t4_t6_decode.h"
+#include "spandsp/t4_t6_encode.h"
 #include "spandsp/t30_fcf.h"
 #include "spandsp/t35.h"
 #include "spandsp/t30.h"
@@ -96,6 +98,8 @@
 #include "spandsp/private/modem_connect_tones.h"
 #include "spandsp/private/hdlc.h"
 #include "spandsp/private/fax_modems.h"
+#include "spandsp/private/t4_t6_decode.h"
+#include "spandsp/private/t4_t6_encode.h"
 #include "spandsp/private/t4_rx.h"
 #include "spandsp/private/t4_tx.h"
 #include "spandsp/private/t30.h"
@@ -651,7 +655,7 @@ static void edit_control_messages(t38_gateway_state_t *s, int from_modem, uint8_
         {
         case T30_DIS:
             /* Make sure the V.8 capability doesn't pass through. If it
-               did then two V.34 capable FAX machines might start some
+               did, two V.34 capable FAX machines might start some
                V.8 re-negotiation. */
             buf[3] &= ~DISBIT6;
             break;

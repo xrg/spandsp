@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: at_interpreter.c,v 1.42.4.1 2009/12/23 14:18:32 steveu Exp $
+ * $Id: at_interpreter.c,v 1.42.4.2 2010/02/28 06:08:38 steveu Exp $
  */
 
 /*! \file */
@@ -245,13 +245,21 @@ SPAN_DECLARE(void) at_call_event(at_state_t *s, int event)
         }
         else
         {
-            /* FAX modem connection */
-            at_set_at_rx_mode(s, AT_MODE_DELIVERY);
-            if (s->silent_dial)
-                at_modem_control(s, AT_MODEM_CONTROL_RESTART, (void *) FAX_MODEM_NOCNG_TONE);
+            if (s->command_dial)
+            {
+                at_put_response_code(s, AT_RESPONSE_CODE_OK);
+                at_set_at_rx_mode(s, AT_MODE_OFFHOOK_COMMAND);
+            }
             else
-                at_modem_control(s, AT_MODEM_CONTROL_RESTART, (void *) FAX_MODEM_CNG_TONE);
-            s->dte_is_waiting = TRUE;
+            {
+                /* FAX modem connection */
+                at_set_at_rx_mode(s, AT_MODE_DELIVERY);
+                if (s->silent_dial)
+                    at_modem_control(s, AT_MODEM_CONTROL_RESTART, (void *) FAX_MODEM_NOCNG_TONE);
+                else
+                    at_modem_control(s, AT_MODEM_CONTROL_RESTART, (void *) FAX_MODEM_CNG_TONE);
+                s->dte_is_waiting = TRUE;
+            }
         }
         break;
     case AT_CALL_EVENT_BUSY:
@@ -847,6 +855,7 @@ static const char *at_cmd_D(at_state_t *s, const char *t)
     at_reset_call_info(s);
     s->do_hangup = FALSE;
     s->silent_dial = FALSE;
+    s->command_dial = FALSE;
     t += 1;
     ok = FALSE;
     /* There are a numbers of options in a dial command string.
@@ -926,7 +935,7 @@ static const char *at_cmd_D(at_state_t *s, const char *t)
                 break;
             case ';':
                 /* V.250 6.3.1 - Dial string terminator - make voice call and remain in command mode */
-                /* TODO: */
+                s->command_dial = TRUE;
                 break;
             case '>':
                 /* GSM07.07 6.2 - Direct dialling from phone book supplementary service subscription

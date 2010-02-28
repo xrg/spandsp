@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax_decode.c,v 1.58 2009/11/02 13:25:20 steveu Exp $
+ * $Id: fax_decode.c,v 1.58.4.1 2010/01/04 15:07:04 steveu Exp $
  */
 
 /*! \page fax_decode_page FAX decoder
@@ -301,7 +301,7 @@ static void t4_end(void)
         fprintf(stderr, "\n");
     }
     t4_rx_end_page(&t4_state);
-    t4_get_transfer_statistics(&t4_state, &stats);
+    t4_rx_get_transfer_statistics(&t4_state, &stats);
     fprintf(stderr, "Pages = %d\n", stats.pages_transferred);
     fprintf(stderr, "Image size = %dx%d\n", stats.width, stats.length);
     fprintf(stderr, "Image resolution = %dx%d\n", stats.x_resolution, stats.y_resolution);

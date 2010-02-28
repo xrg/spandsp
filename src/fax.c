@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.96.4.1 2009/12/19 10:44:10 steveu Exp $
+ * $Id: fax.c,v 1.96.4.4 2010/02/17 14:58:53 steveu Exp $
  */
 
 /*! \file */
@@ -73,6 +73,8 @@
 #include "spandsp/modem_connect_tones.h"
 #include "spandsp/t4_rx.h"
 #include "spandsp/t4_tx.h"
+#include "spandsp/t4_t6_decode.h"
+#include "spandsp/t4_t6_encode.h"
 
 #include "spandsp/t30_fcf.h"
 #include "spandsp/t35.h"
@@ -95,6 +97,8 @@
 #include "spandsp/private/modem_connect_tones.h"
 #include "spandsp/private/hdlc.h"
 #include "spandsp/private/fax_modems.h"
+#include "spandsp/private/t4_t6_decode.h"
+#include "spandsp/private/t4_t6_encode.h"
 #include "spandsp/private/t4_rx.h"
 #include "spandsp/private/t4_tx.h"
 #include "spandsp/private/t30.h"
@@ -120,6 +124,17 @@ static void tone_detected(void *user_data, int tone, int level, int delay)
     span_log(&s->logging, SPAN_LOG_FLOW, "%s detected (%ddBm0)\n", modem_connect_tone_to_str(tone), level);
 }
 /*- End of function --------------------------------------------------------*/
+
+#if 0
+static void v8_handler(void *user_data, v8_parms_t *result)
+{
+    fax_state_t *s;
+
+    s = (fax_state_t *) user_data;
+    span_log(&s->logging, SPAN_LOG_FLOW, "V.8 report received\n");
+}
+/*- End of function --------------------------------------------------------*/
+#endif
 
 static void hdlc_underflow_handler(void *user_data)
 {
@@ -284,7 +299,7 @@ static int v29_v21_rx_fillin(void *user_data, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) fax_rx(fax_state_t *s, int16_t *amp, int len)
+SPAN_DECLARE_NONSTD(int) fax_rx(fax_state_t *s, int16_t *amp, int len)
 {
     int i;
 
@@ -300,7 +315,7 @@ SPAN_DECLARE(int) fax_rx(fax_state_t *s, int16_t *amp, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) fax_rx_fillin(fax_state_t *s, int len)
+SPAN_DECLARE_NONSTD(int) fax_rx_fillin(fax_state_t *s, int len)
 {
     /* To mitigate the effect of lost packets on a packet network we should
        try to sustain the status quo. If there is no receive modem running, keep
@@ -348,7 +363,7 @@ static int set_next_tx_type(fax_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) fax_tx(fax_state_t *s, int16_t *amp, int max_len)
+SPAN_DECLARE_NONSTD(int) fax_tx(fax_state_t *s, int16_t *amp, int max_len)
 {
     int len;
 #if defined(LOG_FAX_AUDIO)
@@ -577,33 +592,32 @@ SPAN_DECLARE(logging_state_t *) fax_get_logging_state(fax_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(fax_state_t *) fax_init(fax_state_t *s, int calling_party)
+SPAN_DECLARE(int) fax_restart(fax_state_t *s, int calling_party)
 {
-    if (s == NULL)
-    {
-        if ((s = (fax_state_t *) malloc(sizeof(*s))) == NULL)
-            return NULL;
-    }
-    memset(s, 0, sizeof(*s));
-    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
-    span_log_set_protocol(&s->logging, "FAX");
-    fax_modems_init(&s->modems,
-                    FALSE,
-                    t30_hdlc_accept,
-                    hdlc_underflow_handler,
-                    t30_non_ecm_put_bit,
-                    t30_non_ecm_get_bit,
-                    tone_detected,
-                    &s->t30);
-    t30_init(&s->t30,
-             calling_party,
-             fax_set_rx_type,
-             (void *) s,
-             fax_set_tx_type,
-             (void *) s,
-             fax_send_hdlc,
-             (void *) s);
-    t30_set_supported_modems(&s->t30, T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
+#if 0
+    v8_parms_t v8_parms;
+#endif
+
+    fax_modems_restart(&s->modems);
+#if 0
+    v8_parms.modem_connect_tone = MODEM_CONNECT_TONES_ANSAM_PR;
+    v8_parms.call_function = V8_CALL_T30_RX;
+    v8_parms.modulations = V8_MOD_V21;
+    if (s->t30.supported_modems & T30_SUPPORT_V27TER)
+        v8_parms.modulations |= V8_MOD_V27TER;
+    if (s->t30.supported_modems & T30_SUPPORT_V29)
+        v8_parms.modulations |= V8_MOD_V29;
+    if (s->t30.supported_modems & T30_SUPPORT_V17)
+        v8_parms.modulations |= V8_MOD_V17;
+    if (s->t30.supported_modems & T30_SUPPORT_V34HDX)
+        v8_parms.modulations |= V8_MOD_V34HDX;
+    v8_parms.protocol = V8_PROTOCOL_NONE;
+    v8_parms.pcm_modem_availability = 0;
+    v8_parms.pstn_access = 0;
+    v8_parms.nsf = -1;
+    v8_parms.t66 = -1;
+    v8_restart(&s->v8, calling_party, &v8_parms);
+#endif
     t30_restart(&s->t30);
 #if defined(LOG_FAX_AUDIO)
     {
@@ -635,6 +649,62 @@ SPAN_DECLARE(fax_state_t *) fax_init(fax_state_t *s, int calling_party)
         s->modems.audio_tx_log = open(buf, O_CREAT | O_TRUNC | O_WRONLY, 0666);
     }
 #endif
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(fax_state_t *) fax_init(fax_state_t *s, int calling_party)
+{
+#if 0
+    v8_parms_t v8_parms;
+#endif
+
+    if (s == NULL)
+    {
+        if ((s = (fax_state_t *) malloc(sizeof(*s))) == NULL)
+            return NULL;
+    }
+    memset(s, 0, sizeof(*s));
+    span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
+    span_log_set_protocol(&s->logging, "FAX");
+    fax_modems_init(&s->modems,
+                    FALSE,
+                    t30_hdlc_accept,
+                    hdlc_underflow_handler,
+                    t30_non_ecm_put_bit,
+                    t30_non_ecm_get_bit,
+                    tone_detected,
+                    &s->t30);
+    t30_init(&s->t30,
+             calling_party,
+             fax_set_rx_type,
+             (void *) s,
+             fax_set_tx_type,
+             (void *) s,
+             fax_send_hdlc,
+             (void *) s);
+    t30_set_supported_modems(&s->t30, T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17);
+#if 0
+    v8_parms.modem_connect_tone = MODEM_CONNECT_TONES_ANSAM_PR;
+    v8_parms.call_function = V8_CALL_T30_RX;
+    v8_parms.modulations = V8_MOD_V21;
+    if (s->t30.supported_modems & T30_SUPPORT_V27TER)
+        v8_parms.modulations |= V8_MOD_V27TER;
+    if (s->t30.supported_modems & T30_SUPPORT_V29)
+        v8_parms.modulations |= V8_MOD_V29;
+    if (s->t30.supported_modems & T30_SUPPORT_V17)
+        v8_parms.modulations |= V8_MOD_V17;
+    if (s->t30.supported_modems & T30_SUPPORT_V34HDX)
+        v8_parms.modulations |= V8_MOD_V34HDX;
+    v8_parms.protocol = V8_PROTOCOL_NONE;
+    v8_parms.pcm_modem_availability = 0;
+    v8_parms.pstn_access = 0;
+    v8_parms.nsf = -1;
+    v8_parms.t66 = -1;
+    v8_init(&s->v8, calling_party, &v8_parms, v8_handler, s);
+#endif
+    t30_restart(&s->t30);
+    fax_restart(s, calling_party);
     return s;
 }
 /*- End of function --------------------------------------------------------*/

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tests.c,v 1.63 2009/07/09 13:52:09 steveu Exp $
+ * $Id: v22bis_tests.c,v 1.63.4.2 2010/01/04 15:14:08 steveu Exp $
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
@@ -225,9 +225,11 @@ int main(int argc, char *argv[])
     int signal_level;
     int log_audio;
     int channel_codec;
+    int rbs_pattern;
     int opt;
     
     channel_codec = MUNGE_CODEC_NONE;
+    rbs_pattern = 0;
     test_bps = 2400;
     line_model_no = 0;
     decode_test_file = NULL;
@@ -235,7 +237,7 @@ int main(int argc, char *argv[])
     signal_level = -13;
     bits_per_test = 50000;
     log_audio = FALSE;
-    while ((opt = getopt(argc, argv, "b:B:c:d:glm:n:s:")) != -1)
+    while ((opt = getopt(argc, argv, "b:B:c:d:glm:n:r:s:")) != -1)
     {
         switch (opt)
         {
@@ -272,6 +274,9 @@ int main(int argc, char *argv[])
             break;
         case 'n':
             noise_level = atoi(optarg);
+            break;
+        case 'r':
+            rbs_pattern = atoi(optarg);
             break;
         case 's':
             signal_level = atoi(optarg);
@@ -328,7 +333,16 @@ int main(int argc, char *argv[])
         endpoint[1].qam_monitor = qam_monitor_init(6.0f, "Answering modem");
     }
 #endif
-    if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, (float) noise_level, channel_codec, 0)) == NULL)
+    if ((model = both_ways_line_model_init(line_model_no,
+                                           (float) noise_level,
+                                           -15.0f,
+                                           -15.0f,
+                                           line_model_no,
+                                           (float) noise_level,
+                                           -15.0f,
+                                           -15.0f,
+                                           channel_codec,
+                                           rbs_pattern)) == NULL)
     {
         fprintf(stderr, "    Failed to create line model\n");
         exit(2);

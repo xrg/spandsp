@@ -30943,7 +30943,7 @@ ac_cv_symbol_export_capability="no"
 case "${ax_cv_c_compiler_vendor}" in
 gnu)
     save_CFLAGS="${CFLAGS}"
-    CFLAGS="${CFLAGS} -fvisibility=hidden"
+    CFLAGS="${CFLAGS} -Werror -fvisibility=hidden"
     cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF

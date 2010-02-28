@@ -42,7 +42,8 @@ noinst_PROGRAMS = adsi_tests$(EXEEXT) async_tests$(EXEEXT) \
 	at_interpreter_tests$(EXEEXT) awgn_tests$(EXEEXT) \
 	bell_mf_rx_tests$(EXEEXT) bell_mf_tx_tests$(EXEEXT) \
 	bert_tests$(EXEEXT) bit_operations_tests$(EXEEXT) \
-	complex_tests$(EXEEXT) complex_vector_float_tests$(EXEEXT) \
+	bitstream_tests$(EXEEXT) complex_tests$(EXEEXT) \
+	complex_vector_float_tests$(EXEEXT) \
 	complex_vector_int_tests$(EXEEXT) crc_tests$(EXEEXT) \
 	dc_restore_tests$(EXEEXT) dds_tests$(EXEEXT) \
 	dtmf_rx_tests$(EXEEXT) dtmf_tx_tests$(EXEEXT) \
@@ -58,10 +59,11 @@ noinst_PROGRAMS = adsi_tests$(EXEEXT) async_tests$(EXEEXT) \
 	plc_tests$(EXEEXT) power_meter_tests$(EXEEXT) \
 	queue_tests$(EXEEXT) r2_mf_rx_tests$(EXEEXT) \
 	r2_mf_tx_tests$(EXEEXT) rfc2198_sim_tests$(EXEEXT) \
-	schedule_tests$(EXEEXT) sig_tone_tests$(EXEEXT) \
-	super_tone_rx_tests$(EXEEXT) super_tone_tx_tests$(EXEEXT) \
-	swept_tone_tests$(EXEEXT) t4_tests$(EXEEXT) t31_tests$(EXEEXT) \
-	t38_core_tests$(EXEEXT) t38_gateway_tests$(EXEEXT) \
+	saturated_tests$(EXEEXT) schedule_tests$(EXEEXT) \
+	sig_tone_tests$(EXEEXT) super_tone_rx_tests$(EXEEXT) \
+	super_tone_tx_tests$(EXEEXT) swept_tone_tests$(EXEEXT) \
+	t4_tests$(EXEEXT) t31_tests$(EXEEXT) t38_core_tests$(EXEEXT) \
+	t38_gateway_tests$(EXEEXT) \
 	t38_gateway_to_terminal_tests$(EXEEXT) \
 	t38_non_ecm_buffer_tests$(EXEEXT) t38_terminal_tests$(EXEEXT) \
 	t38_terminal_to_gateway_tests$(EXEEXT) \
@@ -114,6 +116,9 @@ bert_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_bit_operations_tests_OBJECTS = bit_operations_tests.$(OBJEXT)
 bit_operations_tests_OBJECTS = $(am_bit_operations_tests_OBJECTS)
 bit_operations_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_bitstream_tests_OBJECTS = bitstream_tests.$(OBJEXT)
+bitstream_tests_OBJECTS = $(am_bitstream_tests_OBJECTS)
+bitstream_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_complex_tests_OBJECTS = complex_tests.$(OBJEXT)
 complex_tests_OBJECTS = $(am_complex_tests_OBJECTS)
 complex_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -228,6 +233,9 @@ am_rfc2198_sim_tests_OBJECTS = rfc2198_sim_tests.$(OBJEXT) \
 	media_monitor.$(OBJEXT)
 rfc2198_sim_tests_OBJECTS = $(am_rfc2198_sim_tests_OBJECTS)
 rfc2198_sim_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_saturated_tests_OBJECTS = saturated_tests.$(OBJEXT)
+saturated_tests_OBJECTS = $(am_saturated_tests_OBJECTS)
+saturated_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_schedule_tests_OBJECTS = schedule_tests.$(OBJEXT)
 schedule_tests_OBJECTS = $(am_schedule_tests_OBJECTS)
 schedule_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -354,7 +362,8 @@ SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(at_interpreter_tests_SOURCES) $(awgn_tests_SOURCES) \
 	$(bell_mf_rx_tests_SOURCES) $(bell_mf_tx_tests_SOURCES) \
 	$(bert_tests_SOURCES) $(bit_operations_tests_SOURCES) \
-	$(complex_tests_SOURCES) $(complex_vector_float_tests_SOURCES) \
+	$(bitstream_tests_SOURCES) $(complex_tests_SOURCES) \
+	$(complex_vector_float_tests_SOURCES) \
 	$(complex_vector_int_tests_SOURCES) $(crc_tests_SOURCES) \
 	$(dc_restore_tests_SOURCES) $(dds_tests_SOURCES) \
 	$(dtmf_rx_tests_SOURCES) $(dtmf_tx_tests_SOURCES) \
@@ -372,10 +381,11 @@ SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(plc_tests_SOURCES) $(power_meter_tests_SOURCES) \
 	$(queue_tests_SOURCES) $(r2_mf_rx_tests_SOURCES) \
 	$(r2_mf_tx_tests_SOURCES) $(rfc2198_sim_tests_SOURCES) \
-	$(schedule_tests_SOURCES) $(sig_tone_tests_SOURCES) \
-	$(super_tone_rx_tests_SOURCES) $(super_tone_tx_tests_SOURCES) \
-	$(swept_tone_tests_SOURCES) $(t31_tests_SOURCES) \
-	$(t38_core_tests_SOURCES) $(t38_gateway_tests_SOURCES) \
+	$(saturated_tests_SOURCES) $(schedule_tests_SOURCES) \
+	$(sig_tone_tests_SOURCES) $(super_tone_rx_tests_SOURCES) \
+	$(super_tone_tx_tests_SOURCES) $(swept_tone_tests_SOURCES) \
+	$(t31_tests_SOURCES) $(t38_core_tests_SOURCES) \
+	$(t38_gateway_tests_SOURCES) \
 	$(t38_gateway_to_terminal_tests_SOURCES) \
 	$(t38_non_ecm_buffer_tests_SOURCES) \
 	$(t38_terminal_tests_SOURCES) \
@@ -392,7 +402,8 @@ DIST_SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(at_interpreter_tests_SOURCES) $(awgn_tests_SOURCES) \
 	$(bell_mf_rx_tests_SOURCES) $(bell_mf_tx_tests_SOURCES) \
 	$(bert_tests_SOURCES) $(bit_operations_tests_SOURCES) \
-	$(complex_tests_SOURCES) $(complex_vector_float_tests_SOURCES) \
+	$(bitstream_tests_SOURCES) $(complex_tests_SOURCES) \
+	$(complex_vector_float_tests_SOURCES) \
 	$(complex_vector_int_tests_SOURCES) $(crc_tests_SOURCES) \
 	$(dc_restore_tests_SOURCES) $(dds_tests_SOURCES) \
 	$(dtmf_rx_tests_SOURCES) $(dtmf_tx_tests_SOURCES) \
@@ -410,10 +421,11 @@ DIST_SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(plc_tests_SOURCES) $(power_meter_tests_SOURCES) \
 	$(queue_tests_SOURCES) $(r2_mf_rx_tests_SOURCES) \
 	$(r2_mf_tx_tests_SOURCES) $(rfc2198_sim_tests_SOURCES) \
-	$(schedule_tests_SOURCES) $(sig_tone_tests_SOURCES) \
-	$(super_tone_rx_tests_SOURCES) $(super_tone_tx_tests_SOURCES) \
-	$(swept_tone_tests_SOURCES) $(t31_tests_SOURCES) \
-	$(t38_core_tests_SOURCES) $(t38_gateway_tests_SOURCES) \
+	$(saturated_tests_SOURCES) $(schedule_tests_SOURCES) \
+	$(sig_tone_tests_SOURCES) $(super_tone_rx_tests_SOURCES) \
+	$(super_tone_tx_tests_SOURCES) $(swept_tone_tests_SOURCES) \
+	$(t31_tests_SOURCES) $(t38_core_tests_SOURCES) \
+	$(t38_gateway_tests_SOURCES) \
 	$(t38_gateway_to_terminal_tests_SOURCES) \
 	$(t38_non_ecm_buffer_tests_SOURCES) \
 	$(t38_terminal_tests_SOURCES) \
@@ -622,6 +634,8 @@ bert_tests_SOURCES = bert_tests.c
 bert_tests_LDADD = $(LIBDIR) -lspandsp
 bit_operations_tests_SOURCES = bit_operations_tests.c
 bit_operations_tests_LDADD = $(LIBDIR) -lspandsp
+bitstream_tests_SOURCES = bitstream_tests.c
+bitstream_tests_LDADD = $(LIBDIR) -lspandsp
 complex_tests_SOURCES = complex_tests.c
 complex_tests_LDADD = $(LIBDIR) -lspandsp
 complex_vector_float_tests_SOURCES = complex_vector_float_tests.c
@@ -692,6 +706,8 @@ r2_mf_tx_tests_SOURCES = r2_mf_tx_tests.c
 r2_mf_tx_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 rfc2198_sim_tests_SOURCES = rfc2198_sim_tests.c media_monitor.cpp
 rfc2198_sim_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
+saturated_tests_SOURCES = saturated_tests.c
+saturated_tests_LDADD = $(LIBDIR) -lspandsp 
 schedule_tests_SOURCES = schedule_tests.c
 schedule_tests_LDADD = $(LIBDIR) -lspandsp 
 sig_tone_tests_SOURCES = sig_tone_tests.c
@@ -814,6 +830,9 @@ bert_tests$(EXEEXT): $(bert_tests_OBJECTS) $(bert_tests_DEPENDENCIES)
 bit_operations_tests$(EXEEXT): $(bit_operations_tests_OBJECTS) $(bit_operations_tests_DEPENDENCIES) 
 	@rm -f bit_operations_tests$(EXEEXT)
 	$(LINK) $(bit_operations_tests_LDFLAGS) $(bit_operations_tests_OBJECTS) $(bit_operations_tests_LDADD) $(LIBS)
+bitstream_tests$(EXEEXT): $(bitstream_tests_OBJECTS) $(bitstream_tests_DEPENDENCIES) 
+	@rm -f bitstream_tests$(EXEEXT)
+	$(LINK) $(bitstream_tests_LDFLAGS) $(bitstream_tests_OBJECTS) $(bitstream_tests_LDADD) $(LIBS)
 complex_tests$(EXEEXT): $(complex_tests_OBJECTS) $(complex_tests_DEPENDENCIES) 
 	@rm -f complex_tests$(EXEEXT)
 	$(LINK) $(complex_tests_LDFLAGS) $(complex_tests_OBJECTS) $(complex_tests_LDADD) $(LIBS)
@@ -919,6 +938,9 @@ r2_mf_tx_tests$(EXEEXT): $(r2_mf_tx_tests_OBJECTS) $(r2_mf_tx_tests_DEPENDENCIES
 rfc2198_sim_tests$(EXEEXT): $(rfc2198_sim_tests_OBJECTS) $(rfc2198_sim_tests_DEPENDENCIES) 
 	@rm -f rfc2198_sim_tests$(EXEEXT)
 	$(CXXLINK) $(rfc2198_sim_tests_LDFLAGS) $(rfc2198_sim_tests_OBJECTS) $(rfc2198_sim_tests_LDADD) $(LIBS)
+saturated_tests$(EXEEXT): $(saturated_tests_OBJECTS) $(saturated_tests_DEPENDENCIES) 
+	@rm -f saturated_tests$(EXEEXT)
+	$(LINK) $(saturated_tests_LDFLAGS) $(saturated_tests_OBJECTS) $(saturated_tests_LDADD) $(LIBS)
 schedule_tests$(EXEEXT): $(schedule_tests_OBJECTS) $(schedule_tests_DEPENDENCIES) 
 	@rm -f schedule_tests$(EXEEXT)
 	$(LINK) $(schedule_tests_LDFLAGS) $(schedule_tests_OBJECTS) $(schedule_tests_LDADD) $(LIBS)
@@ -1021,6 +1043,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bell_mf_tx_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bert_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bit_operations_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bitstream_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_vector_float_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/complex_vector_int_tests.Po@am__quote@
@@ -1062,6 +1085,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/r2_mf_rx_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/r2_mf_tx_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rfc2198_sim_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/saturated_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/schedule_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sig_tone_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/super_tone_rx_tests.Po@am__quote@

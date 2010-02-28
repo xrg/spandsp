@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.69 2009/11/04 15:52:06 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.69.4.2 2010/02/28 06:33:30 steveu Exp $
  */
 
 /*! \file */
@@ -57,6 +57,8 @@
 #include "spandsp/complex.h"
 #include "spandsp/vector_float.h"
 #include "spandsp/complex_vector_float.h"
+#include "spandsp/vector_int.h"
+#include "spandsp/complex_vector_int.h"
 #include "spandsp/async.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/arctan2.h"
@@ -804,7 +806,7 @@ SPAN_DECLARE_NONSTD(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int l
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v22bis_rx_fillin(v22bis_state_t *s, int len)
+SPAN_DECLARE_NONSTD(int) v22bis_rx_fillin(v22bis_state_t *s, int len)
 {
     int i;
 
@@ -828,7 +830,11 @@ SPAN_DECLARE(int) v22bis_rx_fillin(v22bis_state_t *s, int len)
 
 int v22bis_rx_restart(v22bis_state_t *s)
 {
+#if defined(SPANDSP_USE_FIXED_POINTx)
+    vec_zeroi16(s->rx.rrc_filter, sizeof(s->rx.rrc_filter)/sizeof(s->rx.rrc_filter[0]));
+#else
     vec_zerof(s->rx.rrc_filter, sizeof(s->rx.rrc_filter)/sizeof(s->rx.rrc_filter[0]));
+#endif
     s->rx.rrc_filter_step = 0;
     s->rx.scramble_reg = 0;
     s->rx.scrambler_pattern_count = 0;

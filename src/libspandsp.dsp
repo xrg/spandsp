@@ -611,14 +611,6 @@ SOURCE=.\spandsp/swept_tone.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\spandsp/t4_rx.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\spandsp/t4_tx.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\spandsp/t30.h
 # End Source File
 # Begin Source File
@@ -656,6 +648,22 @@ SOURCE=.\spandsp/t38_non_ecm_buffer.h
 # Begin Source File
 
 SOURCE=.\spandsp/t38_terminal.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/t4_rx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/t4_tx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/t4_t6_decode.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/t4_t6_encode.h
 # End Source File
 # Begin Source File
 
@@ -892,6 +900,14 @@ SOURCE=.\spandsp/private/t4_rx.h
 # Begin Source File
 
 SOURCE=.\spandsp/private/t4_tx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/t4_t6_decode.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\spandsp/private/t4_t6_encode.h
 # End Source File
 # Begin Source File
 

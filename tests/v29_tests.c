@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29_tests.c,v 1.120 2009/07/09 13:52:09 steveu Exp $
+ * $Id: v29_tests.c,v 1.120.4.1 2010/02/16 18:06:48 steveu Exp $
  */
 
 /*! \page v29_tests_page V.29 modem tests
@@ -420,7 +420,7 @@ int main(int argc, char *argv[])
             if (samples == 0)
             {
                 /* Push a little silence through, to ensure all the data bits get out of the buffers */
-                memset(amp, 0, BLOCK_LEN*sizeof(int16_t));
+                vec_zeroi16(amp, BLOCK_LEN);
                 v29_rx(rx, amp, BLOCK_LEN);
 
                 /* Note that we might get a few bad bits as the carrier shuts down. */

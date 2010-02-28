@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk_tests.c,v 1.59 2009/11/02 13:25:20 steveu Exp $
+ * $Id: fsk_tests.c,v 1.59.4.2 2010/01/04 15:14:08 steveu Exp $
  */
 
 /*! \page fsk_tests_page FSK modem tests
@@ -389,7 +389,16 @@ int main(int argc, char *argv[])
         bert_set_report(&caller_bert, 100000, reporter, (void *) (intptr_t) 1);
         bert_init(&answerer_bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
         bert_set_report(&answerer_bert, 100000, reporter, (void *) (intptr_t) 2);
-        if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, (float) noise_level, channel_codec, rbs_pattern)) == NULL)
+        if ((model = both_ways_line_model_init(line_model_no,
+                                               (float) noise_level,
+                                               -15.0f,
+                                               -15.0f,
+                                               line_model_no,
+                                               (float) noise_level,
+                                               -15.0f,
+                                               -15.0f,
+                                               channel_codec,
+                                               rbs_pattern)) == NULL)
         {
             fprintf(stderr, "    Failed to create line model\n");
             exit(2);
@@ -488,7 +497,16 @@ int main(int argc, char *argv[])
                     fsk_rx_set_modem_status_handler(caller_rx, rx_status, (void *) &caller_rx);
                 }
                 noise_level++;
-                if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, noise_level, channel_codec, 0)) == NULL)
+                if ((model = both_ways_line_model_init(line_model_no,
+                                                       (float) noise_level,
+                                                       line_model_no,
+                                                       -15.0f,
+                                                       -15.0f,
+                                                       noise_level,
+                                                       channel_codec,
+                                                       -15.0f,
+                                                       -15.0f,
+                                                       0)) == NULL)
                 {
                     fprintf(stderr, "    Failed to create line model\n");
                     exit(2);

@@ -17,7 +17,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: regression_tests.sh,v 1.59 2009/09/22 13:28:18 steveu Exp $
+# $Id: regression_tests.sh,v 1.59.4.1 2010/02/18 14:00:50 steveu Exp $
 #
 
 ITUTESTS_TIF=../test-data/itu/fax/itutests.tif
@@ -428,6 +428,15 @@ echo r2_mf_tx_tests completed OK
 #    exit $RETVAL
 #fi
 #echo rfc2198_sim_tests completed OK
+
+./saturated_tests >$STDOUT_DEST 2>$STDERR_DEST
+RETVAL=$?
+if [ $RETVAL != 0 ]
+then
+    echo saturated_tests failed!
+    exit $RETVAL
+fi
+echo saturated_tests completed OK
 
 ./schedule_tests >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?

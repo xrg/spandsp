@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # spandsp fax tests
 #
@@ -15,7 +15,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: tsb85_tests.sh,v 1.8 2009/05/24 07:18:36 steveu Exp $
+# $Id: tsb85_tests.sh,v 1.8.4.1 2009/12/29 11:32:19 steveu Exp $
 #
 
 run_tsb85_test()

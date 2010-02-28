@@ -1,11 +1,11 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * version.h - A tag file, so the exact installed revision can be assertained.
+ * t4_t6_encode.h - definitions for T.4/T.6 fax encoding
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
- * Copyright (C) 2007 Steve Underwood
+ * Copyright (C) 2003, 2009 Steve Underwood
  *
  * All rights reserved.
  *
@@ -22,17 +22,23 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: version.h.in,v 1.3.4.1 2009/12/19 09:47:56 steveu Exp $
+ * $Id: t4_t6_encode.h,v 1.5.2.2 2010/01/04 14:46:32 steveu Exp $
  */
 
-#if !defined(_SPANDSP_VERSION_H_)
-#define _SPANDSP_VERSION_H_
+/*! \file */
 
-/* The date and time of the version are in UTC form. */
+#if !defined(_SPANDSP_T4_T6_ENCODE_H_)
+#define _SPANDSP_T4_T6_ENCODE_H_
 
-#define SPANDSP_RELEASE_DATE            20100228
-#define SPANDSP_RELEASE_TIME            063434
-#define SPANDSP_RELEASE_DATETIME_STRING "20100228 063434"
+typedef struct t4_t6_encode_state_s t4_t6_encode_state_t;
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif
 /*- End of file ------------------------------------------------------------*/

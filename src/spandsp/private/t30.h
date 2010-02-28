@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.5.4.1 2009/12/19 09:47:56 steveu Exp $
+ * $Id: t30.h,v 1.5.4.2 2010/01/04 14:44:43 steveu Exp $
  */
 
 /*! \file */
@@ -36,11 +36,12 @@
 */
 struct t30_state_s
 {
-    /* This must be kept the first thing in the structure, so it can be pointed
-       to reliably as the structures change over time. */
     /*! \brief T.4 context for reading or writing image data. */
-    t4_state_t t4;
-    
+    union
+    {
+        t4_state_t rx;
+        t4_state_t tx;
+    } t4;
     /*! \brief The type of FAX operation currently in progress */
     int operation_in_progress;
 

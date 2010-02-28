@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal_tests.c,v 1.67.4.1 2009/12/19 09:47:57 steveu Exp $
+ * $Id: t38_terminal_tests.c,v 1.67.4.2 2010/02/16 18:06:48 steveu Exp $
  */
 
 /*! \file */
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
     int t38_version;
     int seq_no;
     int use_ecm;
-    int without_pacing;
+    int options;
     int use_tep;
     int model_no;
     int speed_pattern_no;
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
     logging_state_t *logging;
 
     t38_version = 1;
-    without_pacing = FALSE;
+    options = 0;
     use_tep = FALSE;
     input_file_name = INPUT_FILE_NAME;
     use_ecm = FALSE;
@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
     speed_pattern_no = 1;
     use_gui = FALSE;
     supported_modems = T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17;
-    while ((opt = getopt(argc, argv, "efgi:Im:M:ps:tv:")) != -1)
+    while ((opt = getopt(argc, argv, "efgi:Im:M:o:s:tv:")) != -1)
     {
         switch (opt)
         {
@@ -250,8 +250,8 @@ int main(int argc, char *argv[])
         case 'M':
             model_no = optarg[0] - 'A' + 1;
             break;
-        case 'p':
-            without_pacing = TRUE;
+        case 'o':
+            options = atoi(optarg);
             break;
         case 's':
             speed_pattern_no = atoi(optarg);
@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
     t30 = t38_terminal_get_t30_state(t38_state_a);
     t38_core = t38_terminal_get_t38_core_state(t38_state_a);
     t38_set_t38_version(t38_core, t38_version);
-    t38_terminal_set_config(t38_state_a, without_pacing);
+    t38_terminal_set_config(t38_state_a, options);
     t38_terminal_set_tep_mode(t38_state_a, use_tep);
     
     logging = t38_terminal_get_logging_state(t38_state_a);
@@ -327,7 +327,7 @@ int main(int argc, char *argv[])
     t30 = t38_terminal_get_t30_state(t38_state_b);
     t38_core = t38_terminal_get_t38_core_state(t38_state_b);
     t38_set_t38_version(t38_core, t38_version);
-    t38_terminal_set_config(t38_state_b, without_pacing);
+    t38_terminal_set_config(t38_state_b, options);
     t38_terminal_set_tep_mode(t38_state_b, use_tep);
 
     logging = t38_terminal_get_logging_state(t38_state_b);

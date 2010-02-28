@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.117 2009/09/22 13:11:04 steveu Exp $
+## $Id: Makefile.am,v 1.117.4.2 2010/02/18 14:00:50 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -60,6 +60,7 @@ noinst_PROGRAMS =   adsi_tests \
                     bell_mf_tx_tests \
                     bert_tests \
                     bit_operations_tests \
+                    bitstream_tests \
                     complex_tests \
                     complex_vector_float_tests \
                     complex_vector_int_tests \
@@ -95,6 +96,7 @@ noinst_PROGRAMS =   adsi_tests \
                     r2_mf_rx_tests \
                     r2_mf_tx_tests \
                     rfc2198_sim_tests \
+                    saturated_tests \
                     schedule_tests \
                     sig_tone_tests \
                     super_tone_rx_tests \
@@ -156,6 +158,9 @@ bert_tests_LDADD = $(LIBDIR) -lspandsp
 
 bit_operations_tests_SOURCES = bit_operations_tests.c
 bit_operations_tests_LDADD = $(LIBDIR) -lspandsp
+
+bitstream_tests_SOURCES = bitstream_tests.c
+bitstream_tests_LDADD = $(LIBDIR) -lspandsp
 
 complex_tests_SOURCES = complex_tests.c
 complex_tests_LDADD = $(LIBDIR) -lspandsp
@@ -261,6 +266,9 @@ r2_mf_tx_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -ls
 
 rfc2198_sim_tests_SOURCES = rfc2198_sim_tests.c media_monitor.cpp
 rfc2198_sim_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
+
+saturated_tests_SOURCES = saturated_tests.c
+saturated_tests_LDADD = $(LIBDIR) -lspandsp 
 
 schedule_tests_SOURCES = schedule_tests.c
 schedule_tests_LDADD = $(LIBDIR) -lspandsp 

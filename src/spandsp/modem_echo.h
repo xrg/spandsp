@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modem_echo.h,v 1.14 2009/09/22 13:11:04 steveu Exp $
+ * $Id: modem_echo.h,v 1.14.4.1 2010/01/04 14:46:32 steveu Exp $
  */
 
 /*! \file */
@@ -95,7 +95,7 @@ extern "C"
     \param len The length of the canceller, in samples.
     eturn The new canceller context, or NULL if the canceller could not be created.
 */
-SPAN_DECLARE(modem_echo_can_state_t *) modem_echo_can_create(int len);
+SPAN_DECLARE(modem_echo_can_state_t *) modem_echo_can_init(int len);
 
 /*! Free a modem echo canceller context.
     \param ec The echo canceller context.

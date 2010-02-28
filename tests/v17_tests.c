@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17_tests.c,v 1.104 2009/07/09 13:52:09 steveu Exp $
+ * $Id: v17_tests.c,v 1.104.4.2 2010/02/16 18:06:48 steveu Exp $
  */
 
 /*! \page v17_tests_page V.17 modem tests
@@ -259,8 +259,17 @@ int main(int argc, char *argv[])
         {
         case 'b':
             test_bps = atoi(optarg);
-            if (test_bps != 14400  &&  test_bps != 12000  &&  test_bps != 9600  &&  test_bps != 7200)
+            if (test_bps != 14400
+                &&
+                test_bps != 12000
+                &&
+                test_bps != 9600
+                &&
+                test_bps != 7200
+                &&
+                test_bps != 4800)
             {
+                /* 4800 is an extension of V.17, to provide full coverage of the V.32bis modes */
                 fprintf(stderr, "Invalid bit rate specified\n");
                 exit(2);
             }
@@ -401,7 +410,7 @@ int main(int argc, char *argv[])
                 printf("Restarting on zero output\n");
 
                 /* Push a little silence through, to ensure all the data bits get out of the buffers */
-                memset(amp, 0, BLOCK_LEN*sizeof(int16_t));
+                vec_zeroi16(amp, BLOCK_LEN);
                 v17_rx(rx, amp, BLOCK_LEN);
 
                 /* Note that we might get a few bad bits as the carrier shuts down. */

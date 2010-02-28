@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_rx.c,v 1.131 2009/07/08 15:11:09 steveu Exp $
+ * $Id: v27ter_rx.c,v 1.131.4.1 2010/02/16 17:52:03 steveu Exp $
  */
 
 /*! \file */
@@ -981,7 +981,7 @@ SPAN_DECLARE_NONSTD(int) v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], in
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v27ter_rx_fillin(v27ter_rx_state_t *s, int len)
+SPAN_DECLARE_NONSTD(int) v27ter_rx_fillin(v27ter_rx_state_t *s, int len)
 {
     int i;
 

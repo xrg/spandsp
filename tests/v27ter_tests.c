@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v27ter_tests.c,v 1.106 2009/07/09 13:52:09 steveu Exp $
+ * $Id: v27ter_tests.c,v 1.106.4.1 2010/02/16 18:06:48 steveu Exp $
  */
 
 /*! \page v27ter_tests_page V.27ter modem tests
@@ -392,7 +392,7 @@ int main(int argc, char *argv[])
                 printf("Restarting on zero output\n");
 
                 /* Push a little silence through, to ensure all the data bits get out of the buffers */
-                memset(amp, 0, BLOCK_LEN*sizeof(int16_t));
+                vec_zeroi16(amp, BLOCK_LEN);
                 v27ter_rx(rx, amp, BLOCK_LEN);
                 v27ter_rx(rx, amp, BLOCK_LEN);
                 v27ter_rx(rx, amp, BLOCK_LEN);

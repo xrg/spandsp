@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.153.4.6 2009/12/28 12:20:46 steveu Exp $
+ * $Id: v17rx.c,v 1.153.4.8 2010/02/17 14:58:53 steveu Exp $
  */
 
 /*! \file */
@@ -574,17 +574,18 @@ static __inline__ void symbol_sync(v17_rx_state_t *s)
       - (((s->symbol_sync_low[0] >> 5)*(s->symbol_sync_high[1] >> 4)) >> 15)*SYNC_HIGH_BAND_EDGE_COEFF_2
       + (((s->symbol_sync_low[1] >> 5)*(s->symbol_sync_high[1] >> 4)) >> 15)*SYNC_MIXED_EDGES_COEFF_3;
     /* Filter away any DC component */
-    p = v - s->symbol_sync_dc_filter[1];
-    s->symbol_sync_dc_filter[1] = s->symbol_sync_dc_filter[0];
-    s->symbol_sync_dc_filter[0] = v;
+    p = v - s->symbol_sync_dc_filter;
+    s->symbol_sync_dc_filter = v;
     /* A little integration will now filter away much of the HF noise */
     s->baud_phase -= p;
-    if (abs(s->baud_phase) > 100*FP_FACTOR)
+    v = labs(s->baud_phase);
+    if (v > 150*FP_FACTOR)
     {
-        if (s->baud_phase > 0)
-            i = (s->baud_phase > 1000*FP_FACTOR)  ?  15  :  1;
-        else
-            i = (s->baud_phase < -1000*FP_FACTOR)  ?  -15  :  -1;
+        i = v/(150*FP_FACTOR);
+        if (i > 15)
+            i = 15;
+        if (s->baud_phase < 0)
+            i = -i;
         //printf("v = %10.5f %5d - %f %f %d %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
         s->eq_put_step += i;
         s->total_baud_timing_correction += i;
@@ -595,17 +596,18 @@ static __inline__ void symbol_sync(v17_rx_state_t *s)
       - s->symbol_sync_low[0]*s->symbol_sync_high[1]*SYNC_HIGH_BAND_EDGE_COEFF_2
       + s->symbol_sync_low[1]*s->symbol_sync_high[1]*SYNC_MIXED_EDGES_COEFF_3;
     /* Filter away any DC component  */
-    p = v - s->symbol_sync_dc_filter[1];
-    s->symbol_sync_dc_filter[1] = s->symbol_sync_dc_filter[0];
-    s->symbol_sync_dc_filter[0] = v;
+    p = v - s->symbol_sync_dc_filter;
+    s->symbol_sync_dc_filter = v;
     /* A little integration will now filter away much of the HF noise */
     s->baud_phase -= p;
-    if (fabsf(s->baud_phase) > 100.0f)
+    v = fabsf(s->baud_phase);
+    if (v > 150.0f)
     {
-        if (s->baud_phase > 0.0f)
-            i = (s->baud_phase > 1000.0f)  ?  15  :  1;
-        else
-            i = (s->baud_phase < -1000.0f)  ?  -15  :  -1;
+        i = v/150.0f;
+        if (i > 15)
+            i = 15;
+        if (s->baud_phase < 0.0f)
+            i = -i;
         //printf("v = %10.5f %5d - %f %f %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
         s->eq_put_step += i;
         s->total_baud_timing_correction += i;
@@ -732,18 +734,14 @@ static void process_half_baud(v17_rx_state_t *s, const complexf_t *sample)
         if (s->training_count == 100)
         {
             i = s->training_count;
-            /* Avoid the possibility of a divide by zero */
-            if (i)
-            {
-                j = i & 0xF;
-                ang = (s->angles[j] - s->start_angles[0])/i
-                    + (s->angles[j | 0x1] - s->start_angles[1])/i;
-                s->carrier_phase_rate += 3*(ang/20);
-                //span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angles[j], s->start_angles[0], s->angles[j | 0x1], s->start_angles[1], i);
+            j = i & 0xF;
+            ang = (s->angles[j] - s->start_angles[0])/i
+                + (s->angles[j | 0x1] - s->start_angles[1])/i;
+            s->carrier_phase_rate += 3*(ang/20);
+            //span_log(&s->logging, SPAN_LOG_FLOW, "Angles %x, %x, %x, %x, dist %d\n", s->angles[j], s->start_angles[0], s->angles[j | 0x1], s->start_angles[1], i);
 
-                s->start_angles[0] = s->angles[j];
-                s->start_angles[1] = s->angles[j | 0x1];
-            }
+            s->start_angles[0] = s->angles[j];
+            s->start_angles[1] = s->angles[j | 0x1];
             //span_log(&s->logging, SPAN_LOG_FLOW, "%d %d %d %d %d\n", s->angles[s->training_count & 0xF], s->start_angles[0], s->angles[(s->training_count | 0x1) & 0xF], s->start_angles[1], s->training_count);
             span_log(&s->logging, SPAN_LOG_FLOW, "First coarse carrier frequency %7.2f (%d)\n", dds_frequencyf(s->carrier_phase_rate), s->training_count);
 
@@ -1219,7 +1217,7 @@ SPAN_DECLARE_NONSTD(int) v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v17_rx_fillin(v17_rx_state_t *s, int len)
+SPAN_DECLARE_NONSTD(int) v17_rx_fillin(v17_rx_state_t *s, int len)
 {
     int i;
 
@@ -1385,16 +1383,16 @@ SPAN_DECLARE(int) v17_rx_restart(v17_rx_state_t *s, int bit_rate, int short_trai
     {
         s->symbol_sync_low[i] = 0;
         s->symbol_sync_high[i] = 0;
-        s->symbol_sync_dc_filter[i] = 0;
     }
+    s->symbol_sync_dc_filter = 0;
     s->baud_phase = 0;
 #else
     for (i = 0;  i < 2;  i++)
     {
         s->symbol_sync_low[i] = 0.0f;
         s->symbol_sync_high[i] = 0.0f;
-        s->symbol_sync_dc_filter[i] = 0.0f;
     }
+    s->symbol_sync_dc_filter = 0.0f;
     s->baud_phase = 0.0f;
 #endif
     s->baud_half = 0;

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.65 2009/07/09 13:52:09 steveu Exp $
+ * $Id: v17rx.h,v 1.65.4.1 2010/02/16 17:52:03 steveu Exp $
  */
 
 /*! \file */
@@ -287,7 +287,7 @@ SPAN_DECLARE_NONSTD(int) v17_rx(v17_rx_state_t *s, const int16_t amp[], int len)
     \param len The number of samples to fake.
     \return The number of samples unprocessed.
 */
-SPAN_DECLARE(int) v17_rx_fillin(v17_rx_state_t *s, int len);
+SPAN_DECLARE_NONSTD(int) v17_rx_fillin(v17_rx_state_t *s, int len);
 
 /*! Get a snapshot of the current equalizer coefficients.
     \brief Get a snapshot of the current equalizer coefficients.

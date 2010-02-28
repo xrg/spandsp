@@ -247,7 +247,6 @@ EXTRA_DIST = autogen.sh \
              debian/rules \
              debian/watch \
              README.testdata \
-             spandsp.pc \
              spandsp.spec \
              spandsp/fax-tests.dtd \
              spandsp/global-tones.xml \
