@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.167.4.7 2010/02/17 14:58:53 steveu Exp $
+ * $Id: v29rx.c,v 1.167.4.8 2010/03/18 13:34:06 steveu Exp $
  */
 
 /*! \file */
@@ -516,8 +516,8 @@ static __inline__ void symbol_sync(v29_rx_state_t *s)
     if (v > 40*FP_FACTOR)
     {
         i = v/(40*FP_FACTOR);
-        if (i > 30)
-            i = 30;
+        if (i > 5)
+            i = 5;
         if (s->baud_phase < 0)
             i = -i;
         //printf("v = %10.5f %5d - %f %f %d %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
@@ -538,8 +538,8 @@ static __inline__ void symbol_sync(v29_rx_state_t *s)
     if (v > 40.0f)
     {
         i = v/40.0f;
-        if (i > 30)
-            i = 30;
+        if (i > 5)
+            i = 5;
         if (s->baud_phase < 0.0f)
             i = -i;
         //printf("v = %10.5f %5d - %f %f %d %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
