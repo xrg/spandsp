@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.153.4.8 2010/02/17 14:58:53 steveu Exp $
+ * $Id: v17rx.c,v 1.153.4.9 2010/03/22 13:06:11 steveu Exp $
  */
 
 /*! \file */
@@ -579,11 +579,17 @@ static __inline__ void symbol_sync(v17_rx_state_t *s)
     /* A little integration will now filter away much of the HF noise */
     s->baud_phase -= p;
     v = labs(s->baud_phase);
+#if 0
     if (v > 150*FP_FACTOR)
     {
         i = v/(150*FP_FACTOR);
         if (i > 15)
             i = 15;
+#else
+    if (v > 100*FP_FACTOR)
+    {
+        i = (v > 1000*FP_FACTOR)  ?  15  :  1;
+#endif
         if (s->baud_phase < 0)
             i = -i;
         //printf("v = %10.5f %5d - %f %f %d %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
@@ -601,11 +607,17 @@ static __inline__ void symbol_sync(v17_rx_state_t *s)
     /* A little integration will now filter away much of the HF noise */
     s->baud_phase -= p;
     v = fabsf(s->baud_phase);
+#if 0
     if (v > 150.0f)
     {
         i = v/150.0f;
         if (i > 15)
             i = 15;
+#else
+    if (v > 100.0f)
+    {
+        i = (v > 1000.0f)  ?  15  :  1;
+#endif
         if (s->baud_phase < 0.0f)
             i = -i;
         //printf("v = %10.5f %5d - %f %f %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
