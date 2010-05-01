@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.h,v 1.126.4.3 2010/02/16 18:29:01 steveu Exp $
+ * $Id: t30.h,v 1.126.4.4 2010/05/01 14:16:50 steveu Exp $
  */
 
 /*! \file */
@@ -549,6 +549,12 @@ typedef struct
     int error_correcting_mode_retries;
     /*! \brief Current status. */
     int current_status;
+#if 0
+    /*! \brief The number of RTP events in this call. */
+    int rtp_events;
+    /*! \brief The number of RTN events in this call. */
+    int rtn_events;
+#endif
 } t30_stats_t;
 
 #if defined(__cplusplus)

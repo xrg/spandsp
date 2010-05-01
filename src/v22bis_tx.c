@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tx.c,v 1.64.4.2 2010/02/28 06:33:30 steveu Exp $
+ * $Id: v22bis_tx.c,v 1.64.4.3 2010/05/01 14:16:50 steveu Exp $
  */
 
 /*! \file */
@@ -627,7 +627,7 @@ SPAN_DECLARE(int) v22bis_remote_loopback(v22bis_state_t *s, int enable)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v22bis_current_bit_rate(v22bis_state_t *s)
+SPAN_DECLARE(int) v22bis_get_current_bit_rate(v22bis_state_t *s)
 {
     return s->negotiated_bit_rate;
 }

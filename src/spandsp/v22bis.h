@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis.h,v 1.46.4.1 2010/02/16 17:52:03 steveu Exp $
+ * $Id: v22bis.h,v 1.46.4.2 2010/05/01 14:44:36 steveu Exp $
  */
 
 /*! \file */
@@ -156,7 +156,7 @@ SPAN_DECLARE(int) v22bis_remote_loopback(v22bis_state_t *s, int enable);
 /*! Report the current operating bit rate of a V.22bis modem context.
     \brief Report the current operating bit rate of a V.22bis modem context
     \param s The modem context. */
-SPAN_DECLARE(int) v22bis_current_bit_rate(v22bis_state_t *s);
+SPAN_DECLARE(int) v22bis_get_current_bit_rate(v22bis_state_t *s);
 
 /*! Initialise a V.22bis modem context. This must be called before the first
     use of the context, to initialise its contents.

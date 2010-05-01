@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29_tests.c,v 1.120.4.1 2010/02/16 18:06:48 steveu Exp $
+ * $Id: v29_tests.c,v 1.120.4.2 2010/04/25 04:50:24 steveu Exp $
  */
 
 /*! \page v29_tests_page V.29 modem tests
@@ -62,6 +62,8 @@ display of modem status is maintained.
 #include <unistd.h>
 #include <string.h>
 #include <sndfile.h>
+#include <signal.h>
+#include <fenv.h>
 
 //#if defined(WITH_SPANDSP_INTERNALS)
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
@@ -241,6 +243,62 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
 }
 /*- End of function --------------------------------------------------------*/
 
+static void sigfpe_handler(int sig_num, siginfo_t *info, void *data)
+{
+    switch (sig_num)
+    {
+    case SIGFPE:
+        switch (info->si_code)
+        {
+        case FPE_INTDIV:
+            fprintf(stderr, "integer divide by zero at %p\n", info->si_addr);
+            break;
+        case FPE_INTOVF:
+            fprintf(stderr, "integer overflow at %p\n", info->si_addr);
+            break;
+        case FPE_FLTDIV:
+            fprintf(stderr, "FP divide by zero at %p\n", info->si_addr);
+            break;
+        case FPE_FLTOVF:
+            fprintf(stderr, "FP overflow at %p\n", info->si_addr);
+            break;
+        case FPE_FLTUND:
+            fprintf(stderr, "FP underflow at %p\n", info->si_addr);
+            break;
+        case FPE_FLTRES:
+            fprintf(stderr, "FP inexact result at %p\n", info->si_addr);
+            break;
+        case FPE_FLTINV:
+            fprintf(stderr, "FP invalid operation at %p\n", info->si_addr);
+            break;
+        case FPE_FLTSUB:
+            fprintf(stderr, "subscript out of range at %p\n", info->si_addr);
+            break;
+        }
+        break;
+    default:
+        fprintf(stderr, "Unexpected signal %d\n", sig_num);
+        break;
+    }
+    exit(2);
+}
+/*- End of function --------------------------------------------------------*/
+
+static void fpe_trap_setup(void)
+{
+    struct sigaction trap;
+
+    sigemptyset(&trap.sa_mask);
+    trap.sa_flags = SA_SIGINFO;
+    trap.sa_sigaction = sigfpe_handler;
+
+    sigaction(SIGFPE, &trap, NULL);
+    //feenableexcept(FE_DIVBYZERO | FE_INEXACT | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW);
+    //feenableexcept(FE_ALL_EXCEPT);
+    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+}
+/*- End of function --------------------------------------------------------*/
+
 int main(int argc, char *argv[])
 {
     v29_rx_state_t *rx;
@@ -331,6 +389,8 @@ int main(int argc, char *argv[])
     }
     inhandle = NULL;
     outhandle = NULL;
+
+    fpe_trap_setup();
 
     if (log_audio)
     {

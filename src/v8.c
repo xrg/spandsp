@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v8.c,v 1.42.4.7 2010/02/17 14:58:53 steveu Exp $
+ * $Id: v8.c,v 1.42.4.8 2010/04/06 12:14:28 steveu Exp $
  */
  
 /*! \file */
@@ -124,7 +124,7 @@ SPAN_DECLARE(const char *) v8_call_function_to_str(int call_function)
     case V8_CALL_V_SERIES:
         return "V series modem data";
     case V8_CALL_FUNCTION_EXTENSION:
-        return "Call function is in extention octet";
+        return "Call function is in extension octet";
     }
     return "???";
 }

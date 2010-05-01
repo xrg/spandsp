@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tx.c,v 1.13.2.11 2010/01/21 14:39:36 steveu Exp $
+ * $Id: t4_tx.c,v 1.13.2.12 2010/04/26 20:43:05 steveu Exp $
  */
 
 /*
@@ -85,7 +85,6 @@
 #include "spandsp/t4_tx.h"
 #include "spandsp/t4_t6_decode.h"
 #include "spandsp/t4_t6_encode.h"
-#include "spandsp/version.h"
 
 #include "spandsp/private/logging.h"
 #include "spandsp/private/t4_t6_decode.h"

@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.138.4.4 2010/01/04 14:50:32 steveu Exp $
+## $Id: Makefile.am,v 1.138.4.5 2010/04/26 20:43:05 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -338,13 +338,16 @@ at_interpreter.lo: at_interpreter_dictionary.h
 at_interpreter_dictionary.h: make_at_dictionary$(EXEEXT)
 	./make_at_dictionary$(EXEEXT) >at_interpreter_dictionary.h
 
-t4.$(OBJEXT): spandsp/version.h
+t4_rx.$(OBJEXT): spandsp/version.h
 
-t4.lo: spandsp/version.h
+t4_rx.lo: spandsp/version.h
 
-v17rx.$(OBJEXT): v17_v32bis_rx_fixed_rrc.h v17_v32bis_rx_floating_rrc.h
+V17_V32BIS_RX_INCL = v17_v32bis_rx_fixed_rrc.h \
+                     v17_v32bis_rx_floating_rrc.h
 
-v17rx.lo: v17_v32bis_rx_fixed_rrc.h v17_v32bis_rx_floating_rrc.h
+v17rx.$(OBJEXT): ${V17_V32BIS_RX_INCL}
+
+v17rx.lo: ${V17_V32BIS_RX_INCL}
 
 v17_v32bis_rx_fixed_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.17 -i -r >v17_v32bis_rx_fixed_rrc.h
@@ -352,9 +355,12 @@ v17_v32bis_rx_fixed_rrc.h: make_modem_filter$(EXEEXT)
 v17_v32bis_rx_floating_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.17 -r >v17_v32bis_rx_floating_rrc.h
 
-v17tx.$(OBJEXT): v17_v32bis_tx_fixed_rrc.h v17_v32bis_tx_floating_rrc.h
+V17_V32BIS_TX_INCL = v17_v32bis_tx_fixed_rrc.h \
+                     v17_v32bis_tx_floating_rrc.h
 
-v17tx.lo: v17_v32bis_tx_fixed_rrc.h v17_v32bis_tx_floating_rrc.h
+v17tx.$(OBJEXT): ${V17_V32BIS_TX_INCL}
+
+v17tx.lo: ${V17_V32BIS_TX_INCL}
 
 v17_v32bis_tx_fixed_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.17 -i -t >v17_v32bis_tx_fixed_rrc.h
@@ -362,15 +368,14 @@ v17_v32bis_tx_fixed_rrc.h: make_modem_filter$(EXEEXT)
 v17_v32bis_tx_floating_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.17 -t >v17_v32bis_tx_floating_rrc.h
 
-v22bis_rx.$(OBJEXT): v22bis_rx_1200_fixed_rrc.h \
-                     v22bis_rx_2400_fixed_rrc.h \
-                     v22bis_rx_1200_floating_rrc.h \
-                     v22bis_rx_2400_floating_rrc.h
+V22BIS_RX_INCL = v22bis_rx_1200_fixed_rrc.h \
+                 v22bis_rx_2400_fixed_rrc.h \
+                 v22bis_rx_1200_floating_rrc.h \
+                 v22bis_rx_2400_floating_rrc.h
 
-v22bis_rx.lo: v22bis_rx_1200_fixed_rrc.h \
-              v22bis_rx_2400_fixed_rrc.h \
-              v22bis_rx_1200_floating_rrc.h \
-              v22bis_rx_2400_floating_rrc.h
+v22bis_rx.$(OBJEXT): ${V22BIS_RX_INCL}
+
+v22bis_rx.lo: ${V22BIS_RX_INCL}
 
 v22bis_rx_1200_fixed_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.22bis1200 -i -r >v22bis_rx_1200_fixed_rrc.h
@@ -394,15 +399,14 @@ v22bis_tx_fixed_rrc.h: make_modem_filter$(EXEEXT)
 v22bis_tx_floating_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.22bis -t >v22bis_tx_floating_rrc.h
 
-v27ter_rx_.$(OBJEXT): v27ter_rx_2400_fixed_rrc.h \
-                      v27ter_rx_4800_fixed_rrc.h \
-                      v27ter_rx_2400_floating_rrc.h \
-                      v27ter_rx_4800_floating_rrc.h
-
-v27ter_rx.lo: v27ter_rx_2400_fixed_rrc.h \
+V27_RX_INCL = v27ter_rx_2400_fixed_rrc.h \
               v27ter_rx_4800_fixed_rrc.h \
               v27ter_rx_2400_floating_rrc.h \
               v27ter_rx_4800_floating_rrc.h
+
+v27ter_rx.$(OBJEXT): ${V27_RX_INCL}
+
+v27ter_rx.lo: ${V27_RX_INCL}
 
 v27ter_rx_2400_fixed_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.27ter2400 -i -r >v27ter_rx_2400_fixed_rrc.h
@@ -416,15 +420,14 @@ v27ter_rx_2400_floating_rrc.h: make_modem_filter$(EXEEXT)
 v27ter_rx_4800_floating_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.27ter4800 -r >v27ter_rx_4800_floating_rrc.h
 
-v27ter_tx_.$(OBJEXT): v27ter_tx_2400_fixed_rrc.h \
-                      v27ter_tx_4800_fixed_rrc.h \
-                      v27ter_tx_2400_floating_rrc.h \
-                      v27ter_tx_4800_floating_rrc.h
+V27TER_TX_INCL = v27ter_tx_2400_fixed_rrc.h \
+                 v27ter_tx_4800_fixed_rrc.h \
+                 v27ter_tx_2400_floating_rrc.h \
+                 v27ter_tx_4800_floating_rrc.h
 
-v27ter_tx.lo: v27ter_tx_2400_fixed_rrc.h \
-              v27ter_tx_4800_fixed_rrc.h \
-              v27ter_tx_2400_floating_rrc.h \
-              v27ter_tx_4800_floating_rrc.h
+v27ter_tx_.$(OBJEXT): ${V27TER_TX_INCL}
+
+v27ter_tx.lo: ${V27TER_TX_INCL}
 
 v27ter_tx_2400_fixed_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.27ter2400 -i -t >v27ter_tx_2400_fixed_rrc.h
@@ -438,9 +441,12 @@ v27ter_tx_2400_floating_rrc.h: make_modem_filter$(EXEEXT)
 v27ter_tx_4800_floating_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.27ter4800 -t >v27ter_tx_4800_floating_rrc.h
 
-v29rx.$(OBJEXT): v29rx_fixed_rrc.h v29rx_floating_rrc.h
+V29_RX_INCL = v29rx_fixed_rrc.h \
+              v29rx_floating_rrc.h
 
-v29rx.lo: v29rx_fixed_rrc.h v29rx_floating_rrc.h
+v29rx.$(OBJEXT): ${V29_RX_INCL}
+
+v29rx.lo: ${V29_RX_INCL}
 
 v29rx_fixed_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.29 -i -r >v29rx_fixed_rrc.h
@@ -448,9 +454,12 @@ v29rx_fixed_rrc.h: make_modem_filter$(EXEEXT)
 v29rx_floating_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.29 -r >v29rx_floating_rrc.h
 
-v29tx.$(OBJEXT): v29tx_fixed_rrc.h v29tx_floating_rrc.h
+V29_TX_INCL = v29tx_fixed_rrc.h \
+              v29tx_floating_rrc.h
 
-v29tx.lo: v29tx_fixed_rrc.h v29tx_floating_rrc.h
+v29tx.$(OBJEXT): ${V29_TX_INCL}
+
+v29tx.lo: ${V29_TX_INCL}
 
 v29tx_fixed_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.29 -i -t >v29tx_fixed_rrc.h
@@ -523,11 +532,11 @@ $(srcdir)/msvc/spandsp.h: spandsp.h.in
 	     -e "s/\@INSERT_INTTYPES_HEADER\@/#include <msvc\/inttypes.h>/" \
 	     -e "s/\@INSERT_MATH_HEADER\@/#include <math.h>/" $(srcdir)/spandsp.h.in > $(srcdir)/msvc/spandsp.h
 
+dist-hook: spandsp/version.h
+
 spandsp/version.h:
 	mkdir -p $(@D)
 	NOWDATE=`date --utc +"%Y%m%d"` ; \
 	NOWTIME=`date --utc +"%H%M%S"` ; \
 	sed 's/$$SPANDSP_RELEASE_DATE/'$$NOWDATE'/;s/$$SPANDSP_RELEASE_TIME/'$$NOWTIME'/' \
 		<$(srcdir)/spandsp/version.h.in >$@
-
-dist-hook: spandsp/version.h

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_rx.c,v 1.69.4.2 2010/02/28 06:33:30 steveu Exp $
+ * $Id: v22bis_rx.c,v 1.69.4.4 2010/05/01 14:44:36 steveu Exp $
  */
 
 /*! \file */
@@ -696,7 +696,6 @@ static void process_half_baud(v22bis_state_t *s, const complexf_t *sample)
 SPAN_DECLARE_NONSTD(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len)
 {
     int i;
-    int j;
     int step;
     complexf_t z;
     complexf_t zz;
@@ -710,8 +709,7 @@ SPAN_DECLARE_NONSTD(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int l
         /* Complex bandpass filter the signal, using a pair of FIRs, and RRC coeffs shifted
            to centre at 1200Hz or 2400Hz. The filters support 12 fractional phase shifts, to 
            permit signal extraction very close to the middle of a symbol. */
-        s->rx.rrc_filter[s->rx.rrc_filter_step] =
-        s->rx.rrc_filter[s->rx.rrc_filter_step + V22BIS_RX_FILTER_STEPS] = amp[i];
+        s->rx.rrc_filter[s->rx.rrc_filter_step] = amp[i];
         if (++s->rx.rrc_filter_step >= V22BIS_RX_FILTER_STEPS)
             s->rx.rrc_filter_step = 0;
 
@@ -720,15 +718,19 @@ SPAN_DECLARE_NONSTD(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int l
            own transmitted signal suppressed. */
         if (s->calling_party)
         {
-            ii = rx_pulseshaper_2400_re[6][0]*s->rx.rrc_filter[s->rx.rrc_filter_step];
-            for (j = 1;  j < V22BIS_RX_FILTER_STEPS;  j++)
-                ii += rx_pulseshaper_2400_re[6][j]*s->rx.rrc_filter[j + s->rx.rrc_filter_step];
+#if defined(SPANDSP_USE_FIXED_POINT)
+            ii = vec_circular_dot_prodi16(s->rx.rrc_filter, rx_pulseshaper_2400_re[6], V22BIS_RX_FILTER_STEPS, s->rx.rrc_filter_step);
+#else
+            ii = vec_circular_dot_prodf(s->rx.rrc_filter, rx_pulseshaper_2400_re[6], V22BIS_RX_FILTER_STEPS, s->rx.rrc_filter_step);
+#endif
         }
         else
         {
-            ii = rx_pulseshaper_1200_re[6][0]*s->rx.rrc_filter[s->rx.rrc_filter_step];
-            for (j = 1;  j < V22BIS_RX_FILTER_STEPS;  j++)
-                ii += rx_pulseshaper_1200_re[6][j]*s->rx.rrc_filter[j + s->rx.rrc_filter_step];
+#if defined(SPANDSP_USE_FIXED_POINT)
+            ii = vec_circular_dot_prodi16(s->rx.rrc_filter, rx_pulseshaper_1200_re[6], V22BIS_RX_FILTER_STEPS, s->rx.rrc_filter_step);
+#else
+            ii = vec_circular_dot_prodf(s->rx.rrc_filter, rx_pulseshaper_1200_re[6], V22BIS_RX_FILTER_STEPS, s->rx.rrc_filter_step);
+#endif
         }
         power = power_meter_update(&(s->rx.rx_power), (int16_t) ii);
         if (s->rx.signal_present)
@@ -773,23 +775,23 @@ SPAN_DECLARE_NONSTD(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int l
                 s->rx.eq_put_step += PULSESHAPER_COEFF_SETS*40/(3*2);
                 if (s->calling_party)
                 {
-                    ii = rx_pulseshaper_2400_re[step][0]*s->rx.rrc_filter[s->rx.rrc_filter_step];
-                    qq = rx_pulseshaper_2400_im[step][0]*s->rx.rrc_filter[s->rx.rrc_filter_step];
-                    for (j = 1;  j < V22BIS_RX_FILTER_STEPS;  j++)
-                    {
-                        ii += rx_pulseshaper_2400_re[step][j]*s->rx.rrc_filter[j + s->rx.rrc_filter_step];
-                        qq += rx_pulseshaper_2400_im[step][j]*s->rx.rrc_filter[j + s->rx.rrc_filter_step];
-                    }
+#if defined(SPANDSP_USE_FIXED_POINT)
+                    ii = vec_circular_dot_prodi16(s->rx.rrc_filter, rx_pulseshaper_2400_re[step], V22BIS_RX_FILTER_STEPS, s->rx.rrc_filter_step);
+                    qq = vec_circular_dot_prodi16(s->rx.rrc_filter, rx_pulseshaper_2400_im[step], V22BIS_RX_FILTER_STEPS, s->rx.rrc_filter_step);
+#else
+                    ii = vec_circular_dot_prodf(s->rx.rrc_filter, rx_pulseshaper_2400_re[step], V22BIS_RX_FILTER_STEPS, s->rx.rrc_filter_step);
+                    qq = vec_circular_dot_prodf(s->rx.rrc_filter, rx_pulseshaper_2400_im[step], V22BIS_RX_FILTER_STEPS, s->rx.rrc_filter_step);
+#endif
                 }
                 else
                 {
-                    ii = rx_pulseshaper_1200_re[step][0]*s->rx.rrc_filter[s->rx.rrc_filter_step];
-                    qq = rx_pulseshaper_1200_im[step][0]*s->rx.rrc_filter[s->rx.rrc_filter_step];
-                    for (j = 1;  j < V22BIS_RX_FILTER_STEPS;  j++)
-                    {
-                        ii += rx_pulseshaper_1200_re[step][j]*s->rx.rrc_filter[j + s->rx.rrc_filter_step];
-                        qq += rx_pulseshaper_1200_im[step][j]*s->rx.rrc_filter[j + s->rx.rrc_filter_step];
-                    }
+#if defined(SPANDSP_USE_FIXED_POINT)
+                    ii = vec_circular_dot_prodi16(s->rx.rrc_filter, rx_pulseshaper_1200_re[step], V22BIS_RX_FILTER_STEPS, s->rx.rrc_filter_step);
+                    qq = vec_circular_dot_prodi16(s->rx.rrc_filter, rx_pulseshaper_1200_im[step], V22BIS_RX_FILTER_STEPS, s->rx.rrc_filter_step);
+#else
+                    ii = vec_circular_dot_prodf(s->rx.rrc_filter, rx_pulseshaper_1200_re[step], V22BIS_RX_FILTER_STEPS, s->rx.rrc_filter_step);
+                    qq = vec_circular_dot_prodf(s->rx.rrc_filter, rx_pulseshaper_1200_im[step], V22BIS_RX_FILTER_STEPS, s->rx.rrc_filter_step);
+#endif
                 }
                 sample.re = ii*s->rx.agc_scaling;
                 sample.im = qq*s->rx.agc_scaling;

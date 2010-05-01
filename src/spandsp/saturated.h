@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: saturated.h,v 1.4.4.3 2010/02/18 14:24:46 steveu Exp $
+ * $Id: saturated.h,v 1.4.4.4 2010/05/01 14:16:50 steveu Exp $
  */
 
 /*! \file */
@@ -190,6 +190,15 @@ static __inline__ int16_t saturated_add16(int16_t a, int16_t b)
         : "cc"
     );
     return a;
+#elif defined(__GNUC__)  &&  defined(__arm5__)
+    int16_t result;
+
+    __asm__ __volatile__(
+        " sadd16 %0,%1,%2;\n"
+        : "=r" (result)
+        : "0" (a), "ir" (b)
+    );
+    return result;
 #else
     return saturate((int32_t) a + (int32_t) b);
 #endif
@@ -247,6 +256,15 @@ static __inline__ int16_t saturated_sub16(int16_t a, int16_t b)
         : "cc"
     );
     return a;
+#elif defined(__GNUC__)  &&  defined(__arm5__)
+    int16_t result;
+
+    __asm__ __volatile__(
+        " ssub16 %0,%1,%2;\n"
+        : "=r" (result)
+        : "0" (a), "ir" (b)
+    );
+    return result;
 #else
     return saturate((int32_t) a - (int32_t) b);
 #endif

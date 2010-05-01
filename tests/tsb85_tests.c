@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: tsb85_tests.c,v 1.32.4.3 2010/02/16 18:06:48 steveu Exp $
+ * $Id: tsb85_tests.c,v 1.32.4.4 2010/04/25 04:50:24 steveu Exp $
  */
 
 /*! \file */
@@ -1287,20 +1287,40 @@ static int get_test_set(faxtester_state_t *s, const char *test_file, const char 
 
 int main(int argc, char *argv[])
 {
+    const char *xml_file_name;
     const char *test_name;
+    int opt;
 
-    //string_test();
+#if 0
+    string_test();
+#endif
 
+    xml_file_name = "../spandsp/tsb85.xml";
     test_name = "MRGN01";
-    if (argc > 1)
-        test_name = argv[1];
+    while ((opt = getopt(argc, argv, "x:")) != -1)
+    {
+        switch (opt)
+        {
+        case 'x':
+            xml_file_name = optarg;
+            break;
+        default:
+            //usage();
+            exit(2);
+            break;
+        }
+    }
+    argc -= optind;
+    argv += optind;
+    if (argc > 0)
+        test_name = argv[0];
 
     strcpy(image_path, ".");
     faxtester_init(&state, TRUE);
     memset(&expected_rx_info, 0, sizeof(expected_rx_info));
     span_log_set_level(&state.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
     span_log_set_tag(&state.logging, "B");
-    get_test_set(&state, "../spandsp/tsb85.xml", test_name);
+    get_test_set(&state, xml_file_name, test_name);
     printf("Done\n");
     return 0;
 }

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_api.c,v 1.13.4.4 2010/02/17 14:58:53 steveu Exp $
+ * $Id: t30_api.c,v 1.13.4.5 2010/05/01 14:16:50 steveu Exp $
  */
 
 /*! \file */
@@ -674,6 +674,7 @@ SPAN_DECLARE(int) t30_set_supported_compressions(t30_state_t *s, int supported_c
          | T30_SUPPORT_T4_2D_COMPRESSION
 #if 0
          | T30_SUPPORT_T85_COMPRESSION
+         | T30_SUPPORT_T85_L0_COMPRESSION
 #endif
          | T30_SUPPORT_T6_COMPRESSION;
     s->supported_compressions = supported_compressions & mask;

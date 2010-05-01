@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fsk_tests.c,v 1.59.4.2 2010/01/04 15:14:08 steveu Exp $
+ * $Id: fsk_tests.c,v 1.59.4.3 2010/04/13 15:44:41 steveu Exp $
  */
 
 /*! \page fsk_tests_page FSK modem tests
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
     modem_under_test_2 = FSK_V21CH2;
     log_audio = FALSE;
     modems_set = 0;
-    while ((opt = getopt(argc, argv, "c:dlm:nr:s:")) != -1)
+    while ((opt = getopt(argc, argv, "c:d:lm:nr:s:")) != -1)
     {
         switch (opt)
         {

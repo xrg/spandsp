@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v22bis_tests.c,v 1.63.4.2 2010/01/04 15:14:08 steveu Exp $
+ * $Id: v22bis_tests.c,v 1.63.4.3 2010/05/01 14:16:50 steveu Exp $
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
@@ -127,7 +127,7 @@ static void v22bis_putbit(void *user_data, int bit)
         switch (bit)
         {
         case SIG_STATUS_TRAINING_SUCCEEDED:
-            bit_rate = v22bis_current_bit_rate(s->v22bis);
+            bit_rate = v22bis_get_current_bit_rate(s->v22bis);
             printf("Negotiated bit rate: %d\n", bit_rate);
             len = v22bis_rx_equalizer_state(s->v22bis, &coeffs);
             printf("Equalizer:\n");
