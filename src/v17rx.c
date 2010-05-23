@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.c,v 1.153.4.9 2010/03/22 13:06:11 steveu Exp $
+ * $Id: v17rx.c,v 1.153.4.10 2010/05/23 07:10:22 steveu Exp $
  */
 
 /*! \file */
@@ -97,9 +97,6 @@
 
 /*! The 16 bit pattern used in the bridge section of the training sequence */
 #define V17_BRIDGE_WORD                 0x8880
-
-/*! The length of the equalizer buffer */
-#define V17_EQUALIZER_LEN    (V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN)
 
 enum
 {
@@ -565,7 +562,7 @@ static __inline__ void symbol_sync(v17_rx_state_t *s)
         Passband Timing Recovery in an All-Digital Modem Receiver
         IEEE TRANSACTIONS ON COMMUNICATIONS, VOL. COM-26, NO. 5, MAY 1978 */
 
-    /* This is slightly rearranged for figure 3b of the Godard paper, as this saves a couple of
+    /* This is slightly rearranged from figure 3b of the Godard paper, as this saves a couple of
        maths operations */
 #if defined(SPANDSP_USE_FIXED_POINTx)
     /* TODO: The scalings used here need more thorough evaluation, to see if overflows are possible. */

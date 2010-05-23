@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_t6_encode.h,v 1.7.2.2 2010/01/04 14:46:32 steveu Exp $
+ * $Id: t4_t6_encode.h,v 1.7.2.3 2010/05/23 07:10:22 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_T4_T6_ENCODE_H_)
@@ -38,10 +38,6 @@ struct t4_t6_encode_state_s
     int min_bits_per_row;
     /*! \brief The current maximum contiguous rows that may be 2D encoded. */
     int max_rows_to_next_1d_row;
-
-    /*! \brief The text which will be used in FAX page header. No text results
-               in no header line. */
-    const char *header_info;
 
     /*! \brief Number of rows left that can be 2D encoded, before a 1D encoded row
                must be used. */

@@ -51,27 +51,27 @@ noinst_PROGRAMS = adsi_tests$(EXEEXT) async_tests$(EXEEXT) \
 	fsk_tests$(EXEEXT) g1050_tests$(EXEEXT) g168_tests$(EXEEXT) \
 	g711_tests$(EXEEXT) g722_tests$(EXEEXT) g726_tests$(EXEEXT) \
 	gsm0610_tests$(EXEEXT) hdlc_tests$(EXEEXT) \
-	ima_adpcm_tests$(EXEEXT) line_model_tests$(EXEEXT) \
-	logging_tests$(EXEEXT) lpc10_tests$(EXEEXT) \
-	make_g168_css$(EXEEXT) modem_connect_tones_tests$(EXEEXT) \
-	modem_echo_tests$(EXEEXT) noise_tests$(EXEEXT) \
-	oki_adpcm_tests$(EXEEXT) playout_tests$(EXEEXT) \
-	plc_tests$(EXEEXT) power_meter_tests$(EXEEXT) \
-	queue_tests$(EXEEXT) r2_mf_rx_tests$(EXEEXT) \
-	r2_mf_tx_tests$(EXEEXT) rfc2198_sim_tests$(EXEEXT) \
-	saturated_tests$(EXEEXT) schedule_tests$(EXEEXT) \
-	sig_tone_tests$(EXEEXT) super_tone_rx_tests$(EXEEXT) \
-	super_tone_tx_tests$(EXEEXT) swept_tone_tests$(EXEEXT) \
-	t4_tests$(EXEEXT) t31_tests$(EXEEXT) t38_core_tests$(EXEEXT) \
-	t38_gateway_tests$(EXEEXT) \
+	ima_adpcm_tests$(EXEEXT) image_translate_tests$(EXEEXT) \
+	line_model_tests$(EXEEXT) logging_tests$(EXEEXT) \
+	lpc10_tests$(EXEEXT) make_g168_css$(EXEEXT) \
+	modem_connect_tones_tests$(EXEEXT) modem_echo_tests$(EXEEXT) \
+	noise_tests$(EXEEXT) oki_adpcm_tests$(EXEEXT) \
+	playout_tests$(EXEEXT) plc_tests$(EXEEXT) \
+	power_meter_tests$(EXEEXT) queue_tests$(EXEEXT) \
+	r2_mf_rx_tests$(EXEEXT) r2_mf_tx_tests$(EXEEXT) \
+	rfc2198_sim_tests$(EXEEXT) saturated_tests$(EXEEXT) \
+	schedule_tests$(EXEEXT) sig_tone_tests$(EXEEXT) \
+	super_tone_rx_tests$(EXEEXT) super_tone_tx_tests$(EXEEXT) \
+	swept_tone_tests$(EXEEXT) t4_tests$(EXEEXT) t31_tests$(EXEEXT) \
+	t38_core_tests$(EXEEXT) t38_gateway_tests$(EXEEXT) \
 	t38_gateway_to_terminal_tests$(EXEEXT) \
 	t38_non_ecm_buffer_tests$(EXEEXT) t38_terminal_tests$(EXEEXT) \
 	t38_terminal_to_gateway_tests$(EXEEXT) \
-	time_scale_tests$(EXEEXT) tone_detect_tests$(EXEEXT) \
-	tone_generate_tests$(EXEEXT) tsb85_tests$(EXEEXT) \
-	v17_tests$(EXEEXT) v18_tests$(EXEEXT) v22bis_tests$(EXEEXT) \
-	v27ter_tests$(EXEEXT) v29_tests$(EXEEXT) v42_tests$(EXEEXT) \
-	v42bis_tests$(EXEEXT) v8_tests$(EXEEXT) \
+	time_scale_tests$(EXEEXT) timezone_tests$(EXEEXT) \
+	tone_detect_tests$(EXEEXT) tone_generate_tests$(EXEEXT) \
+	tsb85_tests$(EXEEXT) v17_tests$(EXEEXT) v18_tests$(EXEEXT) \
+	v22bis_tests$(EXEEXT) v27ter_tests$(EXEEXT) v29_tests$(EXEEXT) \
+	v42_tests$(EXEEXT) v42bis_tests$(EXEEXT) v8_tests$(EXEEXT) \
 	vector_float_tests$(EXEEXT) vector_int_tests$(EXEEXT) \
 	testadsi$(EXEEXT) testfax$(EXEEXT) tsb85_tests$(EXEEXT)
 subdir = tests
@@ -183,6 +183,9 @@ hdlc_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_ima_adpcm_tests_OBJECTS = ima_adpcm_tests.$(OBJEXT)
 ima_adpcm_tests_OBJECTS = $(am_ima_adpcm_tests_OBJECTS)
 ima_adpcm_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_image_translate_tests_OBJECTS = image_translate_tests.$(OBJEXT)
+image_translate_tests_OBJECTS = $(am_image_translate_tests_OBJECTS)
+image_translate_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_line_model_tests_OBJECTS = line_model_tests.$(OBJEXT)
 line_model_tests_OBJECTS = $(am_line_model_tests_OBJECTS)
 line_model_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -295,6 +298,9 @@ testfax_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_time_scale_tests_OBJECTS = time_scale_tests.$(OBJEXT)
 time_scale_tests_OBJECTS = $(am_time_scale_tests_OBJECTS)
 time_scale_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_timezone_tests_OBJECTS = timezone_tests.$(OBJEXT)
+timezone_tests_OBJECTS = $(am_timezone_tests_OBJECTS)
+timezone_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_tone_detect_tests_OBJECTS = tone_detect_tests.$(OBJEXT)
 tone_detect_tests_OBJECTS = $(am_tone_detect_tests_OBJECTS)
 tone_detect_tests_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -373,9 +379,9 @@ SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(g711_tests_SOURCES) $(g722_tests_SOURCES) \
 	$(g726_tests_SOURCES) $(gsm0610_tests_SOURCES) \
 	$(hdlc_tests_SOURCES) $(ima_adpcm_tests_SOURCES) \
-	$(line_model_tests_SOURCES) $(logging_tests_SOURCES) \
-	$(lpc10_tests_SOURCES) $(make_g168_css_SOURCES) \
-	$(modem_connect_tones_tests_SOURCES) \
+	$(image_translate_tests_SOURCES) $(line_model_tests_SOURCES) \
+	$(logging_tests_SOURCES) $(lpc10_tests_SOURCES) \
+	$(make_g168_css_SOURCES) $(modem_connect_tones_tests_SOURCES) \
 	$(modem_echo_tests_SOURCES) $(noise_tests_SOURCES) \
 	$(oki_adpcm_tests_SOURCES) $(playout_tests_SOURCES) \
 	$(plc_tests_SOURCES) $(power_meter_tests_SOURCES) \
@@ -391,13 +397,14 @@ SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(t38_terminal_tests_SOURCES) \
 	$(t38_terminal_to_gateway_tests_SOURCES) $(t4_tests_SOURCES) \
 	$(testadsi_SOURCES) $(testfax_SOURCES) \
-	$(time_scale_tests_SOURCES) $(tone_detect_tests_SOURCES) \
-	$(tone_generate_tests_SOURCES) $(tsb85_tests_SOURCES) \
-	$(v17_tests_SOURCES) $(v18_tests_SOURCES) \
-	$(v22bis_tests_SOURCES) $(v27ter_tests_SOURCES) \
-	$(v29_tests_SOURCES) $(v42_tests_SOURCES) \
-	$(v42bis_tests_SOURCES) $(v8_tests_SOURCES) \
-	$(vector_float_tests_SOURCES) $(vector_int_tests_SOURCES)
+	$(time_scale_tests_SOURCES) $(timezone_tests_SOURCES) \
+	$(tone_detect_tests_SOURCES) $(tone_generate_tests_SOURCES) \
+	$(tsb85_tests_SOURCES) $(v17_tests_SOURCES) \
+	$(v18_tests_SOURCES) $(v22bis_tests_SOURCES) \
+	$(v27ter_tests_SOURCES) $(v29_tests_SOURCES) \
+	$(v42_tests_SOURCES) $(v42bis_tests_SOURCES) \
+	$(v8_tests_SOURCES) $(vector_float_tests_SOURCES) \
+	$(vector_int_tests_SOURCES)
 DIST_SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(at_interpreter_tests_SOURCES) $(awgn_tests_SOURCES) \
 	$(bell_mf_rx_tests_SOURCES) $(bell_mf_tx_tests_SOURCES) \
@@ -413,9 +420,9 @@ DIST_SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(g711_tests_SOURCES) $(g722_tests_SOURCES) \
 	$(g726_tests_SOURCES) $(gsm0610_tests_SOURCES) \
 	$(hdlc_tests_SOURCES) $(ima_adpcm_tests_SOURCES) \
-	$(line_model_tests_SOURCES) $(logging_tests_SOURCES) \
-	$(lpc10_tests_SOURCES) $(make_g168_css_SOURCES) \
-	$(modem_connect_tones_tests_SOURCES) \
+	$(image_translate_tests_SOURCES) $(line_model_tests_SOURCES) \
+	$(logging_tests_SOURCES) $(lpc10_tests_SOURCES) \
+	$(make_g168_css_SOURCES) $(modem_connect_tones_tests_SOURCES) \
 	$(modem_echo_tests_SOURCES) $(noise_tests_SOURCES) \
 	$(oki_adpcm_tests_SOURCES) $(playout_tests_SOURCES) \
 	$(plc_tests_SOURCES) $(power_meter_tests_SOURCES) \
@@ -431,13 +438,14 @@ DIST_SOURCES = $(adsi_tests_SOURCES) $(async_tests_SOURCES) \
 	$(t38_terminal_tests_SOURCES) \
 	$(t38_terminal_to_gateway_tests_SOURCES) $(t4_tests_SOURCES) \
 	$(testadsi_SOURCES) $(testfax_SOURCES) \
-	$(time_scale_tests_SOURCES) $(tone_detect_tests_SOURCES) \
-	$(tone_generate_tests_SOURCES) $(tsb85_tests_SOURCES) \
-	$(v17_tests_SOURCES) $(v18_tests_SOURCES) \
-	$(v22bis_tests_SOURCES) $(v27ter_tests_SOURCES) \
-	$(v29_tests_SOURCES) $(v42_tests_SOURCES) \
-	$(v42bis_tests_SOURCES) $(v8_tests_SOURCES) \
-	$(vector_float_tests_SOURCES) $(vector_int_tests_SOURCES)
+	$(time_scale_tests_SOURCES) $(timezone_tests_SOURCES) \
+	$(tone_detect_tests_SOURCES) $(tone_generate_tests_SOURCES) \
+	$(tsb85_tests_SOURCES) $(v17_tests_SOURCES) \
+	$(v18_tests_SOURCES) $(v22bis_tests_SOURCES) \
+	$(v27ter_tests_SOURCES) $(v29_tests_SOURCES) \
+	$(v42_tests_SOURCES) $(v42bis_tests_SOURCES) \
+	$(v8_tests_SOURCES) $(vector_float_tests_SOURCES) \
+	$(vector_int_tests_SOURCES)
 DATA = $(noinst_DATA)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
@@ -534,6 +542,7 @@ SPANDSP_LT_AGE = @SPANDSP_LT_AGE@
 SPANDSP_LT_CURRENT = @SPANDSP_LT_CURRENT@
 SPANDSP_LT_REVISION = @SPANDSP_LT_REVISION@
 SPANDSP_MISALIGNED_ACCESS_FAILS = @SPANDSP_MISALIGNED_ACCESS_FAILS@
+SPANDSP_SUPPORT_T85 = @SPANDSP_SUPPORT_T85@
 SPANDSP_USE_EXPORT_CAPABILITY = @SPANDSP_USE_EXPORT_CAPABILITY@
 SPANDSP_USE_FIXED_POINT = @SPANDSP_USE_FIXED_POINT@
 STRIP = @STRIP@
@@ -676,6 +685,8 @@ hdlc_tests_SOURCES = hdlc_tests.c
 hdlc_tests_LDADD = $(LIBDIR) -lspandsp
 ima_adpcm_tests_SOURCES = ima_adpcm_tests.c
 ima_adpcm_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
+image_translate_tests_SOURCES = image_translate_tests.c
+image_translate_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 line_model_tests_SOURCES = line_model_tests.c
 line_model_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 logging_tests_SOURCES = logging_tests.c
@@ -736,6 +747,8 @@ t38_terminal_to_gateway_tests_SOURCES = t38_terminal_to_gateway_tests.c fax_util
 t38_terminal_to_gateway_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 time_scale_tests_SOURCES = time_scale_tests.c
 time_scale_tests_LDADD = $(LIBDIR) -lspandsp
+timezone_tests_SOURCES = timezone_tests.c
+timezone_tests_LDADD = $(LIBDIR) -lspandsp
 tone_detect_tests_SOURCES = tone_detect_tests.c
 tone_detect_tests_LDADD = $(LIBDIR) -lspandsp
 tone_generate_tests_SOURCES = tone_generate_tests.c
@@ -893,6 +906,9 @@ hdlc_tests$(EXEEXT): $(hdlc_tests_OBJECTS) $(hdlc_tests_DEPENDENCIES)
 ima_adpcm_tests$(EXEEXT): $(ima_adpcm_tests_OBJECTS) $(ima_adpcm_tests_DEPENDENCIES) 
 	@rm -f ima_adpcm_tests$(EXEEXT)
 	$(LINK) $(ima_adpcm_tests_LDFLAGS) $(ima_adpcm_tests_OBJECTS) $(ima_adpcm_tests_LDADD) $(LIBS)
+image_translate_tests$(EXEEXT): $(image_translate_tests_OBJECTS) $(image_translate_tests_DEPENDENCIES) 
+	@rm -f image_translate_tests$(EXEEXT)
+	$(LINK) $(image_translate_tests_LDFLAGS) $(image_translate_tests_OBJECTS) $(image_translate_tests_LDADD) $(LIBS)
 line_model_tests$(EXEEXT): $(line_model_tests_OBJECTS) $(line_model_tests_DEPENDENCIES) 
 	@rm -f line_model_tests$(EXEEXT)
 	$(LINK) $(line_model_tests_LDFLAGS) $(line_model_tests_OBJECTS) $(line_model_tests_LDADD) $(LIBS)
@@ -989,6 +1005,9 @@ testfax$(EXEEXT): $(testfax_OBJECTS) $(testfax_DEPENDENCIES)
 time_scale_tests$(EXEEXT): $(time_scale_tests_OBJECTS) $(time_scale_tests_DEPENDENCIES) 
 	@rm -f time_scale_tests$(EXEEXT)
 	$(LINK) $(time_scale_tests_LDFLAGS) $(time_scale_tests_OBJECTS) $(time_scale_tests_LDADD) $(LIBS)
+timezone_tests$(EXEEXT): $(timezone_tests_OBJECTS) $(timezone_tests_DEPENDENCIES) 
+	@rm -f timezone_tests$(EXEEXT)
+	$(LINK) $(timezone_tests_LDFLAGS) $(timezone_tests_OBJECTS) $(timezone_tests_LDADD) $(LIBS)
 tone_detect_tests$(EXEEXT): $(tone_detect_tests_OBJECTS) $(tone_detect_tests_DEPENDENCIES) 
 	@rm -f tone_detect_tests$(EXEEXT)
 	$(LINK) $(tone_detect_tests_LDFLAGS) $(tone_detect_tests_OBJECTS) $(tone_detect_tests_LDADD) $(LIBS)
@@ -1067,6 +1086,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gsm0610_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hdlc_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ima_adpcm_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/image_translate_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/line_model_monitor.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/line_model_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/logging_tests.Po@am__quote@
@@ -1102,6 +1122,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testadsi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testfax.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/time_scale_tests.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timezone_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tone_detect_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tone_generate_tests.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tsb85_tests.Po@am__quote@

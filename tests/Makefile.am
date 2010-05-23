@@ -16,7 +16,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.117.4.2 2010/02/18 14:00:50 steveu Exp $
+## $Id: Makefile.am,v 1.117.4.3 2010/05/23 07:10:22 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -81,6 +81,7 @@ noinst_PROGRAMS =   adsi_tests \
                     gsm0610_tests \
                     hdlc_tests \
                     ima_adpcm_tests \
+                    image_translate_tests \
                     line_model_tests \
                     logging_tests \
                     lpc10_tests \
@@ -111,6 +112,7 @@ noinst_PROGRAMS =   adsi_tests \
                     t38_terminal_tests \
                     t38_terminal_to_gateway_tests \
                     time_scale_tests \
+                    timezone_tests \
                     tone_detect_tests \
                     tone_generate_tests \
                     tsb85_tests \
@@ -222,6 +224,9 @@ hdlc_tests_LDADD = $(LIBDIR) -lspandsp
 ima_adpcm_tests_SOURCES = ima_adpcm_tests.c
 ima_adpcm_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
+image_translate_tests_SOURCES = image_translate_tests.c
+image_translate_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
+
 line_model_tests_SOURCES = line_model_tests.c
 line_model_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
 
@@ -311,6 +316,9 @@ t38_terminal_to_gateway_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-si
 
 time_scale_tests_SOURCES = time_scale_tests.c
 time_scale_tests_LDADD = $(LIBDIR) -lspandsp
+
+timezone_tests_SOURCES = timezone_tests.c
+timezone_tests_LDADD = $(LIBDIR) -lspandsp
 
 tone_detect_tests_SOURCES = tone_detect_tests.c
 tone_detect_tests_LDADD = $(LIBDIR) -lspandsp

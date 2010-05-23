@@ -2,7 +2,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * t4_tx.c - ITU T.4 FAX transmit processing
+ * t4_tx.c - ITU T.4 FAX image transmit processing
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tx.c,v 1.13.2.12 2010/04/26 20:43:05 steveu Exp $
+ * $Id: t4_tx.c,v 1.13.2.13 2010/05/23 07:10:22 steveu Exp $
  */
 
 /*
@@ -81,12 +81,21 @@
 #include "spandsp/logging.h"
 #include "spandsp/bit_operations.h"
 #include "spandsp/async.h"
+#include "spandsp/timezone.h"
 #include "spandsp/t4_rx.h"
 #include "spandsp/t4_tx.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/t81_t82_arith_coding.h"
+#include "spandsp/t85.h"
+#endif
 #include "spandsp/t4_t6_decode.h"
 #include "spandsp/t4_t6_encode.h"
 
 #include "spandsp/private/logging.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/private/t81_t82_arith_coding.h"
+#include "spandsp/private/t85.h"
+#endif
 #include "spandsp/private/t4_t6_decode.h"
 #include "spandsp/private/t4_t6_encode.h"
 #include "spandsp/private/t4_rx.h"
@@ -374,7 +383,10 @@ static void make_header(t4_state_t *s, char *header)
     };
 
     time(&now);
-    tm = *localtime(&now);
+    if (s->tz)
+        tz_localtime(s->tz, &tm, now);
+    else
+        tm = *localtime(&now);
     snprintf(header,
              132,
              "  %2d-%s-%d  %02d:%02d    %-50s %-21s   p.%d",
@@ -383,7 +395,7 @@ static void make_header(t4_state_t *s, char *header)
              tm.tm_year + 1900,
              tm.tm_hour,
              tm.tm_min,
-             s->t4_t6_tx.header_info,
+             s->header_info,
              (s->tiff.local_ident)  ?  s->tiff.local_ident  :  "",
              s->current_page + 1);
 }
@@ -1324,7 +1336,7 @@ SPAN_DECLARE(int) t4_tx_start_page(t4_state_t *s)
     s->min_row_bits = INT_MAX;
     s->max_row_bits = 0;
 
-    if (s->t4_t6_tx.header_info  &&  s->t4_t6_tx.header_info[0])
+    if (s->header_info  &&  s->header_info[0])
     {
         if (t4_tx_put_fax_header(s))
             return -1;
@@ -1499,7 +1511,13 @@ SPAN_DECLARE(void) t4_tx_set_local_ident(t4_state_t *s, const char *ident)
 
 SPAN_DECLARE(void) t4_tx_set_header_info(t4_state_t *s, const char *info)
 {
-    s->t4_t6_tx.header_info = (info  &&  info[0])  ?  info  :  NULL;
+    s->header_info = (info  &&  info[0])  ?  info  :  NULL;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(void) t4_tx_set_header_tz(t4_state_t *s, const char *tzstring)
+{
+    s->tz = tz_init(s->tz, tzstring);
 }
 /*- End of function --------------------------------------------------------*/
 

@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30.c,v 1.305.4.11 2010/05/01 13:23:35 steveu Exp $
+ * $Id: t30.c,v 1.305.4.12 2010/05/23 07:10:21 steveu Exp $
  */
 
 /*! \file */
@@ -62,6 +62,10 @@
 #include "spandsp/v27ter_tx.h"
 #include "spandsp/t4_rx.h"
 #include "spandsp/t4_tx.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/t81_t82_arith_coding.h"
+#include "spandsp/t85.h"
+#endif
 #include "spandsp/t4_t6_decode.h"
 #include "spandsp/t4_t6_encode.h"
 #include "spandsp/t30_fcf.h"
@@ -71,6 +75,10 @@
 #include "spandsp/t30_logging.h"
 
 #include "spandsp/private/logging.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/private/t81_t82_arith_coding.h"
+#include "spandsp/private/t85.h"
+#endif
 #include "spandsp/private/t4_t6_decode.h"
 #include "spandsp/private/t4_t6_encode.h"
 #include "spandsp/private/t4_rx.h"

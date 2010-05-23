@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.c,v 1.96.4.4 2010/02/17 14:58:53 steveu Exp $
+ * $Id: fax.c,v 1.96.4.5 2010/05/23 07:10:21 steveu Exp $
  */
 
 /*! \file */
@@ -55,6 +55,7 @@
 #include "spandsp/logging.h"
 #include "spandsp/queue.h"
 #include "spandsp/dc_restore.h"
+#include "spandsp/vector_int.h"
 #include "spandsp/power_meter.h"
 #include "spandsp/complex.h"
 #include "spandsp/tone_detect.h"
@@ -62,17 +63,22 @@
 #include "spandsp/async.h"
 #include "spandsp/hdlc.h"
 #include "spandsp/silence_gen.h"
+#include "spandsp/super_tone_rx.h"
 #include "spandsp/fsk.h"
+#include "spandsp/modem_connect_tones.h"
+#include "spandsp/v8.h"
 #include "spandsp/v29tx.h"
 #include "spandsp/v29rx.h"
 #include "spandsp/v27ter_tx.h"
 #include "spandsp/v27ter_rx.h"
 #include "spandsp/v17tx.h"
 #include "spandsp/v17rx.h"
-#include "spandsp/super_tone_rx.h"
-#include "spandsp/modem_connect_tones.h"
 #include "spandsp/t4_rx.h"
 #include "spandsp/t4_tx.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/t81_t82_arith_coding.h"
+#include "spandsp/t85.h"
+#endif
 #include "spandsp/t4_t6_decode.h"
 #include "spandsp/t4_t6_encode.h"
 
@@ -88,15 +94,20 @@
 #include "spandsp/private/logging.h"
 #include "spandsp/private/silence_gen.h"
 #include "spandsp/private/fsk.h"
+#include "spandsp/private/modem_connect_tones.h"
+#include "spandsp/private/v8.h"
 #include "spandsp/private/v17tx.h"
 #include "spandsp/private/v17rx.h"
 #include "spandsp/private/v27ter_tx.h"
 #include "spandsp/private/v27ter_rx.h"
 #include "spandsp/private/v29tx.h"
 #include "spandsp/private/v29rx.h"
-#include "spandsp/private/modem_connect_tones.h"
 #include "spandsp/private/hdlc.h"
 #include "spandsp/private/fax_modems.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/private/t81_t82_arith_coding.h"
+#include "spandsp/private/t85.h"
+#endif
 #include "spandsp/private/t4_t6_decode.h"
 #include "spandsp/private/t4_t6_encode.h"
 #include "spandsp/private/t4_rx.h"

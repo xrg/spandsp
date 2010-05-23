@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v17rx.h,v 1.2.4.2 2010/02/17 14:58:53 steveu Exp $
+ * $Id: v17rx.h,v 1.2.4.3 2010/05/23 07:10:22 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_V17RX_H_)
@@ -30,10 +30,12 @@
 
 /* Target length for the equalizer is about 63 taps, to deal with the worst stuff
    in V.56bis. */
+/*! The length of the equalizer buffer */
+//#define V17_EQUALIZER_LEN           33
+#define V17_EQUALIZER_LEN           17
 /*! Samples before the target position in the equalizer buffer */
+//#define V17_EQUALIZER_PRE_LEN       16
 #define V17_EQUALIZER_PRE_LEN       8
-/*! Samples after the target position in the equalizer buffer */
-#define V17_EQUALIZER_POST_LEN      8
 
 /*! The number of taps in the pulse shaping/bandpass filter */
 #define V17_RX_FILTER_STEPS         27
@@ -152,11 +154,11 @@ struct v17_rx_state_s
     /*! \brief The current delta factor for updating the equalizer coefficients. */
     float eq_delta;
     /*! \brief The adaptive equalizer coefficients. */
-    complexi16_t eq_coeff[V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN];
+    complexi16_t eq_coeff[V17_EQUALIZER_LEN];
     /*! \brief A saved set of adaptive equalizer coefficients for use after restarts. */
-    complexi16_t eq_coeff_save[V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN];
+    complexi16_t eq_coeff_save[V17_EQUALIZER_LEN];
     /*! \brief The equalizer signal buffer. */
-    complexi16_t eq_buf[V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN];
+    complexi16_t eq_buf[V17_EQUALIZER_LEN];
 
     /*! Low band edge filter for symbol sync. */
     int32_t symbol_sync_low[2];
@@ -175,11 +177,11 @@ struct v17_rx_state_s
     /*! \brief The current delta factor for updating the equalizer coefficients. */
     float eq_delta;
     /*! \brief The adaptive equalizer coefficients. */
-    complexf_t eq_coeff[V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN];
+    complexf_t eq_coeff[V17_EQUALIZER_LEN];
     /*! \brief A saved set of adaptive equalizer coefficients for use after restarts. */
-    complexf_t eq_coeff_save[V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN];
+    complexf_t eq_coeff_save[V17_EQUALIZER_LEN];
     /*! \brief The equalizer signal buffer. */
-    complexf_t eq_buf[V17_EQUALIZER_PRE_LEN + 1 + V17_EQUALIZER_POST_LEN];
+    complexf_t eq_buf[V17_EQUALIZER_LEN];
 
     /*! Low band edge filter for symbol sync. */
     float symbol_sync_low[2];

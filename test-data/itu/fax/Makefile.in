@@ -38,7 +38,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 noinst_PROGRAMS = generate_dithered_tif$(EXEEXT) \
-	generate_sized_pages$(EXEEXT)
+	generate_sized_pages$(EXEEXT) generate_striped_pages$(EXEEXT)
 subdir = test-data/itu/fax
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -61,6 +61,9 @@ generate_dithered_tif_DEPENDENCIES =
 am_generate_sized_pages_OBJECTS = generate_sized_pages.$(OBJEXT)
 generate_sized_pages_OBJECTS = $(am_generate_sized_pages_OBJECTS)
 generate_sized_pages_DEPENDENCIES =
+am_generate_striped_pages_OBJECTS = generate_striped_pages.$(OBJEXT)
+generate_striped_pages_OBJECTS = $(am_generate_striped_pages_OBJECTS)
+generate_striped_pages_DEPENDENCIES =
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__depfiles_maybe = depfiles
@@ -73,9 +76,11 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 SOURCES = $(generate_dithered_tif_SOURCES) \
-	$(generate_sized_pages_SOURCES)
+	$(generate_sized_pages_SOURCES) \
+	$(generate_striped_pages_SOURCES)
 DIST_SOURCES = $(generate_dithered_tif_SOURCES) \
-	$(generate_sized_pages_SOURCES)
+	$(generate_sized_pages_SOURCES) \
+	$(generate_striped_pages_SOURCES)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -179,6 +184,7 @@ SPANDSP_LT_AGE = @SPANDSP_LT_AGE@
 SPANDSP_LT_CURRENT = @SPANDSP_LT_CURRENT@
 SPANDSP_LT_REVISION = @SPANDSP_LT_REVISION@
 SPANDSP_MISALIGNED_ACCESS_FAILS = @SPANDSP_MISALIGNED_ACCESS_FAILS@
+SPANDSP_SUPPORT_T85 = @SPANDSP_SUPPORT_T85@
 SPANDSP_USE_EXPORT_CAPABILITY = @SPANDSP_USE_EXPORT_CAPABILITY@
 SPANDSP_USE_FIXED_POINT = @SPANDSP_USE_FIXED_POINT@
 STRIP = @STRIP@
@@ -306,17 +312,20 @@ MIXED_SIZE_PAGES = R1200_1200_A4.tif \
 
 EXTRA_DIST = ${ITU_TEST_PAGES_PBM}
 MAINTAINERCLEANFILES = Makefile.in
-nobase_data_DATA = itutests.tif \
-                    ${ITU_TEST_PAGES} \
+nobase_data_DATA = 100pages.tif \
                     dithered.tif \
-                    100pages.tif \
+                    itutests.tif \
+                    ${ITU_TEST_PAGES} \
                     ${MIXED_SIZE_PAGES} \
-                    mixed_size_pages.tif
+                    mixed_size_pages.tif \
+                    striped.tif
 
 generate_dithered_tif_SOURCES = generate_dithered_tif.c
 generate_dithered_tif_LDADD = -ltiff
 generate_sized_pages_SOURCES = generate_sized_pages.c
 generate_sized_pages_LDADD = -ltiff
+generate_striped_pages_SOURCES = generate_striped_pages.c
+generate_striped_pages_LDADD = -ltiff
 all: all-am
 
 .SUFFIXES:
@@ -363,6 +372,9 @@ generate_dithered_tif$(EXEEXT): $(generate_dithered_tif_OBJECTS) $(generate_dith
 generate_sized_pages$(EXEEXT): $(generate_sized_pages_OBJECTS) $(generate_sized_pages_DEPENDENCIES) 
 	@rm -f generate_sized_pages$(EXEEXT)
 	$(LINK) $(generate_sized_pages_LDFLAGS) $(generate_sized_pages_OBJECTS) $(generate_sized_pages_LDADD) $(LIBS)
+generate_striped_pages$(EXEEXT): $(generate_striped_pages_OBJECTS) $(generate_striped_pages_DEPENDENCIES) 
+	@rm -f generate_striped_pages$(EXEEXT)
+	$(LINK) $(generate_striped_pages_LDFLAGS) $(generate_striped_pages_OBJECTS) $(generate_striped_pages_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -372,6 +384,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/generate_dithered_tif.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/generate_sized_pages.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/generate_striped_pages.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
@@ -625,6 +638,9 @@ ${MIXED_SIZE_PAGES}: generate_sized_pages$(EXEEXT)
 
 mixed_size_pages.tif: ${MIXED_SIZE_PAGES}
 	$(TIFFCP) ${MIXED_SIZE_PAGES} $@
+
+striped.tif: generate_striped_pages$(EXEEXT)
+	./generate_striped_pages$(EXEEXT)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

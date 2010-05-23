@@ -123,6 +123,7 @@
 <File RelativePath="gsm0610_short_term.c"></File>
 <File RelativePath="hdlc.c"></File>
 <File RelativePath="ima_adpcm.c"></File>
+<File RelativePath="image_translate.c"></File>
 <File RelativePath="logging.c"></File>
 <File RelativePath="lpc10_analyse.c"></File>
 <File RelativePath="lpc10_decode.c"></File>
@@ -156,6 +157,7 @@
 <File RelativePath="t38_terminal.c"></File>
 <File RelativePath="testcpuid.c"></File>
 <File RelativePath="time_scale.c"></File>
+<File RelativePath="timezone.c"></File>
 <File RelativePath="tone_detect.c"></File>
 <File RelativePath="tone_generate.c"></File>
 <File RelativePath="v17rx.c"></File>
@@ -205,6 +207,7 @@
 <File RelativePath="spandsp/gsm0610.h"></File>
 <File RelativePath="spandsp/hdlc.h"></File>
 <File RelativePath="spandsp/ima_adpcm.h"></File>
+<File RelativePath="spandsp/image_translate.h"></File>
 <File RelativePath="spandsp/logging.h"></File>
 <File RelativePath="spandsp/lpc10.h"></File>
 <File RelativePath="spandsp/modem_echo.h"></File>
@@ -238,6 +241,7 @@
 <File RelativePath="spandsp/t4_t6_encode.h"></File>
 <File RelativePath="spandsp/telephony.h"></File>
 <File RelativePath="spandsp/time_scale.h"></File>
+<File RelativePath="spandsp/timezone.h"></File>
 <File RelativePath="spandsp/timing.h"></File>
 <File RelativePath="spandsp/tone_detect.h"></File>
 <File RelativePath="spandsp/tone_generate.h"></File>
@@ -273,6 +277,7 @@
 <File RelativePath="spandsp/private/gsm0610.h"></File>
 <File RelativePath="spandsp/private/hdlc.h"></File>
 <File RelativePath="spandsp/private/ima_adpcm.h"></File>
+<File RelativePath="spandsp/private/image_translate.h"></File>
 <File RelativePath="spandsp/private/logging.h"></File>
 <File RelativePath="spandsp/private/lpc10.h"></File>
 <File RelativePath="spandsp/private/modem_connect_tones.h"></File>
@@ -298,6 +303,7 @@
 <File RelativePath="spandsp/private/t4_t6_decode.h"></File>
 <File RelativePath="spandsp/private/t4_t6_encode.h"></File>
 <File RelativePath="spandsp/private/time_scale.h"></File>
+<File RelativePath="spandsp/private/timezone.h"></File>
 <File RelativePath="spandsp/private/tone_detect.h"></File>
 <File RelativePath="spandsp/private/tone_generate.h"></File>
 <File RelativePath="spandsp/private/v17rx.h"></File>

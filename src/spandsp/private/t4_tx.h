@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tx.h,v 1.7.2.5 2010/01/04 14:44:43 steveu Exp $
+ * $Id: t4_tx.h,v 1.7.2.6 2010/05/23 07:10:22 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_T4_TX_H_)
@@ -43,6 +43,12 @@ struct t4_state_s
 
     /*! \brief The time at which handling of the current page began. */
     time_t page_start_time;
+
+    /*! \brief The text which will be used in FAX page header. No text results
+               in no header line. */
+    const char *header_info;
+    /*! \brief Optional per instance time zone for the FAX pager header timestamp. */
+    struct tz_s *tz;
 
     /*! \brief The size of the compressed image on the line side, in bits. */
     int line_image_size;

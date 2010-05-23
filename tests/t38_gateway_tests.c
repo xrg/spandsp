@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway_tests.c,v 1.82.4.1 2009/12/19 09:47:57 steveu Exp $
+ * $Id: t38_gateway_tests.c,v 1.82.4.2 2010/05/23 07:10:22 steveu Exp $
  */
 
 /*! \file */
@@ -73,10 +73,6 @@ These tests exercise the path
 #define INPUT_FILE_NAME         "../test-data/itu/fax/itutests.tif"
 #define OUTPUT_FILE_NAME        "t38.tif"
 #define OUTPUT_FILE_NAME_WAVE   "t38_gateway.wav"
-#define OUTPUT_FILE_NAME_T30A   "t38_gateway_t30a.wav"
-#define OUTPUT_FILE_NAME_T38A   "t38_gateway_t38a.wav"
-#define OUTPUT_FILE_NAME_T30B   "t38_gateway_t30b.wav"
-#define OUTPUT_FILE_NAME_T38B   "t38_gateway_t38b.wav"
 
 fax_state_t *fax_state_a;
 t38_gateway_state_t *t38_state_a;

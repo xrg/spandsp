@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_terminal.c,v 1.129.4.6 2010/02/18 14:00:49 steveu Exp $
+ * $Id: t38_terminal.c,v 1.129.4.7 2010/05/23 07:10:21 steveu Exp $
  */
 
 /*! \file */
@@ -65,6 +65,10 @@
 #include "spandsp/v17rx.h"
 #include "spandsp/t4_rx.h"
 #include "spandsp/t4_tx.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/t81_t82_arith_coding.h"
+#include "spandsp/t85.h"
+#endif
 #include "spandsp/t4_t6_decode.h"
 #include "spandsp/t4_t6_encode.h"
 #include "spandsp/t30_fcf.h"
@@ -76,6 +80,10 @@
 #include "spandsp/t38_terminal.h"
 
 #include "spandsp/private/logging.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/private/t81_t82_arith_coding.h"
+#include "spandsp/private/t85.h"
+#endif
 #include "spandsp/private/t4_t6_decode.h"
 #include "spandsp/private/t4_t6_encode.h"
 #include "spandsp/private/t4_rx.h"
@@ -366,7 +374,7 @@ static int process_rx_data(t38_core_state_t *t, void *user_data, int data_type, 
         if (fe->timeout_rx_samples == 0)
         {
             /* HDLC can just start without any signal indicator on some platforms, even when
-               there is zero packet lost. Nasty, but true. Its a good idea to be tolerant of
+               there is zero packet loss. Nasty, but true. Its a good idea to be tolerant of
                loss, though, so accepting a sudden start of HDLC data is the right thing to do. */
             fake_rx_indicator(t, s, T38_IND_V21_PREAMBLE);
             /* All real HDLC messages in the FAX world start with 0xFF. If this one is not starting
@@ -1276,6 +1284,7 @@ SPAN_DECLARE(t38_terminal_state_t *) t38_terminal_init(t38_terminal_state_t *s,
     t38_terminal_t38_fe_init(s, tx_packet_handler, tx_packet_user_data);
 
     t38_terminal_set_config(s, 0);
+
     t30_init(&s->t30,
              calling_party,
              set_rx_type,

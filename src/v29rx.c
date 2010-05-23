@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29rx.c,v 1.167.4.9 2010/03/22 13:06:11 steveu Exp $
+ * $Id: v29rx.c,v 1.167.4.10 2010/05/23 07:10:22 steveu Exp $
  */
 
 /*! \file */
@@ -88,9 +88,6 @@
 #define V29_TRAINING_SEG_3_LEN          384
 /*! The length of training segment 4, in symbols */
 #define V29_TRAINING_SEG_4_LEN          48
-
-/*! The length of the equalizer buffer */
-#define V29_EQUALIZER_LEN    (V29_EQUALIZER_PRE_LEN + 1 + V29_EQUALIZER_POST_LEN)
 
 enum
 {
@@ -233,12 +230,12 @@ static void equalizer_reset(v29_rx_state_t *s)
     /* Start with an equalizer based on everything being perfect */
 #if defined(SPANDSP_USE_FIXED_POINT)
     cvec_zeroi16(s->eq_coeff, V29_EQUALIZER_LEN);
-    s->eq_coeff[V29_EQUALIZER_POST_LEN] = complex_seti16(3*FP_FACTOR, 0*FP_FACTOR);
+    s->eq_coeff[V29_EQUALIZER_PRE_LEN] = complex_seti16(3*FP_FACTOR, 0*FP_FACTOR);
     cvec_zeroi16(s->eq_buf, V29_EQUALIZER_LEN);
     s->eq_delta = 32768.0f*EQUALIZER_DELTA/V29_EQUALIZER_LEN;
 #else
     cvec_zerof(s->eq_coeff, V29_EQUALIZER_LEN);
-    s->eq_coeff[V29_EQUALIZER_POST_LEN] = complex_setf(3.0f, 0.0f);
+    s->eq_coeff[V29_EQUALIZER_PRE_LEN] = complex_setf(3.0f, 0.0f);
     cvec_zerof(s->eq_buf, V29_EQUALIZER_LEN);
     s->eq_delta = EQUALIZER_DELTA/V29_EQUALIZER_LEN;
 #endif
@@ -386,7 +383,7 @@ static __inline__ void put_bit(v29_rx_state_t *s, int bit)
     bit &= 1;
 
     /* Descramble the bit */
-    out_bit = (bit ^ (s->scramble_reg >> 17) ^ (s->scramble_reg >> 22)) & 1;
+    out_bit = (bit ^ (s->scramble_reg >> (18 - 1)) ^ (s->scramble_reg >> (23 - 1))) & 1;
     s->scramble_reg = (s->scramble_reg << 1) | bit;
 
     /* We need to strip the last part of the training - the test period of all 1s -
@@ -499,7 +496,7 @@ static __inline__ void symbol_sync(v29_rx_state_t *s)
         Passband Timing Recovery in an All-Digital Modem Receiver
         IEEE TRANSACTIONS ON COMMUNICATIONS, VOL. COM-26, NO. 5, MAY 1978 */
 
-    /* This is slightly rearranged for figure 3b of the Godard paper, as this saves a couple of
+    /* This is slightly rearranged from figure 3b of the Godard paper, as this saves a couple of
        maths operations */
 #if defined(SPANDSP_USE_FIXED_POINT)
     /* TODO: The scalings used here need more thorough evaluation, to see if overflows are possible. */
@@ -1004,9 +1001,6 @@ SPAN_DECLARE_NONSTD(int) v29_rx(v29_rx_state_t *s, const int16_t amp[], int len)
                pair of filters. This results in a properly bandpass filtered complex
                signal, which can be brought directly to baseband by complex mixing.
                No further filtering, to remove mixer harmonics, is needed. */
-            step = -s->eq_put_step;
-            if (step > RX_PULSESHAPER_COEFF_SETS - 1)
-                step = RX_PULSESHAPER_COEFF_SETS - 1;
             s->eq_put_step += RX_PULSESHAPER_COEFF_SETS*10/(3*2);
 #if defined(SPANDSP_USE_FIXED_POINT)
             v = vec_circular_dot_prodi16(s->rrc_filter, rx_pulseshaper_im[step], V29_RX_FILTER_STEPS, s->rrc_filter_step);

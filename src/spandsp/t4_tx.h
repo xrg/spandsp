@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tx.h,v 1.2.2.4 2010/01/04 14:53:00 steveu Exp $
+ * $Id: t4_tx.h,v 1.2.2.5 2010/05/23 07:10:22 steveu Exp $
  */
 
 /*! \file */
@@ -138,6 +138,13 @@ SPAN_DECLARE(void) t4_tx_set_local_ident(t4_state_t *s, const char *ident);
     \param s The T.4 context.
     \param info A string, of up to 50 bytes, which will form the info field. */
 SPAN_DECLARE(void) t4_tx_set_header_info(t4_state_t *s, const char *info);
+
+/*! Set the time zone for the time stamp in page header lines. If this function is not used
+    the current time zone of the program's environment is used.
+    \brief Set the header timezone.
+    \param s The T.4 context.
+    \param info A POSIX timezone description string. */
+SPAN_DECLARE(void) t4_tx_set_header_tz(t4_state_t *s, const char *tzstring);
 
 /*! \brief Set the row read handler for a T.4 transmit context.
     \param s The T.4 transmit context.

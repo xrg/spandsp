@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.h,v 1.5 2009/11/07 08:58:58 steveu Exp $
+ * $Id: t38_gateway.h,v 1.5.4.1 2010/05/23 07:10:22 steveu Exp $
  */
 
 /*! \file */
@@ -35,7 +35,7 @@
 */
 typedef struct
 {
-    /*! Core T.38 IFP support */
+    /*! \brief Core T.38 IFP support */
     t38_core_state_t t38;
 
     /*! \brief TRUE if the NSF, NSC, and NSS are to be suppressed by altering
@@ -144,6 +144,8 @@ typedef struct
     int supported_modems;
     /*! \brief TRUE if ECM FAX mode is allowed through the gateway. */
     int ecm_allowed;
+    /*! \brief Required time between T.38 transmissions, in ms. */
+    int ms_per_tx_chunk;
 
     /*! \brief TRUE if in image data modem is to use short training. This usually
                follows image_data_mode, but in ECM mode T.30 defines recovery

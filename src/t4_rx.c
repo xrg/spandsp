@@ -2,7 +2,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * t4_rx.c - ITU T.4 FAX receive processing
+ * t4_rx.c - ITU T.4 FAX image receive processing
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_rx.c,v 1.12.2.9 2010/01/04 14:55:11 steveu Exp $
+ * $Id: t4_rx.c,v 1.12.2.10 2010/05/23 07:10:22 steveu Exp $
  */
 
 /*
@@ -86,11 +86,19 @@
 #include "spandsp/async.h"
 #include "spandsp/t4_rx.h"
 #include "spandsp/t4_tx.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/t81_t82_arith_coding.h"
+#include "spandsp/t85.h"
+#endif
 #include "spandsp/t4_t6_decode.h"
 #include "spandsp/t4_t6_encode.h"
 #include "spandsp/version.h"
 
 #include "spandsp/private/logging.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/private/t81_t82_arith_coding.h"
+#include "spandsp/private/t85.h"
+#endif
 #include "spandsp/private/t4_t6_decode.h"
 #include "spandsp/private/t4_t6_encode.h"
 #include "spandsp/private/t4_rx.h"

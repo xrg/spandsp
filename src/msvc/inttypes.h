@@ -54,7 +54,7 @@ typedef __int64		        int64_t;
 #if !defined(INT32_MAX)
 #define INT32_MAX	(2147483647)
 #endif
-#if !defined(INT16_MIN)
+#if !defined(INT32_MIN)
 #define INT32_MIN	(-2147483647 - 1)
 #endif
 

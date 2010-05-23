@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: sig_tone.c,v 1.33.4.1 2010/04/12 00:40:29 steveu Exp $
+ * $Id: sig_tone.c,v 1.33.4.2 2010/05/12 15:33:44 steveu Exp $
  */
 
 /*! \file */
@@ -46,7 +46,6 @@
 #include <string.h>
 #include <limits.h>
 
-#undef SPANDSP_USE_FIXED_POINT
 #include "spandsp/telephony.h"
 #include "spandsp/fast_convert.h"
 #include "spandsp/dc_restore.h"
@@ -274,7 +273,7 @@ SPAN_DECLARE(int) sig_tone_tx(sig_tone_tx_state_t *s, int16_t amp[], int len)
                     for (j = i;  j < i + n;  j++)
                     {
                         tone = dds_mod(&(s->phase_acc[k]), s->phase_rate[k], s->tone_scaling[k][high_low], 0);
-                        amp[j] = saturate(amp[j] + tone);
+                        amp[j] = saturated_add16(amp[j], tone);
                     }
                     /*endfor*/
                 }
@@ -575,7 +574,11 @@ SPAN_DECLARE(int) sig_tone_rx(sig_tone_rx_state_t *s, int16_t amp[], int len)
         if ((s->current_rx_tone & SIG_TONE_RX_PASSTHROUGH))
         {
             if ((s->current_rx_tone & SIG_TONE_RX_FILTER_TONE)  ||  s->notch_insertion_timeout)
+#if defined(SPANDSP_USE_FIXED_POINT)
                 amp[i] = saturate16(notched_signal[0]);
+#else
+                amp[i] = fsaturatef(notched_signal[0]);
+#endif
             /*endif*/
         }
         else

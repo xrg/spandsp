@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_api.c,v 1.13.4.5 2010/05/01 14:16:50 steveu Exp $
+ * $Id: t30_api.c,v 1.13.4.6 2010/05/23 07:10:21 steveu Exp $
  */
 
 /*! \file */
@@ -62,6 +62,10 @@
 #include "spandsp/v27ter_tx.h"
 #include "spandsp/t4_rx.h"
 #include "spandsp/t4_tx.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/t81_t82_arith_coding.h"
+#include "spandsp/t85.h"
+#endif
 #include "spandsp/t4_t6_decode.h"
 #include "spandsp/t4_t6_encode.h"
 #include "spandsp/t30_fcf.h"
@@ -71,6 +75,10 @@
 #include "spandsp/t30_logging.h"
 
 #include "spandsp/private/logging.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/private/t81_t82_arith_coding.h"
+#include "spandsp/private/t85.h"
+#endif
 #include "spandsp/private/t4_t6_decode.h"
 #include "spandsp/private/t4_t6_encode.h"
 #include "spandsp/private/t4_rx.h"
@@ -561,6 +569,13 @@ SPAN_DECLARE(int) t30_set_tx_page_header_info(t30_state_t *s, const char *info)
         return -1;
     strcpy(s->header_info, info);
     t4_tx_set_header_info(&s->t4.tx, s->header_info);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) t30_set_tx_page_header_tz(t30_state_t *s, const char *tzstring)
+{
+    t4_tx_set_header_tz(&s->t4.tx, tzstring);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/

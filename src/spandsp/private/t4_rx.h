@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_rx.h,v 1.6.2.9 2010/01/04 14:44:43 steveu Exp $
+ * $Id: t4_rx.h,v 1.6.2.10 2010/05/23 07:10:22 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_T4_RX_H_)
@@ -38,9 +38,6 @@ typedef struct
     /*! \brief The libtiff context for the current TIFF file */
     TIFF *tiff_file;
 
-    /*! \brief The number of pages in the current image file. */
-    int pages_in_file;
-
     /*! \brief The compression type for output to the TIFF file. */
     int32_t output_compression;
     /*! \brief The TIFF photometric setting for the current page. */
@@ -49,6 +46,9 @@ typedef struct
     uint16_t fill_order;
     /*! \brief The TIFF G3 FAX options. */
     int32_t output_t4_options;
+
+    /*! \brief The number of pages in the current image file. */
+    int pages_in_file;
 
     /* "Background" information about the FAX, which can be stored in the image file. */
     /*! \brief The vendor of the machine which produced the file. */ 

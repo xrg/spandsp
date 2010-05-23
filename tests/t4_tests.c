@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t4_tests.c,v 1.69.4.3 2010/02/17 14:58:54 steveu Exp $
+ * $Id: t4_tests.c,v 1.69.4.4 2010/05/23 07:10:22 steveu Exp $
  */
 
 /*! \file */
@@ -222,7 +222,7 @@ static int detect_page_end(int bit, int page_ended)
         eol_zeros = 11;
         eol_ones = (page_ended == T4_COMPRESSION_ITU_T4_2D)  ?  2  :  1;
         expected_eols = (page_ended == T4_COMPRESSION_ITU_T6)  ?  2  :  6;
-        return FALSE;
+        return 0;
     }
 
     /* Monitor whether the EOLs are there in the correct amount */
@@ -285,8 +285,10 @@ int main(int argc, char *argv[])
         T4_COMPRESSION_ITU_T4_1D,
         T4_COMPRESSION_ITU_T4_2D,
         T4_COMPRESSION_ITU_T6,
-        //T4_COMPRESSION_ITU_T85,
-        //T4_COMPRESSION_ITU_T85_L0,
+#if defined(SPANDSP_SUPPORT_T85)
+        T4_COMPRESSION_ITU_T85,
+        T4_COMPRESSION_ITU_T85_L0,
+#endif
         //T4_COMPRESSION_ITU_T43,
         //T4_COMPRESSION_ITU_T45,
         //T4_COMPRESSION_ITU_T81,
@@ -310,6 +312,7 @@ int main(int argc, char *argv[])
     uint8_t block[1024];
     const char *in_file_name;
     const char *decode_file_name;
+    const char *page_header_tz;
     int opt;
     int i;
     int bit_error_rate;
@@ -328,13 +331,14 @@ int main(int argc, char *argv[])
     restart_pages = FALSE;
     in_file_name = IN_FILE_NAME;
     decode_file_name = NULL;
+    page_header_tz = NULL;
     /* Use a non-zero default minimum row length to ensure we test the consecutive EOLs part
        properly. */
     min_row_bits = 50;
     block_size = 1;
     bit_error_rate = 0;
     dump_as_xxx = FALSE;
-    while ((opt = getopt(argc, argv, "1268b:d:ehHri:m:x")) != -1)
+    while ((opt = getopt(argc, argv, "1268b:d:ehHri:m:t:x")) != -1)
     {
         switch (opt)
         {
@@ -350,10 +354,12 @@ int main(int argc, char *argv[])
             compression = T4_COMPRESSION_ITU_T6;
             compression_step = -1;
             break;
+#if defined(SPANDSP_SUPPORT_T85)
         case '8':
             compression = T4_COMPRESSION_ITU_T85;
             compression_step = -1;
             break;
+#endif
         case 'b':
             block_size = atoi(optarg);
             if (block_size > 1024)
@@ -381,6 +387,9 @@ int main(int argc, char *argv[])
             break;
         case 'm':
             min_row_bits = atoi(optarg);
+            break;
+        case 't':
+            page_header_tz = optarg;
             break;
         case 'x':
             dump_as_xxx = TRUE;
@@ -450,6 +459,32 @@ int main(int argc, char *argv[])
                 for (i = 0;  i < 256;  i++)
                 {
                     if (sscanf(&buf[57 + 29 + 3*i], "%x", (unsigned int *) &bit) != 1)
+                        break;
+                    bit = bit_reverse8(bit);
+                    if ((end_of_page = t4_rx_put_byte(&receive_state, bit)))
+                        break;
+                }
+            }
+            else if (strlen(buf) > 2  &&  sscanf(buf, "T.30 Rx:  %x %x", (unsigned int *) &bit, (unsigned int *) &bit) == 2)
+            {
+                /* Useful for breaking up ECM logs */
+                if (pkt_no != last_pkt_no + 1)
+                    printf("Packet %u\n", pkt_no);
+                last_pkt_no = pkt_no;
+                for (i = 0;  i < 256;  i++)
+                {
+                    if (sscanf(&buf[22 + 3*i], "%x", (unsigned int *) &bit) != 1)
+                        break;
+                    bit = bit_reverse8(bit);
+                    if ((end_of_page = t4_rx_put_byte(&receive_state, bit)))
+                        break;
+                }
+            }
+            else if (sscanf(buf, "%04x  %02x %02x %02x", (unsigned int *) &bit, (unsigned int *) &bit, (unsigned int *) &bit, (unsigned int *) &bit) == 4)
+            {
+                for (i = 0;  i < 16;  i++)
+                {
+                    if (sscanf(&buf[6 + 3*i], "%x", (unsigned int *) &bit) != 1)
                         break;
                     bit = bit_reverse8(bit);
                     if ((end_of_page = t4_rx_put_byte(&receive_state, bit)))
@@ -644,6 +679,8 @@ int main(int argc, char *argv[])
                 t4_tx_set_header_info(&send_state, "Header");
             else
                 t4_tx_set_header_info(&send_state, NULL);
+            if (page_header_tz  &&  page_header_tz[0])
+                t4_tx_set_header_tz(&send_state, page_header_tz);
             //t4_tx_set_header_overlays_image(&send_state, overlay_page_headers);
             if (restart_pages  &&  (sends & 1))
             {

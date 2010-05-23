@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: v29tx.c,v 1.89.4.2 2010/02/28 06:33:31 steveu Exp $
+ * $Id: v29tx.c,v 1.89.4.3 2010/05/23 07:10:22 steveu Exp $
  */
 
 /*! \file */
@@ -107,7 +107,7 @@ static __inline__ int get_scrambled_bit(v29_tx_state_t *s)
         s->in_training = TRUE;
         bit = 1;
     }
-    out_bit = (bit ^ (s->scramble_reg >> 17) ^ (s->scramble_reg >> 22)) & 1;
+    out_bit = (bit ^ (s->scramble_reg >> (18 - 1)) ^ (s->scramble_reg >> (23 - 1))) & 1;
     s->scramble_reg = (s->scramble_reg << 1) | out_bit;
     return out_bit;
 }

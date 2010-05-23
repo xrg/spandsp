@@ -22,7 +22,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t30_api.h,v 1.10.4.2 2010/02/17 14:58:53 steveu Exp $
+ * $Id: t30_api.h,v 1.10.4.3 2010/05/23 07:10:22 steveu Exp $
  */
 
 /*! \file */
@@ -374,6 +374,13 @@ SPAN_DECLARE(int) t30_set_tx_page_header_overlays_image(t30_state_t *s, int head
     \param info A pointer to the information string.
     \return 0 for OK, else -1. */
 SPAN_DECLARE(int) t30_set_tx_page_header_info(t30_state_t *s, const char *info);
+
+/*! Set the transmitted header timestamp timezone associated with a T.30 context.
+    \brief Set the transmitted header timestamp timezone associated with a T.30 context.
+    \param s The T.30 context.
+    \param info A pointer to the POSIZ timezone string.
+    \return 0 for OK, else -1. */
+SPAN_DECLARE(int) t30_set_tx_page_header_tz(t30_state_t *s, const char *tzstring);
 
 /*! Get the header information associated with a T.30 context.
     \brief Get the header information associated with a T.30 context.

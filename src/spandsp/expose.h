@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: expose.h,v 1.14.4.5 2010/05/01 14:16:50 steveu Exp $
+ * $Id: expose.h,v 1.14.4.6 2010/05/23 07:10:22 steveu Exp $
  */
 
 /*! \file */
@@ -74,7 +74,7 @@
 /*#include <spandsp/private/v34.h>*/
 #include <spandsp/private/at_interpreter.h>
 #include <spandsp/private/fax_modems.h>
-/*#include <spandsp/private/image_translate.h>*/
+#include <spandsp/private/image_translate.h>
 #include <spandsp/private/t4_t6_decode.h>
 #include <spandsp/private/t4_t6_encode.h>
 /*#include <spandsp/private/t81_t82_arith_coding.h>*/
@@ -88,6 +88,7 @@
 #include <spandsp/private/t38_gateway.h>
 #include <spandsp/private/t38_terminal.h>
 #include <spandsp/private/t31.h>
+#include <spandsp/private/timezone.h>
 #include <spandsp/private/v18.h>
 #include <spandsp/private/v42.h>
 #include <spandsp/private/v42bis.h>

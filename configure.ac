@@ -16,7 +16,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: configure.ac,v 1.73 2009/10/03 04:37:25 steveu Exp $
+# $Id: configure.ac,v 1.73.4.1 2010/05/23 07:10:21 steveu Exp $
 
 # @start 1
 
@@ -266,6 +266,9 @@ then
     esac
 fi
 
+#AC_DEFINE([SPANDSP_SUPPORT_T85], [1], [Support T.85 JBIG compression])
+SPANDSP_SUPPORT_T85="#undef SPANDSP_SUPPORT_T85"
+
 AC_CHECK_LIB([m], [cos])
 # Some platforms still seem to lack the basic single precision trig and power related function.
 AC_SEARCH_LIBS([sinf], [m], AC_DEFINE([HAVE_SINF], [1], [Define to 1 if you have the sinf() function.]))
@@ -458,6 +461,7 @@ AC_SUBST(TESTLIBS)
 AC_SUBST(SPANDSP_USE_FIXED_POINT)
 AC_SUBST(SPANDSP_MISALIGNED_ACCESS_FAILS)
 AC_SUBST(SPANDSP_USE_EXPORT_CAPABILITY)
+AC_SUBST(SPANDSP_SUPPORT_T85)
 AC_SUBST(INSERT_INTTYPES_HEADER)
 AC_SUBST(INSERT_STDINT_HEADER)
 AC_SUBST(INSERT_TGMATH_HEADER)

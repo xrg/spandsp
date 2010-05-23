@@ -23,7 +23,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t38_gateway.c,v 1.171.4.4 2010/02/16 17:52:02 steveu Exp $
+ * $Id: t38_gateway.c,v 1.171.4.5 2010/05/23 07:10:21 steveu Exp $
  */
 
 /*! \file */
@@ -75,6 +75,10 @@
 #include "spandsp/modem_connect_tones.h"
 #include "spandsp/t4_rx.h"
 #include "spandsp/t4_tx.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/t81_t82_arith_coding.h"
+#include "spandsp/t85.h"
+#endif
 #include "spandsp/t4_t6_decode.h"
 #include "spandsp/t4_t6_encode.h"
 #include "spandsp/t30_fcf.h"
@@ -98,6 +102,10 @@
 #include "spandsp/private/modem_connect_tones.h"
 #include "spandsp/private/hdlc.h"
 #include "spandsp/private/fax_modems.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/private/t81_t82_arith_coding.h"
+#include "spandsp/private/t85.h"
+#endif
 #include "spandsp/private/t4_t6_decode.h"
 #include "spandsp/private/t4_t6_encode.h"
 #include "spandsp/private/t4_rx.h"
@@ -110,7 +118,8 @@
 /* This is the target time per transmission chunk. The actual
    packet timing will sync to the data octets. */
 /*! The default number of milliseconds per transmitted IFP when sending bulk T.38 data */
-#define MS_PER_TX_CHUNK                         30
+#define DEFAULT_MS_PER_TX_CHUNK                 30
+
 /*! The number of bytes which must be in the audio to T.38 HDLC buffer before we start
     outputting them as IFP messages. */
 #define HDLC_START_BUFFER_LEVEL                 8
@@ -1472,7 +1481,8 @@ static void set_octets_per_data_packet(t38_gateway_state_t *s, int bit_rate)
 {
     int octets;
     
-    octets = MS_PER_TX_CHUNK*bit_rate/(8*1000);
+    //octets = s->core.ms_per_tx_chunk*bit_rate/(8*1000);
+    octets = DEFAULT_MS_PER_TX_CHUNK*bit_rate/(8*1000);
     if (octets < 1)
         octets = 1;
     /*endif*/
@@ -2304,6 +2314,7 @@ SPAN_DECLARE(t38_gateway_state_t *) t38_gateway_init(t38_gateway_state_t *s,
     s->core.to_t38.octets_per_data_packet = 1;
     s->core.ecm_allowed = TRUE;
     t38_non_ecm_buffer_init(&s->core.non_ecm_to_modem, FALSE, 0);
+    //s->core.ms_per_tx_chunk = DEFAULT_MS_PER_TX_CHUNK;
     restart_rx_modem(s);
     s->core.timed_mode = TIMED_MODE_STARTUP;
     s->core.samples_to_timeout = 1;

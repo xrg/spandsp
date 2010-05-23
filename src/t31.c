@@ -25,7 +25,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: t31.c,v 1.155.4.2 2010/02/16 18:29:01 steveu Exp $
+ * $Id: t31.c,v 1.155.4.3 2010/05/23 07:10:21 steveu Exp $
  */
 
 /*! \file */
@@ -55,6 +55,7 @@
 #include "spandsp/telephony.h"
 #include "spandsp/logging.h"
 #include "spandsp/bit_operations.h"
+#include "spandsp/bitstream.h"
 #include "spandsp/dc_restore.h"
 #include "spandsp/queue.h"
 #include "spandsp/power_meter.h"
@@ -65,15 +66,19 @@
 #include "spandsp/crc.h"
 #include "spandsp/hdlc.h"
 #include "spandsp/silence_gen.h"
+#include "spandsp/super_tone_rx.h"
 #include "spandsp/fsk.h"
+#include "spandsp/modem_connect_tones.h"
+#include "spandsp/v8.h"
 #include "spandsp/v29tx.h"
 #include "spandsp/v29rx.h"
 #include "spandsp/v27ter_tx.h"
 #include "spandsp/v27ter_rx.h"
 #include "spandsp/v17tx.h"
 #include "spandsp/v17rx.h"
-#include "spandsp/super_tone_rx.h"
-#include "spandsp/modem_connect_tones.h"
+#if defined(SPANDSP_SUPPORT_V34)
+#include "spandsp/v34.h"
+#endif
 #include "spandsp/t4_rx.h"
 #include "spandsp/t4_tx.h"
 #include "spandsp/t30.h"
@@ -86,16 +91,21 @@
 #include "spandsp/t30_fcf.h"
 
 #include "spandsp/private/logging.h"
+#include "spandsp/private/bitstream.h"
 #include "spandsp/private/t38_core.h"
 #include "spandsp/private/silence_gen.h"
 #include "spandsp/private/fsk.h"
+#include "spandsp/private/modem_connect_tones.h"
+#include "spandsp/private/v8.h"
+#if defined(SPANDSP_SUPPORT_V34)
+#include "spandsp/private/v34.h"
+#endif
 #include "spandsp/private/v17tx.h"
 #include "spandsp/private/v17rx.h"
 #include "spandsp/private/v27ter_tx.h"
 #include "spandsp/private/v27ter_rx.h"
 #include "spandsp/private/v29tx.h"
 #include "spandsp/private/v29rx.h"
-#include "spandsp/private/modem_connect_tones.h"
 #include "spandsp/private/hdlc.h"
 #include "spandsp/private/fax_modems.h"
 #include "spandsp/private/at_interpreter.h"
@@ -1300,6 +1310,15 @@ static void tone_detected(void *user_data, int tone, int level, int delay)
 
     s = (t31_state_t *) user_data;
     span_log(&s->logging, SPAN_LOG_FLOW, "%s detected (%ddBm0)\n", modem_connect_tone_to_str(tone), level);
+}
+/*- End of function --------------------------------------------------------*/
+
+static void v8_handler(void *user_data, v8_parms_t *result)
+{
+    t31_state_t *s;
+
+    s = (t31_state_t *) user_data;
+    span_log(&s->logging, SPAN_LOG_FLOW, "V.8 report received\n");
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -2570,8 +2589,9 @@ SPAN_DECLARE(t31_state_t *) t31_init(t31_state_t *s,
                                      t38_tx_packet_handler_t *tx_t38_packet_handler,
                                      void *tx_t38_packet_user_data)
 {
+    v8_parms_t v8_parms;
     int alloced;
-    
+
     if (at_tx_handler == NULL  ||  modem_control_handler == NULL)
         return NULL;
 

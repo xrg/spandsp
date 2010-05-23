@@ -17,7 +17,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: regression_tests.sh,v 1.59.4.1 2010/02/18 14:00:50 steveu Exp $
+# $Id: regression_tests.sh,v 1.59.4.2 2010/05/23 07:10:22 steveu Exp $
 #
 
 ITUTESTS_TIF=../test-data/itu/fax/itutests.tif
@@ -309,6 +309,15 @@ then
     exit $RETVAL
 fi
 echo ima_adpcm_tests completed OK
+
+./image_translate_tests >$STDOUT_DEST 2>$STDERR_DEST
+RETVAL=$?
+if [ $RETVAL != 0 ]
+then
+    echo image_translate_tests failed!
+    exit $RETVAL
+fi
+echo image_translate_tests completed OK
 
 ./logging_tests >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
@@ -675,6 +684,28 @@ then
 fi
 echo t4_tests completed OK
 
+#rm -f t81_t82_arith_coding_tests_receive.tif
+#./t4_tests >$STDOUT_DEST 2>$STDERR_DEST
+#RETVAL=$?
+#if [ $RETVAL != 0 ]
+#then
+#    echo t81_t82_arith_coding_tests failed!
+#    exit $RETVAL
+#fi
+#echo t81_t82_arith_coding_tests completed OK
+echo t81_t82_arith_coding_tests not enabled
+
+#rm -f t85_tests_receive.tif
+#./t4_tests >$STDOUT_DEST 2>$STDERR_DEST
+#RETVAL=$?
+#if [ $RETVAL != 0 ]
+#then
+#    echo t85_tests failed!
+#    exit $RETVAL
+#fi
+#echo t85_tests completed OK
+echo t85_tests not enabled
+
 #./time_scale_tests >$STDOUT_DEST 2>$STDERR_DEST
 #RETVAL=$?
 #if [ $RETVAL != 0 ]
@@ -684,6 +715,15 @@ echo t4_tests completed OK
 #fi
 #echo time_scale_tests completed OK
 echo time_scale_tests not enabled
+
+./timezone_tests >$STDOUT_DEST 2>$STDERR_DEST
+RETVAL=$?
+if [ $RETVAL != 0 ]
+then
+    echo timezone_tests failed!
+    exit $RETVAL
+fi
+echo timezone_tests completed OK
 
 #./tone_detect_tests >$STDOUT_DEST 2>$STDERR_DEST
 #RETVAL=$?
@@ -790,6 +830,15 @@ then
     exit $RETVAL
 fi
 echo v29_tests completed OK
+
+#./v32bis_tests -b 14400 -s -42 -n -66 >$STDOUT_DEST 2>$STDERR_DEST
+#RETVAL=$?
+#if [ $RETVAL != 0 ]
+#then
+#    echo v32bis_tests failed!
+#    exit $RETVAL
+#fi
+#echo v32bis_tests completed OK
 
 #./v42_tests >$STDOUT_DEST 2>$STDERR_DEST
 #RETVAL=$?

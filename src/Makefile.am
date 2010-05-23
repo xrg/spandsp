@@ -16,7 +16,7 @@
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ##
-## $Id: Makefile.am,v 1.138.4.5 2010/04/26 20:43:05 steveu Exp $
+## $Id: Makefile.am,v 1.138.4.6 2010/05/23 07:10:21 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -57,7 +57,7 @@ EXTRA_DIST = floating_fudge.h \
              libtiff.2008.vcproj \
              filter_tools.c \
 	         make_at_dictionary.c \
-	         make_modem_filter.c \
+             make_modem_filter.c \
              msvc/config.h \
              msvc/Download_TIFF.2005.vcproj \
              msvc/Download_TIFF.2008.vcproj \
@@ -118,6 +118,7 @@ libspandsp_la_SOURCES = adsi.c \
                         gsm0610_short_term.c \
                         hdlc.c \
                         ima_adpcm.c \
+                        image_translate.c \
                         logging.c \
                         lpc10_analyse.c \
                         lpc10_decode.c \
@@ -151,6 +152,7 @@ libspandsp_la_SOURCES = adsi.c \
                         t38_terminal.c \
                         testcpuid.c \
                         time_scale.c \
+                        timezone.c \
                         tone_detect.c \
                         tone_generate.c \
                         v17rx.c \
@@ -201,6 +203,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/gsm0610.h \
                          spandsp/hdlc.h \
                          spandsp/ima_adpcm.h \
+                         spandsp/image_translate.h \
                          spandsp/logging.h \
                          spandsp/lpc10.h \
                          spandsp/modem_echo.h \
@@ -234,6 +237,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/t4_t6_encode.h \
                          spandsp/telephony.h \
                          spandsp/time_scale.h \
+                         spandsp/timezone.h \
                          spandsp/timing.h \
                          spandsp/tone_detect.h \
                          spandsp/tone_generate.h \
@@ -269,6 +273,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/private/gsm0610.h \
                          spandsp/private/hdlc.h \
                          spandsp/private/ima_adpcm.h \
+                         spandsp/private/image_translate.h \
                          spandsp/private/logging.h \
                          spandsp/private/lpc10.h \
                          spandsp/private/modem_connect_tones.h \
@@ -294,6 +299,7 @@ nobase_include_HEADERS = spandsp/adsi.h \
                          spandsp/private/t4_t6_decode.h \
                          spandsp/private/t4_t6_encode.h \
                          spandsp/private/time_scale.h \
+                         spandsp/private/timezone.h \
                          spandsp/private/tone_detect.h \
                          spandsp/private/tone_generate.h \
                          spandsp/private/v17rx.h \
@@ -311,16 +317,16 @@ nobase_include_HEADERS = spandsp/adsi.h \
 
 nodist_include_HEADERS = spandsp.h
 
-noinst_HEADERS =        faxfont.h \
-                        filter_tools.h \
-                        gsm0610_local.h \
-                        lpc10_encdecs.h \
-                        mmx_sse_decs.h \
-                        t30_local.h \
-                        t4_t6_decode_states.h \
-                        v17_v32bis_rx_constellation_maps.h \
-                        v17_v32bis_tx_constellation_maps.h \
-                        v29tx_constellation_maps.h
+noinst_HEADERS =         faxfont.h \
+                         filter_tools.h \
+                         gsm0610_local.h \
+                         lpc10_encdecs.h \
+                         mmx_sse_decs.h \
+                         t30_local.h \
+                         t4_t6_decode_states.h \
+                         v17_v32bis_rx_constellation_maps.h \
+                         v17_v32bis_tx_constellation_maps.h \
+                         v29tx_constellation_maps.h
 
 make_at_dictionary$(EXEEXT): $(top_srcdir)/src/make_at_dictionary.c
 	$(CC_FOR_BUILD) -o make_at_dictionary$(EXEEXT) $(top_srcdir)/src/make_at_dictionary.c  -DHAVE_CONFIG_H -I$(top_builddir)/src
@@ -389,9 +395,12 @@ v22bis_rx_1200_floating_rrc.h: make_modem_filter$(EXEEXT)
 v22bis_rx_2400_floating_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.22bis2400 -r >v22bis_rx_2400_floating_rrc.h
 
-v22bis_tx.$(OBJEXT): v22bis_tx_fixed_rrc.h v22bis_tx_floating_rrc.h
+V22BIS_TX_INCL = v22bis_tx_fixed_rrc.h \
+                 v22bis_tx_floating_rrc.h
 
-v22bis_tx.lo: v22bis_tx_fixed_rrc.h v22bis_tx_floating_rrc.h
+v22bis_tx.$(OBJEXT): ${V22BIS_TX_INCL}
+
+v22bis_tx.lo: ${V22BIS_TX_INCL}
 
 v22bis_tx_fixed_rrc.h: make_modem_filter$(EXEEXT)
 	./make_modem_filter$(EXEEXT) -m V.22bis -i -t >v22bis_tx_fixed_rrc.h

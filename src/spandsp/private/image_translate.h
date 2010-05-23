@@ -1,11 +1,13 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * private/fax.h - private definitions for analogue line ITU T.30 fax processing
+ * private/image_translate.c - Image translation routines for reworking colour
+ *                             and gray scale images to be bi-level images of an
+ *                             appropriate size to be FAX compatible.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
- * Copyright (C) 2005 Steve Underwood
+ * Copyright (C) 2009 Steve Underwood
  *
  * All rights reserved.
  *
@@ -22,30 +24,30 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: fax.h,v 1.1.4.1 2010/05/23 07:10:22 steveu Exp $
+ * $Id: image_translate.h,v 1.8.2.2 2010/05/23 07:10:22 steveu Exp $
  */
 
-/*! \file */
+#if !defined(_SPANDSP_PRIVATE_IMAGE_TRANSLATE_H_)
+#define _SPANDSP_PRIVATE_IMAGE_TRANSLATE_H_
 
-#if !defined(_SPANDSP_PRIVATE_FAX_H_)
-#define _SPANDSP_PRIVATE_FAX_H_
-
-/*!
-    Analogue line T.30 FAX channel descriptor. This defines the state of a single working
-    instance of an analogue line soft-FAX machine.
-*/
-struct fax_state_s
+struct image_translate_state_s
 {
-    /*! \brief The T.30 back-end */
-    t30_state_t t30;
+    int input_format;
+    int input_width;
+    int input_length;
+    int output_width;
+    int output_length;
+    int resize;
+    int bytes_per_pixel;
+    int raw_input_row;
+    int raw_output_row;
+    int output_row;
 
-    /*! \brief The analogue modem front-end */
-    fax_modems_state_t modems;
-    /*! \brief V.8 */
-    //v8_state_t v8;
+    uint8_t *raw_pixel_row[2];
+    uint8_t *pixel_row[2];
 
-    /*! \brief Error and flow logging control */
-    logging_state_t logging;
+    t4_row_read_handler_t row_read_handler;
+    void *row_read_user_data;
 };
 
 #endif
