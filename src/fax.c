@@ -22,8 +22,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: fax.c,v 1.96.4.5 2010/05/23 07:10:21 steveu Exp $
  */
 
 /*! \file */
@@ -350,7 +348,7 @@ SPAN_DECLARE_NONSTD(int) fax_rx_fillin(fax_state_t *s, int len)
     /* Call the fillin function of the current modem (if there is one). */
     s->modems.rx_fillin_handler(s->modems.rx_user_data, len);
     t30_timer_update(&s->t30, len);
-    return len;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -714,7 +712,6 @@ SPAN_DECLARE(fax_state_t *) fax_init(fax_state_t *s, int calling_party)
     v8_parms.t66 = -1;
     v8_init(&s->v8, calling_party, &v8_parms, v8_handler, s);
 #endif
-    t30_restart(&s->t30);
     fax_restart(s, calling_party);
     return s;
 }

@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v22bis.h,v 1.46.4.2 2010/05/01 14:44:36 steveu Exp $
  */
 
 /*! \file */

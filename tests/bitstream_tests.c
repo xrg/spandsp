@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: bitstream_tests.c,v 1.1.2.2 2010/01/10 13:18:26 steveu Exp $
  */
 
 /*! \page bitstream_tests_page Bitstream tests

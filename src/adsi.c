@@ -22,8 +22,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: adsi.c,v 1.77 2009/11/02 13:25:20 steveu Exp $
  */
 
 /*! \file */
@@ -650,7 +648,7 @@ SPAN_DECLARE(adsi_tx_state_t *) adsi_tx_init(adsi_tx_state_t *s, int standard)
             return NULL;
     }
     memset(s, 0, sizeof(*s));
-    make_tone_gen_descriptor(&(s->alert_tone_desc),
+    tone_gen_descriptor_init(&(s->alert_tone_desc),
                              2130,
                              -13,
                              2750,

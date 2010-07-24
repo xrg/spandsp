@@ -15,8 +15,6 @@
 ## You should have received a copy of the GNU Lesser General Public
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-##
-## $Id: Makefile.am,v 1.138.4.6 2010/05/23 07:10:21 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -56,7 +54,7 @@ EXTRA_DIST = floating_fudge.h \
              libtiff.2005.vcproj \
              libtiff.2008.vcproj \
              filter_tools.c \
-	         make_at_dictionary.c \
+             make_at_dictionary.c \
              make_modem_filter.c \
              msvc/config.h \
              msvc/Download_TIFF.2005.vcproj \

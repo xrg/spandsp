@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v8.h,v 1.3.4.3 2010/02/17 14:58:54 steveu Exp $
  */
  
 #if !defined(_SPANDSP_PRIVATE_V8_H_)

@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: tone_generate_tests.c,v 1.22 2009/05/30 15:23:14 steveu Exp $
  */
 
 /*! \page tone_generate_tests_page Tone generation tests
@@ -66,7 +64,7 @@ int main(int argc, char *argv[])
     }
 
     /* Try a tone pair */
-    make_tone_gen_descriptor(&tone_desc,
+    tone_gen_descriptor_init(&tone_desc,
                              440,
                              -10,
                              620,
@@ -88,7 +86,7 @@ int main(int argc, char *argv[])
     }
     
     /* Try a different tone pair */
-    make_tone_gen_descriptor(&tone_desc,
+    tone_gen_descriptor_init(&tone_desc,
                              350,
                              -10,
                              440,
@@ -110,7 +108,7 @@ int main(int argc, char *argv[])
     }
 
     /* Try a different tone pair */
-    make_tone_gen_descriptor(&tone_desc,
+    tone_gen_descriptor_init(&tone_desc,
                              400,
                              -10,
                              450,
@@ -132,7 +130,7 @@ int main(int argc, char *argv[])
     }
 
     /* Try a single tone */
-    make_tone_gen_descriptor(&tone_desc,
+    tone_gen_descriptor_init(&tone_desc,
                              400,
                              -10,
                              0,
@@ -154,7 +152,7 @@ int main(int argc, char *argv[])
     }
 
     /* Try a single non-repeating tone */
-    make_tone_gen_descriptor(&tone_desc,
+    tone_gen_descriptor_init(&tone_desc,
                              820,
                              -10,
                              0,
@@ -176,7 +174,7 @@ int main(int argc, char *argv[])
     }
 
     /* Try a single non-repeating tone at 0dBm0 */
-    make_tone_gen_descriptor(&tone_desc,
+    tone_gen_descriptor_init(&tone_desc,
                              820,
                              0,
                              0,
@@ -198,7 +196,7 @@ int main(int argc, char *argv[])
     }
 
     /* Try an AM modulated tone at a modest modulation level (25%) */
-    make_tone_gen_descriptor(&tone_desc,
+    tone_gen_descriptor_init(&tone_desc,
                              425,
                              -10,
                              -50,
@@ -220,7 +218,7 @@ int main(int argc, char *argv[])
     }
     
     /* Try an AM modulated tone at maximum modulation level (100%) */
-    make_tone_gen_descriptor(&tone_desc,
+    tone_gen_descriptor_init(&tone_desc,
                              425,
                              -10,
                              -50,

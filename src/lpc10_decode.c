@@ -25,8 +25,6 @@
  * This code is based on the U.S. Department of Defense reference
  * implementation of the LPC-10 2400 bps Voice Coder. They do not
  * exert copyright claims on their code, and it may be freely used.
- *
- * $Id: lpc10_decode.c,v 1.27.4.2 2010/04/12 00:40:29 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)

@@ -24,8 +24,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: at_interpreter.c,v 1.42.4.2 2010/02/28 06:08:38 steveu Exp $
  */
 
 /*! \file */
@@ -377,7 +375,7 @@ static int parse_num(const char **s, int max_value)
     
     /* The spec. says no digits is valid, and should be treated as zero. */
     i = 0;
-    while (isdigit(**s))
+    while (isdigit((int) **s))
     {
         i = i*10 + ((**s) - '0');
         (*s)++;
@@ -395,7 +393,7 @@ static int parse_hex_num(const char **s, int max_value)
     /* The spec. says a hex value is always 2 digits, and the alpha digits are
        upper case. */
     i = 0;
-    if (isdigit(**s))
+    if (isdigit((int) **s))
         i = **s - '0';
     else if (**s >= 'A'  &&  **s <= 'F')
         i = **s - 'A';
@@ -403,7 +401,7 @@ static int parse_hex_num(const char **s, int max_value)
         return -1;
     (*s)++;
 
-    if (isdigit(**s))
+    if (isdigit((int) **s))
         i = (i << 4)  | (**s - '0');
     else if (**s >= 'A'  &&  **s <= 'F')
         i = (i << 4)  | (**s - 'A');
@@ -864,7 +862,7 @@ static const char *at_cmd_D(at_state_t *s, const char *t)
     u = num;
     for (  ;  (ch = *t);  t++)
     {
-        if (isdigit(ch))
+        if (isdigit((int) ch))
         {
             /* V.250 6.3.1.1 Basic digit set */
             *u++ = ch;
@@ -5328,7 +5326,7 @@ static int command_search(const char *u, int len, int *matched)
     {
         /* The character in u we are processing... */
         /* V.250 5.4.1 says upper and lower case are equivalent in commands */
-        index = (unsigned char) toupper(u[i]);
+        index = toupper((int) u[i]);
         /* Is there a child node for this character? */
         /* Note: First and last could have been packed into one uint16_t,
            but space is not that critical, so the other packing is good

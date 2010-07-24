@@ -22,8 +22,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v17_tests.c,v 1.104.4.3 2010/04/25 04:50:24 steveu Exp $
  */
 
 /*! \page v17_tests_page V.17 modem tests
@@ -64,7 +62,9 @@ display of modem status is maintained.
 #include <string.h>
 #include <sndfile.h>
 #include <signal.h>
+#if defined(HAVE_FENV_H)
 #include <fenv.h>
+#endif
 
 //#if defined(WITH_SPANDSP_INTERNALS)
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
@@ -221,6 +221,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
 }
 /*- End of function --------------------------------------------------------*/
 
+#if defined(HAVE_FENV_H)
 static void sigfpe_handler(int sig_num, siginfo_t *info, void *data)
 {
     switch (sig_num)
@@ -276,6 +277,7 @@ static void fpe_trap_setup(void)
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 }
 /*- End of function --------------------------------------------------------*/
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -376,7 +378,9 @@ int main(int argc, char *argv[])
     inhandle = NULL;
     outhandle = NULL;
 
+#if defined(HAVE_FENV_H)
     fpe_trap_setup();
+#endif
 
     if (log_audio)
     {

@@ -22,8 +22,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: sig_tone.h,v 1.20.4.1 2010/04/12 00:40:29 steveu Exp $
  */
 
 /*! \file */

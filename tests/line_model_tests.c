@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: line_model_tests.c,v 1.28.4.1 2010/01/04 14:46:32 steveu Exp $
  */
 
 /*! \page line_model_tests_page Telephony line model tests

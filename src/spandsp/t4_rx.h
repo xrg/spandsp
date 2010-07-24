@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: t4_rx.h,v 1.3.2.4 2010/01/04 14:53:00 steveu Exp $
  */
 
 /*! \file */

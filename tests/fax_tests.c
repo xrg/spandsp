@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: fax_tests.c,v 1.102.4.2 2010/02/16 18:11:59 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -368,7 +366,11 @@ int main(int argc, char *argv[])
                                     | T30_SUPPORT_600_1200_RESOLUTION);
         t30_set_supported_modems(t30, supported_modems);
         if (use_ecm)
+#if defined(SPANDSP_SUPPORT_T85)
+            t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION | T30_SUPPORT_T85_COMPRESSION);
+#else
             t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
+#endif
         if ((mc->chan & 1))
         {
             if (polled_mode)

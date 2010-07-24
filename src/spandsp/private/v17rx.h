@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v17rx.h,v 1.2.4.3 2010/05/23 07:10:22 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_V17RX_H_)
@@ -139,7 +137,7 @@ struct v17_rx_state_s
     int eq_step;
     /*! \brief Current write offset into the equalizer buffer. */
     int eq_put_step;
-    /*! \brief Symbol counter to the next equalizer update. */
+    /*! \brief Symbol count to the next equalizer update. */
     int eq_skip;
 
     /*! \brief The current half of the baud. */
@@ -165,7 +163,7 @@ struct v17_rx_state_s
     /*! High band edge filter for symbol sync. */
     int32_t symbol_sync_high[2];
     /*! DC filter for symbol sync. */
-    int32_t symbol_sync_dc_filter;
+    int32_t symbol_sync_dc_filter[2];
     /*! Baud phase for symbol sync. */
     int32_t baud_phase;
 #else
@@ -188,7 +186,7 @@ struct v17_rx_state_s
     /*! High band edge filter for symbol sync. */
     float symbol_sync_high[2];
     /*! DC filter for symbol sync. */
-    float symbol_sync_dc_filter;
+    float symbol_sync_dc_filter[2];
     /*! Baud phase for symbol sync. */
     float baud_phase;
 #endif

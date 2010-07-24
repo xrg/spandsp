@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE fax-tests SYSTEM "./fax-tests.dtd">
 <fax-tests>
-<!-- $Id: tsb85.xml,v 1.22.4.1 2010/04/25 04:50:24 steveu Exp $ -->
 <config>
     <path type="IMAGE" value="../test-data/etsi/fax"/>
 </config>

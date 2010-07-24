@@ -21,10 +21,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: generate_striped_pages.c,v 1.3.2.2 2010/05/23 07:10:22 steveu Exp $
  */
-
 
 /*! \file */
 

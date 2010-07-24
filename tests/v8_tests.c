@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v8_tests.c,v 1.36.4.6 2010/02/17 14:58:54 steveu Exp $
  */
 
 /*! \page v8_tests_page V.8 tests

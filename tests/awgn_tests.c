@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: awgn_tests.c,v 1.18.4.1 2010/02/16 18:11:59 steveu Exp $
  */
 
 /*! \page awgn_tests_page AWGN tests

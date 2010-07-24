@@ -22,8 +22,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v27ter_rx.c,v 1.131.4.2 2010/04/25 04:50:24 steveu Exp $
  */
 
 /*! \file */

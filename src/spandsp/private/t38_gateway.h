@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: t38_gateway.h,v 1.5.4.1 2010/05/23 07:10:22 steveu Exp $
  */
 
 /*! \file */
@@ -61,9 +59,10 @@ typedef struct
 {
     /*! \brief The FAX modem set for the audio side fo the gateway. */
     fax_modems_state_t modems;
-    /*! \brief The current receive signal handler. Actual receiving hop between this
+    /*! \brief The current receive signal handler. Actual receiving hops between this
                and a dummy receive routine. */
     span_rx_handler_t *base_rx_handler;
+    span_rx_fillin_handler_t *base_rx_fillin_handler;
 } t38_gateway_audio_state_t;
 
 /*!

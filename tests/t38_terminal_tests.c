@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: t38_terminal_tests.c,v 1.67.4.2 2010/02/16 18:06:48 steveu Exp $
  */
 
 /*! \file */
@@ -201,8 +199,8 @@ int main(int argc, char *argv[])
     int use_ecm;
     int options;
     int use_tep;
-    int model_no;
-    int speed_pattern_no;
+    int g1050_model_no;
+    int g1050_speed_pattern_no;
     const char *input_file_name;
     double tx_when;
     double rx_when;
@@ -219,8 +217,8 @@ int main(int argc, char *argv[])
     input_file_name = INPUT_FILE_NAME;
     use_ecm = FALSE;
     simulate_incrementing_repeats = FALSE;
-    model_no = 0;
-    speed_pattern_no = 1;
+    g1050_model_no = 0;
+    g1050_speed_pattern_no = 1;
     use_gui = FALSE;
     supported_modems = T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17;
     while ((opt = getopt(argc, argv, "efgi:Im:M:o:s:tv:")) != -1)
@@ -248,13 +246,13 @@ int main(int argc, char *argv[])
             supported_modems = atoi(optarg);
             break;
         case 'M':
-            model_no = optarg[0] - 'A' + 1;
+            g1050_model_no = optarg[0] - 'A' + 1;
             break;
         case 'o':
             options = atoi(optarg);
             break;
         case 's':
-            speed_pattern_no = atoi(optarg);
+            g1050_speed_pattern_no = atoi(optarg);
             break;
         case 't':
             use_tep = TRUE;
@@ -274,12 +272,12 @@ int main(int argc, char *argv[])
         printf("Using ECM\n");
 
     srand48(0x1234567);
-    if ((path_a_to_b = g1050_init(model_no, speed_pattern_no, 100, 33)) == NULL)
+    if ((path_a_to_b = g1050_init(g1050_model_no, g1050_speed_pattern_no, 100, 33)) == NULL)
     {
         fprintf(stderr, "Failed to start IP network path model\n");
         exit(2);
     }
-    if ((path_b_to_a = g1050_init(model_no, speed_pattern_no, 100, 33)) == NULL)
+    if ((path_b_to_a = g1050_init(g1050_model_no, g1050_speed_pattern_no, 100, 33)) == NULL)
     {
         fprintf(stderr, "Failed to start IP network path model\n");
         exit(2);
@@ -317,7 +315,7 @@ int main(int argc, char *argv[])
     t30_set_phase_e_handler(t30, phase_e_handler, (void *) (intptr_t) 'A');
     t30_set_ecm_capability(t30, use_ecm);
     if (use_ecm)
-        t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
+        t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION | T30_SUPPORT_T85_COMPRESSION);
 
     if ((t38_state_b = t38_terminal_init(NULL, FALSE, tx_packet_handler_b, t38_state_a)) == NULL)
     {
@@ -351,7 +349,7 @@ int main(int argc, char *argv[])
     t30_set_phase_e_handler(t30, phase_e_handler, (void *) (intptr_t) 'B');
     t30_set_ecm_capability(t30, use_ecm);
     if (use_ecm)
-        t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
+        t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION | T30_SUPPORT_T85_COMPRESSION);
 
 #if defined(ENABLE_GUI)
     if (use_gui)

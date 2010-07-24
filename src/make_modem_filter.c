@@ -22,8 +22,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: make_modem_filter.c,v 1.17.4.2 2010/05/23 07:10:21 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)

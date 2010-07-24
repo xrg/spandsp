@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: t31_tests.c,v 1.72.4.1 2010/02/17 14:58:54 steveu Exp $
  */
 
 /*! \file */
@@ -512,8 +510,9 @@ static int t38_tests(int use_gui, int test_sending, int model_no, int speed_patt
     span_log_set_tag(logging, "T.31");
 
     t38_core = t31_get_t38_core_state(t31_state);
-    span_log_set_level(&t38_core->logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
-    span_log_set_tag(&t38_core->logging, "T.31");
+    logging = t38_core_get_logging_state(t38_core);
+    span_log_set_level(logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
+    span_log_set_tag(logging, "T.31");
 
     span_log_set_level(&t31_state->at_state.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t31_state->at_state.logging, "T.31");
@@ -927,8 +926,12 @@ static int t30_tests(int log_audio, int test_sending)
         if (fax_rx(fax_state, t31_amp, SAMPLES_PER_CHUNK))
             break;
 
-        span_log_bump_samples(&fax_state->logging, SAMPLES_PER_CHUNK);
-        span_log_bump_samples(&t30->logging, SAMPLES_PER_CHUNK);
+        logging = fax_get_logging_state(fax_state);
+        span_log_bump_samples(logging, SAMPLES_PER_CHUNK);
+        logging = t30_get_logging_state(t30);
+        span_log_bump_samples(logging, SAMPLES_PER_CHUNK);
+        logging = t31_get_logging_state(t31_state);
+        span_log_bump_samples(logging, SAMPLES_PER_CHUNK);
 
         if (log_audio)
         {

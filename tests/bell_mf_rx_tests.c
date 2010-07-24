@@ -22,8 +22,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: bell_mf_rx_tests.c,v 1.16 2009/05/30 15:23:13 steveu Exp $
  */
 
 /*! \file */
@@ -134,7 +132,7 @@ static void my_mf_gen_init(float low_fudge,
        be 100/68 */
     for (i = 0;  i < 15;  i++)
     {
-        make_tone_gen_descriptor(&my_mf_digit_tones[i],
+        tone_gen_descriptor_init(&my_mf_digit_tones[i],
                                  bell_mf_tones[i].f1*(1.0 + low_fudge),
                                  low_level,
                                  bell_mf_tones[i].f2*(1.0 + high_fudge),

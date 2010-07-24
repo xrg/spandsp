@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: t38_core.h,v 1.39.4.1 2010/02/16 18:29:01 steveu Exp $
  */
 
 /*! \file */

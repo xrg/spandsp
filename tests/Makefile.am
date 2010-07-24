@@ -15,8 +15,6 @@
 ## You should have received a copy of the GNU General Public License
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-##
-## $Id: Makefile.am,v 1.117.4.3 2010/05/23 07:10:22 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -26,6 +24,7 @@ LIBS += $(TESTLIBS)
 noinst_DATA = sound_c1_8k.wav sound_c3_8k.wav
 
 EXTRA_DIST = regression_tests.sh \
+             tsb85_extra_tests.sh \
              v42bis_tests.sh \
              fax_tests.sh \
              tsb85_tests.sh \
@@ -105,6 +104,7 @@ noinst_PROGRAMS =   adsi_tests \
                     swept_tone_tests \
                     t4_tests \
                     t31_tests \
+                    t38_decode \
                     t38_core_tests \
                     t38_gateway_tests \
                     t38_gateway_to_terminal_tests \
@@ -135,7 +135,9 @@ noinst_HEADERS =    echo_monitor.h \
                     fax_utils.h \
                     line_model_monitor.h \
                     media_monitor.h \
-                    modem_monitor.h
+                    modem_monitor.h \
+                    pcap_parse.h \
+                    udptl.h
 
 adsi_tests_SOURCES = adsi_tests.c
 adsi_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp
@@ -298,6 +300,9 @@ t31_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspands
 
 t38_core_tests_SOURCES = t38_core_tests.c
 t38_core_tests_LDADD = $(LIBDIR) -lspandsp
+
+t38_decode_SOURCES = t38_decode.c fax_utils.c pcap_parse.c udptl.c
+t38_decode_LDADD = $(LIBDIR) -lspandsp -lpcap
 
 t38_gateway_tests_SOURCES = t38_gateway_tests.c fax_utils.c media_monitor.cpp
 t38_gateway_tests_LDADD = -L$(top_builddir)/spandsp-sim -lspandsp-sim $(LIBDIR) -lspandsp

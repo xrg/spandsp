@@ -23,8 +23,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: g168_tests.c,v 1.20 2009/05/30 15:23:13 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -155,7 +153,7 @@ int main(int argc, char *argv[])
 
     for (f = 10;  f < 4000;  f++)
     {
-         make_tone_gen_descriptor(&tone_desc,
+         tone_gen_descriptor_init(&tone_desc,
                                   f,
                                   -10,
                                   0,

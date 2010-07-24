@@ -24,8 +24,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: echo_tests.c,v 1.39 2009/05/30 15:23:13 steveu Exp $
  */
 
 /*! \page echo_can_tests_page Line echo cancellation for voice tests
@@ -1139,7 +1137,7 @@ static int perform_test_6(void)
        that nothing unpleasant happens. */
     for (k = 0;  tones_6_4_2_7[k][0];  k++)
     {
-        make_tone_gen_descriptor(&tone_desc,
+        tone_gen_descriptor_init(&tone_desc,
                                  tones_6_4_2_7[k][0],
                                  -11,
                                  tones_6_4_2_7[k][1],
@@ -1201,7 +1199,7 @@ static int perform_test_7(void)
        happens. */
     echo_can_flush(ctx);
     echo_can_adaption_mode(ctx, ECHO_CAN_USE_ADAPTION);
-    make_tone_gen_descriptor(&tone_desc,
+    tone_gen_descriptor_init(&tone_desc,
                              tones_6_4_2_7[0][0],
                              -11,
                              tones_6_4_2_7[0][1],

@@ -23,8 +23,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: image_translate.c,v 1.12.2.5 2010/05/23 09:04:16 steveu Exp $$
  */
 
 /*! \file */
@@ -149,11 +147,13 @@ static int image_resize_row(image_translate_state_t *s, uint8_t buf[], size_t le
     double c1;
     double c2;
     double int_part;
-    double frac_col;
-    double frac_row;
     int x;
 #if defined(SPANDSP_USE_FIXED_POINT)
-    int y;
+    int frac_row;
+    int frac_col;
+#else
+    double frac_row;
+    double frac_col;
 #endif
     int row_len;
     int skip;
@@ -191,14 +191,15 @@ static int image_resize_row(image_translate_state_t *s, uint8_t buf[], size_t le
     }
 
 #if defined(SPANDSP_USE_FIXED_POINT)
-    y = s->raw_output_row*input_length/output_length;
-    y = s->raw_output_row*input_length - y*output_length;
+    frac_row = s->raw_output_row*input_length/output_length;
+    frac_row = s->raw_output_row*input_length - frac_row*output_length;
     for (i = 0;  i < output_width;  i++)
     {
         x = i*input_width/output_width;
-        c1 = s->raw_pixel_row[0][x] + (s->raw_pixel_row[0][x + 1] - s->raw_pixel_row[0][x])*(i*input_width/output_width - x*output_width);
-        c1 = s->raw_pixel_row[1][x] + (s->raw_pixel_row[1][x + 1] - s->raw_pixel_row[1][x])*(i*input_width/output_width - x*output_width);
-        buf[i] = saturateu8(c1 + (c2 - c1)*y);
+        frac_col = x - x*output_width;
+        c1 = s->raw_pixel_row[0][x] + (s->raw_pixel_row[0][x + 1] - s->raw_pixel_row[0][x])*frac_col;
+        c1 = s->raw_pixel_row[1][x] + (s->raw_pixel_row[1][x + 1] - s->raw_pixel_row[1][x])*frac_col;
+        buf[i] = saturateu8(c1 + (c2 - c1)*frac_row);
     }
 #else
     frac_row = modf((double) s->raw_output_row*input_length/output_length, &int_part);

@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: power_meter_tests.c,v 1.24 2009/05/30 15:23:14 steveu Exp $
  */
 
 /*! \page power_meter_tests_page Power meter tests
@@ -256,7 +254,7 @@ static int power_meter_tests(void)
     }
 
     printf("Testing with a sine wave tone 10dB from maximum\n");
-    make_tone_gen_descriptor(&tone_desc,
+    tone_gen_descriptor_init(&tone_desc,
                              1000,
                              -4,
                              0,

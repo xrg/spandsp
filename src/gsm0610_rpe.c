@@ -24,8 +24,6 @@
  *
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
- *
- * $Id: gsm0610_rpe.c,v 1.25.4.4 2010/02/18 14:00:49 steveu Exp $
  */
 
 /*! \file */

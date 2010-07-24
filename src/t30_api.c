@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: t30_api.c,v 1.13.4.6 2010/05/23 07:10:21 steveu Exp $
  */
 
 /*! \file */
@@ -687,11 +685,13 @@ SPAN_DECLARE(int) t30_set_supported_compressions(t30_state_t *s, int supported_c
     /* Mask out the ones we actually support today. */
     mask = T30_SUPPORT_T4_1D_COMPRESSION
          | T30_SUPPORT_T4_2D_COMPRESSION
-#if 0
+         | T30_SUPPORT_T6_COMPRESSION
+#if defined(SPANDSP_SUPPORT_T85)
          | T30_SUPPORT_T85_COMPRESSION
-         | T30_SUPPORT_T85_L0_COMPRESSION
+         | T30_SUPPORT_T85_L0_COMPRESSION;
+#else
+         | 0;
 #endif
-         | T30_SUPPORT_T6_COMPRESSION;
     s->supported_compressions = supported_compressions & mask;
     t30_build_dis_or_dtc(s);
     return 0;

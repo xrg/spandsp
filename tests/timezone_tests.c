@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: timezone_tests.c,v 1.1.2.2 2010/05/23 07:10:23 steveu Exp $
  */
 
 /*! \page timezone_tests_page Timezone handling tests

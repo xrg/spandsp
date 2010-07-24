@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: line_model.c,v 1.14.4.1 2010/01/04 14:43:09 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -347,7 +345,7 @@ SPAN_DECLARE(void) one_way_line_model_set_mains_pickup(one_way_line_model_state_
 
     if (f)
     {
-        make_tone_gen_descriptor(&mains_tone_desc, f, (int) (level - 10.0f), f*3, (int) level, 1, 0, 0, 0, TRUE);
+        tone_gen_descriptor_init(&mains_tone_desc, f, (int) (level - 10.0f), f*3, (int) level, 1, 0, 0, 0, TRUE);
         tone_gen_init(&s->mains_tone, &mains_tone_desc);
     }
     s->mains_interference = f;
@@ -456,9 +454,9 @@ SPAN_DECLARE(void) both_ways_line_model_set_mains_pickup(both_ways_line_model_st
 
     if (f)
     {
-        make_tone_gen_descriptor(&mains_tone_desc, f, (int) (level1 - 10.0f), f*3, (int) level1, 1, 0, 0, 0, TRUE);
+        tone_gen_descriptor_init(&mains_tone_desc, f, (int) (level1 - 10.0f), f*3, (int) level1, 1, 0, 0, 0, TRUE);
         tone_gen_init(&s->line1.mains_tone, &mains_tone_desc);
-        make_tone_gen_descriptor(&mains_tone_desc, f, (int) (level2 - 10.0f), f*3, (int) level2, 1, 0, 0, 0, TRUE);
+        tone_gen_descriptor_init(&mains_tone_desc, f, (int) (level2 - 10.0f), f*3, (int) level2, 1, 0, 0, 0, TRUE);
         tone_gen_init(&s->line2.mains_tone, &mains_tone_desc);
     }
     s->line1.mains_interference = f;

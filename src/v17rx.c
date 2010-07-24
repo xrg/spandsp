@@ -22,8 +22,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v17rx.c,v 1.153.4.10 2010/05/23 07:10:22 steveu Exp $
  */
 
 /*! \file */
@@ -230,6 +228,7 @@ static void equalizer_restore(v17_rx_state_t *s)
 
     s->eq_put_step = RX_PULSESHAPER_COEFF_SETS*10/(3*2) - 1;
     s->eq_step = 0;
+    s->eq_skip = 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -250,6 +249,7 @@ static void equalizer_reset(v17_rx_state_t *s)
 
     s->eq_put_step = RX_PULSESHAPER_COEFF_SETS*10/(3*2) - 1;
     s->eq_step = 0;
+    s->eq_skip = 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -289,6 +289,7 @@ static void tune_equalizer(v17_rx_state_t *s, const complexf_t *z, const complex
     cvec_circular_lmsf(s->eq_buf, s->eq_coeff, V17_EQUALIZER_LEN, s->eq_step, &err);
 }
 #endif
+/*- End of function --------------------------------------------------------*/
 
 static int descramble(v17_rx_state_t *s, int in_bit)
 {
@@ -571,22 +572,15 @@ static __inline__ void symbol_sync(v17_rx_state_t *s)
       - (((s->symbol_sync_low[0] >> 5)*(s->symbol_sync_high[1] >> 4)) >> 15)*SYNC_HIGH_BAND_EDGE_COEFF_2
       + (((s->symbol_sync_low[1] >> 5)*(s->symbol_sync_high[1] >> 4)) >> 15)*SYNC_MIXED_EDGES_COEFF_3;
     /* Filter away any DC component */
-    p = v - s->symbol_sync_dc_filter;
-    s->symbol_sync_dc_filter = v;
+    p = v - s->symbol_sync_dc_filter[1];
+    s->symbol_sync_dc_filter[1] = s->symbol_sync_dc_filter[0];
+    s->symbol_sync_dc_filter[0] = v;
     /* A little integration will now filter away much of the HF noise */
     s->baud_phase -= p;
     v = labs(s->baud_phase);
-#if 0
-    if (v > 150*FP_FACTOR)
-    {
-        i = v/(150*FP_FACTOR);
-        if (i > 15)
-            i = 15;
-#else
     if (v > 100*FP_FACTOR)
     {
         i = (v > 1000*FP_FACTOR)  ?  15  :  1;
-#endif
         if (s->baud_phase < 0)
             i = -i;
         //printf("v = %10.5f %5d - %f %f %d %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
@@ -599,22 +593,15 @@ static __inline__ void symbol_sync(v17_rx_state_t *s)
       - s->symbol_sync_low[0]*s->symbol_sync_high[1]*SYNC_HIGH_BAND_EDGE_COEFF_2
       + s->symbol_sync_low[1]*s->symbol_sync_high[1]*SYNC_MIXED_EDGES_COEFF_3;
     /* Filter away any DC component  */
-    p = v - s->symbol_sync_dc_filter;
-    s->symbol_sync_dc_filter = v;
+    p = v - s->symbol_sync_dc_filter[1];
+    s->symbol_sync_dc_filter[1] = s->symbol_sync_dc_filter[0];
+    s->symbol_sync_dc_filter[0] = v;
     /* A little integration will now filter away much of the HF noise */
     s->baud_phase -= p;
     v = fabsf(s->baud_phase);
-#if 0
-    if (v > 150.0f)
-    {
-        i = v/150.0f;
-        if (i > 15)
-            i = 15;
-#else
     if (v > 100.0f)
     {
         i = (v > 1000.0f)  ?  15  :  1;
-#endif
         if (s->baud_phase < 0.0f)
             i = -i;
         //printf("v = %10.5f %5d - %f %f %d\n", v, i, p, s->baud_phase, s->total_baud_timing_correction);
@@ -1350,15 +1337,14 @@ SPAN_DECLARE(int) v17_rx_restart(v17_rx_state_t *s, int bit_rate, int short_trai
     s->distances[0] = 0;
     s->trellis_ptr = 14;
 
-    span_log(&s->logging, SPAN_LOG_FLOW, "Phase rates %f %f\n", dds_frequencyf(s->carrier_phase_rate), dds_frequencyf(s->carrier_phase_rate_save));
     s->carrier_phase = 0;
     power_meter_init(&(s->power), 4);
 
     if (s->short_train)
     {
         s->carrier_phase_rate = s->carrier_phase_rate_save;
-        s->agc_scaling = s->agc_scaling_save;
         equalizer_restore(s);
+        s->agc_scaling = s->agc_scaling_save;
         /* Don't allow any frequency correction at all, until we start to pull the phase in. */
 #if defined(SPANDSP_USE_FIXED_POINTx)
         s->carrier_track_i = 0;
@@ -1385,6 +1371,8 @@ SPAN_DECLARE(int) v17_rx_restart(v17_rx_state_t *s, int bit_rate, int short_trai
 #endif
     }
     s->last_sample = 0;
+    span_log(&s->logging, SPAN_LOG_FLOW, "Gains %f %f\n", s->agc_scaling_save, s->agc_scaling);
+    span_log(&s->logging, SPAN_LOG_FLOW, "Phase rates %f %f\n", dds_frequencyf(s->carrier_phase_rate), dds_frequencyf(s->carrier_phase_rate_save));
 
     /* Initialise the working data for symbol timing synchronisation */
 #if defined(SPANDSP_USE_FIXED_POINTx)
@@ -1392,16 +1380,16 @@ SPAN_DECLARE(int) v17_rx_restart(v17_rx_state_t *s, int bit_rate, int short_trai
     {
         s->symbol_sync_low[i] = 0;
         s->symbol_sync_high[i] = 0;
+        s->symbol_sync_dc_filter[i] = 0;
     }
-    s->symbol_sync_dc_filter = 0;
     s->baud_phase = 0;
 #else
     for (i = 0;  i < 2;  i++)
     {
         s->symbol_sync_low[i] = 0.0f;
         s->symbol_sync_high[i] = 0.0f;
+        s->symbol_sync_dc_filter[i] = 0.0f;
     }
-    s->symbol_sync_dc_filter = 0.0f;
     s->baud_phase = 0.0f;
 #endif
     s->baud_half = 0;
@@ -1421,7 +1409,7 @@ SPAN_DECLARE(v17_rx_state_t *) v17_rx_init(v17_rx_state_t *s, int bit_rate, put_
     case 9600:
     case 7200:
     case 4800:
-        /* 4800 is an extension of V.17, to provide full converage of the V.32bis modes */
+        /* 4800 is an extension of V.17, to provide full coverage of the V.32bis modes */
         break;
     default:
         return NULL;
@@ -1439,8 +1427,6 @@ SPAN_DECLARE(v17_rx_state_t *) v17_rx_init(v17_rx_state_t *s, int bit_rate, put_
     s->short_train = FALSE;
     //s->scrambler_tap = 18 - 1;
     v17_rx_signal_cutoff(s, -45.5f);
-    s->agc_scaling = 0.0017f/RX_PULSESHAPER_GAIN;
-    s->agc_scaling_save = 0.0f;
     s->carrier_phase_rate_save = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
     v17_rx_restart(s, bit_rate, s->short_train);
     return s;

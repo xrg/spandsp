@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: modem_echo_tests.c,v 1.32.4.1 2010/01/04 14:51:19 steveu Exp $
  */
 
 /*! \page modem_echo_can_tests_page Line echo cancellation for modems tests

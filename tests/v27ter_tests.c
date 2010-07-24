@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v27ter_tests.c,v 1.106.4.2 2010/04/25 04:50:24 steveu Exp $
  */
 
 /*! \page v27ter_tests_page V.27ter modem tests
@@ -63,7 +61,9 @@ display of modem status is maintained.
 #include <string.h>
 #include <sndfile.h>
 #include <signal.h>
+#if defined(HAVE_FENV_H)
 #include <fenv.h>
+#endif
 
 //#if defined(WITH_SPANDSP_INTERNALS)
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
@@ -220,8 +220,7 @@ static void qam_report(void *user_data, const complexf_t *constel, const complex
 }
 /*- End of function --------------------------------------------------------*/
 
-v27ter_rx_state_t *rx;
-
+#if defined(HAVE_FENV_H)
 static void sigfpe_handler(int sig_num, siginfo_t *info, void *data)
 {
     switch (sig_num)
@@ -277,10 +276,11 @@ static void fpe_trap_setup(void)
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 }
 /*- End of function --------------------------------------------------------*/
+#endif
 
 int main(int argc, char *argv[])
 {
-    //v27ter_rx_state_t *rx;
+    v27ter_rx_state_t *rx;
     v27ter_tx_state_t *tx;
     bert_results_t bert_results;
     int16_t gen_amp[BLOCK_LEN];
@@ -369,7 +369,9 @@ int main(int argc, char *argv[])
     inhandle = NULL;
     outhandle = NULL;
 
+#if defined(HAVE_FENV_H)
     fpe_trap_setup();
+#endif
 
     if (log_audio)
     {

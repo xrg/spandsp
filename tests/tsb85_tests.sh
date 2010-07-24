@@ -14,9 +14,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-#
-# $Id: tsb85_tests.sh,v 1.8.4.1 2009/12/29 11:32:19 steveu Exp $
-#
 
 run_tsb85_test()
 {

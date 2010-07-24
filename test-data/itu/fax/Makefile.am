@@ -15,8 +15,6 @@
 ## You should have received a copy of the GNU General Public License
 ## License along with this program; if not, write to the Free Software
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-##
-## $Id: Makefile.am,v 1.5.4.1 2010/05/23 07:10:22 steveu Exp $
 
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
@@ -143,7 +141,7 @@ itutests.tif: ${ITU_TEST_PAGES_G3}
 
 .pbm.g3:
 	${PBM2G3} $*.pbm >$*.g3
-    
+
 dithered.tif: generate_dithered_tif$(EXEEXT)
 	./generate_dithered_tif$(EXEEXT)
 
