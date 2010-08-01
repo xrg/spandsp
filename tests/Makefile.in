@@ -63,7 +63,7 @@ noinst_PROGRAMS = adsi_tests$(EXEEXT) async_tests$(EXEEXT) \
 	schedule_tests$(EXEEXT) sig_tone_tests$(EXEEXT) \
 	super_tone_rx_tests$(EXEEXT) super_tone_tx_tests$(EXEEXT) \
 	swept_tone_tests$(EXEEXT) t4_tests$(EXEEXT) t31_tests$(EXEEXT) \
-	t38_decode$(EXEEXT) t38_core_tests$(EXEEXT) \
+	t38_core_tests$(EXEEXT) t38_decode$(EXEEXT) \
 	t38_gateway_tests$(EXEEXT) \
 	t38_gateway_to_terminal_tests$(EXEEXT) \
 	t38_non_ecm_buffer_tests$(EXEEXT) t38_terminal_tests$(EXEEXT) \
@@ -602,11 +602,11 @@ target_alias = @target_alias@
 AM_CFLAGS = $(COMP_VENDOR_CFLAGS)
 AM_LDFLAGS = $(COMP_VENDOR_LDFLAGS)
 noinst_DATA = sound_c1_8k.wav sound_c3_8k.wav
-EXTRA_DIST = regression_tests.sh \
+EXTRA_DIST = fax_tests.sh \
+             regression_tests.sh \
              tsb85_extra_tests.sh \
-             v42bis_tests.sh \
-             fax_tests.sh \
              tsb85_tests.sh \
+             v42bis_tests.sh \
              msvc/adsi_tests.vcproj \
              msvc/complex_tests.vcproj \
              msvc/complex_vector_float_tests.vcproj \

@@ -23,11 +23,11 @@ LIBS += $(TESTLIBS)
 
 noinst_DATA = sound_c1_8k.wav sound_c3_8k.wav
 
-EXTRA_DIST = regression_tests.sh \
+EXTRA_DIST = fax_tests.sh \
+             regression_tests.sh \
              tsb85_extra_tests.sh \
-             v42bis_tests.sh \
-             fax_tests.sh \
              tsb85_tests.sh \
+             v42bis_tests.sh \
              msvc/adsi_tests.vcproj \
              msvc/complex_tests.vcproj \
              msvc/complex_vector_float_tests.vcproj \
@@ -104,8 +104,8 @@ noinst_PROGRAMS =   adsi_tests \
                     swept_tone_tests \
                     t4_tests \
                     t31_tests \
-                    t38_decode \
                     t38_core_tests \
+                    t38_decode \
                     t38_gateway_tests \
                     t38_gateway_to_terminal_tests \
                     t38_non_ecm_buffer_tests \

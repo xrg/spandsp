@@ -2377,6 +2377,8 @@ static int send_response_to_pps(t30_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
+#define VET_ALL_FCD_FRAMES
+
 static int process_rx_pps(t30_state_t *s, const uint8_t *msg, int len)
 {
     int page;
@@ -2387,6 +2389,10 @@ static int process_rx_pps(t30_state_t *s, const uint8_t *msg, int len)
     int frame_no;
     int first_bad_frame;
     int image_ended;
+#if defined(VET_ALL_FCD_FRAMES)
+    int first;
+    int expected_len;
+#endif
 
     if (len < 7)
     {
@@ -2469,12 +2475,35 @@ static int process_rx_pps(t30_state_t *s, const uint8_t *msg, int len)
 
     /* Build a bit map of which frames we now have stored OK */
     first_bad_frame = 256;
+#if defined(VET_ALL_FCD_FRAMES)
+    first = TRUE;
+    expected_len = 256;
+#endif
     for (i = 0;  i < 32;  i++)
     {
         s->ecm_frame_map[i + 3] = 0;
         for (j = 0;  j < 8;  j++)
         {
             frame_no = (i << 3) + j;
+#if defined(VET_ALL_FCD_FRAMES)
+            if (s->ecm_len[frame_no] >= 0)
+            {
+                if (frame_no < s->ecm_frames - 1)
+                {
+                    if (first)
+                    {
+                        if (s->ecm_len[frame_no] == 64)
+                            expected_len = 64;
+                        first = FALSE;
+                    }
+                    if (s->ecm_len[frame_no] != expected_len)
+                    {
+                        span_log(&s->logging, SPAN_LOG_FLOW, "Bad length ECM frame - %d\n", s->ecm_len[frame_no]);
+                        s->ecm_len[frame_no] = -1;
+                    }
+                }
+            }            
+#endif
             if (s->ecm_len[frame_no] < 0)
             {
                 s->ecm_frame_map[i + 3] |= (1 << j);
@@ -2635,7 +2664,13 @@ static void process_rx_fcd(t30_state_t *s, const uint8_t *msg, int len)
     switch (s->state)
     {
     case T30_STATE_F_DOC_ECM:
-        if (len <= 4 + 256)
+        if (len > 4 + 256)
+        {
+            /* For other frame types we kill the call on an unexpected frame length. For FCD frames it is better to just ignore
+               the frame, and let retries sort things out. */
+            span_log(&s->logging, SPAN_LOG_FLOW, "Unexpected %s frame length - %d\n", t30_frametype(msg[0]), len);
+        }
+        else
         {
             frame_no = msg[3];
             /* Just store the actual image data, and record its length */
@@ -2644,10 +2679,6 @@ static void process_rx_fcd(t30_state_t *s, const uint8_t *msg, int len)
             s->ecm_len[frame_no] = (int16_t) (len - 4);
             /* In case we are just after a CTC/CTR exchange, which kicked us back to long training */
             s->short_train = TRUE;
-        }
-        else
-        {
-            unexpected_frame_length(s, msg, len);
         }
         /* We have received something, so any missing carrier status is out of date */
         if (s->current_status == T30_ERR_RX_NOCARRIER)
@@ -2677,6 +2708,7 @@ static void process_rx_rcp(t30_state_t *s, const uint8_t *msg, int len)
     case T30_STATE_F_POST_DOC_ECM:
         /* Just ignore this. It must be an extra RCP. Several are usually sent, to maximise the chance
            of receiving a correct one. */
+        timer_t2_start(s);
         break;
     default:
         unexpected_non_final_frame(s, msg, len);
@@ -3384,21 +3416,7 @@ static void process_state_f_doc_and_post_doc_ecm(t30_state_t *s, const uint8_t *
     case T4_RCP:
         /* Return to control for partial page. These might come through with or without the final frame tag.
            Here we deal with the "final frame tag" case. */
-        if (s->state == T30_STATE_F_DOC_ECM)
-        {
-            /* Return to control for partial page */
-            set_state(s, T30_STATE_F_POST_DOC_ECM);
-            queue_phase(s, T30_PHASE_D_RX);
-            timer_t2_start(s);
-            /* We have received something, so any missing carrier status is out of date */
-            if (s->current_status == T30_ERR_RX_NOCARRIER)
-                s->current_status = T30_ERR_OK;
-        }
-        else
-        {
-            /* Just ignore this. It must be an extra RCP. Several are usually sent, to maximise the chance
-               of receiving a correct one. */
-        }
+        process_rx_rcp(s, msg, len);
         break;
     case T30_EOR:
         if (len != 4)
@@ -4596,7 +4614,7 @@ static void process_rx_control_msg(t30_state_t *s, const uint8_t *msg, int len)
         /* The following handles context sensitive message types, which should
            occur at the end of message sequences. They should, therefore have
            the final frame flag set. */
-        span_log(&s->logging, SPAN_LOG_FLOW, "In state %d\n", s->state);
+        span_log(&s->logging, SPAN_LOG_FLOW, "Rx final frame in state %d\n", s->state);
 
         switch (s->state)
         {

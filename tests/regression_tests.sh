@@ -864,6 +864,7 @@ echo v42_tests not enabled
 #    exit $RETVAL
 #fi
 #echo v42bis_tests completed OK
+echo v42bis_tests not enabled
 
 ./v8_tests >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?

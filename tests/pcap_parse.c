@@ -90,8 +90,13 @@ typedef struct _ether_hdr
 {
     char ether_dst[6];
     char ether_src[6];
-    u_int16_t ether_type; /* we only need the type, so we can determine, if the next header is IPv4 or IPv6 */
+    u_int16_t ether_type;
 } ether_hdr;
+
+typedef struct _null_hdr
+{
+    uint32_t pf_type;
+} null_hdr;
 
 typedef struct _ipv6_hdr
 {
@@ -119,9 +124,13 @@ int pcap_scan_pkts(const char *file,
     int total_pkts;
     uint32_t pktlen;
     ether_hdr *ethhdr;
+    null_hdr *nullhdr;
     struct iphdr *iphdr;
     ipv6_hdr *ip6hdr;
     struct udphdr *udphdr;
+    int datalink;
+    int packet_type;
+    int i;
 
     total_pkts = 0;
     if ((pcap = pcap_open_offline(file, errbuf)) == NULL)
@@ -129,6 +138,15 @@ int pcap_scan_pkts(const char *file,
         fprintf(stderr, "Can't open PCAP file '%s'\n", file);
         return -1;
     }
+    datalink = pcap_datalink(pcap);
+    /* DLT_EN10MB seems to apply to all forms of ethernet, not just the 10MB kind. */
+    if (datalink != DLT_EN10MB  &&  datalink != DLT_NULL)
+    {
+        fprintf(stderr, "Unsupported data link type %d\n", datalink);
+        return -1;
+    }
+
+    printf("Datalink type %d\n", datalink);
     pkthdr = NULL;
     pktdata = NULL;
 #if defined(HAVE_PCAP_NEXT_EX)
@@ -143,14 +161,34 @@ int pcap_scan_pkts(const char *file,
     while ((pktdata = (uint8_t *) pcap_next(pcap, pkthdr)) != NULL)
     {
 #endif
-        ethhdr = (ether_hdr *) pktdata;
-        if (ntohs(ethhdr->ether_type) != 0x0800     /* IPv4 */
-            &&
-            ntohs(ethhdr->ether_type) != 0x86dd)    /* IPv6 */
+        if (datalink == DLT_EN10MB)
         {
-            continue;
+            ethhdr = (ether_hdr *) pktdata;
+            packet_type = ntohs(ethhdr->ether_type);
+            if (packet_type != 0x0800     /* IPv4 */
+                &&
+                packet_type != 0x86dd)    /* IPv6 */
+            {
+                continue;
+            }
+            iphdr = (struct iphdr *) ((uint8_t *) ethhdr + sizeof(*ethhdr));
         }
-        iphdr = (struct iphdr *) ((uint8_t *) ethhdr + sizeof(*ethhdr));
+        else if (datalink == DLT_NULL)
+        {
+            nullhdr = (null_hdr *) pktdata;
+            if (nullhdr->pf_type != PF_INET  &&  nullhdr->pf_type != PF_INET6)
+                continue;
+            iphdr = (struct iphdr *) ((uint8_t *) nullhdr + sizeof(*nullhdr));
+        }
+#if 0
+        {
+            int i;
+            printf("--- %d -", pkthdr->caplen);
+            for (i = 0;  i < pkthdr->caplen;  i++)
+                printf(" %02x", pktdata[i]);
+            printf("\n");
+        }
+#endif
         if (iphdr  &&  iphdr->version == 6)
         {
             /* ipv6 */
@@ -176,7 +214,9 @@ int pcap_scan_pkts(const char *file,
             pktlen = (uint32_t) ntohs(udphdr->len);
 #endif
         }
+
         timing_update_handler(user_data, &pkthdr->ts);
+
         if (src_addr  &&  ntohl(iphdr->saddr) != src_addr)
             continue;
         if (src_port  &&  ntohs(udphdr->source) != src_port)
@@ -186,14 +226,19 @@ int pcap_scan_pkts(const char *file,
         if (dest_port  &&  ntohs(udphdr->dest) != dest_port)
             continue;
 
+        if (pkthdr->len != pkthdr->caplen)
+        {
+            fprintf(stderr, "Truncated packet - total len = %d, captured len = %d\n", pkthdr->len, pkthdr->caplen);
+            exit(2);
+        }
         body = (const uint8_t *) udphdr;
-        body += sizeof(udphdr);
-        body_len = pktlen - sizeof(udphdr);
+        body += sizeof(struct udphdr);
+        body_len = pktlen - sizeof(struct udphdr);
         packet_handler(user_data, body, body_len);
 
         total_pkts++;
     }
-    fprintf(stderr, "In pcap %s, npkts %d\n", file, total_pkts);
+    fprintf(stderr, "In pcap %s there were %d accepted packets\n", file, total_pkts);
     pcap_close(pcap);
 
     return 0;

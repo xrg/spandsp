@@ -266,9 +266,9 @@ then
     esac
 fi
 
-#AC_DEFINE([SPANDSP_SUPPORT_T85], [1], [Support T.85 JBIG compression])
+#AC_DEFINE([SPANDSP_SUPPORT_T85], [0], [Support T.85 JBIG compression])
 SPANDSP_SUPPORT_T85="#undef SPANDSP_SUPPORT_T85"
-#AC_DEFINE([SPANDSP_SUPPORT_V34], [1], [Support the V.34 FAX modem])
+#AC_DEFINE([SPANDSP_SUPPORT_V34], [0], [Support the V.34 FAX modem])
 SPANDSP_SUPPORT_V34="#undef SPANDSP_SUPPORT_V34"
 
 AC_CHECK_LIB([m], [cos])
