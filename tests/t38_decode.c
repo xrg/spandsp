@@ -195,6 +195,7 @@ int main(int argc, char *argv[])
 
     use_ecm = FALSE;
     t38_version = 1;
+    options = 0;
     input_file_name = INPUT_FILE_NAME;
     fill_removal = FALSE;
     use_tep = FALSE;
@@ -203,7 +204,7 @@ int main(int argc, char *argv[])
     src_port = 0;
     dest_addr = 0;
     dest_port = 0;
-    while ((opt = getopt(argc, argv, "D:d:eFi:m:S:s:tv:")) != -1)
+    while ((opt = getopt(argc, argv, "D:d:eFi:m:oS:s:tv:")) != -1)
     {
         switch (opt)
         {
@@ -224,6 +225,9 @@ int main(int argc, char *argv[])
             break;
         case 'm':
             supported_modems = atoi(optarg);
+            break;
+        case 'o':
+            options = atoi(optarg);
             break;
         case 'S':
             src_addr = atoi(optarg);

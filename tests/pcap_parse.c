@@ -130,7 +130,6 @@ int pcap_scan_pkts(const char *file,
     struct udphdr *udphdr;
     int datalink;
     int packet_type;
-    int i;
 
     total_pkts = 0;
     if ((pcap = pcap_open_offline(file, errbuf)) == NULL)
