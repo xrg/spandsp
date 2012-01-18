@@ -60,10 +60,10 @@ typedef enum
     T4_COMPRESSION_ITU_T43 = 6,
     /*! T.45 run length colour compression */
     T4_COMPRESSION_ITU_T45 = 7,
-    /*! T.81 + T.30 Annex E colour JPEG coding */
-    T4_COMPRESSION_ITU_T81 = 8,
-    /*! T.81 + T.30 Annex K colour sYCC-JPEG coding */
-    T4_COMPRESSION_ITU_SYCC_T81 = 9
+    /*! T.42 + T.81 + T.30 Annex E colour JPEG coding */
+    T4_COMPRESSION_ITU_T42 = 8,
+    /*! T.42 + T.81 + T.30 Annex K colour sYCC-JPEG coding */
+    T4_COMPRESSION_ITU_SYCC_T42 = 9
 } t4_image_compression_t;
 
 /*! Supported X resolutions, in pixels per metre. */

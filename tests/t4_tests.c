@@ -289,8 +289,8 @@ int main(int argc, char *argv[])
 #endif
         //T4_COMPRESSION_ITU_T43,
         //T4_COMPRESSION_ITU_T45,
-        //T4_COMPRESSION_ITU_T81,
-        //T4_COMPRESSION_ITU_SYCC_T81,
+        //T4_COMPRESSION_ITU_T42,
+        //T4_COMPRESSION_ITU_SYCC_T42,
         -1
     };
     int sends;
