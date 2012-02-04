@@ -519,7 +519,7 @@ static int set_next_tx_type(t38_gateway_state_t *s)
             t->tx_bit_rate = 2400;
             break;
         case T38_IND_V27TER_4800_TRAINING:
-            t->tx_bit_rate = 2400;
+            t->tx_bit_rate = 4800;
             break;
         }
         /*endswitch*/
@@ -930,7 +930,7 @@ static void monitor_control_messages(t38_gateway_state_t *s,
     case T30_EOS | 1:
 #if 0
         /* If we are hitting one of these conditions, it will take another DCS/DTC to select
-           the fast modem again, so abandon our idea of t. */
+           the fast modem again, so abandon our idea of it. */
         s->core.fast_bit_rate = 0;
         s->core.fast_rx_modem = T38_NONE;
         s->core.image_data_mode = FALSE;
