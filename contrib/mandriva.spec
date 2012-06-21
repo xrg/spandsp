@@ -1,3 +1,4 @@
+%define git_repo spandsp
 %define major 2
 
 %define libnamedevold %{mklibname spandsp 0}-devel
@@ -7,21 +8,22 @@
 
 Summary:        Steve's SpanDSP library for telephony spans
 Name:           spandsp
-Version:        0.0.6
-Release:        %mkrel 0.pre18
-License:        GPL
+Version:	%git_get_ver
+Release:	%mkrel %{git_get_rel}
+License:        LGPL
 Group:          System/Libraries
 URL:            http://www.soft-switch.org/
-Source0:        http://www.soft-switch.org/downloads/spandsp/spandsp-%{version}pre18.tgz
+Source0:        %git_bs_source %{name}-%{version}.tar.gz
+Source1:	%{name}-gitrpm.version
+Source2:	%{name}-changelog.gitrpm.txt
 BuildRequires:  audiofile-devel
-BuildRequires:  fftw2-devel
+BuildRequires:  fftw-devel
 BuildRequires:  file
 BuildRequires:  fltk-devel
 BuildRequires:  jpeg-devel
 BuildRequires:  libtool
 BuildRequires:  libxml2-devel
 BuildRequires:  tiff-devel
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 %description
 spandsp is a library for DSP in telephony spans. It can perform many of the
@@ -59,7 +61,7 @@ This package includes the static libraries needed for developing programs
 using SpanDSP.
 
 %prep
-
+%git_get_source
 %setup -q
 
 %build
@@ -70,17 +72,6 @@ using SpanDSP.
 rm -rf %{buildroot}
 
 %makeinstall_std
-
-%if %mdkversion < 200900
-%post -n %{libname} -p /sbin/ldconfig
-%endif
-
-%if %mdkversion < 200900
-%postun -n %{libname} -p /sbin/ldconfig
-%endif
-
-%clean
-rm -rf %{buildroot}
 
 %files -n %{libname}
 %defattr(-,root,root)
@@ -98,3 +89,6 @@ rm -rf %{buildroot}
 %files -n %{libnamestaticdev}
 %defattr(-,root,root)
 %{_libdir}/*.a
+
+%changelog -f  %{_sourcedir}/%{name}-changelog.gitrpm.txt
+
